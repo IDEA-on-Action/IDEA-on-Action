@@ -1,5 +1,6 @@
 import { Card } from "@/components/ui/card";
 import { Award, Target, TrendingUp } from "lucide-react";
+import logoSymbol from "@/assets/logo-symbol.png";
 
 const About = () => {
   return (
@@ -42,8 +43,12 @@ const About = () => {
           <div className="relative animate-fade-in" style={{ animationDelay: '0.2s' }}>
             <div className="aspect-square rounded-3xl bg-gradient-primary/20 backdrop-blur-sm border border-primary/20 p-8 flex items-center justify-center">
               <div className="text-center">
-                <div className="w-32 h-32 mx-auto mb-6 rounded-2xl bg-gradient-primary flex items-center justify-center text-4xl font-bold">
-                  IA
+                <div className="w-40 h-40 mx-auto mb-6 flex items-center justify-center">
+                  <img 
+                    src={logoSymbol} 
+                    alt="IDEA on Action Logo" 
+                    className="w-full h-full object-contain"
+                  />
                 </div>
                 <h3 className="text-2xl font-bold mb-2">IDEA on Action</h3>
                 <p className="text-muted-foreground">생각과행동</p>

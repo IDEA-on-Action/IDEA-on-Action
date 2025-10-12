@@ -1,4 +1,5 @@
 import { Github, Linkedin, Mail } from "lucide-react";
+import logoSymbol from "@/assets/logo-symbol.png";
 
 const Footer = () => {
   return (
@@ -6,11 +7,12 @@ const Footer = () => {
       <div className="container mx-auto px-4 py-12">
         <div className="grid md:grid-cols-4 gap-8 mb-8">
           <div>
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-8 h-8 rounded-lg bg-gradient-primary flex items-center justify-center">
-                <span className="text-lg font-bold">IA</span>
+            <div className="flex items-center gap-3 mb-4">
+              <img src={logoSymbol} alt="IDEA on Action Logo" className="h-10 w-10" />
+              <div className="flex flex-col">
+                <span className="font-bold text-lg leading-tight">IDEA on Action</span>
+                <span className="text-xs text-muted-foreground">생각과행동</span>
               </div>
-              <span className="font-bold text-xl">IDEA on Action</span>
             </div>
             <p className="text-sm text-muted-foreground mb-4">
               생각과행동으로 미래를 설계하다

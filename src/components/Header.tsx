@@ -1,15 +1,17 @@
 import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import logoSymbol from "@/assets/logo-symbol.png";
 
 const Header = () => {
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
       <nav className="container mx-auto px-4 h-16 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-gradient-primary flex items-center justify-center">
-            <span className="text-lg font-bold">IA</span>
+        <div className="flex items-center gap-3">
+          <img src={logoSymbol} alt="IDEA on Action Logo" className="h-10 w-10" />
+          <div className="flex flex-col">
+            <span className="font-bold text-lg leading-tight">IDEA on Action</span>
+            <span className="text-xs text-muted-foreground">생각과행동</span>
           </div>
-          <span className="font-bold text-xl">IDEA on Action</span>
         </div>
 
         <div className="hidden md:flex items-center gap-8">
