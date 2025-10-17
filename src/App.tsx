@@ -7,7 +7,15 @@ import { HelmetProvider } from "react-helmet-async";
 import Index from "./pages/Index";
 import Services from "./pages/Services";
 import ServiceDetail from "./pages/ServiceDetail";
+import Login from "./pages/Login";
+import Forbidden from "./pages/Forbidden";
 import NotFound from "./pages/NotFound";
+import { AdminRoute } from "./components/auth/AdminRoute";
+import { AdminLayout } from "./components/layouts/AdminLayout";
+import Dashboard from "./pages/admin/Dashboard";
+import AdminServices from "./pages/admin/AdminServices";
+import CreateService from "./pages/admin/CreateService";
+import EditService from "./pages/admin/EditService";
 
 const queryClient = new QueryClient();
 
@@ -19,9 +27,28 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
+            {/* Public Routes */}
             <Route path="/" element={<Index />} />
             <Route path="/services" element={<Services />} />
             <Route path="/services/:id" element={<ServiceDetail />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/forbidden" element={<Forbidden />} />
+
+            {/* Admin Routes */}
+            <Route
+              path="/admin"
+              element={
+                <AdminRoute>
+                  <AdminLayout />
+                </AdminRoute>
+              }
+            >
+              <Route index element={<Dashboard />} />
+              <Route path="services" element={<AdminServices />} />
+              <Route path="services/new" element={<CreateService />} />
+              <Route path="services/:id/edit" element={<EditService />} />
+            </Route>
+
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

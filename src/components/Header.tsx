@@ -1,12 +1,24 @@
-import { Menu } from "lucide-react";
-import { Link, useLocation } from "react-router-dom";
+import { Menu, User as UserIcon } from "lucide-react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/shared/ThemeToggle";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useAuth } from "@/hooks/useAuth";
+import { useIsAdmin } from "@/hooks/useIsAdmin";
 import logoSymbol from "@/assets/logo-symbol.png";
 
 const Header = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const isHomePage = location.pathname === "/";
+  const { user, signOut } = useAuth();
+  const { data: isAdmin } = useIsAdmin();
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 glass-card border-b border-gray-200 dark:border-gray-700">
@@ -52,11 +64,42 @@ const Header = () => {
 
         <div className="flex items-center gap-3">
           <ThemeToggle />
-          <Link to="/services">
-            <Button variant="default" className="hidden md:inline-flex bg-gradient-primary hover:opacity-90">
-              시작하기
+
+          {user ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+                  <Avatar>
+                    <AvatarFallback className="bg-gradient-primary text-white">
+                      {user.email?.[0]?.toUpperCase() || <UserIcon className="h-5 w-5" />}
+                    </AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuItem onClick={() => navigate('/profile')}>
+                  프로필
+                </DropdownMenuItem>
+                {isAdmin && (
+                  <DropdownMenuItem onClick={() => navigate('/admin/services')}>
+                    관리자
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuItem onClick={signOut}>
+                  로그아웃
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <Button
+              variant="default"
+              className="hidden md:inline-flex bg-gradient-primary hover:opacity-90"
+              onClick={() => navigate('/login')}
+            >
+              로그인
             </Button>
-          </Link>
+          )}
+
           <Button variant="ghost" size="icon" className="md:hidden">
             <Menu className="h-5 w-5" />
           </Button>

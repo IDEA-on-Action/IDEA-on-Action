@@ -9,6 +9,67 @@
 
 ---
 
+## [1.5.0] - 2025-10-17
+
+### Added
+- **인증 & 관리자 시스템** 🎉
+  - **Phase 1: 로그인 시스템**
+    - `useAuth` Hook (OAuth + 이메일 로그인, 세션 관리)
+    - `useIsAdmin` Hook (관리자 권한 확인, React Query 캐싱)
+    - Login 페이지 (Google/GitHub/Kakao OAuth)
+    - 관리자 계정 지원 (`admin` / `demian00`)
+    - Header 아바타/드롭다운 통합
+    - ProtectedRoute 컴포넌트 (로그인 필수)
+  - **Phase 2: 관리자 시스템**
+    - AdminRoute 컴포넌트 (관리자 전용)
+    - Forbidden (403) 페이지
+    - AdminLayout (사이드바 네비게이션)
+  - **Phase 3: 서비스 CRUD**
+    - ServiceForm (React Hook Form + Zod 검증)
+    - AdminServices 페이지 (목록/테이블, 검색, 필터)
+    - CreateService 페이지 (서비스 등록)
+    - EditService 페이지 (서비스 수정)
+    - Dashboard 페이지 (통계, 최근 서비스)
+  - **Phase 4: 이미지 업로드**
+    - Supabase Storage 통합
+    - 다중 이미지 업로드 (5MB 제한)
+    - 이미지 미리보기 및 삭제
+    - JPG/PNG/WEBP 지원
+
+- **의존성**
+  - `react-hook-form`: 폼 관리
+  - `zod`: 스키마 검증
+  - `@hookform/resolvers`: RHF + Zod 통합
+
+- **설정 가이드**
+  - [docs/guides/storage/setup.md](../guides/storage/setup.md) - Supabase Storage 설정
+  - [docs/guides/auth/oauth-setup.md](../guides/auth/oauth-setup.md) - OAuth 설정
+  - [docs/guides/auth/admin-setup.md](../guides/auth/admin-setup.md) - 관리자 계정 설정
+
+- **라우트**
+  - `/login` - 로그인 페이지
+  - `/forbidden` - 403 권한 없음
+  - `/admin` - 관리자 대시보드
+  - `/admin/services` - 서비스 관리
+  - `/admin/services/new` - 서비스 등록
+  - `/admin/services/:id/edit` - 서비스 수정
+
+### Changed
+- Header: "시작하기" 버튼 → 로그인 상태에 따라 아바타/드롭다운 표시
+- Login 입력: `type="email"` → `type="text"` (admin 계정 지원)
+- 이메일 자동 변환: `admin` → `admin@ideaonaction.local`
+
+### Fixed
+- admin 계정 로그인 시 이메일 형식 검증 오류 수정
+
+### Documentation
+- AUTHENTICATION-SUMMARY.md - 인증 시스템 완료 보고서
+
+### Build
+- 번들 크기: 226.66 kB (gzip) (+38.44 kB from v1.4.0)
+
+---
+
 ## [1.4.0] - 2025-10-17
 
 ### Added
