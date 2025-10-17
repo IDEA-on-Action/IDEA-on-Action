@@ -3,47 +3,51 @@
 > 프로젝트 작업 목록 및 진행 상황 관리
 
 **마지막 업데이트**: 2025-10-17
-**현재 Phase**: Phase 8 (서비스 페이지 구현)
+**현재 Phase**: Phase 9 준비 (전자상거래)
+**프로젝트 버전**: 1.5.0
 
 ---
 
-## 🚀 현재 진행 중 (Phase 8)
+## ✅ 완료된 작업 (Phase 8 + 인증/관리자)
 
-### 🔴 1. 데이터 레이어 구축 (우선순위: 최고)
-- [ ] Supabase `services` 테이블 확인 및 연동
-- [ ] TypeScript 타입 정의 작성 (`src/types/service.ts`)
-- [ ] React Query 훅 구현
-  - [ ] `useServices` - 서비스 목록 조회
-  - [ ] `useServiceDetail` - 서비스 상세 조회
-  - [ ] `useServiceCategories` - 카테고리 조회
+### Phase 8: 서비스 페이지 구현 ✅
+- [x] Supabase `services` 테이블 연동
+- [x] TypeScript 타입 정의 (`src/types/database.ts`)
+- [x] React Query 훅 구현
+  - [x] `useServices` - 서비스 목록 조회
+  - [x] `useServiceDetail` - 서비스 상세 조회
+  - [x] `useServiceCategories` - 카테고리 조회
+  - [x] `useServiceCounts` - 카테고리별 개수
+- [x] 서비스 목록 페이지 (`/services`)
+- [x] 서비스 상세 페이지 (`/services/:id`)
+- [x] ServiceCard 컴포넌트
+- [x] 이미지 갤러리 (Carousel)
+- [x] 메트릭 시각화
+- [x] SEO 최적화 (react-helmet-async)
+- [x] 반응형 디자인
+- [x] 다크 모드 지원
 
-### 🔴 2. 서비스 목록 페이지 (`/services`)
-- [ ] 라우트 추가 (React Router)
-- [ ] 페이지 컴포넌트 생성 (`src/pages/Services.tsx`)
-- [ ] 그리드 레이아웃 구현 (반응형)
-- [ ] 카테고리 필터링 UI
-- [ ] 정렬 기능 (최신순, 인기순)
-- [ ] 로딩 스켈레톤 UI
-- [ ] 에러 상태 처리
-
-### 🔴 3. 서비스 상세 페이지 (`/services/[id]`)
-- [ ] 동적 라우팅 설정
-- [ ] 페이지 컴포넌트 생성 (`src/pages/ServiceDetail.tsx`)
-- [ ] 상세 정보 표시 섹션
-- [ ] 이미지 갤러리 컴포넌트
-- [ ] 메트릭 시각화 (통계)
-- [ ] CTA 버튼 (문의하기, 구매하기)
-- [ ] 공유 기능 (선택)
-
-### 🟡 4. 관리자 기능 (선택 사항)
-- [ ] 서비스 CRUD 대시보드 구현
-
-### ✅ 완료 기준
-- [ ] `/services` 페이지 접근 가능
-- [ ] 최소 3개 샘플 서비스 표시
-- [ ] 다크 모드 완벽 지원
-- [ ] 모바일/태블릿/데스크탑 반응형
-- [ ] 빌드 에러 0개
+### 인증 & 관리자 시스템 ✅
+- [x] **Phase 1: 로그인**
+  - [x] useAuth Hook (OAuth + 이메일)
+  - [x] useIsAdmin Hook (관리자 확인)
+  - [x] Login 페이지
+  - [x] Header 통합 (아바타/드롭다운)
+  - [x] ProtectedRoute
+- [x] **Phase 2: 관리자 시스템**
+  - [x] AdminRoute
+  - [x] Forbidden (403) 페이지
+  - [x] AdminLayout
+- [x] **Phase 3: 서비스 CRUD**
+  - [x] ServiceForm (React Hook Form + Zod)
+  - [x] AdminServices (목록/테이블)
+  - [x] CreateService 페이지
+  - [x] EditService 페이지
+  - [x] Dashboard 페이지
+- [x] **Phase 4: 이미지 업로드**
+  - [x] Supabase Storage 통합
+  - [x] 다중 이미지 업로드
+  - [x] 이미지 미리보기/삭제
 
 ---
 
