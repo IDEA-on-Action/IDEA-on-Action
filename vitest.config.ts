@@ -1,5 +1,5 @@
 import { defineConfig } from 'vitest/config';
-import react from '@vitejs/plugin-react';
+import react from '@vitejs/plugin-react-swc';
 import path from 'path';
 
 /**
@@ -7,7 +7,11 @@ import path from 'path';
  * @see https://vitest.dev/config/
  */
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react({
+      jsxImportSource: 'react',
+    }),
+  ],
   test: {
     /* jsdom 환경 (React 컴포넌트 테스트) */
     environment: 'jsdom',
@@ -16,6 +20,8 @@ export default defineConfig({
     globals: true,
 
     /* 테스트 파일 설정 */
+    include: ['tests/unit/**/*.test.ts', 'tests/unit/**/*.test.tsx'],
+    exclude: ['tests/e2e/**', 'node_modules/**', 'dist/**'],
     setupFiles: ['./tests/setup.ts'],
 
     /* 커버리지 설정 */
