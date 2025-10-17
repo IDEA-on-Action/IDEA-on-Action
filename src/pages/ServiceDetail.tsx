@@ -1,0 +1,262 @@
+/**
+ * ServiceDetail Page
+ *
+ * 서비스 상세 페이지
+ * - 서비스 정보 표시
+ * - 이미지 갤러리
+ * - 기능 목록
+ * - 메트릭 시각화
+ * - CTA 버튼
+ */
+
+import { useParams, Link, useNavigate } from 'react-router-dom'
+import { Helmet } from 'react-helmet-async'
+import Header from '@/components/Header'
+import Footer from '@/components/Footer'
+import { useServiceDetail } from '@/hooks/useServices'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from '@/components/ui/carousel'
+import {
+  ArrowLeft,
+  CheckCircle2,
+  Users,
+  Star,
+  TrendingUp,
+  AlertCircle,
+  Mail,
+  ShoppingCart,
+} from 'lucide-react'
+
+export default function ServiceDetail() {
+  const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
+  const { data: service, isLoading, isError, error } = useServiceDetail(id!)
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex flex-col bg-gradient-to-br from-background via-background to-primary/5">
+        <Header />
+        <main className="flex-1 container mx-auto px-4 py-16">
+          <Skeleton className="h-12 w-32 mb-8" />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <Skeleton className="h-96" />
+            <div className="space-y-4">
+              <Skeleton className="h-10 w-3/4" />
+              <Skeleton className="h-6 w-full" />
+              <Skeleton className="h-6 w-2/3" />
+            </div>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    )
+  }
+
+  if (isError || !service) {
+    return (
+      <div className="min-h-screen flex flex-col bg-gradient-to-br from-background via-background to-primary/5">
+        <Header />
+        <main className="flex-1 container mx-auto px-4 py-16">
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>오류 발생</AlertTitle>
+            <AlertDescription>
+              {error?.message || '서비스를 찾을 수 없습니다.'}
+            </AlertDescription>
+          </Alert>
+          <Button onClick={() => navigate('/services')} className="mt-4">
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            서비스 목록으로
+          </Button>
+        </main>
+        <Footer />
+      </div>
+    )
+  }
+
+  const {
+    title,
+    description,
+    price,
+    image_url,
+    images,
+    features,
+    metrics,
+    category,
+  } = service
+
+  // 가격 포맷팅
+  const formattedPrice = new Intl.NumberFormat('ko-KR', {
+    style: 'currency',
+    currency: 'KRW',
+  }).format(price)
+
+  // 갤러리 이미지 (메인 이미지 + 추가 이미지)
+  const galleryImages = image_url
+    ? [image_url, ...(images || [])]
+    : images || []
+
+  return (
+    <>
+      <Helmet>
+        <title>{title} | VIBE WORKING</title>
+        <meta name="description" content={description || ''} />
+      </Helmet>
+
+      <div className="min-h-screen flex flex-col bg-gradient-to-br from-background via-background to-primary/5">
+        <Header />
+
+        <main className="flex-1 container mx-auto px-4 py-16 space-y-12">
+          {/* 뒤로 가기 */}
+          <Button variant="ghost" onClick={() => navigate('/services')}>
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            서비스 목록으로
+          </Button>
+
+          {/* 메인 섹션 */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+            {/* 이미지 갤러리 */}
+            <div className="space-y-4">
+              {galleryImages.length > 0 ? (
+                <Carousel className="w-full">
+                  <CarouselContent>
+                    {galleryImages.map((img, index) => (
+                      <CarouselItem key={index}>
+                        <div className="aspect-video rounded-lg overflow-hidden glass-card">
+                          <img
+                            src={img}
+                            alt={`${title} - 이미지 ${index + 1}`}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      </CarouselItem>
+                    ))}
+                  </CarouselContent>
+                  {galleryImages.length > 1 && (
+                    <>
+                      <CarouselPrevious />
+                      <CarouselNext />
+                    </>
+                  )}
+                </Carousel>
+              ) : (
+                <div className="aspect-video rounded-lg overflow-hidden glass-card bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
+                  <span className="text-6xl font-bold text-muted-foreground opacity-50">
+                    {title.charAt(0)}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* 서비스 정보 */}
+            <div className="space-y-6">
+              {/* 카테고리 & 제목 */}
+              <div className="space-y-3">
+                {category && <Badge variant="secondary">{category.name}</Badge>}
+                <h1 className="text-4xl font-bold">{title}</h1>
+                <p className="text-lg text-muted-foreground">{description}</p>
+              </div>
+
+              {/* 메트릭 */}
+              {metrics && (
+                <div className="grid grid-cols-3 gap-4">
+                  {metrics.users && (
+                    <Card>
+                      <CardHeader className="pb-3">
+                        <Users className="h-5 w-5 text-primary" />
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-bold">{metrics.users.toLocaleString()}</div>
+                        <div className="text-sm text-muted-foreground">사용자</div>
+                      </CardContent>
+                    </Card>
+                  )}
+                  {metrics.satisfaction && (
+                    <Card>
+                      <CardHeader className="pb-3">
+                        <Star className="h-5 w-5 text-yellow-500" />
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-bold">{metrics.satisfaction.toFixed(1)}</div>
+                        <div className="text-sm text-muted-foreground">만족도</div>
+                      </CardContent>
+                    </Card>
+                  )}
+                  {metrics.avg_roi_increase && (
+                    <Card>
+                      <CardHeader className="pb-3">
+                        <TrendingUp className="h-5 w-5 text-green-500" />
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-bold">{metrics.avg_roi_increase}%</div>
+                        <div className="text-sm text-muted-foreground">ROI 증가</div>
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
+              )}
+
+              {/* 가격 & CTA */}
+              <Card className="glass-card border-primary/50">
+                <CardContent className="p-6 space-y-4">
+                  <div>
+                    <div className="text-3xl font-bold text-primary">{formattedPrice}</div>
+                    <div className="text-sm text-muted-foreground">부가세 별도</div>
+                  </div>
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <Button size="lg" className="flex-1">
+                      <ShoppingCart className="mr-2 h-5 w-5" />
+                      구매하기
+                    </Button>
+                    <Button size="lg" variant="outline" asChild className="flex-1">
+                      <Link to="/contact">
+                        <Mail className="mr-2 h-5 w-5" />
+                        문의하기
+                      </Link>
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+
+          {/* 기능 섹션 */}
+          {features && features.length > 0 && (
+            <div className="space-y-6">
+              <h2 className="text-3xl font-bold">주요 기능</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {features.map((feature, index) => (
+                  <Card key={index} className="glass-card">
+                    <CardHeader>
+                      <div className="flex items-start gap-3">
+                        <CheckCircle2 className="h-6 w-6 text-primary flex-shrink-0 mt-1" />
+                        <div>
+                          <CardTitle className="text-lg">{feature.title}</CardTitle>
+                          <CardDescription className="mt-2">
+                            {feature.description}
+                          </CardDescription>
+                        </div>
+                      </div>
+                    </CardHeader>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          )}
+        </main>
+
+        <Footer />
+      </div>
+    </>
+  )
+}

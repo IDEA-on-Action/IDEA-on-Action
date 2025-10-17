@@ -1,0 +1,197 @@
+{
+  "extracted_at": "2025-10-17T03:33:04.041Z",
+  "database_url": "https://zykjdneewbzyazfukzyg.supabase.co",
+  "method": "known_tables",
+  "note": "This is a fallback method. Some tables might be missing.",
+  "tables": [
+    {
+      "name": "services",
+      "exists": true,
+      "row_count": 0,
+      "columns": []
+    },
+    {
+      "name": "service_categories",
+      "exists": true,
+      "row_count": 4,
+      "columns": [
+        {
+          "name": "id",
+          "type": "string",
+          "sample_value": "3e48f3ff-004e-4815-a497-c4841c17a134"
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "sample_value": "AI 솔루션"
+        },
+        {
+          "name": "slug",
+          "type": "string",
+          "sample_value": "ai-solutions"
+        },
+        {
+          "name": "description",
+          "type": "string",
+          "sample_value": "AI 기반 비즈니스 솔루션"
+        },
+        {
+          "name": "display_order",
+          "type": "number",
+          "sample_value": 1
+        },
+        {
+          "name": "created_at",
+          "type": "string",
+          "sample_value": "2025-10-09T16:45:13.730094+00:00"
+        }
+      ]
+    },
+    {
+      "name": "carts",
+      "exists": true,
+      "row_count": 0,
+      "columns": []
+    },
+    {
+      "name": "orders",
+      "exists": true,
+      "row_count": 0,
+      "columns": []
+    },
+    {
+      "name": "order_items",
+      "exists": true,
+      "row_count": 0,
+      "columns": []
+    },
+    {
+      "name": "payments",
+      "exists": true,
+      "row_count": 0,
+      "columns": []
+    },
+    {
+      "name": "user_profiles",
+      "exists": true,
+      "row_count": 0,
+      "columns": []
+    },
+    {
+      "name": "user_roles",
+      "exists": true,
+      "row_count": 0,
+      "columns": []
+    },
+    {
+      "name": "posts",
+      "exists": true,
+      "row_count": 6,
+      "columns": [
+        {
+          "name": "id",
+          "type": "string",
+          "sample_value": "47e61102-0aec-475b-b636-e6d891c52c2f"
+        },
+        {
+          "name": "author_id",
+          "type": "object",
+          "sample_value": null
+        },
+        {
+          "name": "title",
+          "type": "string",
+          "sample_value": "AI와 워킹의 만남: 생산성 혁신의 새로운 패러다임"
+        },
+        {
+          "name": "slug",
+          "type": "string",
+          "sample_value": "ai-walking-productivity-revolution"
+        },
+        {
+          "name": "content",
+          "type": "string",
+          "sample_value": "AI 기술이 어떻게 우리의 일상적인 워킹 루틴을 혁신하고 있는지 살펴보겠습니다. 스마트워치부터 AI 기반 피트니스 앱까지, 기술과 건강의 만남이 만들어내는 새로운 가능성들을 탐구합니다."
+        },
+        {
+          "name": "status",
+          "type": "string",
+          "sample_value": "published"
+        },
+        {
+          "name": "published_at",
+          "type": "string",
+          "sample_value": "2025-10-10T12:47:52.497504+00:00"
+        },
+        {
+          "name": "created_at",
+          "type": "string",
+          "sample_value": "2025-10-12T12:47:52.497504+00:00"
+        },
+        {
+          "name": "updated_at",
+          "type": "string",
+          "sample_value": "2025-10-12T12:47:52.497504+00:00"
+        },
+        {
+          "name": "excerpt",
+          "type": "string",
+          "sample_value": "AI 기술과 워킹의 결합으로 나타나는 생산성 혁신에 대해 알아보세요."
+        },
+        {
+          "name": "featured_image_url",
+          "type": "string",
+          "sample_value": "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800&h=400&fit=crop"
+        },
+        {
+          "name": "tags",
+          "type": "object",
+          "sample_value": [
+            "AI",
+            "워킹",
+            "생산성",
+            "기술"
+          ]
+        },
+        {
+          "name": "categories",
+          "type": "object",
+          "sample_value": [
+            "기술",
+            "건강"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "post_tags",
+      "exists": true,
+      "row_count": 0,
+      "columns": []
+    },
+    {
+      "name": "gallery",
+      "exists": true,
+      "row_count": 0,
+      "columns": []
+    },
+    {
+      "name": "metrics",
+      "exists": true,
+      "row_count": 0,
+      "columns": []
+    },
+    {
+      "name": "chat_messages",
+      "exists": true,
+      "row_count": 0,
+      "columns": []
+    },
+    {
+      "name": "analytics_events",
+      "exists": true,
+      "row_count": 0,
+      "columns": []
+    }
+  ]
+}
