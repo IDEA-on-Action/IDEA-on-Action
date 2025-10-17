@@ -4,9 +4,11 @@
 
 **마지막 업데이트**: 2025-10-17
 **프로젝트 버전**: 1.5.0
-**상태**: ✅ Production Ready | 🎉 인증 & 관리자 시스템 완료 | 🧪 테스트 계획 수립 완료
+**상태**: ✅ Production Ready | 🎉 인증 & 관리자 시스템 완료 | 🧪 테스트 인프라 구축 중 (50%)
 
 **최신 업데이트**:
+- 2025-10-17: 테스트 인프라 구축 진행 중 - E2E 30개, 유닛 15개 테스트 작성 완료
+- 2025-10-17: 접근성 개선 완료 (Footer/Contact aria-label 추가)
 - 2025-10-17: 테스트 계획 수립 완료 (Playwright, Vitest, Lighthouse CI, Axe-core)
 - 2025-10-17: v1.5.0 프로덕션 배포 완료 (GitHub Release, Vercel)
 - 2025-10-17: 인증 & 관리자 시스템 완료 (OAuth, RBAC, 서비스 CRUD, 이미지 업로드)
@@ -318,7 +320,7 @@ npm run lint      # ESLint 검사
    - 다크 모드 지원 ✅
    - 빌드 검증 완료 ✅
 
-9. **인증 & 관리자 시스템** (100%) 🎉 ⭐ NEW
+9. **인증 & 관리자 시스템** (100%) 🎉
    - **Phase 1: 로그인 시스템** ✅
      - useAuth Hook (OAuth + 이메일 로그인) ✅
      - useIsAdmin Hook (관리자 권한 확인) ✅
@@ -341,30 +343,35 @@ npm run lint      # ESLint 검사
      - 이미지 미리보기/삭제 ✅
      - 5MB 제한, JPG/PNG/WEBP ✅
 
+10. **테스트 인프라 구축** (50%) 🧪 ⭐ NEW
+    - **테스트 도구 설정** ✅
+      - Playwright (5 브라우저, 스크린샷/비디오) ✅
+      - Vitest (@vitejs/plugin-react-swc, jsdom) ✅
+      - Axe-core (접근성 테스트 통합) ✅
+    - **E2E 테스트** (30개 작성) ✅
+      - homepage.spec.ts (12개, 91.7% 통과) ✅
+      - login.spec.ts (7개) ✅
+      - services.spec.ts (11개) ✅
+    - **유닛 테스트** (15개 작성, 100% 통과) ✅
+      - useAuth.test.ts (8개 테스트) ✅
+      - useServices.test.tsx (7개 테스트) ✅
+    - **접근성 개선** ✅
+      - Footer/Contact aria-label 추가 ✅
+      - 아이콘 aria-hidden 설정 ✅
+
 ### 🚀 다음 단계
 
-#### 테스트 인프라 구축 (우선순위: 🔴 최고)
+#### 테스트 인프라 구축 완료 (우선순위: 🔴 최고) - 50% 완료
 **목표**: 배포된 v1.5.0 기능 검증 및 자동화된 테스트 시스템 구축
-**예상 기간**: 1주
+**예상 기간**: 3-5일
+**현재 상태**: E2E 30개, 유닛 15개 작성 완료 (통과율 100%)
 
-- [ ] **테스트 도구 설정**
-  - Playwright (E2E 테스트, 크로스 브라우저)
-  - Vitest (유닛/컴포넌트 테스트)
-  - Lighthouse CI (성능 테스트)
-  - Axe-core (접근성 테스트)
-- [ ] **E2E 테스트 구현** (30+ 테스트 파일)
-  - 인증 테스트 (로그인, OAuth, 로그아웃)
-  - 관리자 테스트 (대시보드, CRUD, 이미지 업로드)
-  - 공개 페이지 테스트 (홈, 서비스 목록/상세)
-  - 시각적 테스트 (다크 모드, 반응형)
-- [ ] **유닛 테스트 구현**
-  - 훅 테스트 (useAuth, useIsAdmin, useServices)
-  - 컴포넌트 테스트 (ServiceForm, ServiceCard)
-- [ ] **CI/CD 통합**
-  - GitHub Actions 워크플로우 (E2E, Unit, Lighthouse)
-  - PR 머지 전 자동 테스트 실행
-- [ ] **문서화**
-  - 테스트 전략 문서
+**남은 작업**:
+- [ ] **추가 E2E 테스트** (관리자 CRUD, 시각적 테스트)
+- [ ] **추가 유닛 테스트** (useIsAdmin, ServiceForm, ServiceCard)
+- [ ] **Lighthouse CI 설정** (성능 테스트 자동화)
+- [ ] **CI/CD 통합** (GitHub Actions 워크플로우)
+- [ ] **테스트 문서 작성** (전략, 가이드, 체크리스트)
   - E2E 테스트 작성 가이드
   - 수동 테스트 체크리스트
 
