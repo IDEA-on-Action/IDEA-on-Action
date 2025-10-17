@@ -57,11 +57,47 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        // Brand colors for VIBE WORKING
+        brand: {
+          primary: "#3b82f6",
+          accent: "#f59e0b",
+          secondary: "#8b5cf6",
+        },
+        // Dark mode colors
+        dark: {
+          bg: "#111827",
+          surface: "#1f2937",
+          border: "#374151",
+        },
+      },
+      fontFamily: {
+        sans: ["Inter", "system-ui", "sans-serif"],
+        mono: ["JetBrains Mono", "monospace"],
+      },
+      spacing: {
+        "grid-1": "8px",
+        "grid-2": "16px",
+        "grid-3": "24px",
+        "grid-4": "32px",
+        "grid-5": "40px",
+        "grid-6": "48px",
       },
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+      },
+      boxShadow: {
+        elegant: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
+        "custom-md": "0 4px 10px rgba(0, 0, 0, 0.1)",
+        "custom-lg": "0 10px 25px rgba(0, 0, 0, 0.15)",
+      },
+      backdropBlur: {
+        xs: "2px",
+      },
+      transitionDuration: {
+        "200": "200ms",
+        "300": "300ms",
       },
       keyframes: {
         "accordion-down": {

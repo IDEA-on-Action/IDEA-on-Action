@@ -1,85 +1,172 @@
+/* Import Google Fonts - must be first */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&family=JetBrains+Mono:wght@100;200;300;400;500;600;700;800;900&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
+/* VIBE WORKING Design System
+   All colors, gradients, fonts, etc defined here.
+   All colors MUST be HSL for shadcn/ui compatibility.
 */
 
 @layer base {
+  /* Light Theme (Default) */
   :root {
-    --background: 220 25% 10%;
-    --foreground: 210 40% 98%;
+    /* Text colors */
+    --color-text-primary: 17 24 39;        /* #111827 */
+    --color-text-secondary: 107 114 128;   /* #6b7280 */
+    --color-text-tertiary: 156 163 175;    /* #9ca3af */
 
-    --card: 220 20% 14%;
-    --card-foreground: 210 40% 98%;
+    /* Background colors */
+    --color-bg-primary: 255 255 255;       /* #ffffff */
+    --color-bg-secondary: 249 250 251;     /* #f9fafb */
+    --color-bg-tertiary: 243 244 246;      /* #f3f4f6 */
 
-    --popover: 220 20% 14%;
-    --popover-foreground: 210 40% 98%;
+    /* Border colors */
+    --color-border-primary: 229 231 235;   /* #e5e7eb */
+    --color-border-secondary: 209 213 219; /* #d1d5db */
 
-    --primary: 250 95% 65%;
+    /* Brand colors (RGB for text-[rgb(var(...))] support) */
+    --color-brand-primary: 59 130 246;     /* #3b82f6 - Blue */
+    --color-brand-accent: 245 158 11;      /* #f59e0b - Orange */
+    --color-brand-secondary: 139 92 246;   /* #8b5cf6 - Purple */
+
+    /* Focus colors */
+    --color-focus: 59 130 246;             /* #3b82f6 */
+
+    /* Gradient backgrounds */
+    --bg-gradient: linear-gradient(135deg, #f8fafc 0%, #dbeafe 50%, #e0e7ff 100%);
+
+    /* shadcn/ui HSL colors (Light Theme) */
+    --background: 0 0% 100%;               /* white */
+    --foreground: 222.2 84% 4.9%;          /* near black */
+
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+
+    --primary: 217 91% 60%;                /* Blue #3b82f6 */
     --primary-foreground: 210 40% 98%;
-    --primary-glow: 260 90% 75%;
 
-    --secondary: 280 85% 60%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
 
-    --accent: 30 95% 60%;
-    --accent-foreground: 220 25% 10%;
+    --accent: 38 92% 50%;                  /* Orange #f59e0b */
+    --accent-foreground: 222.2 84% 4.9%;
 
-    --muted: 220 15% 25%;
-    --muted-foreground: 220 10% 70%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 220 15% 25%;
-    --input: 220 15% 25%;
-    --ring: 250 95% 65%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 217 91% 60%;
 
     --radius: 0.75rem;
 
     /* Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(250 95% 65%), hsl(280 85% 60%));
-    --gradient-accent: linear-gradient(135deg, hsl(30 95% 60%), hsl(15 95% 65%));
-    --gradient-hero: linear-gradient(180deg, hsl(220 25% 10%), hsl(230 30% 15%));
-    
+    --gradient-primary: linear-gradient(135deg, hsl(217 91% 60%), hsl(226 71% 40%));
+    --gradient-accent: linear-gradient(135deg, hsl(38 92% 50%), hsl(25 95% 53%));
+    --gradient-hero: linear-gradient(135deg, #f8fafc 0%, #dbeafe 50%, #e0e7ff 100%);
+
     /* Shadows */
-    --shadow-glow: 0 0 40px hsl(250 95% 65% / 0.3);
-    --shadow-card: 0 10px 40px hsl(220 25% 5% / 0.5);
-    
+    --shadow-glow: 0 0 40px hsl(217 91% 60% / 0.3);
+    --shadow-card: 0 4px 10px rgba(0, 0, 0, 0.1);
+
     /* Animations */
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    /* Sidebar (for compatibility) */
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 217 91% 60%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217 91% 60%;
   }
 
+  /* Dark Theme */
+  [data-theme="dark"],
   .dark {
-    --background: 220 25% 10%;
-    --foreground: 210 40% 98%;
+    /* Text colors */
+    --color-text-primary: 249 250 251;     /* #f9fafb */
+    --color-text-secondary: 209 213 219;   /* #d1d5db */
+    --color-text-tertiary: 156 163 175;    /* #9ca3af */
 
-    --card: 220 20% 14%;
+    /* Background colors */
+    --color-bg-primary: 17 24 39;          /* #111827 */
+    --color-bg-secondary: 31 41 55;        /* #1f2937 */
+    --color-bg-tertiary: 55 65 81;         /* #374151 */
+
+    /* Border colors */
+    --color-border-primary: 55 65 81;      /* #374151 */
+    --color-border-secondary: 75 85 99;    /* #4b5563 */
+
+    /* Brand colors (lighter for dark mode) */
+    --color-brand-primary: 96 165 250;     /* #60a5fa */
+    --color-brand-accent: 251 191 36;      /* #fbbf24 */
+    --color-brand-secondary: 167 139 250;  /* #a78bfa */
+
+    /* Focus colors */
+    --color-focus: 96 165 250;             /* #60a5fa */
+
+    /* Gradient backgrounds */
+    --bg-gradient: linear-gradient(135deg, #030712 0%, #1e3a8a 50%, #312e81 100%);
+
+    /* shadcn/ui HSL colors (Dark Theme) */
+    --background: 222.2 84% 4.9%;          /* near black */
+    --foreground: 210 40% 98%;             /* near white */
+
+    --card: 217.2 32.6% 17.5%;
     --card-foreground: 210 40% 98%;
 
-    --popover: 220 20% 14%;
+    --popover: 217.2 32.6% 17.5%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 250 95% 65%;
-    --primary-foreground: 210 40% 98%;
+    --primary: 217 91% 60%;                /* Blue #60a5fa */
+    --primary-foreground: 222.2 47.4% 11.2%;
 
-    --secondary: 280 85% 60%;
+    --secondary: 217.2 32.6% 17.5%;
     --secondary-foreground: 210 40% 98%;
 
-    --accent: 30 95% 60%;
-    --accent-foreground: 220 25% 10%;
+    --accent: 43 96% 56%;                  /* Orange #fbbf24 */
+    --accent-foreground: 222.2 47.4% 11.2%;
 
-    --muted: 220 15% 25%;
-    --muted-foreground: 220 10% 70%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
 
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 220 15% 25%;
-    --input: 220 15% 25%;
-    --ring: 250 95% 65%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 217 91% 60%;
+
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(217 91% 60%), hsl(226 71% 50%));
+    --gradient-accent: linear-gradient(135deg, hsl(43 96% 56%), hsl(25 95% 53%));
+    --gradient-hero: linear-gradient(135deg, #030712 0%, #1e3a8a 50%, #312e81 100%);
+
+    /* Shadows */
+    --shadow-glow: 0 0 40px hsl(217 91% 60% / 0.5);
+    --shadow-card: 0 10px 25px rgba(0, 0, 0, 0.3);
+
+    /* Sidebar (for compatibility) */
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 217 91% 60%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217 91% 60%;
   }
 }
 
@@ -90,5 +177,77 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground;
+    font-family: 'Inter', system-ui, sans-serif;
+    line-height: 1.5;
+  }
+
+  /* 8px Grid System */
+  .container {
+    @apply mx-auto px-4 sm:px-6 lg:px-8;
+  }
+
+  .space-grid-1 { @apply space-y-2; }
+  .space-grid-2 { @apply space-y-4; }
+  .space-grid-3 { @apply space-y-6; }
+  .space-grid-4 { @apply space-y-8; }
+}
+
+@layer components {
+  /* Glassmorphism Card */
+  .glass-card {
+    @apply bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-white/20 dark:border-gray-700/50 shadow-lg rounded-2xl;
+  }
+
+  /* Gradient Background */
+  .gradient-bg {
+    @apply bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-gray-950 dark:via-blue-950 dark:to-indigo-950;
+  }
+
+  /* Hover Effects */
+  .hover-lift {
+    @apply hover:shadow-xl hover:scale-105 transition-all duration-300;
+  }
+
+  /* Button Styles */
+  .btn-primary {
+    @apply bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 dark:from-blue-700 dark:to-blue-800 text-white rounded-xl px-6 py-3 font-medium transition-all duration-200 hover:scale-105;
+  }
+
+  .btn-secondary {
+    @apply bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-xl px-6 py-3 font-medium transition-all duration-200;
+  }
+
+  /* Input Field */
+  .input-field {
+    @apply bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 rounded-xl px-4 py-2 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent transition-colors duration-200;
+  }
+}
+
+@layer utilities {
+  /* Text Color Utilities */
+  .text-primary {
+    @apply text-[rgb(var(--color-text-primary))];
+  }
+
+  .text-secondary {
+    @apply text-[rgb(var(--color-text-secondary))];
+  }
+
+  .text-tertiary {
+    @apply text-[rgb(var(--color-text-tertiary))];
+  }
+
+  /* Background Color Utilities */
+  .bg-primary {
+    @apply bg-[rgb(var(--color-bg-primary))];
+  }
+
+  .bg-secondary {
+    @apply bg-[rgb(var(--color-bg-secondary))];
+  }
+
+  /* Smooth Transition */
+  .smooth-transition {
+    @apply transition-colors duration-200;
   }
 }

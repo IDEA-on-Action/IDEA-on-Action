@@ -1,10 +1,11 @@
 import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/shared/ThemeToggle";
 import logoSymbol from "@/assets/logo-symbol.png";
 
 const Header = () => {
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
+    <header className="fixed top-0 left-0 right-0 z-50 glass-card border-b border-gray-200 dark:border-gray-700">
       <nav className="container mx-auto px-4 h-16 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <img src={logoSymbol} alt="IDEA on Action Logo" className="h-10 w-10" />
@@ -29,7 +30,8 @@ const Header = () => {
           </a>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
+          <ThemeToggle />
           <Button variant="default" className="hidden md:inline-flex bg-gradient-primary hover:opacity-90">
             시작하기
           </Button>
