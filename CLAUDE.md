@@ -4,9 +4,11 @@
 
 **마지막 업데이트**: 2025-10-17
 **프로젝트 버전**: 1.5.0
-**상태**: ✅ Production Ready | 🎉 인증 & 관리자 시스템 완료 | 🚀 Phase 9 준비
+**상태**: ✅ Production Ready | 🎉 인증 & 관리자 시스템 완료 | 🧪 테스트 계획 수립 완료
 
 **최신 업데이트**:
+- 2025-10-17: 테스트 계획 수립 완료 (Playwright, Vitest, Lighthouse CI, Axe-core)
+- 2025-10-17: v1.5.0 프로덕션 배포 완료 (GitHub Release, Vercel)
 - 2025-10-17: 인증 & 관리자 시스템 완료 (OAuth, RBAC, 서비스 CRUD, 이미지 업로드)
 - 2025-10-17: Phase 8 - 서비스 페이지 구현 완료 (목록/상세 페이지, React Query, SEO)
 - 2025-10-17: Supabase 스키마 개선 (14→11 테이블, RLS 정책, 샘플 데이터)
@@ -339,9 +341,34 @@ npm run lint      # ESLint 검사
      - 이미지 미리보기/삭제 ✅
      - 5MB 제한, JPG/PNG/WEBP ✅
 
-### 🚀 다음 단계 (Phase 9)
+### 🚀 다음 단계
 
-**Phase 9: 전자상거래 기능**
+#### 테스트 인프라 구축 (우선순위: 🔴 최고)
+**목표**: 배포된 v1.5.0 기능 검증 및 자동화된 테스트 시스템 구축
+**예상 기간**: 1주
+
+- [ ] **테스트 도구 설정**
+  - Playwright (E2E 테스트, 크로스 브라우저)
+  - Vitest (유닛/컴포넌트 테스트)
+  - Lighthouse CI (성능 테스트)
+  - Axe-core (접근성 테스트)
+- [ ] **E2E 테스트 구현** (30+ 테스트 파일)
+  - 인증 테스트 (로그인, OAuth, 로그아웃)
+  - 관리자 테스트 (대시보드, CRUD, 이미지 업로드)
+  - 공개 페이지 테스트 (홈, 서비스 목록/상세)
+  - 시각적 테스트 (다크 모드, 반응형)
+- [ ] **유닛 테스트 구현**
+  - 훅 테스트 (useAuth, useIsAdmin, useServices)
+  - 컴포넌트 테스트 (ServiceForm, ServiceCard)
+- [ ] **CI/CD 통합**
+  - GitHub Actions 워크플로우 (E2E, Unit, Lighthouse)
+  - PR 머지 전 자동 테스트 실행
+- [ ] **문서화**
+  - 테스트 전략 문서
+  - E2E 테스트 작성 가이드
+  - 수동 테스트 체크리스트
+
+#### Phase 9: 전자상거래 기능 (테스트 완료 후)
 - [x] 데이터베이스 스키마 설계 (cart, orders, payments)
 - [ ] 장바구니 시스템
 - [ ] 주문 관리 시스템
@@ -508,11 +535,158 @@ feature/* → develop → staging → main
 
 ### 📊 진행 현황 개요
 ```
-Phase 1-7  ████████████████████ 100% ✅ (완료)
-Phase 8    ░░░░░░░░░░░░░░░░░░░░   0% 🚀 (시작 예정)
-Phase 9    ░░░░░░░░░░░░░░░░░░░░   0% 🔜 (대기 중)
-Phase 10+  ░░░░░░░░░░░░░░░░░░░░   0% 📋 (계획 중)
+Phase 1-8        ████████████████████ 100% ✅ (완료)
+인증/관리자       ████████████████████ 100% ✅ (완료)
+테스트 인프라     ████░░░░░░░░░░░░░░░░  20% 🧪 (계획 수립 완료)
+Phase 9          ░░░░░░░░░░░░░░░░░░░░   0% 🔜 (대기 중)
+Phase 10+        ░░░░░░░░░░░░░░░░░░░░   0% 📋 (계획 중)
 ```
+
+---
+
+### 🧪 테스트 인프라 구축 (진행 중 - 2025 Q4)
+**우선순위**: ⭐ 최고
+**예상 기간**: 1주
+**목표**: 배포된 v1.5.0 기능 검증 및 자동화된 테스트 시스템 구축
+**현재 상태**: 📋 계획 수립 완료 (20%)
+
+#### 테스트 도구 스택
+- **Playwright** - E2E 테스트
+  - 크로스 브라우저 지원 (Chromium, Firefox, WebKit)
+  - 자동 대기 메커니즘
+  - 스크린샷 & 비디오 녹화
+  - 네트워크 모킹
+- **Vitest** - 유닛/컴포넌트 테스트
+  - Vite 네이티브 지원 (빠른 실행)
+  - React Testing Library 통합
+  - jsdom 환경
+- **Lighthouse CI** - 성능 테스트
+  - Core Web Vitals 측정
+  - 성능 임계값 검증 (Performance 90+, Accessibility 95+)
+- **Axe-core** - 접근성 테스트
+  - WCAG 2.1 AA 준수 검증
+  - Playwright 통합
+
+#### 테스트 파일 구조
+```
+tests/
+├── e2e/                          # E2E 테스트
+│   ├── auth/                     # 인증 테스트
+│   │   ├── login.spec.ts         # 이메일/아이디 로그인
+│   │   ├── oauth.spec.ts         # Google/GitHub/Kakao OAuth
+│   │   └── logout.spec.ts        # 로그아웃 플로우
+│   ├── admin/                    # 관리자 테스트
+│   │   ├── dashboard.spec.ts     # 대시보드 접근 & 통계
+│   │   ├── service-crud.spec.ts  # 서비스 생성/수정/삭제
+│   │   └── image-upload.spec.ts  # 이미지 업로드/삭제
+│   ├── public/                   # 공개 페이지 테스트
+│   │   ├── homepage.spec.ts      # 홈페이지 렌더링
+│   │   ├── services.spec.ts      # 서비스 목록 페이지
+│   │   └── service-detail.spec.ts # 서비스 상세 페이지
+│   └── visual/                   # 시각적 테스트
+│       ├── dark-mode.spec.ts     # 다크 모드 전환
+│       └── responsive.spec.ts    # 반응형 (모바일/태블릿/데스크탑)
+├── unit/                         # 유닛 테스트
+│   ├── hooks/                    # 훅 테스트
+│   │   ├── useAuth.test.ts       # 인증 상태 관리
+│   │   ├── useIsAdmin.test.ts    # 관리자 권한 확인
+│   │   └── useServices.test.ts   # 서비스 데이터 조회
+│   └── components/               # 컴포넌트 테스트
+│       ├── ServiceForm.test.tsx  # 폼 검증 & 제출
+│       └── ServiceCard.test.tsx  # 카드 렌더링
+└── fixtures/                     # 테스트 픽스처
+    ├── users.ts                  # 테스트 사용자 데이터
+    ├── services.ts               # 테스트 서비스 데이터
+    └── images.ts                 # 테스트 이미지 데이터
+```
+
+#### E2E 테스트 시나리오
+**인증 플로우**
+- 이메일/비밀번호 로그인 (admin/demian00)
+- 아이디로 로그인 (admin → admin@ideaonaction.local 자동 변환)
+- OAuth 로그인 (Google, GitHub, Kakao)
+- 로그아웃 후 보호된 라우트 리다이렉트
+
+**관리자 CRUD 플로우**
+- 대시보드 접근 (비관리자 403 Forbidden)
+- 서비스 생성 (폼 검증, 이미지 업로드)
+- 서비스 수정 (기존 데이터 로드, 업데이트)
+- 서비스 삭제 (확인 대화상자, 연쇄 삭제)
+
+**공개 페이지 플로우**
+- 홈페이지 렌더링 (Hero, Services, Features, About, Contact, Footer)
+- 서비스 목록 페이지 (필터링, 정렬, 페이지네이션)
+- 서비스 상세 페이지 (이미지 갤러리, 메트릭, CTA)
+
+#### 수동 테스트 체크리스트
+**비인증 사용자 (First-time Visitor)**
+- [ ] 홈페이지 접속 (https://www.ideaonaction.ai/)
+- [ ] 서비스 목록 페이지 접근 (/services)
+- [ ] 서비스 상세 페이지 접근 (/services/[id])
+- [ ] 다크 모드 토글 (Header ThemeToggle)
+- [ ] 로그인 페이지 접근 (/login)
+
+**OAuth 로그인 사용자**
+- [ ] Google 로그인
+- [ ] GitHub 로그인
+- [ ] Kakao 로그인 (설정 필요)
+- [ ] 프로필 드롭다운 메뉴 확인
+- [ ] 관리자 페이지 접근 시도 (403 Forbidden)
+- [ ] 로그아웃
+
+**관리자 사용자 (admin/demian00)**
+- [ ] 이메일/비밀번호 로그인
+- [ ] 대시보드 접근 (/admin)
+- [ ] 서비스 목록 확인 (/admin/services)
+- [ ] 서비스 생성 (/admin/services/new)
+  - [ ] 폼 검증 (필수 필드)
+  - [ ] 이미지 업로드 (5MB 제한, JPG/PNG/WEBP)
+  - [ ] 다중 이미지 업로드
+  - [ ] 이미지 미리보기 & 삭제
+- [ ] 서비스 수정 (/admin/services/[id]/edit)
+  - [ ] 기존 데이터 로드
+  - [ ] 이미지 추가/삭제
+  - [ ] 업데이트 저장
+- [ ] 서비스 삭제
+  - [ ] 확인 대화상자
+  - [ ] 연쇄 삭제 (이미지 포함)
+
+#### CI/CD 통합
+- **GitHub Actions 워크플로우**
+  - `.github/workflows/test-e2e.yml` - E2E 테스트
+  - `.github/workflows/test-unit.yml` - 유닛 테스트
+  - `.github/workflows/lighthouse.yml` - 성능 테스트
+- **PR 머지 조건**
+  - 모든 테스트 통과
+  - Lighthouse 임계값 충족
+  - 코드 커버리지 80% 이상
+
+#### 완료 기준
+- [ ] 30+ E2E 테스트 작성 및 통과
+- [ ] 10+ 유닛 테스트 작성 및 통과
+- [ ] Lighthouse CI 성능 임계값 충족
+- [ ] 접근성 테스트 통과 (WCAG 2.1 AA)
+- [ ] CI/CD 파이프라인 통합
+- [ ] 테스트 문서 작성 완료
+
+---
+
+### ✅ Phase 8: 서비스 페이지 구현 (완료 - 2025-10-17) 🎉
+**목표**: 포트폴리오/서비스 소개 페이지 완성
+
+- [x] Supabase `services` 테이블 연동
+- [x] TypeScript 타입 정의
+- [x] React Query 훅 작성
+- [x] 서비스 목록 페이지 (/services)
+- [x] 서비스 상세 페이지 (/services/:id)
+- [x] ServiceCard 컴포넌트
+- [x] 이미지 갤러리 (Carousel)
+- [x] 메트릭 시각화
+- [x] SEO 최적화 (react-helmet-async)
+- [x] 반응형 디자인
+- [x] 다크 모드 지원
+
+**완료일**: 2025-10-17
 
 ---
 
@@ -531,53 +705,11 @@ Phase 10+  ░░░░░░░░░░░░░░░░░░░░   0% �
 
 **완료일**: 2025-10-12
 
----
-
-### 🚀 Phase 8: 서비스 페이지 구현 (2025 Q4)
-**우선순위**: ⭐ 최고
-**예상 기간**: 1-2주
-**목표**: 포트폴리오/서비스 소개 페이지 완성
-
-#### 작업 항목
-**1. 데이터 레이어 구축**
-- [ ] Supabase `services` 테이블 연동
-- [ ] TypeScript 타입 정의 (`src/types/service.ts`)
-- [ ] React Query 훅 작성 (`useServices`, `useServiceDetail`)
-
-**2. 서비스 목록 페이지 (`/services`)**
-- [ ] 그리드 레이아웃 (반응형)
-- [ ] 카테고리 필터링
-- [ ] 정렬 기능 (최신순, 인기순)
-- [ ] 로딩/에러 상태 UI
-
-**3. 서비스 상세 페이지 (`/services/[id]`)**
-- [ ] 상세 정보 표시
-- [ ] 이미지 갤러리 컴포넌트
-- [ ] 메트릭 시각화 (통계)
-- [ ] CTA 버튼 (문의하기, 구매하기)
-
-**4. 관리자 기능 (선택)**
-- [ ] 서비스 CRUD 대시보드
-
-#### 기술 스택
-- **라우팅**: React Router (동적 라우팅)
-- **데이터**: React Query + Supabase
-- **UI**: shadcn/ui (Card, Dialog, Tabs, Badge)
-- **이미지**: Lazy loading + 최적화
-
-#### 완료 기준
-- [ ] `/services` 접근 가능
-- [ ] 최소 3개 샘플 서비스 표시
-- [ ] 다크 모드 완벽 지원
-- [ ] 모바일/태블릿/데스크탑 반응형
-- [ ] 빌드 에러 0개
-
----
 
 ### 🔜 Phase 9: 전자상거래 기능 (2025 Q4-Q1)
 **우선순위**: 높음
 **예상 기간**: 2-3주
-**전제 조건**: Phase 8 완료
+**전제 조건**: 테스트 인프라 구축 완료
 
 #### 작업 항목
 **1. 장바구니 시스템**
