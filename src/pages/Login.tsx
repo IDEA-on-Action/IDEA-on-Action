@@ -30,7 +30,7 @@ export default function Login() {
 
   // 이미 로그인되어 있으면 리다이렉트
   if (user) {
-    const from = (location.state as any)?.from?.pathname || '/'
+    const from = (location.state as { from?: { pathname: string } })?.from?.pathname || '/'
     navigate(from, { replace: true })
   }
 
@@ -46,8 +46,9 @@ export default function Login() {
       } else if (provider === 'kakao') {
         await signInWithKakao()
       }
-    } catch (err: any) {
-      setError(err.message || '로그인 중 오류가 발생했습니다.')
+    } catch (err) {
+      const message = err instanceof Error ? err.message : '로그인 중 오류가 발생했습니다.'
+      setError(message)
     } finally {
       setLoading(false)
     }
@@ -65,10 +66,11 @@ export default function Login() {
       await signInWithEmail(loginEmail, password)
 
       // 성공 시 리다이렉트
-      const from = (location.state as any)?.from?.pathname || '/'
+      const from = (location.state as { from?: { pathname: string } })?.from?.pathname || '/'
       navigate(from, { replace: true })
-    } catch (err: any) {
-      setError(err.message || '로그인 중 오류가 발생했습니다.')
+    } catch (err) {
+      const message = err instanceof Error ? err.message : '로그인 중 오류가 발생했습니다.'
+      setError(message)
     } finally {
       setLoading(false)
     }

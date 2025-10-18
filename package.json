@@ -35,7 +35,10 @@
     "sub-agent:templates": "node scripts/sub-agent-templates.js",
     "doc:check": "node scripts/doc-maintenance-agent.js --check",
     "doc:update": "node scripts/doc-maintenance-agent.js",
-    "doc:maintain": "node scripts/doc-maintenance-agent.js"
+    "doc:maintain": "node scripts/doc-maintenance-agent.js",
+    "deploy:check": "node scripts/deploy-error-handler.js",
+    "deploy:fix": "node scripts/auto-fix-errors.js",
+    "deploy:safe": "npm run deploy:check && npm run deploy:fix && npm run build && npm run lint"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
@@ -109,6 +112,7 @@
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",
     "globals": "^15.15.0",
+    "jest-axe": "^10.0.0",
     "jsdom": "^27.0.0",
     "lovable-tagger": "^1.1.10",
     "postcss": "^8.5.6",

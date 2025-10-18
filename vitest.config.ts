@@ -22,7 +22,7 @@ export default defineConfig({
     /* 테스트 파일 설정 */
     include: ['tests/unit/**/*.test.ts', 'tests/unit/**/*.test.tsx'],
     exclude: ['tests/e2e/**', 'node_modules/**', 'dist/**'],
-    setupFiles: ['./tests/setup.ts'],
+    setupFiles: ['./tests/setupTests.ts'],
 
     /* 커버리지 설정 */
     coverage: {

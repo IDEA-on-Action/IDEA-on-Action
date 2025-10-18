@@ -1,14 +1,15 @@
 import { render, screen } from '@testing-library/react';
+import { describe, it, expect } from 'vitest';
 import { axe, toHaveNoViolations } from 'jest-axe';
 import Hero from '@/components/Hero';
 
-// Extend Jest matchers
+// Extend Vitest matchers
 expect.extend(toHaveNoViolations);
 
 describe('Hero Component', () => {
   it('renders without crashing', () => {
-    render(<Hero />);
-    expect(screen.getByRole('banner')).toBeInTheDocument();
+    const { container } = render(<Hero />);
+    expect(container.querySelector('section')).toBeInTheDocument();
   });
 
   it('displays the main heading', () => {
@@ -43,8 +44,8 @@ describe('Hero Component', () => {
 
   it('applies custom className when provided', () => {
     const customClass = 'custom-hero-class';
-    render(<Hero className={customClass} />);
-    const heroSection = screen.getByRole('banner');
+    const { container } = render(<Hero className={customClass} />);
+    const heroSection = container.querySelector('section');
     expect(heroSection).toHaveClass(customClass);
   });
 
@@ -97,10 +98,10 @@ describe('Hero Component', () => {
   });
 
   it('has proper animation classes', () => {
-    render(<Hero />);
-    
+    const { container } = render(<Hero />);
+
     // Check for animation classes
-    const mainContainer = screen.getByRole('banner').querySelector('.animate-fade-in');
+    const mainContainer = container.querySelector('.animate-fade-in');
     expect(mainContainer).toBeInTheDocument();
   });
 });

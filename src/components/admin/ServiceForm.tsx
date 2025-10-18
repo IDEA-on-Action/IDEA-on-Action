@@ -119,10 +119,11 @@ export function ServiceForm({ service, categories, onSubmit, onCancel }: Service
         title: '이미지 업로드 성공',
         description: `${uploadedUrls.length}개의 이미지가 업로드되었습니다.`,
       })
-    } catch (error: any) {
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.'
       toast({
         title: '이미지 업로드 실패',
-        description: error.message,
+        description: message,
         variant: 'destructive',
       })
     } finally {
@@ -331,7 +332,7 @@ export function ServiceForm({ service, categories, onSubmit, onCancel }: Service
             {features.map((feature, index) => (
               <div key={index} className="flex gap-2">
                 <Input
-                  placeholder="기능 설명"
+                  placeholder="기능 제목"
                   value={feature}
                   onChange={(e) => updateFeature(index, e.target.value)}
                 />
@@ -341,6 +342,7 @@ export function ServiceForm({ service, categories, onSubmit, onCancel }: Service
                   size="icon"
                   onClick={() => removeFeature(index)}
                   disabled={features.length === 1}
+                  aria-label="삭제"
                 >
                   <X className="h-4 w-4" />
                 </Button>

@@ -117,23 +117,25 @@ const Footer = ({ className = "" }: FooterProps) => {
             <p className="text-sm text-muted-foreground mb-4">
               {BRAND_INFO.description}
             </p>
-            <div className="flex items-center gap-3" role="list" aria-label="소셜 미디어 링크">
-              {SOCIAL_LINKS.map((social, index) => {
-                const Icon = social.icon;
-                return (
-                  <a
-                    key={index}
-                    href={social.href}
-                    target={social.isExternal ? "_blank" : undefined}
-                    rel={social.isExternal ? "noopener noreferrer" : undefined}
-                    aria-label={social.label}
-                    className="w-10 h-10 rounded-lg bg-background border border-border flex items-center justify-center hover:border-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary/20"
-                  >
-                    <Icon className="w-5 h-5" aria-hidden="true" />
-                  </a>
-                );
-              })}
-            </div>
+            <nav aria-label="소셜 미디어 링크">
+              <div className="flex items-center gap-3">
+                {SOCIAL_LINKS.map((social, index) => {
+                  const Icon = social.icon;
+                  return (
+                    <a
+                      key={index}
+                      href={social.href}
+                      target={social.isExternal ? "_blank" : undefined}
+                      rel={social.isExternal ? "noopener noreferrer" : undefined}
+                      aria-label={social.label}
+                      className="w-10 h-10 rounded-lg bg-background border border-border flex items-center justify-center hover:border-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    >
+                      <Icon className="w-5 h-5" aria-hidden="true" />
+                    </a>
+                  );
+                })}
+              </div>
+            </nav>
           </div>
 
           {/* Footer Sections */}

@@ -80,6 +80,7 @@ class SubAgentRunner {
     console.log('3. 컴포넌트 상태 확인');
     console.log('4. 계획 파일 생성');
     console.log('5. 도움말');
+    console.log('6. 배포 에러 자동 수정');
     console.log('0. 종료');
     console.log('==================');
   }
@@ -285,23 +286,60 @@ ${this.availableComponents.map(comp =>
   }
 
   /**
+   * 배포 에러 자동 수정을 실행합니다.
+   */
+  async runDeployErrorFix() {
+    console.log('\n🔧 배포 에러 자동 수정 시작');
+    console.log('==========================');
+    
+    try {
+      // 1. 에러 체크
+      console.log('1️⃣ 에러 분석 중...');
+      const { execSync } = require('child_process');
+      execSync('npm run deploy:check', { stdio: 'inherit' });
+      
+      // 2. 자동 수정
+      console.log('\n2️⃣ 자동 수정 실행 중...');
+      execSync('npm run deploy:fix', { stdio: 'inherit' });
+      
+      // 3. 검증
+      console.log('\n3️⃣ 수정 결과 검증 중...');
+      execSync('npm run deploy:safe', { stdio: 'inherit' });
+      
+      console.log('\n✅ 배포 에러 자동 수정이 완료되었습니다!');
+    } catch (error) {
+      console.error('\n❌ 배포 에러 수정 중 오류가 발생했습니다:', error.message);
+      console.log('\n💡 수동으로 다음 명령어를 실행해보세요:');
+      console.log('   npm run deploy:check  # 에러 분석');
+      console.log('   npm run deploy:fix     # 자동 수정');
+      console.log('   npm run deploy:safe    # 안전 배포');
+    }
+  }
+
+  /**
    * 도움말을 표시합니다.
    */
   showHelp() {
     console.log('\n📖 Sub-Agent Runner 도움말');
     console.log('========================');
-    console.log('이 도구는 컴포넌트 리팩토링 작업을 자동화합니다.');
+    console.log('이 도구는 컴포넌트 리팩토링 및 배포 에러 수정 작업을 자동화합니다.');
     console.log('');
     console.log('주요 기능:');
     console.log('- 전체 컴포넌트 일괄 처리');
     console.log('- 특정 컴포넌트 선택 처리');
     console.log('- 컴포넌트 상태 확인');
     console.log('- 계획 파일 자동 생성');
+    console.log('- 배포 에러 자동 수정');
     console.log('');
     console.log('사용법:');
     console.log('1. 메뉴에서 원하는 작업을 선택합니다.');
     console.log('2. 안내에 따라 입력합니다.');
     console.log('3. 작업이 완료되면 결과를 확인합니다.');
+    console.log('');
+    console.log('배포 관련 명령어:');
+    console.log('- npm run deploy:check  # 배포 전 에러 체크');
+    console.log('- npm run deploy:fix    # 에러 자동 수정');
+    console.log('- npm run deploy:safe   # 수정 후 안전 배포');
   }
 
   /**
@@ -329,7 +367,7 @@ ${this.availableComponents.map(comp =>
 
     while (true) {
       this.showMenu();
-      const choice = await askQuestion('\n선택하세요 (0-5): ');
+      const choice = await askQuestion('\n선택하세요 (0-6): ');
 
       switch (choice) {
         case '1':
@@ -346,6 +384,9 @@ ${this.availableComponents.map(comp =>
           break;
         case '5':
           this.showHelp();
+          break;
+        case '6':
+          await this.runDeployErrorFix();
           break;
         case '0':
           console.log('\n👋 Sub-Agent Runner를 종료합니다.');

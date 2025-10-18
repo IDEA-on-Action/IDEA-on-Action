@@ -184,9 +184,10 @@ describe('Footer Component', () => {
 
   it('displays current year in copyright', () => {
     render(<Footer />);
-    
+
     const currentYear = new Date().getFullYear();
-    expect(screen.getByText(currentYear.toString())).toBeInTheDocument();
+    const copyrightText = screen.getByText(new RegExp(`© ${currentYear}.*IDEA on Action`));
+    expect(copyrightText).toBeInTheDocument();
   });
 
   it('has proper link structure for external resources', () => {

@@ -1,20 +1,21 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { axe, toHaveNoViolations } from 'jest-axe';
 import { BrowserRouter } from 'react-router-dom';
 import Header from '@/components/Header';
 
-// Extend Jest matchers
+// Extend Vitest matchers
 expect.extend(toHaveNoViolations);
 
 // Mock hooks
-jest.mock('@/hooks/useAuth', () => ({
+vi.mock('@/hooks/useAuth', () => ({
   useAuth: () => ({
     user: null,
-    signOut: jest.fn()
+    signOut: vi.fn()
   })
 }));
 
-jest.mock('@/hooks/useIsAdmin', () => ({
+vi.mock('@/hooks/useIsAdmin', () => ({
   useIsAdmin: () => ({
     data: false
   })
