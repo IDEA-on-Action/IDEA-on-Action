@@ -332,7 +332,7 @@ export function ServiceForm({ service, categories, onSubmit, onCancel }: Service
             {features.map((feature, index) => (
               <div key={index} className="flex gap-2">
                 <Input
-                  placeholder="기능 설명"
+                  placeholder="기능 제목"
                   value={feature}
                   onChange={(e) => updateFeature(index, e.target.value)}
                 />
@@ -342,6 +342,7 @@ export function ServiceForm({ service, categories, onSubmit, onCancel }: Service
                   size="icon"
                   onClick={() => removeFeature(index)}
                   disabled={features.length === 1}
+                  aria-label="삭제"
                 >
                   <X className="h-4 w-4" />
                 </Button>
