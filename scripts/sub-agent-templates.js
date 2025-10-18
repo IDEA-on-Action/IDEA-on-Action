@@ -341,7 +341,7 @@ if (require.main === module) {
     console.log('  list                                    - 템플릿 목록 표시');
     console.log('  clean                                   - 템플릿 정리');
     console.log('  copy <componentName> <targetDir>         - 템플릿을 프로젝트로 복사');
-    return;
+    process.exit(0);
   }
   
   const command = args[0];
@@ -350,7 +350,7 @@ if (require.main === module) {
     case 'generate':
       if (args.length < 2) {
         console.log('❌ 컴포넌트 이름을 입력해주세요.');
-        return;
+        process.exit(1);
       }
       const componentName = args[1];
       const description = args[2] || '';
@@ -368,7 +368,7 @@ if (require.main === module) {
     case 'copy':
       if (args.length < 3) {
         console.log('❌ 컴포넌트 이름과 대상 디렉토리를 입력해주세요.');
-        return;
+        process.exit(1);
       }
       const compName = args[1];
       const targetDir = args[2];

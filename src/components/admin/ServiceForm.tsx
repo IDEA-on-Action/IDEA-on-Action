@@ -119,10 +119,11 @@ export function ServiceForm({ service, categories, onSubmit, onCancel }: Service
         title: '이미지 업로드 성공',
         description: `${uploadedUrls.length}개의 이미지가 업로드되었습니다.`,
       })
-    } catch (error: any) {
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.'
       toast({
         title: '이미지 업로드 실패',
-        description: error.message,
+        description: message,
         variant: 'destructive',
       })
     } finally {

@@ -34,7 +34,7 @@ export default function CreateService() {
 
   // 서비스 생성
   const createMutation = useMutation({
-    mutationFn: async ({ data, images, features }: { data: any; images: string[]; features: string[] }) => {
+    mutationFn: async ({ data, images, features }: { data: { title: string; description: string; category_id: string; price: number; status: string }; images: string[]; features: string[] }) => {
       // Features 포맷팅
       const formattedFeatures = features
         .filter((f: string) => f.trim())
@@ -67,7 +67,7 @@ export default function CreateService() {
       })
       navigate('/admin/services')
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: '서비스 등록 실패',
         description: error.message,
@@ -76,7 +76,7 @@ export default function CreateService() {
     },
   })
 
-  const handleSubmit = async (data: any, images: string[], features: string[]) => {
+  const handleSubmit = async (data: { title: string; description: string; category_id: string; price: number; status: string }, images: string[], features: string[]) => {
     createMutation.mutate({ data, images, features })
   }
 

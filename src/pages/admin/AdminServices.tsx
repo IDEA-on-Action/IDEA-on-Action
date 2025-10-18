@@ -89,7 +89,7 @@ export default function AdminServices() {
       })
       setDeleteId(null)
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: '서비스 삭제 실패',
         description: error.message,
