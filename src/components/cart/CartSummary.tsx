@@ -4,8 +4,10 @@
  * 장바구니 합계 및 결제 버튼
  */
 
+import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { useClearCart } from '@/hooks/useCart'
+import { useCartStore } from '@/store/cartStore'
 import type { CartWithItems } from '@/types/database'
 
 interface CartSummaryProps {
@@ -13,7 +15,14 @@ interface CartSummaryProps {
 }
 
 export function CartSummary({ cart }: CartSummaryProps) {
+  const navigate = useNavigate()
+  const { closeCart } = useCartStore()
   const { mutate: clearCart } = useClearCart()
+
+  const handleCheckout = () => {
+    closeCart()
+    navigate('/checkout')
+  }
 
   // 소계 계산
   const subtotal =
@@ -47,7 +56,7 @@ export function CartSummary({ cart }: CartSummaryProps) {
 
       {/* 버튼 */}
       <div className="space-y-2">
-        <Button className="w-full" size="lg" disabled={isEmpty}>
+        <Button className="w-full" size="lg" disabled={isEmpty} onClick={handleCheckout}>
           결제하기
         </Button>
         <Button
