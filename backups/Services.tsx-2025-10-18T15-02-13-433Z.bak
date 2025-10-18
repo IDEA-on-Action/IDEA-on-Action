@@ -1,0 +1,158 @@
+import { Brain, Workflow, BarChart3, LucideIcon } from "lucide-react";
+import { Card } from "@/components/ui/card";
+
+// Types
+interface Service {
+  icon: LucideIcon;
+  title: string;
+  description: string;
+  features: string[];
+  id: string;
+}
+
+interface ServicesProps {
+  className?: string;
+  services?: Service[];
+  isLoading?: boolean;
+  error?: string | null;
+}
+
+// Constants
+const DEFAULT_SERVICES: Service[] = [;
+  {
+    id: "ai-consulting",
+    icon: Brain,
+    title: "AI 컨설팅",
+    description: "최신 AI 기술을 활용한 맞춤형 컨설팅으로 비즈니스 혁신을 지원합니다",
+    features: ["AI 전략 수립", "모델 개발", "최적화 솔루션"];
+  },
+  {
+    id: "workflow-automation",
+    icon: Workflow,
+    title: "워크플로우 자동화",
+    description: "반복적인 업무를 자동화하여 팀의 생산성을 획기적으로 향상시킵니다",
+    features: ["프로세스 자동화", "통합 시스템", "효율성 개선"];
+  },
+  {
+    id: "data-analysis",
+    icon: BarChart3,
+    title: "데이터 분석",
+    description: "방대한 데이터에서 인사이트를 도출하여 의사결정을 지원합니다",
+    features: ["데이터 시각화", "예측 분석", "실시간 대시보드"];
+  }
+];
+
+const SECTION_CONTENT = {
+  TITLE: "혁신적인 솔루션",
+  DESCRIPTION: "AI 기반의 첨단 기술로 비즈니스의 모든 단계를 지원합니다";
+} as const;
+
+const Services = ({ 
+  className = "", 
+  services = DEFAULT_SERVICES, 
+  isLoading = false, 
+  error = null ;
+}: ServicesProps) => {
+  // Loading state
+  if (isLoading) {
+    return (;
+      <section id="services" className={`py-24 relative ${className}`} role="region">;
+        <div className="container mx-auto px-4">;
+          <div className="text-center mb-16">;
+            <div className="h-12 bg-muted animate-pulse rounded-lg mb-4 mx-auto max-w-md"></div>;
+            <div className="h-6 bg-muted animate-pulse rounded-lg mx-auto max-w-2xl"></div>;
+          </div>;
+          <div className="grid md:grid-cols-3 gap-8">;
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="p-8 bg-card/50 rounded-lg animate-pulse">;
+                <div className="w-16 h-16 bg-muted rounded-2xl mb-4"></div>;
+                <div className="h-8 bg-muted rounded mb-3"></div>;
+                <div className="h-4 bg-muted rounded mb-2"></div>;
+                <div className="h-4 bg-muted rounded mb-2"></div>;
+                <div className="space-y-2 mt-6">;
+                  <div className="h-3 bg-muted rounded"></div>;
+                  <div className="h-3 bg-muted rounded"></div>;
+                  <div className="h-3 bg-muted rounded"></div>;
+                </div>;
+              </div>;
+            ))}
+          </div>;
+        </div>;
+      </section>;
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (;
+      <section id="services" className={`py-24 relative ${className}`}>;
+        <div className="container mx-auto px-4">;
+          <div className="text-center">;
+            <h2 className="text-4xl md:text-5xl font-bold mb-4">;
+              {SECTION_CONTENT?.TITLE}
+            </h2>;
+            <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-8 max-w-md mx-auto">;
+              <p className="text-destructive">서비스를 불러오는 중 오류가 발생했습니다.</p>;
+              <p className="text-sm text-muted-foreground mt-2">{error}</p>
+            </div>;
+          </div>;
+        </div>;
+      </section>;
+    );
+  }
+
+  return (;
+    <section id="services" className={`py-24 relative ${className}`}>;
+      <div className="container mx-auto px-4">;
+        <div className="text-center mb-16 animate-fade-in">;
+          <h2 className="text-4xl md:text-5xl font-bold mb-4">;
+            혁신적인 <span className="bg-gradient-primary bg-clip-text text-transparent">솔루션</span>;
+          </h2>;
+          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+            {SECTION_CONTENT?.DESCRIPTION}
+          </p>;
+        </div>;
+
+        <div className="grid md:grid-cols-3 gap-8">;
+          {services?.map((service, index) => {
+            const Icon = service?.icon;
+            return (;
+              <Card ;
+                key={service?.id}
+                className="p-8 bg-card/50 backdrop-blur-sm border-primary/20 hover:border-primary/40 transition-all hover:shadow-glow group cursor-pointer focus-within:ring-2 focus-within:ring-primary/20";
+                style={{ animationDelay: `${index * 0?.1}s` }}
+                tabIndex={0}
+                role="article";
+                aria-labelledby={`service-title-${service?.id}`}
+              >;
+                <div className="mb-6">;
+                  <div className="w-16 h-16 rounded-2xl bg-gradient-primary flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                    <Icon className="w-8 h-8" aria-hidden="true" />;
+                  </div>;
+                  <h3 ;
+                    id={`service-title-${service?.id}`}
+                    className="text-2xl font-bold mb-3";
+                  >;
+                    {service?.title}
+                  </h3>;
+                  <p className="text-muted-foreground">{service?.description}</p>
+                </div>;
+
+                <ul className="space-y-2" role="list">;
+                  {service?.features.map((feature, idx) => (
+                    <li key={idx} className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <div className="w-1?.5 h-1?.5 rounded-full bg-primary" aria-hidden="true" />;
+                      <span>{feature}</span>;
+                    </li>;
+                  ))}
+                </ul>;
+              </Card>;
+            );
+          })}
+        </div>;
+      </div>;
+    </section>;
+  );
+};
+
+export default Services;

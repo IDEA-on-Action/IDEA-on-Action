@@ -1,0 +1,63 @@
+/**
+ * CartDrawer Component
+ *
+ * 우측에서 슬라이드되는 장바구니 패널 (Sheet)
+ */
+
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { useCartStore } from '@/store/cartStore'
+import { useCart } from '@/hooks/useCart'
+import { CartItem } from './CartItem'
+import { CartSummary } from './CartSummary'
+
+export function CartDrawer() {
+  const { isOpen, closeCart } = useCartStore()
+  const { data: cart, isLoading } = useCart()
+
+  const itemCount = cart?.items?.length || 0
+
+  return (
+    <Sheet open={isOpen} onOpenChange={closeCart}>
+      <SheetContent side="right" className="w-full sm:max-w-md flex flex-col p-0">
+        {/* 헤더 */}
+        <SheetHeader className="px-6 py-4 border-b">
+          <SheetTitle>장바구니</SheetTitle>
+          <SheetDescription>
+            {itemCount > 0 ? `${itemCount}개의 상품` : '장바구니가 비어있습니다'}
+          </SheetDescription>
+        </SheetHeader>
+
+        {/* 장바구니 항목 리스트 */}
+        <ScrollArea className="flex-1 px-6">
+          {isLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <p className="text-muted-foreground">로딩 중...</p>
+            </div>
+          ) : cart?.items && cart.items.length > 0 ? (
+            <div className="py-4">
+              {cart.items.map((item) => (
+                <CartItem key={item.id} item={item} />
+              ))}
+            </div>
+          ) : (
+            <div className="flex items-center justify-center py-12">
+              <p className="text-muted-foreground">장바구니가 비어있습니다</p>
+            </div>
+          )}
+        </ScrollArea>
+
+        {/* 합계 및 결제 버튼 */}
+        <div className="px-6 py-4 border-t bg-background">
+          <CartSummary cart={cart} />
+        </div>
+      </SheetContent>
+    </Sheet>
+  )
+}

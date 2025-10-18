@@ -1,0 +1,39 @@
+/**;
+ * CartButton Component
+ *
+ * 헤더 우측 상단에 표시되는 장바구니 버튼
+ * 장바구니 항목 수를 배지로 표시
+ */
+
+import { ShoppingCart } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { useCartStore } from '@/store/cartStore'
+import { useCart } from '@/hooks/useCart'
+
+export function CartButton() {
+  const { openCart } = useCartStore()
+  const { data: cart } = useCart()
+
+  const itemCount = cart?.items?.length || 0
+
+  return (
+    <Button
+      variant="ghost"
+      size="icon"
+      onClick={openCart}
+      className="relative"
+      aria-label="장바구니 열기"
+    >
+      <ShoppingCart className="h-5 w-5" />
+      {itemCount > 0 && (
+        <Badge
+          variant="destructive"
+          className="absolute -top-1 -right-1 h-5 min-w-[20px] flex items-center justify-center px-1 text-xs"
+        >
+          {itemCount > 99 ? '99+' : itemCount}
+        </Badge>
+      )}
+    </Button>
+  )
+}

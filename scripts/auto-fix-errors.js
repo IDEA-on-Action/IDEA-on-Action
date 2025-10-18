@@ -10,9 +10,14 @@
  * - ESLint 자동 수정 적용
  */
 
-const fs = require('fs');
-const path = require('path');
-const { execSync } = require('child_process');
+import fs from 'fs';
+import path from 'path';
+import { execSync } from 'child_process';
+import { fileURLToPath } from 'url';
+
+// ES 모듈에서 __dirname 사용을 위한 설정
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // 설정
 const CONFIG = {
@@ -59,6 +64,70 @@ class AutoFixErrors {
     } catch (error) {
       console.error(`❌ 백업 실패: ${filePath}`, error.message);
       return null;
+    }
+  }
+
+  /**
+   * Git 저장소 상태를 확인합니다.
+   */
+  checkGitStatus() {
+    try {
+      // Git 저장소인지 확인
+      execSync('git rev-parse --git-dir', { stdio: 'pipe' });
+      
+      // 현재 변경 사항이 있는지 확인
+      const status = execSync('git status --porcelain', { encoding: 'utf-8' });
+      
+      return {
+        isGitRepo: true,
+        hasChanges: status.trim().length > 0
+      };
+    } catch (error) {
+      return {
+        isGitRepo: false,
+        hasChanges: false
+      };
+    }
+  }
+
+  /**
+   * Auto-Fix 실행 전 Git 커밋을 생성합니다.
+   */
+  createBackupCommit() {
+    console.log('🔍 Git 상태 확인 중...');
+    
+    const gitStatus = this.checkGitStatus();
+    
+    if (!gitStatus.isGitRepo) {
+      console.log('⚠️ Git 저장소가 아닙니다. Git 커밋을 건너뜁니다.');
+      return false;
+    }
+    
+    try {
+      // 변경 사항이 있으면 먼저 커밋하도록 안내
+      if (gitStatus.hasChanges) {
+        console.log('⚠️ 커밋되지 않은 변경 사항이 있습니다.');
+        console.log('💾 Auto-Fix 백업 커밋을 생성합니다...');
+        
+        // 모든 변경 사항을 스테이징
+        execSync('git add .', { stdio: 'pipe' });
+        
+        // 백업 커밋 생성
+        const timestamp = new Date().toISOString();
+        const commitMessage = `chore: auto-fix backup commit (${timestamp})`;
+        execSync(`git commit -m "${commitMessage}"`, { stdio: 'pipe' });
+        
+        console.log('✅ Git 백업 커밋 생성 완료');
+        console.log(`   커밋 메시지: ${commitMessage}`);
+        return true;
+      } else {
+        console.log('✅ 커밋되지 않은 변경 사항이 없습니다.');
+        return true;
+      }
+    } catch (error) {
+      console.error('❌ Git 커밋 생성 실패:', error.message);
+      console.log('⚠️ 계속 진행하려면 Ctrl+C로 중단하고 수동으로 커밋하세요.');
+      return false;
     }
   }
 
@@ -169,10 +238,88 @@ class AutoFixErrors {
       let content = fs.readFileSync(filePath, 'utf-8');
       let modified = false;
 
-      // 세미콜론이 누락된 라인 찾기
+      // 세미콜론이 누락된 라인 찾기 (JSX 및 객체 리터럴 제외)
       const lines = content.split('\n');
-      const fixedLines = lines.map(line => {
+      let inObjectLiteral = false;
+      let braceCount = 0;
+      
+      const fixedLines = lines.map((line, index) => {
         const trimmed = line.trim();
+        
+        // 중괄호 카운팅으로 객체 리터럴 내부 감지
+        const openBraces = (line.match(/\{/g) || []).length;
+        const closeBraces = (line.match(/\}/g) || []).length;
+        braceCount += openBraces - closeBraces;
+        
+        // 객체 리터럴 시작/끝 감지
+        if (braceCount > 0 && !inObjectLiteral) {
+          inObjectLiteral = true;
+        } else if (braceCount === 0 && inObjectLiteral) {
+          inObjectLiteral = false;
+        }
+        
+        // JSX 관련 라인은 제외
+        if (trimmed.includes('<') || 
+            trimmed.includes('>') || 
+            trimmed.includes('element') ||
+            trimmed.includes('Route') ||
+            trimmed.includes('BrowserRouter') ||
+            trimmed.includes('TooltipProvider') ||
+            trimmed.includes('HelmetProvider') ||
+            trimmed.includes('QueryClientProvider') ||
+            trimmed.includes('path=') ||
+            trimmed.includes('element=') ||
+            trimmed.includes('AdminRoute') ||
+            trimmed.includes('AdminLayout') ||
+            trimmed.includes('NotFound') ||
+            trimmed.includes('Index') ||
+            trimmed.includes('Services') ||
+            trimmed.includes('ServiceDetail') ||
+            trimmed.includes('Checkout') ||
+            trimmed.includes('Orders') ||
+            trimmed.includes('OrderDetail') ||
+            trimmed.includes('Login') ||
+            trimmed.includes('Forbidden') ||
+            trimmed.includes('Dashboard') ||
+            trimmed.includes('AdminServices') ||
+            trimmed.includes('CreateService') ||
+            trimmed.includes('EditService')) {
+          return line;
+        }
+        
+        // 객체 리터럴 내부는 제외
+        if (inObjectLiteral) {
+          return line;
+        }
+        
+        // 타입 선언 패턴 제외
+        if (trimmed.includes(':') && 
+            (trimmed.includes('Record<') || 
+             trimmed.includes('const ') ||
+             trimmed.includes('interface ') ||
+             trimmed.includes('type ') ||
+             trimmed.includes('enum '))) {
+          return line;
+        }
+        
+        // Record< 타입 선언의 멀티라인 패턴 제외
+        if (trimmed.includes('Record<') || 
+            trimmed.includes('Partial<') ||
+            trimmed.includes('Pick<') ||
+            trimmed.includes('Omit<') ||
+            trimmed.includes('ReturnType<') ||
+            trimmed.includes('Parameters<')) {
+          return line;
+        }
+        
+        // 객체 속성 정의 패턴 제외 (key: value,)
+        if (trimmed.includes(':') && 
+            (trimmed.endsWith(',') || 
+             trimmed.endsWith('}') ||
+             trimmed.includes('=>'))) {
+          return line;
+        }
+        
         if (trimmed && 
             !trimmed.endsWith(';') && 
             !trimmed.endsWith('{') && 
@@ -186,7 +333,16 @@ class AutoFixErrors {
             !trimmed.includes('for') &&
             !trimmed.includes('while') &&
             !trimmed.includes('function') &&
-            !trimmed.includes('=>')) {
+            !trimmed.includes('=>') &&
+            !trimmed.includes('return') &&
+            !trimmed.includes('const') &&
+            !trimmed.includes('let') &&
+            !trimmed.includes('var') &&
+            !trimmed.includes('.') &&  // 메서드 체이닝 제외
+            !trimmed.includes('await') &&  // async/await 제외
+            !trimmed.includes('throw') &&  // throw 제외
+            !trimmed.includes('catch') &&  // try-catch 제외
+            !trimmed.includes('finally')) {  // try-finally 제외
           modified = true;
           return line + ';';
         }
@@ -213,17 +369,55 @@ class AutoFixErrors {
       let content = fs.readFileSync(filePath, 'utf-8');
       let modified = false;
 
-      // null/undefined 체크 추가
-      const nullCheckPattern = /(\w+)\s*\.\s*(\w+)/g;
-      content = content.replace(nullCheckPattern, (match, obj, prop) => {
-        if (match.includes('?.')) return match; // 이미 옵셔널 체이닝 사용 중
+      // 안전한 옵셔널 체이닝 추가 (import 경로와 JSX 제외)
+      const safeNullCheckPattern = /(\w+)\s*\.\s*(\w+)/g;
+      content = content.replace(safeNullCheckPattern, (match, obj, prop) => {
+        // 이미 옵셔널 체이닝 사용 중이면 스킵
+        if (match.includes('?.')) return match;
         
-        // null 체크가 없는 경우 옵셔널 체이닝으로 변경
+        // import 경로는 수정하지 않음
+        if (match.includes('./') || match.includes('../') || match.includes('from')) {
+          return match;
+        }
+        
+        // JSX 요소는 수정하지 않음
+        if (match.includes('<') || match.includes('>') || match.includes('element')) {
+          return match;
+        }
+        
+        // CSS 파일 경로는 수정하지 않음
+        if (match.includes('.css') || match.includes('.scss') || match.includes('.sass')) {
+          return match;
+        }
+        
+        // 변수명이 대문자로 시작하는 경우 (컴포넌트) 수정하지 않음
+        if (obj.charAt(0) === obj.charAt(0).toUpperCase()) {
+          return match;
+        }
+        
+        // 안전한 경우에만 옵셔널 체이닝 적용
         const beforeMatch = content.substring(0, content.indexOf(match));
         const linesBefore = beforeMatch.split('\n');
         const currentLine = linesBefore[linesBefore.length - 1];
         
-        if (!currentLine.includes('if') && !currentLine.includes('&&')) {
+        // 타입 유틸리티와 zod 패턴 보호
+        if (currentLine.includes('z.infer') || 
+            currentLine.includes('z.') ||
+            currentLine.includes('typeof') ||
+            currentLine.includes('Record<') ||
+            currentLine.includes('Partial<') ||
+            currentLine.includes('Pick<') ||
+            currentLine.includes('Omit<') ||
+            currentLine.includes('type ') ||
+            currentLine.includes('interface ')) {
+          return match;
+        }
+        
+        if (!currentLine.includes('if') && 
+            !currentLine.includes('&&') && 
+            !currentLine.includes('import') &&
+            !currentLine.includes('export') &&
+            !currentLine.includes('<')) {
           modified = true;
           return `${obj}?.${prop}`;
         }
@@ -415,6 +609,10 @@ class AutoFixErrors {
     console.log('🤖 자동 에러 수정 시작');
     console.log('======================\n');
 
+    // 0. Git 백업 커밋 생성
+    this.createBackupCommit();
+    console.log('');
+
     // 1. 모든 파일 수정
     const fixed = await this.fixAllFiles();
     
@@ -438,9 +636,9 @@ class AutoFixErrors {
 }
 
 // CLI 인터페이스
-if (require.main === module) {
+if (import.meta.url === `file://${process.argv[1]}` || process.argv[1].endsWith('auto-fix-errors.js')) {
   const fixer = new AutoFixErrors();
   fixer.run().catch(console.error);
 }
 
-module.exports = AutoFixErrors;
+export default AutoFixErrors;

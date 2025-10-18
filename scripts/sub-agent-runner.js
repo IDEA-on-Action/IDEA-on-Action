@@ -7,8 +7,13 @@
  * 컴포넌트 리팩토링, 테스트 작성, 문서 생성 작업을 자동화합니다.
  */
 
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+// ES 모듈에서 __dirname 사용을 위한 설정
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // 설정
 const CONFIG = {
@@ -109,8 +114,8 @@ class SubAgentRunner {
       console.log(`${index + 1}. ${comp} - ${COMPONENT_TEMPLATES[comp].description}`);
     });
 
-    const readline = require('readline');
-    const rl = readline.createInterface({
+    const { createInterface } = await import('readline');
+    const rl = createInterface({
       input: process.stdin,
       output: process.stdout
     });
@@ -295,7 +300,7 @@ ${this.availableComponents.map(comp =>
     try {
       // 1. 에러 체크
       console.log('1️⃣ 에러 분석 중...');
-      const { execSync } = require('child_process');
+      const { execSync } = await import('child_process');
       execSync('npm run deploy:check', { stdio: 'inherit' });
       
       // 2. 자동 수정
@@ -353,8 +358,8 @@ ${this.availableComponents.map(comp =>
    * 메인 실행 함수
    */
   async run() {
-    const readline = require('readline');
-    const rl = readline.createInterface({
+    const { createInterface } = await import('readline');
+    const rl = createInterface({
       input: process.stdin,
       output: process.stdout
     });
@@ -404,9 +409,9 @@ ${this.availableComponents.map(comp =>
 }
 
 // 스크립트 실행
-if (require.main === module) {
+if (import.meta.url === `file://${process.argv[1]}` || process.argv[1].endsWith('sub-agent-runner.js')) {
   const runner = new SubAgentRunner();
   runner.run().catch(console.error);
 }
 
-module.exports = SubAgentRunner;
+export default SubAgentRunner;

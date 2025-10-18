@@ -1,0 +1,224 @@
+/**;
+ * Admin Dashboard
+ *
+ * 관리자 대시보드
+ * - 통계 요약
+ * - 최근 서비스
+ * - 빠른 액션
+ */
+
+import { Helmet } from 'react-helmet-async'
+import { Link } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
+import { supabase } from '@/integrations/supabase/client'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Package, FileText, Users, TrendingUp, Plus, ArrowRight } from 'lucide-react'
+
+export default function Dashboard() {
+  // 통계 데이터
+  const { data: stats } = useQuery({
+    queryKey: ['admin-stats'],
+    queryFn: async () => {
+      const [servicesRes, categoriesRes] = await Promise.all([
+        supabase.from('services').select('id, status', { count: 'exact' }),
+        supabase.from('service_categories').select('id', { count: 'exact' }),
+      ])
+
+      const totalServices = servicesRes?.count || 0
+      const activeServices =
+        servicesRes?.data?.filter((s) => s?.status === 'active').length || 0
+      const totalCategories = categoriesRes?.count || 0
+
+      return {
+        totalServices,
+        activeServices,
+        draftServices: servicesRes?.data?.filter((s) => s?.status === 'draft').length || 0,
+        totalCategories,
+      }
+    },
+  })
+
+  // 최근 서비스
+  const { data: recentServices } = useQuery({
+    queryKey: ['recent-services'],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('services')
+        .select('id, title, status, created_at')
+        .order('created_at', { ascending: false })
+        .limit(5)
+
+      return data
+    },
+  })
+
+  const statCards = [
+    {
+      title: '전체 서비스',
+      value: stats?.totalServices || 0,
+      icon: Package,
+      description: `활성: ${stats?.activeServices || 0}`,
+    },
+    {
+      title: '초안',
+      value: stats?.draftServices || 0,
+      icon: FileText,
+      description: '작성 중',
+    },
+    {
+      title: '카테고리',
+      value: stats?.totalCategories || 0,
+      icon: Users,
+      description: '전체',
+    },
+    {
+      title: '성장률',
+      value: '0%',
+      icon: TrendingUp,
+      description: '이번 달',
+    },
+  ]
+
+  return (
+    <>
+      <Helmet>
+        <title>대시보드 | VIBE WORKING</title>
+      </Helmet>
+
+      <div className="space-y-6">
+        {/* 헤더 */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">대시보드</h1>
+            <p className="text-muted-foreground">서비스 관리 현황</p>
+          </div>
+          <Link to="/admin/services/new">
+            <Button>
+              <Plus className="mr-2 h-4 w-4" />
+              서비스 등록
+            </Button>
+          </Link>
+        </div>
+
+        {/* 통계 카드 */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {statCards?.map((stat) => {
+            const Icon = stat?.icon
+            return (
+              <Card key={stat.title}>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
+                  <Icon className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{stat.value}</div>
+                  <p className="text-xs text-muted-foreground">{stat.description}</p>
+                </CardContent>
+              </Card>
+            )
+          })}
+        </div>
+
+        {/* 최근 서비스 */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle>최근 서비스</CardTitle>
+              <Link to="/admin/services">
+                <Button variant="ghost" size="sm">
+                  전체 보기
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </Link>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {recentServices && recentServices.length > 0 ? (
+              <div className="space-y-4">
+                {recentServices?.map((service) => (
+                  <div
+                    key={service?.id}
+                    className="flex items-center justify-between border-b pb-3 last:border-0 last:pb-0"
+                  >
+                    <div>
+                      <p className="font-medium">{service.title}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {new Date(service?.created_at).toLocaleDateString('ko-KR')}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`text-xs px-2 py-1 rounded ${
+                          service?.status === 'active'
+                            ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
+                            : service?.status === 'draft'
+                            ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300'
+                            : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
+                        }`}
+                      >
+                        {service?.status === 'active'
+                          ? '활성'
+                          : service?.status === 'draft'
+                          ? '초안'
+                          : '보관'}
+                      </span>
+                      <Link to={`/admin/services/${service?.id}/edit`}>
+                        <Button variant="ghost" size="sm">
+                          편집
+                        </Button>
+                      </Link>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-center text-muted-foreground py-8">
+                등록된 서비스가 없습니다
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* 빠른 액션 */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+            <Link to="/admin/services/new">
+              <CardContent className="pt-6 text-center">
+                <Plus className="h-12 w-12 mx-auto mb-4 text-primary" />
+                <h3 className="font-semibold">새 서비스 등록</h3>
+                <p className="text-sm text-muted-foreground mt-2">
+                  새로운 서비스를 등록합니다
+                </p>
+              </CardContent>
+            </Link>
+          </Card>
+
+          <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+            <Link to="/admin/services">
+              <CardContent className="pt-6 text-center">
+                <Package className="h-12 w-12 mx-auto mb-4 text-primary" />
+                <h3 className="font-semibold">서비스 관리</h3>
+                <p className="text-sm text-muted-foreground mt-2">
+                  등록된 서비스를 관리합니다
+                </p>
+              </CardContent>
+            </Link>
+          </Card>
+
+          <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+            <Link to="/">
+              <CardContent className="pt-6 text-center">
+                <TrendingUp className="h-12 w-12 mx-auto mb-4 text-primary" />
+                <h3 className="font-semibold">사이트 보기</h3>
+                <p className="text-sm text-muted-foreground mt-2">
+                  실제 사이트를 확인합니다
+                </p>
+              </CardContent>
+            </Link>
+          </Card>
+        </div>
+      </div>
+    </>
+  )
+}

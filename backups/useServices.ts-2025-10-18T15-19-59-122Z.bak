@@ -1,0 +1,167 @@
+/**
+ * useServices Hook
+ *
+ * Supabase에서 서비스 데이터를 조회하는 React Query 훅
+ * - 전체 목록 조회
+ * - 카테고리별 필터링
+ * - 정렬 기능
+ */
+
+import { useQuery } from '@tanstack/react-query'
+import { supabase } from '@/integrations/supabase/client'
+import type { Service, ServiceWithCategory } from '@/types/database'
+
+// 정렬 옵션 타입
+export type ServiceSortBy = 'newest' | 'oldest' | 'price-asc' | 'price-desc' | 'popular'
+
+// 필터 옵션 타입
+export interface ServiceFilters {
+  categoryId?: string
+  status?: 'active' | 'draft' | 'archived'
+  sortBy?: ServiceSortBy
+}
+
+/**
+ * 서비스 목록 조회 훅
+ */
+export function useServices(filters?: ServiceFilters) {
+  return useQuery<ServiceWithCategory[]>({
+    queryKey: ['services', filters],
+    queryFn: async () => {
+      let query = supabase
+        .from('services')
+        .select(`
+          *,
+          category:service_categories(*)
+        `)
+
+      // 상태 필터 (기본: active만)
+      const status = filters?.status || 'active'
+      query = query.eq('status', status)
+
+      // 카테고리 필터
+      if (filters?.categoryId) {
+        query = query.eq('category_id', filters.categoryId)
+      }
+
+      // 정렬
+      switch (filters?.sortBy) {
+        case 'newest':
+          query = query.order('created_at', { ascending: false })
+          break
+        case 'oldest':
+          query = query.order('created_at', { ascending: true })
+          break
+        case 'price-asc':
+          query = query.order('price', { ascending: true })
+          break
+        case 'price-desc':
+          query = query.order('price', { ascending: false })
+          break
+        case 'popular':
+          // metrics.users 기준 정렬 (JSONB 필드)
+          query = query.order('metrics->users', { ascending: false })
+          break
+        default:
+          query = query.order('created_at', { ascending: false })
+      }
+
+      const { data, error } = await query
+
+      if (error) {
+        console.error('Error fetching services:', error)
+        throw new Error(error.message)
+      }
+
+      return data as ServiceWithCategory[]
+    },
+    staleTime: 1000 * 60 * 5, // 5분간 캐시 유지
+  })
+}
+
+/**
+ * 단일 서비스 상세 조회 훅
+ */
+export function useServiceDetail(serviceId: string) {
+  return useQuery<ServiceWithCategory | null>({
+    queryKey: ['service', serviceId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('services')
+        .select(`
+          *,
+          category:service_categories(*)
+        `)
+        .eq('id', serviceId)
+        .single()
+
+      if (error) {
+        console.error('Error fetching service detail:', error)
+        throw new Error(error.message)
+      }
+
+      return data as ServiceWithCategory
+    },
+    enabled: !!serviceId, // serviceId가 있을 때만 쿼리 실행
+    staleTime: 1000 * 60 * 10, // 10분간 캐시 유지
+  })
+}
+
+/**
+ * 서비스 카테고리 목록 조회 훅
+ */
+export function useServiceCategories() {
+  return useQuery({
+    queryKey: ['serviceCategories'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('service_categories')
+        .select('*')
+        .eq('is_active', true)
+        .order('display_order', { ascending: true })
+
+      if (error) {
+        console.error('Error fetching categories:', error)
+        throw new Error(error.message)
+      }
+
+      return data
+    },
+    staleTime: 1000 * 60 * 30, // 30분간 캐시 유지 (카테고리는 자주 변경 안 됨)
+  })
+}
+
+/**
+ * 카테고리별 서비스 개수 조회 훅
+ */
+export function useServiceCounts() {
+  return useQuery({
+    queryKey: ['serviceCounts'],
+    queryFn: async () => {
+      // 각 카테고리별 서비스 개수 집계
+      const { data: categories } = await supabase
+        .from('service_categories')
+        .select('id, name, slug')
+        .eq('is_active', true)
+
+      if (!categories) return []
+
+      const countsPromises = categories.map(async (category) => {
+        const { count } = await supabase
+          .from('services')
+          .select('*', { count: 'exact', head: true })
+          .eq('category_id', category.id)
+          .eq('status', 'active')
+
+        return {
+          ...category,
+          count: count || 0,
+        }
+      })
+
+      const counts = await Promise.all(countsPromises)
+      return counts
+    },
+    staleTime: 1000 * 60 * 5, // 5분간 캐시 유지
+  })
+}

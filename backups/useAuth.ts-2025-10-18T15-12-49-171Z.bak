@@ -1,0 +1,143 @@
+/**
+ * useAuth Hook
+ *
+ * Supabase Auth 상태 관리 및 로그인/로그아웃 기능
+ * - OAuth 로그인 (Google, GitHub, Kakao)
+ * - 세션 상태 구독
+ * - 사용자 정보 관리
+ */
+
+import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { supabase } from '@/integrations/supabase/client'
+import type { User, Session } from '@supabase/supabase-js'
+
+interface UseAuthReturn {
+  user: User | null
+  session: Session | null
+  loading: boolean
+  signInWithGoogle: () => Promise<void>
+  signInWithGithub: () => Promise<void>
+  signInWithKakao: () => Promise<void>
+  signInWithEmail: (email: string, password: string) => Promise<void>
+  signOut: () => Promise<void>
+}
+
+export function useAuth(): UseAuthReturn {
+  const [user, setUser] = useState<User | null>(null)
+  const [session, setSession] = useState<Session | null>(null)
+  const [loading, setLoading] = useState(true)
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    // 초기 세션 가져오기
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session)
+      setUser(session?.user ?? null)
+      setLoading(false)
+    })
+
+    // 세션 변경 구독
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session)
+      setUser(session?.user ?? null)
+      setLoading(false)
+    })
+
+    return () => subscription.unsubscribe()
+  }, [])
+
+  /**
+   * Google OAuth 로그인
+   */
+  const signInWithGoogle = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+      },
+    })
+
+    if (error) {
+      console.error('Google login error:', error)
+      throw error
+    }
+  }
+
+  /**
+   * GitHub OAuth 로그인
+   */
+  const signInWithGithub = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'github',
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+      },
+    })
+
+    if (error) {
+      console.error('GitHub login error:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Kakao OAuth 로그인
+   */
+  const signInWithKakao = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'kakao',
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+      },
+    })
+
+    if (error) {
+      console.error('Kakao login error:', error)
+      throw error
+    }
+  }
+
+  /**
+   * 이메일/비밀번호 로그인
+   * (관리자 계정용: admin / demian00)
+   */
+  const signInWithEmail = async (email: string, password: string) => {
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    })
+
+    if (error) {
+      console.error('Email login error:', error)
+      throw error
+    }
+  }
+
+  /**
+   * 로그아웃
+   */
+  const signOut = async () => {
+    const { error } = await supabase.auth.signOut()
+
+    if (error) {
+      console.error('Signout error:', error)
+      throw error
+    }
+
+    navigate('/')
+  }
+
+  return {
+    user,
+    session,
+    loading,
+    signInWithGoogle,
+    signInWithGithub,
+    signInWithKakao,
+    signInWithEmail,
+    signOut,
+  }
+}

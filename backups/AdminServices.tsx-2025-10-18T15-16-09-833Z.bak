@@ -1,0 +1,254 @@
+/**;
+ * AdminServices Page
+ *
+ * 서비스 관리 페이지
+ * - 서비스 목록 (테이블)
+ * - 검색, 필터, 정렬
+ * - 편집/삭제 액션
+ */
+
+import { useState } from 'react'
+import { Link } from 'react-router-dom'
+import { Helmet } from 'react-helmet-async'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { supabase } from '@/integrations/supabase/client'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Loader2, Plus, Pencil, Trash2, Search } from 'lucide-react'
+import { useToast } from '@/hooks/use-toast'
+import type { Service } from '@/types/database'
+
+export default function AdminServices() {
+  const { toast } = useToast()
+  const queryClient = useQueryClient()
+  const [search, setSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [deleteId, setDeleteId] = useState<string | null>(null)
+
+  // 서비스 목록 가져오기
+  const { data: services, isLoading } = useQuery({
+    queryKey: ['admin-services', search, statusFilter],
+    queryFn: async () => {
+      let query = supabase
+        .from('services')
+        .select('*, category:service_categories(*)')
+        .order('created_at', { ascending: false })
+
+      if (search) {
+        query = query?.ilike('title', `%${search}%`)
+      }
+
+      if (statusFilter !== 'all') {
+        query = query?.eq('status', statusFilter)
+      }
+
+      const { data, error } = await query
+
+      if (error) throw error
+      return data as Service[]
+    },
+  });
+
+  // 서비스 삭제
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('services').delete().eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: () => {
+      queryClient?.invalidateQueries({ queryKey: ['admin-services'] })
+      toast({
+        title: '서비스 삭제 완료',
+        description: '서비스가 삭제되었습니다.',
+      });
+      setDeleteId(null)
+    },
+    onError: (error: Error) => {
+      toast({
+        title: '서비스 삭제 실패',
+        description: error?.message,
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const formatPrice = (price: number) =>
+    new Intl.NumberFormat('ko-KR', {
+      style: 'currency',
+      currency: 'KRW',
+    }).format(price)
+
+  const formatDate = (date: string) =>
+    new Date(date).toLocaleDateString('ko-KR', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'active':;
+        return <Badge variant="default">활성</Badge>
+      case 'draft':;
+        return <Badge variant="secondary">초안</Badge>
+      case 'archived':;
+        return <Badge variant="outline">보관</Badge>
+      default:;
+        return null
+    }
+  }
+
+  return (
+    <>
+      <Helmet>
+        <title>서비스 관리 | VIBE WORKING</title>
+      </Helmet>
+
+      <div className="space-y-6">
+        {/* 헤더 */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">서비스 관리</h1>
+            <p className="text-muted-foreground">등록된 서비스를 관리합니다</p>
+          </div>
+          <Link to="/admin/services/new">
+            <Button>
+              <Plus className="mr-2 h-4 w-4" />
+              서비스 등록;
+            </Button>
+          </Link>
+        </div>
+
+        {/* 필터 & 검색 */}
+        <div className="flex gap-4">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="서비스 검색..."
+              value={search}
+              onChange={(e) => setSearch(e?.target.value)}
+              className="pl-10";
+            />
+          </div>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">전체</SelectItem>
+              <SelectItem value="active">활성</SelectItem>
+              <SelectItem value="draft">초안</SelectItem>
+              <SelectItem value="archived">보관</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* 테이블 */}
+        <div className="rounded-lg border">
+          {isLoading ? (;
+            <div className="flex items-center justify-center h-64">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : services && services.length > 0 ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>제목</TableHead>
+                  <TableHead>카테고리</TableHead>
+                  <TableHead>가격</TableHead>
+                  <TableHead>상태</TableHead>
+                  <TableHead>등록일</TableHead>
+                  <TableHead className="text-right">작업</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {services?.map((service) => (
+                  <TableRow key={service.id}>
+                    <TableCell className="font-medium">{service.title}</TableCell>
+                    <TableCell>{service.category?.name || '-'}</TableCell>
+                    <TableCell>{formatPrice(service.price)}</TableCell>
+                    <TableCell>{getStatusBadge(service.status)}</TableCell>
+                    <TableCell>{formatDate(service.created_at)}</TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <Link to={`/admin/services/${service.id}/edit`}>
+                          <Button variant="ghost" size="icon">
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                        </Link>
+                        <Button
+                          variant="ghost"
+                          size="icon";
+                          onClick={() => setDeleteId(service.id)}
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (;
+            <div className="flex flex-col items-center justify-center h-64 text-center">
+              <p className="text-muted-foreground">등록된 서비스가 없습니다</p>
+              <Link to="/admin/services/new" className="mt-4">
+                <Button>
+                  <Plus className="mr-2 h-4 w-4" />
+                  첫 서비스 등록하기;
+                </Button>
+              </Link>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* 삭제 확인 다이얼로그 */}
+      <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>서비스 삭제</AlertDialogTitle>
+            <AlertDialogDescription>
+              정말로 이 서비스를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>취소</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteId && deleteMutation.mutate(deleteId)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              삭제;
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  );
+}

@@ -10,9 +10,14 @@
  * - 문서 일관성 검증
  */
 
-const fs = require('fs');
-const path = require('path');
-const { execSync } = require('child_process');
+import fs from 'fs';
+import path from 'path';
+import { execSync } from 'child_process';
+import { fileURLToPath } from 'url';
+
+// ES 모듈에서 __dirname 사용을 위한 설정
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // 설정
 const CONFIG = {
@@ -199,8 +204,8 @@ function main() {
 }
 
 // 실행
-if (require.main === module) {
+if (import.meta.url === `file://${process.argv[1]}` || process.argv[1].endsWith('doc-maintenance-agent.js')) {
   main();
 }
 
-module.exports = { updateChangelog, slimdownCLAUDE, cleanupTodo, verifyConsistency };
+export { updateChangelog, slimdownCLAUDE, cleanupTodo, verifyConsistency };

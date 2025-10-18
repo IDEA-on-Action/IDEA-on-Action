@@ -1,0 +1,98 @@
+/**;
+ * CartItem Component
+ *
+ * 장바구니 개별 항목 (이미지, 제목, 가격, 수량 조절, 삭제 버튼)
+ */
+
+import { Minus, Plus, X } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { useUpdateCartItem, useRemoveCartItem } from '@/hooks/useCart'
+import type { CartItemWithService } from '@/types/database'
+
+interface CartItemProps {
+  item: CartItemWithService
+}
+
+export function CartItem({ item }: CartItemProps) {
+  const { mutate: updateQuantity } = useUpdateCartItem()
+  const { mutate: removeItem } = useRemoveCartItem()
+
+  const handleDecrement = () => {
+    if (item.quantity > 1) {
+      updateQuantity({ itemId: item?.id, quantity: item.quantity - 1 })
+    }
+  }
+
+  const handleIncrement = () => {
+    if (item.quantity < 99) {
+      updateQuantity({ itemId: item?.id, quantity: item.quantity + 1 })
+    }
+  }
+
+  const handleRemove = () => {
+    removeItem(item?.id)
+  }
+
+  if (!item.service) {
+    return null // 서비스가 삭제된 경우
+  }
+
+  return (
+    <div className="flex gap-4 py-4 border-b last:border-b-0">
+      {/* 서비스 이미지 */}
+      <div className="flex-shrink-0">
+        <img
+          src={item.service.image_url || '/placeholder-service?.png'}
+          alt={item.service.title}
+          className="w-20 h-20 object-cover rounded-md"
+        />
+      </div>
+
+      {/* 서비스 정보 */}
+      <div className="flex-1 min-w-0">
+        <h4 className="font-medium truncate">{item.service.title}</h4>
+        <p className="text-sm text-muted-foreground mt-1">
+          ₩{item?.price.toLocaleString()}
+        </p>
+
+        {/* 수량 조절 */}
+        <div className="flex items-center gap-2 mt-2">
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-7 w-7"
+            onClick={handleDecrement}
+            disabled={item.quantity <= 1}
+            aria-label="수량 감소"
+          >
+            <Minus className="h-3 w-3" />
+          </Button>
+          <span className="w-8 text-center text-sm font-medium">{item.quantity}</span>
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-7 w-7"
+            onClick={handleIncrement}
+            disabled={item.quantity >= 99}
+            aria-label="수량 증가"
+          >
+            <Plus className="h-3 w-3" />
+          </Button>
+        </div>
+      </div>
+
+      {/* 삭제 버튼 */}
+      <div className="flex-shrink-0">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8"
+          onClick={handleRemove}
+          aria-label="삭제"
+        >
+          <X className="h-4 w-4" />
+        </Button>
+      </div>
+    </div>
+  )
+}

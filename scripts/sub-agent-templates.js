@@ -6,8 +6,13 @@
  * Sub-Agent에서 사용할 수 있는 다양한 템플릿들을 제공합니다.
  */
 
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+// ES 모듈에서 __dirname 사용을 위한 설정
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // 템플릿 디렉토리
 const TEMPLATES_DIR = path.join(__dirname, 'templates');
@@ -328,7 +333,7 @@ class SubAgentTemplates {
 }
 
 // CLI 인터페이스
-if (require.main === module) {
+if (import.meta.url === `file://${process.argv[1]}` || process.argv[1].endsWith('sub-agent-templates.js')) {
   const templates = new SubAgentTemplates();
   const args = process.argv.slice(2);
   
@@ -420,5 +425,5 @@ const DOC_MAINTENANCE_TEMPLATE = {
   }
 };
 
-module.exports = SubAgentTemplates;
-module.exports.DOC_MAINTENANCE_TEMPLATE = DOC_MAINTENANCE_TEMPLATE;
+export default SubAgentTemplates;
+export { DOC_MAINTENANCE_TEMPLATE };
