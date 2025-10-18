@@ -12,23 +12,37 @@
 ## [Unreleased] - 2025-10-18
 
 ### Added
-- **테스트 인프라 구축** (85% 완료) 🧪
+- **테스트 인프라 구축** (90% 완료) 🧪 ⭐ UPDATED
   - **E2E 테스트 (60개)**
     - 관리자 테스트: `dashboard.spec.ts` (7개, 100% 통과), `service-crud.spec.ts` (15개), `image-upload.spec.ts` (12개)
     - 공개 페이지: `homepage.spec.ts` (12개, 91.7% 통과), `login.spec.ts` (7개), `services.spec.ts` (11개)
   - **시각적 회귀 테스트 (28개)**
-    - `dark-mode.spec.ts` (8개, 87.5% 통과) - 드롭다운 메뉴 인터랙션 패턴
-    - `responsive.spec.ts` (20개, 65% 통과) - 모바일/태블릿/데스크탑
-  - **유닛 테스트 (15개, 100% 통과)**
+    - `dark-mode.spec.ts` (8개, 87.5% 통과)
+    - `responsive.spec.ts` (20개, 65% 통과)
+  - **유닛 테스트 (34개, 100% 통과)** ⭐ UPDATED
     - `useAuth.test.ts` (8개 테스트)
     - `useServices.test.tsx` (7개 테스트)
+    - `useIsAdmin.test.tsx` (5개 테스트) ✅ NEW
+    - `ServiceForm.test.tsx` (8개 테스트) ✅ NEW
+    - `ServiceCard.test.tsx` (9개 테스트) ✅ NEW
+  - **Lighthouse CI 설정** ✅ NEW
+    - `lighthouserc.json` 설정 (Performance 90+, Accessibility 95+, Best Practices 90+, SEO 90+)
+    - NPM 스크립트 추가 (`lighthouse`, `lighthouse:collect`, `lighthouse:assert`, `lighthouse:upload`)
+  - **CI/CD 통합** ✅ NEW
+    - `.github/workflows/test-e2e.yml` - Playwright E2E 테스트 자동화
+    - `.github/workflows/test-unit.yml` - Vitest 유닛 테스트 + 커버리지
+    - `.github/workflows/lighthouse.yml` - Lighthouse CI 성능 테스트
+    - PR 코멘트로 테스트 결과 전달 (커버리지, 성능 스코어)
   - **테스트 인프라**
     - 인증 헬퍼 함수 (`loginAsAdmin`, `loginAsRegularUser`)
     - 테스트 픽스처 (`users.ts`, `services.ts`, `images.ts`)
     - Playwright 설정 업데이트 (포트 8080-8083, webServer 통합)
-  - **테스트 문서**
+  - **테스트 문서 (5개)** ⭐ UPDATED
     - `docs/guides/testing/test-user-setup.md` - 테스트 사용자 설정 가이드
     - `docs/guides/testing/quick-start.md` - 빠른 시작 가이드
+    - `docs/guides/testing/lighthouse-ci.md` - Lighthouse CI 가이드 ✅ NEW
+    - `docs/guides/testing/ci-cd-integration.md` - CI/CD 통합 가이드 ✅ NEW
+    - `docs/devops/branch-protection-guide.md` - 브랜치 보호 설정 가이드 ✅ NEW
 
 - **접근성 개선**
   - Footer 소셜 링크 aria-label 추가 (GitHub, LinkedIn, Email)

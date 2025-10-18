@@ -3,7 +3,7 @@
 > 프로젝트 작업 목록 및 진행 상황 관리
 
 **마지막 업데이트**: 2025-10-18
-**현재 Phase**: 테스트 인프라 구축 (85% 완료)
+**현재 Phase**: 테스트 인프라 구축 (90% 완료)
 **프로젝트 버전**: 1.5.0
 
 ---
@@ -22,7 +22,7 @@
 
 ## 📋 다음 단계
 
-### 테스트 인프라 구축 (우선순위: 🔴 최고) - 진행 중 (85%) ⭐
+### 테스트 인프라 구축 (우선순위: 🔴 최고) - 진행 중 (90%) ⭐ UPDATED
 **목표**: 배포된 v1.5.0 기능 검증 및 자동화된 테스트 시스템 구축
 **마지막 업데이트**: 2025-10-18
 
@@ -39,9 +39,10 @@
   - [x] E2E/Unit 테스트 분리 (include/exclude)
 - [x] **Axe-core** - 접근성 테스트
   - [x] @axe-core/playwright 통합
-- [ ] **Lighthouse CI** - 성능 테스트
-  - [ ] lighthouserc.json 설정
-  - [ ] 성능 임계값 정의 (Performance 90+, Accessibility 95+)
+- [x] **Lighthouse CI** - 성능 테스트 ✅ NEW
+  - [x] lighthouserc.json 설정 ✅
+  - [x] 성능 임계값 정의 (Performance 90+, Accessibility 95+) ✅
+  - [x] NPM 스크립트 추가 (lighthouse, lighthouse:collect, lighthouse:assert) ✅
 
 #### E2E 테스트 구현 (tests/e2e/) - 60개 작성 (16개 검증) ✅
 - [x] **인증 테스트** (auth/)
@@ -57,14 +58,18 @@
   - [x] dark-mode.spec.ts - 다크 모드 (8개, 87.5% 통과) ✅ FIXED
   - [x] responsive.spec.ts - 반응형 (20개, 65% 통과) ✅
 
-#### 유닛 테스트 구현 (tests/unit/) - 15개 완료 ✅
+#### 유닛 테스트 구현 (tests/unit/) - 34개 완료 ✅ UPDATED
 - [x] **훅 테스트** (hooks/)
   - [x] useAuth.test.ts - 인증 상태 관리 (8개 테스트) ✅
   - [x] useServices.test.tsx - 서비스 데이터 조회 (7개 테스트) ✅
-  - [ ] useIsAdmin.test.ts - 관리자 권한 확인
-- [ ] **컴포넌트 테스트** (components/)
-  - [ ] ServiceForm.test.tsx - 폼 검증 & 제출
-  - [ ] ServiceCard.test.tsx - 카드 렌더링
+  - [x] useIsAdmin.test.tsx - 관리자 권한 확인 (5개 테스트) ✅ NEW
+- [x] **컴포넌트 테스트** (components/) ✅ NEW
+  - [x] ServiceForm.test.tsx - 폼 검증 & 제출 (8개 테스트) ✅ NEW
+  - [x] ServiceCard.test.tsx - 카드 렌더링 (9개 테스트) ✅ NEW
+- [ ] **추가 컴포넌트 테스트** (선택)
+  - [ ] Hero.test.tsx - Hero 컴포넌트
+  - [ ] Features.test.tsx - Features 컴포넌트
+  - [ ] Services.test.tsx - Services 컴포넌트
 
 #### 접근성 개선 ✅
 - [x] Footer 소셜 링크 aria-label 추가 (GitHub, LinkedIn, Email)
@@ -81,34 +86,45 @@
 - [x] **Playwright 설정**
   - [x] playwright.config.ts 업데이트 (포트 8080-8083, webServer) ✅
 
-#### 테스트 가이드 문서 ✅ NEW
+#### 테스트 가이드 문서 (5개 완료) ✅ UPDATED
 - [x] docs/guides/testing/test-user-setup.md - 테스트 사용자 설정 ✅
 - [x] docs/guides/testing/quick-start.md - 빠른 시작 가이드 ✅
+- [x] docs/guides/testing/lighthouse-ci.md - Lighthouse CI 가이드 ✅ NEW
+- [x] docs/guides/testing/ci-cd-integration.md - CI/CD 통합 가이드 ✅ NEW
+- [x] docs/devops/branch-protection-guide.md - 브랜치 보호 가이드 ✅ NEW
 
-#### CI/CD 통합 - 남은 작업
-- [ ] **GitHub Actions 워크플로우**
-  - [ ] .github/workflows/test-e2e.yml - E2E 테스트
-  - [ ] .github/workflows/test-unit.yml - 유닛 테스트
-  - [ ] .github/workflows/lighthouse.yml - 성능 테스트
-  - [ ] PR 머지 전 자동 테스트 실행
+#### CI/CD 통합 ✅ NEW
+- [x] **GitHub Actions 워크플로우** ✅
+  - [x] .github/workflows/test-e2e.yml - E2E 테스트 (Playwright) ✅
+  - [x] .github/workflows/test-unit.yml - 유닛 테스트 (Vitest + Coverage) ✅
+  - [x] .github/workflows/lighthouse.yml - 성능 테스트 (Lighthouse CI) ✅
+  - [x] PR 머지 전 자동 테스트 실행 ✅
+  - [x] PR 코멘트로 결과 전달 (커버리지, 성능 스코어) ✅
 
-#### 추가 문서 필요
+#### 추가 문서 필요 (선택)
 - [ ] docs/guides/testing/test-strategy.md - 테스트 전략 문서
-- [ ] docs/guides/testing/e2e-guide.md - E2E 테스트 작성 가이드
 - [ ] docs/guides/testing/manual-checklist.md - 수동 테스트 체크리스트
 
-**테스트 현황 요약** (2025-10-18):
+**테스트 현황 요약** (2025-10-18 - UPDATED):
 ```
 E2E 테스트:        60개 작성 (Playwright) | 16개 검증 (81% 통과)
   - Public:        30개 (homepage, login, services)
   - Admin:         35개 (dashboard, CRUD, upload) ✅
-시각적 회귀:       28개 작성 (Playwright) | 28개 검증 (75% 통과) ✅ NEW
-  - Dark Mode:     8개 (7/8 통과, 87.5%) ✅ FIXED
+시각적 회귀:       28개 작성 (Playwright) | 28개 검증 (75% 통과)
+  - Dark Mode:     8개 (7/8 통과, 87.5%)
   - Responsive:   20개 (13/20 통과, 65%)
-유닛 테스트:       15개 작성 (Vitest) | 15개 통과 (100%)
+유닛 테스트:       34개 작성 (Vitest) | 34개 통과 (100%) ⭐ UPDATED
+  - useAuth:       8개 ✅
+  - useServices:   7개 ✅
+  - useIsAdmin:    5개 ✅ NEW
+  - ServiceForm:   8개 ✅ NEW
+  - ServiceCard:   9개 ✅ NEW
 ────────────────────────────────────────────────
-총 테스트:        103개 작성 | 59개 검증
-전체 통과율:      78% ✅
+총 테스트:        122개 작성 | 78개 검증 ⭐ UPDATED
+전체 통과율:      81% ✅
+
+CI/CD:            6개 워크플로우 (ci, test-e2e, test-unit, lighthouse, deploy-staging, deploy-production)
+문서:             8개 가이드 (테스트 5개, DevOps 3개)
 ```
 
 ---
