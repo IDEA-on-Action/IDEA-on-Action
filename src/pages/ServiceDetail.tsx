@@ -14,6 +14,8 @@ import { Helmet } from 'react-helmet-async'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
 import { useServiceDetail } from '@/hooks/useServices'
+import { useAddToCart } from '@/hooks/useCart'
+import { useAuth } from '@/hooks/useAuth'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -40,7 +42,9 @@ import {
 export default function ServiceDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const { user } = useAuth()
   const { data: service, isLoading, isError, error } = useServiceDetail(id!)
+  const { mutate: addToCart, isPending: isAddingToCart } = useAddToCart()
 
   if (isLoading) {
     return (
@@ -96,6 +100,20 @@ export default function ServiceDetail() {
   } = service
 
   // 가격 포맷팅
+  // 장바구니 담기 핸들러
+  const handleAddToCart = () => {
+    if (!user) {
+      navigate('/login')
+      return
+    }
+
+    addToCart({
+      serviceId: service.id,
+      quantity: 1,
+      price: service.price,
+    })
+  }
+
   const formattedPrice = new Intl.NumberFormat('ko-KR', {
     style: 'currency',
     currency: 'KRW',
@@ -214,9 +232,14 @@ export default function ServiceDetail() {
                     <div className="text-sm text-muted-foreground">부가세 별도</div>
                   </div>
                   <div className="flex flex-col sm:flex-row gap-3">
-                    <Button size="lg" className="flex-1">
+                    <Button
+                      size="lg"
+                      className="flex-1"
+                      onClick={handleAddToCart}
+                      disabled={isAddingToCart}
+                    >
                       <ShoppingCart className="mr-2 h-5 w-5" />
-                      구매하기
+                      {isAddingToCart ? '추가 중...' : '장바구니 담기'}
                     </Button>
                     <Button size="lg" variant="outline" asChild className="flex-1">
                       <Link to="/contact">

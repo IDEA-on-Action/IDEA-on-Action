@@ -12,6 +12,7 @@ import Forbidden from "./pages/Forbidden";
 import NotFound from "./pages/NotFound";
 import { AdminRoute } from "./components/auth/AdminRoute";
 import { AdminLayout } from "./components/layouts/AdminLayout";
+import { CartDrawer } from "./components/cart";
 import Dashboard from "./pages/admin/Dashboard";
 import AdminServices from "./pages/admin/AdminServices";
 import CreateService from "./pages/admin/CreateService";
@@ -25,6 +26,7 @@ const App = () => (
       <TooltipProvider>
         <Toaster />
         <Sonner />
+        <CartDrawer />
         <BrowserRouter>
           <Routes>
             {/* Public Routes */}

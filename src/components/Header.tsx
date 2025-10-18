@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/hooks/useAuth";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
+import { CartButton } from "@/components/cart";
 import logoSymbol from "@/assets/logo-symbol.png";
 
 // Types
@@ -136,6 +137,7 @@ const Header = ({ className = "" }: HeaderProps) => {
 
         <div className="flex items-center gap-3">
           <ThemeToggle />
+          {user && <CartButton />}
 
           {user ? (
             <DropdownMenu>
