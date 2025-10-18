@@ -42,6 +42,9 @@ repomix-output.txt
 *-temp.md
 *-draft.md
 
+# Backups
+backups/
+
 # OS files
 Thumbs.db
 .DS_Store

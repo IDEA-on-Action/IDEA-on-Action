@@ -68,7 +68,7 @@ export function useAddToCart() {
       if (!user) throw new Error('로그인이 필요합니다')
 
       // 1. 장바구니가 없으면 생성
-      const { data: cart, error: cartError } = await supabase
+      let { data: cart, error: cartError } = await supabase
         .from('carts')
         .select('id')
         .eq('user_id', user.id)
