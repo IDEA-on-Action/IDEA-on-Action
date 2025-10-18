@@ -1,0 +1,100 @@
+name: Lighthouse CI
+
+on:
+  pull_request:
+    branches: [main, staging, develop]
+  push:
+    branches: [main, staging]
+
+jobs:
+  lighthouse:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build production bundle
+        run: npm run build
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+
+      - name: Run Lighthouse CI
+        run: npx lhci autorun
+        env:
+          LHCI_GITHUB_APP_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Lighthouse reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: lighthouse-reports
+          path: .lighthouseci/
+          retention-days: 30
+
+      - name: Comment PR with Lighthouse results
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+
+            // Find the manifest file
+            const manifestPath = '.lighthouseci/manifest.json';
+            if (!fs.existsSync(manifestPath)) {
+              console.log('No Lighthouse manifest found');
+              return;
+            }
+
+            const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+            const reports = manifest.map(entry => {
+              const report = JSON.parse(fs.readFileSync(entry.jsonPath, 'utf8'));
+              return {
+                url: entry.url,
+                performance: Math.round(report.categories.performance.score * 100),
+                accessibility: Math.round(report.categories.accessibility.score * 100),
+                bestPractices: Math.round(report.categories['best-practices'].score * 100),
+                seo: Math.round(report.categories.seo.score * 100),
+                fcp: Math.round(report.audits['first-contentful-paint'].numericValue),
+                lcp: Math.round(report.audits['largest-contentful-paint'].numericValue),
+                cls: report.audits['cumulative-layout-shift'].numericValue.toFixed(3),
+                tbt: Math.round(report.audits['total-blocking-time'].numericValue),
+              };
+            });
+
+            const body = `## 🔍 Lighthouse CI Results
+
+            | URL | Performance | Accessibility | Best Practices | SEO |
+            |-----|-------------|---------------|----------------|-----|
+            ${reports.map(r => `| ${r.url} | ${r.performance} | ${r.accessibility} | ${r.bestPractices} | ${r.seo} |`).join('\n')}
+
+            ### Core Web Vitals
+
+            | URL | FCP (ms) | LCP (ms) | CLS | TBT (ms) |
+            |-----|----------|----------|-----|----------|
+            ${reports.map(r => `| ${r.url} | ${r.fcp} | ${r.lcp} | ${r.cls} | ${r.tbt} |`).join('\n')}
+
+            **Thresholds:**
+            - ✅ Performance: 90+ | Accessibility: 95+ | Best Practices: 90+ | SEO: 90+
+            - ✅ FCP: <2000ms | LCP: <2500ms | CLS: <0.1 | TBT: <300ms
+
+            [View detailed reports in artifacts](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+            `;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });
