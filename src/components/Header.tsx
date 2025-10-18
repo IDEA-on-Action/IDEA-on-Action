@@ -155,21 +155,27 @@ const Header = ({ className = "" }: HeaderProps) => {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuItem 
+                <DropdownMenuItem
                   onClick={() => navigate('/profile')}
                   aria-label="프로필 페이지로 이동"
                 >
                   프로필
                 </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => navigate('/orders')}
+                  aria-label="내 주문 페이지로 이동"
+                >
+                  내 주문
+                </DropdownMenuItem>
                 {isAdmin && (
-                  <DropdownMenuItem 
+                  <DropdownMenuItem
                     onClick={() => navigate('/admin/services')}
                     aria-label="관리자 페이지로 이동"
                   >
                     관리자
                   </DropdownMenuItem>
                 )}
-                <DropdownMenuItem 
+                <DropdownMenuItem
                   onClick={signOut}
                   aria-label="로그아웃"
                 >
