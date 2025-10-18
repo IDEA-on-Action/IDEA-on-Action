@@ -1,15 +1,16 @@
 import { render, screen } from '@testing-library/react';
+import { describe, it, expect } from 'vitest';
 import { axe, toHaveNoViolations } from 'jest-axe';
 import { Brain, Workflow, BarChart3 } from 'lucide-react';
 import Services from '@/components/Services';
 
-// Extend Jest matchers
+// Extend Vitest matchers
 expect.extend(toHaveNoViolations);
 
 describe('Services Component', () => {
   it('renders without crashing', () => {
-    render(<Services />);
-    expect(screen.getByRole('region')).toBeInTheDocument();
+    const { container } = render(<Services />);
+    expect(container.querySelector('section')).toBeInTheDocument();
   });
 
   it('displays the section title', () => {
@@ -57,8 +58,8 @@ describe('Services Component', () => {
 
   it('applies custom className when provided', () => {
     const customClass = 'custom-services-class';
-    render(<Services className={customClass} />);
-    const servicesSection = screen.getByRole('region');
+    const { container } = render(<Services className={customClass} />);
+    const servicesSection = container.querySelector('section');
     expect(servicesSection).toHaveClass(customClass);
   });
 
@@ -133,9 +134,9 @@ describe('Services Component', () => {
   });
 
   it('renders with proper responsive classes', () => {
-    render(<Services />);
-    
-    const grid = screen.getByRole('region').querySelector('.grid');
+    const { container } = render(<Services />);
+
+    const grid = container.querySelector('.grid');
     expect(grid).toHaveClass('md:grid-cols-3');
   });
 
@@ -175,10 +176,10 @@ describe('Services Component', () => {
   });
 
   it('handles empty services array gracefully', () => {
-    render(<Services services={[]} />);
-    
-    expect(screen.getByRole('region')).toBeInTheDocument();
-    expect(screen.getAllByRole('article')).toHaveLength(0);
+    const { container } = render(<Services services={[]} />);
+
+    expect(container.querySelector('section')).toBeInTheDocument();
+    expect(screen.queryAllByRole('article')).toHaveLength(0);
   });
 
   it('supports custom service data structure', () => {

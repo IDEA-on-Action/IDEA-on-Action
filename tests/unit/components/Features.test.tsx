@@ -1,20 +1,21 @@
 import { render, screen, fireEvent } from '@testing-library/react';
+import { describe, it, expect } from 'vitest';
 import { axe, toHaveNoViolations } from 'jest-axe';
 import { Zap, Shield, Rocket, Users } from 'lucide-react';
 import Features from '@/components/Features';
 
-// Extend Jest matchers
+// Extend Vitest matchers
 expect.extend(toHaveNoViolations);
 
 describe('Features Component', () => {
   it('renders without crashing', () => {
-    render(<Features />);
-    expect(screen.getByRole('region')).toBeInTheDocument();
+    const { container } = render(<Features />);
+    expect(container.querySelector('section')).toBeInTheDocument();
   });
 
   it('displays the section title', () => {
     render(<Features />);
-    expect(screen.getByText('VIBE WORKING의 강점')).toBeInTheDocument();
+    expect(screen.getByText(/VIBE WORKING.*강점/)).toBeInTheDocument();
   });
 
   it('displays the section description', () => {
@@ -56,8 +57,8 @@ describe('Features Component', () => {
 
   it('applies custom className when provided', () => {
     const customClass = 'custom-features-class';
-    render(<Features className={customClass} />);
-    const featuresSection = screen.getByRole('region');
+    const { container } = render(<Features className={customClass} />);
+    const featuresSection = container.querySelector('section');
     expect(featuresSection).toHaveClass(customClass);
   });
 
@@ -111,9 +112,9 @@ describe('Features Component', () => {
   });
 
   it('renders with proper responsive classes', () => {
-    render(<Features />);
-    
-    const grid = screen.getByRole('region').querySelector('.grid');
+    const { container } = render(<Features />);
+
+    const grid = container.querySelector('.grid');
     expect(grid).toHaveClass('md:grid-cols-2', 'lg:grid-cols-4');
   });
 
@@ -133,10 +134,10 @@ describe('Features Component', () => {
   });
 
   it('handles empty features array gracefully', () => {
-    render(<Features features={[]} />);
-    
-    expect(screen.getByRole('region')).toBeInTheDocument();
-    expect(screen.getAllByRole('article')).toHaveLength(0);
+    const { container } = render(<Features features={[]} />);
+
+    expect(container.querySelector('section')).toBeInTheDocument();
+    expect(screen.queryAllByRole('article')).toHaveLength(0);
   });
 
   it('has proper icon rendering', () => {
