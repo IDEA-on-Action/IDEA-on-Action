@@ -2,7 +2,7 @@
  * useAuth Hook
  *
  * Supabase Auth 상태 관리 및 로그인/로그아웃 기능
- * - OAuth 로그인 (Google, GitHub, Kakao)
+ * - OAuth 로그인 (Google, GitHub, Kakao, Microsoft, Apple)
  * - 세션 상태 구독
  * - 사용자 정보 관리
  */
@@ -19,6 +19,8 @@ interface UseAuthReturn {
   signInWithGoogle: () => Promise<void>
   signInWithGithub: () => Promise<void>
   signInWithKakao: () => Promise<void>
+  signInWithMicrosoft: () => Promise<void>
+  signInWithApple: () => Promise<void>
   signInWithEmail: (email: string, password: string) => Promise<void>
   signOut: () => Promise<void>
 }
@@ -101,6 +103,42 @@ export function useAuth(): UseAuthReturn {
   }
 
   /**
+   * Microsoft (Azure AD) OAuth 로그인
+   */
+  const signInWithMicrosoft = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'azure',
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+        scopes: 'email profile openid',
+      },
+    })
+
+    if (error) {
+      console.error('Microsoft login error:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Apple OAuth 로그인
+   */
+  const signInWithApple = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'apple',
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+        scopes: 'email name',
+      },
+    })
+
+    if (error) {
+      console.error('Apple login error:', error)
+      throw error
+    }
+  }
+
+  /**
    * 이메일/비밀번호 로그인
    * (관리자 계정용: admin / demian00)
    */
@@ -137,6 +175,8 @@ export function useAuth(): UseAuthReturn {
     signInWithGoogle,
     signInWithGithub,
     signInWithKakao,
+    signInWithMicrosoft,
+    signInWithApple,
     signInWithEmail,
     signOut,
   }

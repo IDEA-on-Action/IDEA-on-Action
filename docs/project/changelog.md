@@ -9,13 +9,82 @@
 
 ---
 
-## [Unreleased] - Phase 9 진행 중
+## [Unreleased] - Phase 11 계획 중
+
+### Planned
+- **Phase 11: 콘텐츠 관리 시스템** (계획)
+  - 블로그 시스템 (Markdown 에디터)
+  - 공지사항 관리
+  - SEO 최적화
+  - RSS 피드
+
+---
+
+## [1.6.1] - 2025-10-20
 
 ### Added
-- **Phase 9 전자상거래 기능 개발 시작** (2025-10-18)
-  - `feature/phase-9-ecommerce` 브랜치 생성
-  - Phase 9 진행 상황 추적 문서 (`docs/project/phase-9-progress.md`)
-  - Week 1: 데이터베이스 스키마 설계 (carts, cart_items)
+- **Phase 10 Week 2: 2FA & 보안 강화** 🔐
+  - **데이터베이스 (Migration 004)**
+    - `two_factor_auth` 테이블 (TOTP secret, 백업 코드)
+    - `login_attempts` 테이블 (로그인 시도 기록)
+    - `account_locks` 테이블 (계정 잠금 관리)
+    - `password_reset_tokens` 테이블
+    - 헬퍼 함수 5개 (로그인 기록, 계정 잠금, 비밀번호 재설정)
+    - 브루트 포스 방지 (5회 실패 → 30분 잠금)
+  - **TOTP 라이브러리**
+    - `src/lib/auth/totp.ts` (otpauth, qrcode 기반)
+    - TOTP secret 생성, QR 코드 생성, 토큰 검증
+    - 백업 코드 생성 (10개)
+  - **use2FA 훅 (7개)**
+    - `use2FASettings`, `useSetup2FA`, `useEnable2FA`, `useDisable2FA`
+    - `useRegenerateBackupCodes`, `useVerify2FA`
+  - **2FA 페이지**
+    - `TwoFactorSetup.tsx` - 4단계 설정 플로우 (QR 코드, 검증, 백업 코드)
+    - `TwoFactorVerify.tsx` - 로그인 시 2FA 인증
+    - `Profile.tsx` - 2FA 관리 섹션 추가
+
+- **Phase 10 Week 1: OAuth 확장 & 프로필 관리** 👤
+  - **데이터베이스 (Migration 003)**
+    - `user_profiles` 테이블 확장 (11개 컬럼)
+    - `connected_accounts` 테이블
+    - `email_verifications` 테이블
+  - **Microsoft (Azure AD) OAuth** 통합
+  - **Apple OAuth** 통합
+  - **useProfile 훅 (5개)**
+    - 프로필 CRUD, 아바타 업로드, 연결된 계정 관리
+  - **Profile 페이지 완전 재작성**
+    - React Hook Form + Zod 검증
+    - 아바타 업로드 다이얼로그
+
+- **Phase 9 Week 3: 결제 게이트웨이** 💳
+  - **Kakao Pay REST API 연동**
+    - `src/lib/payments/kakao-pay.ts`
+  - **Toss Payments SDK 연동**
+    - `src/lib/payments/toss-payments.ts`
+    - `@tosspayments/payment-sdk` 통합
+  - **usePayment 훅 (3개)**
+    - 결제 시작, 승인, 취소
+  - **결제 페이지**
+    - `Payment.tsx`, `PaymentSuccess.tsx`, `PaymentFail.tsx`
+    - `PaymentMethodSelector`, `PaymentStatus` 컴포넌트
+  - **관리자 주문 관리 강화**
+    - `AdminOrders` 페이지 (필터링, 정렬, 상태 업데이트)
+  - **관리자 대시보드 통계**
+    - Recharts 통합 (일별 매출 차트, 결제 수단 분포)
+
+### Changed
+- **빌드 크기 증가**
+  - v1.5.0 → v1.6.1: +171.29 kB (gzip)
+  - Phase 9 Week 3 (결제): +72 kB
+  - Phase 10 Week 2 (2FA): +74 kB
+  - Recharts (대시보드): +30 kB
+
+### Security
+- **브루트 포스 방지** - 5회 실패 시 30분 자동 잠금
+- **로그인 시도 기록** - IP, User-Agent, 성공/실패 여부
+- **2FA (TOTP)** - Google Authenticator 호환
+- **백업 코드** - 10개 일회용 코드 (기기 분실 시)
+- **비밀번호 재설정** - 1시간 유효 토큰
 
 ---
 

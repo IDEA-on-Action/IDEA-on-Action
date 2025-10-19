@@ -12,17 +12,22 @@ import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Package, FileText, Users, TrendingUp, Plus, ArrowRight } from 'lucide-react'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Package, FileText, Users, TrendingUp, Plus, ArrowRight, DollarSign, ShoppingCart } from 'lucide-react'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts'
+import { format, subDays, startOfDay } from 'date-fns'
+import { ko } from 'date-fns/locale'
 
 export default function Dashboard() {
   // 통계 데이터
   const { data: stats } = useQuery({
     queryKey: ['admin-stats'],
     queryFn: async () => {
-      const [servicesRes, categoriesRes] = await Promise.all([
+      const [servicesRes, categoriesRes, ordersRes, paymentsRes] = await Promise.all([
         supabase.from('services').select('id, status', { count: 'exact' }),
         supabase.from('service_categories').select('id', { count: 'exact' }),
+        supabase.from('orders').select('id, status, total_amount, created_at'),
+        supabase.from('payments').select('id, amount, provider, status'),
       ])
 
       const totalServices = servicesRes.count || 0
@@ -30,11 +35,69 @@ export default function Dashboard() {
         servicesRes.data?.filter((s) => s.status === 'active').length || 0
       const totalCategories = categoriesRes.count || 0
 
+      // 주문 통계
+      const orders = ordersRes.data || []
+      const totalOrders = orders.length
+      const completedOrders = orders.filter((o) => o.status === 'delivered').length
+      const totalRevenue = orders
+        .filter((o) => o.status !== 'cancelled' && o.status !== 'refunded')
+        .reduce((sum, o) => sum + o.total_amount, 0)
+
+      // 평균 주문 금액
+      const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0
+
+      // 일별 매출 (최근 7일)
+      const last7Days = Array.from({ length: 7 }, (_, i) => {
+        const date = startOfDay(subDays(new Date(), 6 - i))
+        return {
+          date,
+          dateStr: format(date, 'MM/dd'),
+          revenue: 0,
+          orders: 0,
+        }
+      })
+
+      orders.forEach((order) => {
+        if (order.status === 'cancelled' || order.status === 'refunded') return
+        const orderDate = startOfDay(new Date(order.created_at))
+        const dayData = last7Days.find((d) => d.date.getTime() === orderDate.getTime())
+        if (dayData) {
+          dayData.revenue += order.total_amount
+          dayData.orders += 1
+        }
+      })
+
+      // 결제 수단별 통계
+      const payments = paymentsRes.data || []
+      const paymentsByProvider = payments
+        .filter((p) => p.status === 'completed')
+        .reduce((acc, p) => {
+          const provider = p.provider || 'unknown'
+          if (!acc[provider]) {
+            acc[provider] = { count: 0, amount: 0 }
+          }
+          acc[provider].count += 1
+          acc[provider].amount += p.amount
+          return acc
+        }, {} as Record<string, { count: number; amount: number }>)
+
+      const paymentMethodChart = Object.entries(paymentsByProvider).map(([provider, data]) => ({
+        name: provider === 'kakao' ? 'Kakao Pay' : provider === 'toss' ? 'Toss Payments' : provider,
+        value: data.count,
+        amount: data.amount,
+      }))
+
       return {
         totalServices,
         activeServices,
         draftServices: servicesRes.data?.filter((s) => s.status === 'draft').length || 0,
         totalCategories,
+        totalOrders,
+        completedOrders,
+        totalRevenue,
+        averageOrderValue,
+        dailyRevenue: last7Days,
+        paymentMethodChart,
       }
     },
   })
@@ -59,26 +122,33 @@ export default function Dashboard() {
       value: stats?.totalServices || 0,
       icon: Package,
       description: `활성: ${stats?.activeServices || 0}`,
+      color: 'text-blue-600',
     },
     {
-      title: '초안',
-      value: stats?.draftServices || 0,
-      icon: FileText,
-      description: '작성 중',
+      title: '총 주문',
+      value: stats?.totalOrders || 0,
+      icon: ShoppingCart,
+      description: `완료: ${stats?.completedOrders || 0}`,
+      color: 'text-green-600',
     },
     {
-      title: '카테고리',
-      value: stats?.totalCategories || 0,
-      icon: Users,
-      description: '전체',
+      title: '총 매출',
+      value: `₩${((stats?.totalRevenue || 0) / 10000).toFixed(0)}만`,
+      icon: DollarSign,
+      description: '누적 매출',
+      color: 'text-purple-600',
     },
     {
-      title: '성장률',
-      value: '0%',
+      title: '평균 주문금액',
+      value: `₩${Math.floor((stats?.averageOrderValue || 0) / 1000)}천`,
       icon: TrendingUp,
-      description: '이번 달',
+      description: '주문당',
+      color: 'text-orange-600',
     },
   ]
+
+  // 차트 색상
+  const COLORS = ['#3b82f6', '#f59e0b', '#8b5cf6', '#10b981']
 
   return (
     <>
@@ -109,7 +179,7 @@ export default function Dashboard() {
               <Card key={stat.title}>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
-                  <Icon className="h-4 w-4 text-muted-foreground" />
+                  <Icon className={`h-5 w-5 ${stat.color}`} />
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">{stat.value}</div>
@@ -118,6 +188,71 @@ export default function Dashboard() {
               </Card>
             )
           })}
+        </div>
+
+        {/* 차트 섹션 */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* 일별 매출 차트 */}
+          <Card>
+            <CardHeader>
+              <CardTitle>일별 매출 (최근 7일)</CardTitle>
+              <CardDescription>날짜별 매출 추이</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={stats?.dailyRevenue || []}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="dateStr" />
+                  <YAxis />
+                  <Tooltip
+                    formatter={(value: number) => `₩${value.toLocaleString()}`}
+                    labelFormatter={(label) => `날짜: ${label}`}
+                  />
+                  <Bar dataKey="revenue" fill="#3b82f6" name="매출" />
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          {/* 결제 수단별 통계 */}
+          <Card>
+            <CardHeader>
+              <CardTitle>결제 수단별 통계</CardTitle>
+              <CardDescription>결제 수단 사용 현황</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {stats?.paymentMethodChart && stats.paymentMethodChart.length > 0 ? (
+                <ResponsiveContainer width="100%" height={300}>
+                  <PieChart>
+                    <Pie
+                      data={stats.paymentMethodChart}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                      outerRadius={80}
+                      fill="#8884d8"
+                      dataKey="value"
+                    >
+                      {stats.paymentMethodChart.map((_, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      formatter={(value: number, name: string, props: any) =>
+                        `${value}건 (₩${props.payload.amount.toLocaleString()})`
+                      }
+                    />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+                  결제 데이터가 없습니다
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
 
         {/* 최근 서비스 */}
@@ -181,7 +316,7 @@ export default function Dashboard() {
         </Card>
 
         {/* 빠른 액션 */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card className="hover:shadow-lg transition-shadow cursor-pointer">
             <Link to="/admin/services/new">
               <CardContent className="pt-6 text-center">
@@ -201,6 +336,18 @@ export default function Dashboard() {
                 <h3 className="font-semibold">서비스 관리</h3>
                 <p className="text-sm text-muted-foreground mt-2">
                   등록된 서비스를 관리합니다
+                </p>
+              </CardContent>
+            </Link>
+          </Card>
+
+          <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+            <Link to="/admin/orders">
+              <CardContent className="pt-6 text-center">
+                <ShoppingCart className="h-12 w-12 mx-auto mb-4 text-primary" />
+                <h3 className="font-semibold">주문 관리</h3>
+                <p className="text-sm text-muted-foreground mt-2">
+                  주문 현황을 관리합니다
                 </p>
               </CardContent>
             </Link>

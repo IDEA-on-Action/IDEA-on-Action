@@ -168,12 +168,20 @@ const Header = ({ className = "" }: HeaderProps) => {
                   내 주문
                 </DropdownMenuItem>
                 {isAdmin && (
-                  <DropdownMenuItem
-                    onClick={() => navigate('/admin/services')}
-                    aria-label="관리자 페이지로 이동"
-                  >
-                    관리자
-                  </DropdownMenuItem>
+                  <>
+                    <DropdownMenuItem
+                      onClick={() => navigate('/admin/services/new')}
+                      aria-label="서비스 등록 페이지로 이동"
+                    >
+                      서비스 등록
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => navigate('/admin/services')}
+                      aria-label="관리자 페이지로 이동"
+                    >
+                      관리자 대시보드
+                    </DropdownMenuItem>
+                  </>
                 )}
                 <DropdownMenuItem
                   onClick={signOut}

@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Sparkles } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import logoFull from "@/assets/logo-full.png";
 
 // Constants
@@ -24,6 +25,21 @@ interface HeroProps {
 }
 
 const Hero = ({ className = "" }: HeroProps) => {
+  const navigate = useNavigate();
+
+  const handleStartFree = () => {
+    navigate('/services');
+  };
+
+  const handleLearnMore = () => {
+    // TODO(stagewise): Replace with actual scroll to features section
+    const featuresSection = document.getElementById('features');
+    if (featuresSection) {
+      featuresSection.scrollIntoView({ behavior: 'smooth' });
+    } else {
+      navigate('/services');
+    }
+  };
   return (
     <section className={`relative min-h-screen flex items-center justify-center overflow-hidden pt-16 ${className}`}>
       {/* Gradient Background */}

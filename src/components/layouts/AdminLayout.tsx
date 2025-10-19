@@ -14,6 +14,7 @@ import {
   LayoutDashboard,
   Package,
   Plus,
+  ShoppingCart,
   LogOut,
   Home,
   Menu,
@@ -37,6 +38,11 @@ const navItems = [
     title: '서비스 등록',
     href: '/admin/services/new',
     icon: Plus,
+  },
+  {
+    title: '주문 관리',
+    href: '/admin/orders',
+    icon: ShoppingCart,
   },
 ]
 

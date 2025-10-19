@@ -21,7 +21,7 @@ import logoSymbol from '@/assets/logo-symbol.png'
 export default function Login() {
   const navigate = useNavigate()
   const location = useLocation()
-  const { signInWithGoogle, signInWithGithub, signInWithKakao, signInWithEmail, user } = useAuth()
+  const { signInWithGoogle, signInWithGithub, signInWithKakao, signInWithMicrosoft, signInWithApple, signInWithEmail, user } = useAuth()
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -34,7 +34,7 @@ export default function Login() {
     navigate(from, { replace: true })
   }
 
-  const handleOAuthLogin = async (provider: 'google' | 'github' | 'kakao') => {
+  const handleOAuthLogin = async (provider: 'google' | 'github' | 'kakao' | 'microsoft' | 'apple') => {
     try {
       setLoading(true)
       setError(null)
@@ -45,6 +45,10 @@ export default function Login() {
         await signInWithGithub()
       } else if (provider === 'kakao') {
         await signInWithKakao()
+      } else if (provider === 'microsoft') {
+        await signInWithMicrosoft()
+      } else if (provider === 'apple') {
+        await signInWithApple()
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : '로그인 중 오류가 발생했습니다.'
@@ -164,6 +168,38 @@ export default function Login() {
                   </svg>
                 )}
                 Kakao로 계속하기
+              </Button>
+
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => handleOAuthLogin('microsoft')}
+                disabled={loading}
+              >
+                {loading ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <svg className="mr-2 h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M11.4 24H0V12.6h11.4V24zM24 24H12.6V12.6H24V24zM11.4 11.4H0V0h11.4v11.4zm12.6 0H12.6V0H24v11.4z" />
+                  </svg>
+                )}
+                Microsoft로 계속하기
+              </Button>
+
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => handleOAuthLogin('apple')}
+                disabled={loading}
+              >
+                {loading ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <svg className="mr-2 h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" />
+                  </svg>
+                )}
+                Apple로 계속하기
               </Button>
             </div>
 

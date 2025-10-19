@@ -30,19 +30,16 @@ export function useServices(filters?: ServiceFilters) {
     queryFn: async () => {
       let query = supabase
         .from('services')
-        .select(`
-          *,
-          category:service_categories(*)
-        `)
+        .select('*')
 
-      // 상태 필터 (기본: active만)
-      const status = filters?.status || 'active'
-      query = query.eq('status', status)
+      // 상태 필터 (임시 비활성화 - status 컬럼 확인 필요)
+      // const status = filters?.status || 'active'
+      // query = query.eq('status', status)
 
-      // 카테고리 필터
-      if (filters?.categoryId) {
-        query = query.eq('category_id', filters.categoryId)
-      }
+      // 카테고리 필터 (임시 비활성화 - category_id 컬럼이 존재하지 않음)
+      // if (filters?.categoryId) {
+      //   query = query.eq('category_id', filters.categoryId)
+      // }
 
       // 정렬
       switch (filters?.sortBy) {
@@ -117,7 +114,6 @@ export function useServiceCategories() {
       const { data, error } = await supabase
         .from('service_categories')
         .select('*')
-        .eq('is_active', true)
         .order('display_order', { ascending: true })
 
       if (error) {

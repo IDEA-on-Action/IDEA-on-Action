@@ -10,19 +10,23 @@
 
 import { useState } from 'react'
 import { Helmet } from 'react-helmet-async'
+import { useNavigate } from 'react-router-dom'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
 import { ServiceCard } from '@/components/services/ServiceCard'
 import { useServices, useServiceCategories, type ServiceSortBy } from '@/hooks/useServices'
+import { useIsAdmin } from '@/hooks/useIsAdmin'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { AlertCircle, PackageOpen } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { AlertCircle, PackageOpen, Plus } from 'lucide-react'
 
 export default function Services() {
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
   const [sortBy, setSortBy] = useState<ServiceSortBy>('newest')
+  const navigate = useNavigate()
 
   // 데이터 조회
   const { data: categories, isLoading: categoriesLoading } = useServiceCategories()
@@ -35,6 +39,7 @@ export default function Services() {
     categoryId: selectedCategory === 'all' ? undefined : selectedCategory,
     sortBy,
   })
+  const { data: isAdmin } = useIsAdmin()
 
   const isLoading = categoriesLoading || servicesLoading
 
@@ -54,9 +59,21 @@ export default function Services() {
         <main className="flex-1 container mx-auto px-4 py-16 space-y-12">
           {/* 헤더 섹션 */}
           <div className="text-center space-y-4">
-            <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-              우리의 서비스
-            </h1>
+            <div className="flex items-center justify-center gap-4">
+              <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                우리의 서비스
+              </h1>
+              {isAdmin && (
+                <Button
+                  onClick={() => navigate('/admin/services/new')}
+                  className="bg-gradient-primary hover:opacity-90"
+                  aria-label="새 서비스 등록"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  서비스 등록
+                </Button>
+              )}
+            </div>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
               AI 기반 워킹 솔루션으로 업무 생산성을 극대화하세요
             </p>

@@ -8,6 +8,12 @@
 
 ## 🚀 빠른 시작
 
+### 개발 도구 설치 (권장)
+개발 시 더 나은 경험을 위해 다음 도구들을 설치하세요:
+
+- **React DevTools**: [Chrome Extension](https://chrome.google.com/webstore/detail/react-developer-tools/fmkadmapgofadopljbjfkapdkoienihi) | [Firefox Add-on](https://addons.mozilla.org/en-US/firefox/addon/react-devtools/)
+- **Redux DevTools**: [Chrome Extension](https://chrome.google.com/webstore/detail/redux-devtools/lmhkpmbekcpmknklioeibfkpmmfibljd) (상태 관리용)
+
 ### 설치
 
 ```bash
@@ -48,6 +54,7 @@ npm run sub-agent:help
 
 ### 🔧 개발자 경험
 - **TypeScript**: 완전한 타입 안정성
+- **React DevTools**: 개발 시 React DevTools 설치 권장
 - **Tailwind CSS**: 유틸리티 우선 CSS 프레임워크
 - **shadcn/ui**: 재사용 가능한 UI 컴포넌트
 - **Vitest**: 빠른 단위 테스트

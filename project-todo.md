@@ -2,9 +2,9 @@
 
 > 프로젝트 작업 목록 및 진행 상황 관리
 
-**마지막 업데이트**: 2025-10-18
-**현재 Phase**: Phase 9 전자상거래 (Week 2 완료, 67%)
-**프로젝트 버전**: 1.6.0
+**마지막 업데이트**: 2025-10-20
+**현재 Phase**: Phase 10 SSO & 인증 강화 (Week 2 완료, 67%)
+**프로젝트 버전**: 1.6.1
 
 ---
 
@@ -129,10 +129,10 @@ CI/CD:            6개 워크플로우 (ci, test-e2e, test-unit, lighthouse, dep
 
 ---
 
-### Phase 9: 전자상거래 (진행 중) - 67% 완료 ⭐ UPDATED
+### Phase 9: 전자상거래 ✅ 완료 (100%) 🎉
 **시작일**: 2025-10-18
-**예상 완료**: 2025-11-08 (3주)
-**현재 상태**: Week 1-2 완료, Week 3 대기 중
+**완료일**: 2025-10-20 (3일)
+**현재 상태**: Week 1-3 완료
 
 #### Week 1: 장바구니 시스템 ✅ 완료
 - [x] 데이터베이스 스키마 설계 (carts, cart_items) ✅
@@ -186,23 +186,108 @@ CI/CD:            6개 워크플로우 (ci, test-e2e, test-unit, lighthouse, dep
   - [x] 주문 취소 버튼
 - [x] Header "내 주문" 메뉴 추가 ✅
 
-#### Week 3: 결제 게이트웨이 (진행 예정)
-- [ ] Kakao Pay SDK 연동
-  - [ ] 결제 준비 API
-  - [ ] 결제 승인 API
-  - [ ] Webhook 처리
-- [ ] Toss Payments SDK 연동
-  - [ ] 결제 위젯 통합
-  - [ ] 결제 승인 API
-  - [ ] Webhook 처리
-- [ ] 결제 페이지 구현
-  - [ ] 결제 수단 선택
-  - [ ] 결제 처리 플로우
-  - [ ] 결제 성공/실패 페이지
-- [ ] 관리자 주문 관리 페이지
-  - [ ] 주문 목록 (필터링, 정렬)
-  - [ ] 주문 상태 변경
-  - [ ] 매출 통계 대시보드
+#### Week 3: 결제 게이트웨이 ✅ 완료
+- [x] Kakao Pay REST API 연동 ✅
+  - [x] kakao-pay.ts 라이브러리 (준비/승인/취소)
+  - [x] Form Data 변환 및 Authorization 헤더
+- [x] Toss Payments SDK 연동 ✅
+  - [x] toss-payments.ts 라이브러리
+  - [x] @tosspayments/payment-sdk 통합
+- [x] usePayment 훅 구현 (3개 함수) ✅
+  - [x] useInitiatePayment() - 결제 시작
+  - [x] useApprovePayment() - 결제 승인
+  - [x] useCancelPayment() - 결제 취소
+- [x] 결제 페이지 ✅
+  - [x] Payment.tsx - 결제 수단 선택
+  - [x] PaymentSuccess.tsx - 결제 성공 처리
+  - [x] PaymentFail.tsx - 결제 실패/취소
+  - [x] PaymentMethodSelector 컴포넌트
+  - [x] PaymentStatus 컴포넌트
+- [x] 관리자 주문 관리 강화 ✅
+  - [x] AdminOrders 페이지 (필터링, 정렬, 상태 업데이트)
+  - [x] OrderFilter 컴포넌트
+  - [x] OrderStatusBadge 컴포넌트
+- [x] 관리자 대시보드 통계 ✅
+  - [x] Recharts 통합 (BarChart, PieChart)
+  - [x] 일별 매출 차트 (최근 7일)
+  - [x] 결제 수단 분포 파이 차트
+  - [x] 주문 통계 카드
+
+---
+
+### Phase 10: SSO & 인증 강화 (진행 중) - 67% 완료 🔐
+**시작일**: 2025-10-20
+**예상 완료**: 2025-11-03 (2주)
+**현재 상태**: Week 1-2 완료, Week 3 선택 사항
+
+#### Week 1: OAuth 확장 & 프로필 관리 ✅ 완료
+- [x] 데이터베이스 스키마 (Migration 003) ✅
+  - [x] user_profiles 테이블 확장 (11개 컬럼 추가)
+  - [x] connected_accounts 테이블 생성
+  - [x] email_verifications 테이블 생성
+  - [x] RLS 정책 10개
+- [x] Microsoft (Azure AD) OAuth 통합 ✅
+  - [x] useAuth에 signInWithMicrosoft 추가
+  - [x] Login 페이지 Microsoft 버튼
+- [x] Apple OAuth 통합 ✅
+  - [x] useAuth에 signInWithApple 추가
+  - [x] Login 페이지 Apple 버튼
+- [x] useProfile 훅 구현 (5개 함수) ✅
+  - [x] useProfile() - 프로필 조회
+  - [x] useUpdateProfile() - 프로필 수정
+  - [x] useUploadAvatar() - 아바타 업로드 (5MB 제한)
+  - [x] useConnectedAccounts() - 연결된 계정 조회
+  - [x] useDisconnectAccount() - 계정 연결 해제
+- [x] Profile 페이지 완전 재작성 ✅
+  - [x] React Hook Form + Zod 검증
+  - [x] 아바타 업로드 다이얼로그
+  - [x] 연결된 계정 관리 섹션
+  - [x] 프로필 편집 폼
+
+#### Week 2: 2FA & 보안 강화 ✅ 완료
+- [x] 데이터베이스 스키마 (Migration 004) ✅
+  - [x] two_factor_auth 테이블 (TOTP secret, 백업 코드)
+  - [x] login_attempts 테이블 (로그인 시도 기록)
+  - [x] account_locks 테이블 (계정 잠금)
+  - [x] password_reset_tokens 테이블
+  - [x] 헬퍼 함수 5개 (로그인 기록, 잠금, 비밀번호 재설정)
+  - [x] RLS 정책 12개
+- [x] TOTP 라이브러리 (otpauth, qrcode) ✅
+  - [x] totp.ts 유틸리티 (생성/검증/백업 코드)
+  - [x] QR 코드 생성 (300x300 PNG)
+  - [x] 6자리 TOTP 토큰 검증 (±1 윈도우, 30초)
+- [x] use2FA 훅 구현 (7개 함수) ✅
+  - [x] use2FASettings() - 2FA 설정 조회
+  - [x] useIs2FAEnabled() - 활성화 여부 확인
+  - [x] useSetup2FA() - 2FA 설정 초기화
+  - [x] useEnable2FA() - 2FA 활성화 (TOTP 검증)
+  - [x] useDisable2FA() - 2FA 비활성화 (비밀번호 확인)
+  - [x] useRegenerateBackupCodes() - 백업 코드 재생성
+  - [x] useVerify2FA() - TOTP/백업 코드 검증
+- [x] TwoFactorSetup 페이지 ✅
+  - [x] 4단계 플로우 (소개, QR, 검증, 백업 코드)
+  - [x] QR 코드 스캔 (Google Authenticator, Authy)
+  - [x] 백업 코드 복사/다운로드
+- [x] TwoFactorVerify 페이지 ✅
+  - [x] TOTP 6자리 입력
+  - [x] 백업 코드 8자리 입력 (토글)
+- [x] Profile 페이지 2FA 섹션 추가 ✅
+  - [x] 2FA 활성화/비활성화 UI
+  - [x] 백업 코드 재생성 버튼
+  - [x] 비활성화 다이얼로그 (비밀번호 확인)
+
+#### Week 3: RBAC & 감사 로그 (선택 사항)
+- [ ] 역할 기반 접근 제어 (RBAC)
+  - [ ] roles 테이블 (admin, manager, user)
+  - [ ] user_roles 테이블 (다대다 관계)
+  - [ ] permissions 테이블 (CRUD 권한)
+  - [ ] useRBAC 훅
+- [ ] 감사 로그 시스템
+  - [ ] audit_logs 테이블 (사용자 활동 추적)
+  - [ ] 관리자 감사 로그 페이지
+- [ ] 세션 관리
+  - [ ] 디바이스별 세션 목록
+  - [ ] 세션 종료 기능
 
 ---
 

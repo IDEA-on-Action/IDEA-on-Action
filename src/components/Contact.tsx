@@ -3,6 +3,24 @@ import { Card } from "@/components/ui/card";
 import { Mail, Phone, Globe } from "lucide-react";
 
 const Contact = () => {
+  const handleConsultation = () => {
+    // 이메일 문의 또는 전화 선택 옵션을 제공
+    const userChoice = window.confirm(
+      "상담 신청 방법을 선택해주세요:\n\n확인: 이메일로 문의\n취소: 전화로 문의"
+    );
+    
+    if (userChoice) {
+      // 이메일 문의
+      const subject = encodeURIComponent("[IDEA on Action] 상담 신청");
+      const body = encodeURIComponent(
+        "안녕하세요.\n\nIDEA on Action 서비스에 대해 상담을 신청합니다.\n\n문의 내용:\n- \n\n연락처:\n- \n\n감사합니다."
+      );
+      window.open(`mailto:sinclairseo@gmail.com?subject=${subject}&body=${body}`);
+    } else {
+      // 전화 문의
+      window.open("tel:010-4904-2671");
+    }
+  };
   return (
     <section id="contact" className="py-24 relative">
       <div className="container mx-auto px-4">

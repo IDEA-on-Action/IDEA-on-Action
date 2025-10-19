@@ -101,7 +101,8 @@ export default function Checkout() {
       },
       {
         onSuccess: (order) => {
-          navigate(`/orders/${order.id}`)
+          // 주문 생성 후 결제 페이지로 이동
+          navigate(`/checkout/payment?order_id=${order.id}`)
         },
       }
     )
