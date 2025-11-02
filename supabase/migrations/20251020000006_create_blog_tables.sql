@@ -57,7 +57,7 @@ CREATE TABLE IF NOT EXISTS public.blog_posts (
   content TEXT NOT NULL, -- Markdown content
   featured_image TEXT, -- URL to Supabase Storage
   author_id UUID NOT NULL, -- FK to auth.users.id (constraint added separately)
-  category_id UUID REFERENCES public.post_categories(id) ON DELETE SET NULL,
+  category_id UUID, -- FK will be added after table creation
   status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'published', 'archived')),
   published_at TIMESTAMPTZ,
   view_count INTEGER NOT NULL DEFAULT 0,
@@ -98,8 +98,8 @@ CREATE INDEX IF NOT EXISTS idx_blog_posts_published
 -- 4. POST-TAG RELATIONS TABLE (Many-to-Many)
 -- =====================================================
 CREATE TABLE IF NOT EXISTS public.post_tag_relations (
-  post_id UUID NOT NULL REFERENCES public.blog_posts(id) ON DELETE CASCADE,
-  tag_id UUID NOT NULL REFERENCES public.post_tags(id) ON DELETE CASCADE,
+  post_id UUID NOT NULL, -- FK will be added after table creation
+  tag_id UUID NOT NULL, -- FK will be added after table creation
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   PRIMARY KEY (post_id, tag_id)
 );
@@ -108,6 +108,70 @@ COMMENT ON TABLE public.post_tag_relations IS 'Many-to-many relationship between
 
 -- Reverse lookup index (tag -> posts)
 CREATE INDEX IF NOT EXISTS idx_post_tag_relations_tag_id ON public.post_tag_relations(tag_id, post_id);
+
+-- =====================================================
+-- 4.5. FOREIGN KEY CONSTRAINTS (Added after tables are created)
+-- =====================================================
+-- Add foreign keys safely after all tables exist
+DO $$
+BEGIN
+  -- Add FK from blog_posts to post_categories
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public' 
+      AND table_name = 'post_categories' 
+      AND column_name = 'id'
+  ) AND NOT EXISTS (
+    SELECT 1 FROM information_schema.table_constraints
+    WHERE constraint_schema = 'public'
+      AND table_name = 'blog_posts'
+      AND constraint_name = 'blog_posts_category_fk'
+  ) THEN
+    ALTER TABLE public.blog_posts
+      ADD CONSTRAINT blog_posts_category_fk
+      FOREIGN KEY (category_id) 
+      REFERENCES public.post_categories(id) 
+      ON DELETE SET NULL;
+  END IF;
+
+  -- Add FK from post_tag_relations to blog_posts
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public' 
+      AND table_name = 'blog_posts' 
+      AND column_name = 'id'
+  ) AND NOT EXISTS (
+    SELECT 1 FROM information_schema.table_constraints
+    WHERE constraint_schema = 'public'
+      AND table_name = 'post_tag_relations'
+      AND constraint_name = 'post_tag_relations_post_fk'
+  ) THEN
+    ALTER TABLE public.post_tag_relations
+      ADD CONSTRAINT post_tag_relations_post_fk
+      FOREIGN KEY (post_id) 
+      REFERENCES public.blog_posts(id) 
+      ON DELETE CASCADE;
+  END IF;
+
+  -- Add FK from post_tag_relations to post_tags
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public' 
+      AND table_name = 'post_tags' 
+      AND column_name = 'id'
+  ) AND NOT EXISTS (
+    SELECT 1 FROM information_schema.table_constraints
+    WHERE constraint_schema = 'public'
+      AND table_name = 'post_tag_relations'
+      AND constraint_name = 'post_tag_relations_tag_fk'
+  ) THEN
+    ALTER TABLE public.post_tag_relations
+      ADD CONSTRAINT post_tag_relations_tag_fk
+      FOREIGN KEY (tag_id) 
+      REFERENCES public.post_tags(id) 
+      ON DELETE CASCADE;
+  END IF;
+END $$;
 
 -- =====================================================
 -- 5. RLS POLICIES (RBAC-based)

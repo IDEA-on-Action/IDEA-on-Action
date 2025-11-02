@@ -11,6 +11,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '@/integrations/supabase/client'
 import type { User, Session } from '@supabase/supabase-js'
+import { setUser as setSentryUser, clearUser as clearSentryUser } from '@/lib/sentry'
 
 interface UseAuthReturn {
   user: User | null
@@ -46,6 +47,17 @@ export function useAuth(): UseAuthReturn {
       setSession(session)
       setUser(session?.user ?? null)
       setLoading(false)
+
+      // Sentry 사용자 추적
+      if (session?.user) {
+        setSentryUser({
+          id: session.user.id,
+          email: session.user.email,
+          username: session.user.user_metadata?.full_name || session.user.email?.split('@')[0],
+        })
+      } else {
+        clearSentryUser()
+      }
     })
 
     return () => subscription.unsubscribe()

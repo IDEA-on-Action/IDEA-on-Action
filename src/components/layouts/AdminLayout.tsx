@@ -70,7 +70,7 @@ const navItems = [
   },
 ]
 
-export function AdminLayout() {
+function AdminLayout() {
   const location = useLocation()
   const { user, signOut } = useAuth()
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -173,3 +173,5 @@ export function AdminLayout() {
     </div>
   )
 }
+
+export default AdminLayout
