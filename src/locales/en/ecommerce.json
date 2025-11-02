@@ -1,0 +1,92 @@
+{
+  "cart": {
+    "title": "Shopping Cart",
+    "empty": "Your cart is empty",
+    "itemCount": "{{count}} items",
+    "subtotal": "Subtotal",
+    "total": "Total",
+    "checkout": "Checkout",
+    "continueShopping": "Continue Shopping",
+    "remove": "Remove",
+    "quantity": "Quantity",
+    "addSuccess": "Added to cart",
+    "removeSuccess": "Removed from cart",
+    "updateSuccess": "Cart updated"
+  },
+  "checkout": {
+    "title": "Checkout",
+    "billingInfo": "Billing Information",
+    "shippingInfo": "Shipping Information",
+    "paymentMethod": "Payment Method",
+    "orderSummary": "Order Summary",
+    "placeOrder": "Place Order",
+    "processing": "Processing...",
+    "name": "Name",
+    "email": "Email",
+    "phone": "Phone",
+    "address": "Address",
+    "city": "City",
+    "zipCode": "ZIP Code",
+    "country": "Country",
+    "notes": "Order Notes",
+    "success": "Order placed successfully",
+    "error": "Error processing order"
+  },
+  "payment": {
+    "title": "Payment",
+    "selectMethod": "Select payment method",
+    "creditCard": "Credit Card",
+    "bankTransfer": "Bank Transfer",
+    "kakao": "Kakao Pay",
+    "toss": "Toss Pay",
+    "paypal": "PayPal",
+    "processing": "Processing payment...",
+    "success": "Payment successful",
+    "fail": "Payment failed",
+    "cancel": "Payment cancelled",
+    "retry": "Try Again",
+    "backToCart": "Back to Cart"
+  },
+  "orders": {
+    "title": "Order History",
+    "orderNumber": "Order Number",
+    "date": "Order Date",
+    "status": "Status",
+    "total": "Total",
+    "viewDetails": "View Details",
+    "empty": "No orders yet",
+    "statuses": {
+      "pending": "Pending",
+      "processing": "Processing",
+      "shipped": "Shipped",
+      "delivered": "Delivered",
+      "cancelled": "Cancelled",
+      "refunded": "Refunded"
+    }
+  },
+  "orderDetail": {
+    "title": "Order Details",
+    "orderInfo": "Order Information",
+    "items": "Order Items",
+    "shippingAddress": "Shipping Address",
+    "billingAddress": "Billing Information",
+    "paymentMethod": "Payment Method",
+    "trackShipment": "Track Shipment",
+    "cancelOrder": "Cancel Order",
+    "requestRefund": "Request Refund",
+    "downloadInvoice": "Download Invoice",
+    "contactSupport": "Contact Support"
+  },
+  "product": {
+    "price": "Price",
+    "originalPrice": "Original Price",
+    "discount": "Discount",
+    "availability": "Availability",
+    "inStock": "In Stock",
+    "outOfStock": "Out of Stock",
+    "limitedStock": "Limited Stock",
+    "addToCart": "Add to Cart",
+    "buyNow": "Buy Now",
+    "quantity": "Quantity"
+  }
+}

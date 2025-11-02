@@ -1,0 +1,183 @@
+{
+  "dashboard": {
+    "title": "Dashboard",
+    "welcome": "Welcome, {{name}}",
+    "overview": "Overview",
+    "statistics": "Statistics",
+    "recentActivity": "Recent Activity",
+    "quickActions": "Quick Actions"
+  },
+  "services": {
+    "title": "Service Management",
+    "create": "Create Service",
+    "edit": "Edit Service",
+    "delete": "Delete Service",
+    "list": "Service List",
+    "form": {
+      "title": "Title",
+      "description": "Description",
+      "content": "Content",
+      "category": "Category",
+      "price": "Price",
+      "duration": "Duration",
+      "features": "Features",
+      "images": "Images",
+      "status": "Status",
+      "published": "Published",
+      "draft": "Draft"
+    },
+    "imageUpload": {
+      "title": "Image Upload",
+      "dragDrop": "Drag and drop images or click to upload",
+      "maxSize": "Maximum {{size}}MB",
+      "formats": "JPG, PNG, WEBP",
+      "uploading": "Uploading...",
+      "uploadSuccess": "Upload successful",
+      "uploadError": "Upload failed",
+      "removeImage": "Remove Image"
+    },
+    "createSuccess": "Service created successfully",
+    "updateSuccess": "Service updated successfully",
+    "deleteSuccess": "Service deleted successfully",
+    "deleteConfirm": "Are you sure you want to delete this service?"
+  },
+  "blog": {
+    "title": "Blog Management",
+    "create": "Create Post",
+    "edit": "Edit Post",
+    "delete": "Delete Post",
+    "list": "Post List",
+    "form": {
+      "title": "Title",
+      "slug": "URL Slug",
+      "content": "Content",
+      "excerpt": "Excerpt",
+      "category": "Category",
+      "tags": "Tags",
+      "featuredImage": "Featured Image",
+      "author": "Author",
+      "publishedAt": "Published Date",
+      "status": "Status"
+    },
+    "categories": {
+      "news": "News",
+      "tutorial": "Tutorial",
+      "case-study": "Case Study",
+      "announcement": "Announcement"
+    },
+    "createSuccess": "Post created successfully",
+    "updateSuccess": "Post updated successfully",
+    "deleteSuccess": "Post deleted successfully"
+  },
+  "notices": {
+    "title": "Notice Management",
+    "create": "Create Notice",
+    "edit": "Edit Notice",
+    "delete": "Delete Notice",
+    "list": "Notice List",
+    "form": {
+      "title": "Title",
+      "content": "Content",
+      "priority": "Priority",
+      "pinned": "Pinned",
+      "expiresAt": "Expires At"
+    },
+    "priorities": {
+      "low": "Low",
+      "normal": "Normal",
+      "high": "High",
+      "urgent": "Urgent"
+    },
+    "createSuccess": "Notice created successfully",
+    "updateSuccess": "Notice updated successfully",
+    "deleteSuccess": "Notice deleted successfully"
+  },
+  "orders": {
+    "title": "Order Management",
+    "list": "Order List",
+    "detail": "Order Details",
+    "updateStatus": "Update Status",
+    "export": "Export",
+    "filter": {
+      "status": "Status",
+      "dateRange": "Date Range",
+      "customer": "Customer"
+    },
+    "updateSuccess": "Order status updated successfully"
+  },
+  "roles": {
+    "title": "Role Management",
+    "create": "Create Role",
+    "edit": "Edit Role",
+    "delete": "Delete Role",
+    "list": "Role List",
+    "form": {
+      "name": "Role Name",
+      "description": "Description",
+      "permissions": "Permissions"
+    },
+    "permissions": {
+      "view": "View",
+      "create": "Create",
+      "edit": "Edit",
+      "delete": "Delete",
+      "manage": "Manage"
+    },
+    "defaultRoles": {
+      "admin": "Administrator",
+      "editor": "Editor",
+      "viewer": "Viewer",
+      "user": "User"
+    },
+    "createSuccess": "Role created successfully",
+    "updateSuccess": "Role updated successfully",
+    "deleteSuccess": "Role deleted successfully"
+  },
+  "auditLogs": {
+    "title": "Audit Logs",
+    "view": "View Logs",
+    "export": "Export Logs",
+    "filter": {
+      "action": "Action",
+      "user": "User",
+      "dateRange": "Date Range",
+      "resource": "Resource"
+    },
+    "actions": {
+      "create": "Create",
+      "update": "Update",
+      "delete": "Delete",
+      "login": "Login",
+      "logout": "Logout",
+      "access": "Access"
+    },
+    "columns": {
+      "timestamp": "Timestamp",
+      "user": "User",
+      "action": "Action",
+      "resource": "Resource",
+      "details": "Details"
+    }
+  },
+  "users": {
+    "title": "User Management",
+    "list": "User List",
+    "detail": "User Details",
+    "edit": "Edit User",
+    "delete": "Delete User",
+    "block": "Block",
+    "unblock": "Unblock",
+    "assignRole": "Assign Role",
+    "updateSuccess": "User updated successfully",
+    "deleteSuccess": "User deleted successfully"
+  },
+  "settings": {
+    "title": "Settings",
+    "general": "General Settings",
+    "security": "Security Settings",
+    "email": "Email Settings",
+    "appearance": "Appearance Settings",
+    "advanced": "Advanced Settings",
+    "updateSuccess": "Settings updated successfully"
+  }
+}

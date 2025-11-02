@@ -1,0 +1,57 @@
+{
+  "title": "서비스",
+  "subtitle": "AI 기반 워킹 솔루션",
+  "categories": {
+    "all": "전체",
+    "ai": "AI 솔루션",
+    "consulting": "컨설팅",
+    "education": "교육",
+    "development": "개발"
+  },
+  "filters": {
+    "category": "카테고리",
+    "price": "가격",
+    "sortBy": "정렬",
+    "newest": "최신순",
+    "popular": "인기순",
+    "priceAsc": "가격 낮은순",
+    "priceDesc": "가격 높은순"
+  },
+  "card": {
+    "startingFrom": "시작가",
+    "perMonth": "/월",
+    "viewDetails": "상세보기",
+    "addToCart": "장바구니 담기",
+    "features": "주요 기능",
+    "duration": "기간"
+  },
+  "detail": {
+    "overview": "개요",
+    "features": "기능",
+    "pricing": "가격",
+    "faq": "자주 묻는 질문",
+    "relatedServices": "관련 서비스",
+    "description": "설명",
+    "whatYouGet": "제공 내용",
+    "requirements": "요구사항",
+    "deliveryTime": "제공 기간",
+    "days": "일",
+    "contactUs": "문의하기",
+    "getQuote": "견적 문의",
+    "startProject": "프로젝트 시작"
+  },
+  "metrics": {
+    "clients": "고객",
+    "projects": "프로젝트",
+    "satisfaction": "만족도",
+    "experience": "경험"
+  },
+  "empty": {
+    "title": "서비스가 없습니다",
+    "description": "현재 등록된 서비스가 없습니다",
+    "action": "서비스 등록하기"
+  },
+  "loading": "서비스를 불러오는 중...",
+  "error": "서비스를 불러올 수 없습니다",
+  "notFound": "서비스를 찾을 수 없습니다"
+}

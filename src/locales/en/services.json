@@ -1,0 +1,57 @@
+{
+  "title": "Services",
+  "subtitle": "AI-Powered Working Solutions",
+  "categories": {
+    "all": "All",
+    "ai": "AI Solutions",
+    "consulting": "Consulting",
+    "education": "Education",
+    "development": "Development"
+  },
+  "filters": {
+    "category": "Category",
+    "price": "Price",
+    "sortBy": "Sort By",
+    "newest": "Newest",
+    "popular": "Popular",
+    "priceAsc": "Price: Low to High",
+    "priceDesc": "Price: High to Low"
+  },
+  "card": {
+    "startingFrom": "Starting from",
+    "perMonth": "/month",
+    "viewDetails": "View Details",
+    "addToCart": "Add to Cart",
+    "features": "Key Features",
+    "duration": "Duration"
+  },
+  "detail": {
+    "overview": "Overview",
+    "features": "Features",
+    "pricing": "Pricing",
+    "faq": "FAQ",
+    "relatedServices": "Related Services",
+    "description": "Description",
+    "whatYouGet": "What You Get",
+    "requirements": "Requirements",
+    "deliveryTime": "Delivery Time",
+    "days": "days",
+    "contactUs": "Contact Us",
+    "getQuote": "Get a Quote",
+    "startProject": "Start Project"
+  },
+  "metrics": {
+    "clients": "Clients",
+    "projects": "Projects",
+    "satisfaction": "Satisfaction",
+    "experience": "Experience"
+  },
+  "empty": {
+    "title": "No Services",
+    "description": "There are no registered services",
+    "action": "Register Service"
+  },
+  "loading": "Loading services...",
+  "error": "Failed to load services",
+  "notFound": "Service not found"
+}

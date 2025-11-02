@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/shared/ThemeToggle";
+import { LanguageSwitcher } from "@/components/shared/LanguageSwitcher";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -137,6 +138,7 @@ const Header = ({ className = "" }: HeaderProps) => {
         </div>
 
         <div className="flex items-center gap-3">
+          <LanguageSwitcher />
           <ThemeToggle />
           {user && <CartButton />}
 

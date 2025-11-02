@@ -1,0 +1,92 @@
+{
+  "cart": {
+    "title": "장바구니",
+    "empty": "장바구니가 비어있습니다",
+    "itemCount": "{{count}}개 상품",
+    "subtotal": "소계",
+    "total": "총 금액",
+    "checkout": "결제하기",
+    "continueShopping": "쇼핑 계속하기",
+    "remove": "삭제",
+    "quantity": "수량",
+    "addSuccess": "장바구니에 추가되었습니다",
+    "removeSuccess": "장바구니에서 제거되었습니다",
+    "updateSuccess": "장바구니가 업데이트되었습니다"
+  },
+  "checkout": {
+    "title": "결제",
+    "billingInfo": "결제 정보",
+    "shippingInfo": "배송 정보",
+    "paymentMethod": "결제 수단",
+    "orderSummary": "주문 요약",
+    "placeOrder": "주문하기",
+    "processing": "처리 중...",
+    "name": "이름",
+    "email": "이메일",
+    "phone": "전화번호",
+    "address": "주소",
+    "city": "도시",
+    "zipCode": "우편번호",
+    "country": "국가",
+    "notes": "주문 메모",
+    "success": "주문이 완료되었습니다",
+    "error": "주문 처리 중 오류가 발생했습니다"
+  },
+  "payment": {
+    "title": "결제",
+    "selectMethod": "결제 수단을 선택하세요",
+    "creditCard": "신용카드",
+    "bankTransfer": "계좌이체",
+    "kakao": "카카오페이",
+    "toss": "토스페이",
+    "paypal": "PayPal",
+    "processing": "결제 처리 중...",
+    "success": "결제가 완료되었습니다",
+    "fail": "결제가 실패했습니다",
+    "cancel": "결제가 취소되었습니다",
+    "retry": "다시 시도",
+    "backToCart": "장바구니로 돌아가기"
+  },
+  "orders": {
+    "title": "주문내역",
+    "orderNumber": "주문번호",
+    "date": "주문일자",
+    "status": "상태",
+    "total": "총 금액",
+    "viewDetails": "상세보기",
+    "empty": "주문 내역이 없습니다",
+    "statuses": {
+      "pending": "대기 중",
+      "processing": "처리 중",
+      "shipped": "배송 중",
+      "delivered": "배송 완료",
+      "cancelled": "취소됨",
+      "refunded": "환불됨"
+    }
+  },
+  "orderDetail": {
+    "title": "주문 상세",
+    "orderInfo": "주문 정보",
+    "items": "주문 상품",
+    "shippingAddress": "배송지",
+    "billingAddress": "결제 정보",
+    "paymentMethod": "결제 수단",
+    "trackShipment": "배송 조회",
+    "cancelOrder": "주문 취소",
+    "requestRefund": "환불 요청",
+    "downloadInvoice": "영수증 다운로드",
+    "contactSupport": "고객지원 문의"
+  },
+  "product": {
+    "price": "가격",
+    "originalPrice": "정가",
+    "discount": "할인",
+    "availability": "재고",
+    "inStock": "재고 있음",
+    "outOfStock": "품절",
+    "limitedStock": "재고 부족",
+    "addToCart": "장바구니 담기",
+    "buyNow": "바로 구매",
+    "quantity": "수량"
+  }
+}
