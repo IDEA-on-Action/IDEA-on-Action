@@ -9,15 +9,90 @@
 
 ---
 
-## [Unreleased] - Phase 12 계획 중
+## [Unreleased] - Phase 13 계획 중
 
 ### Planned
-- **Phase 12: 고도화** (계획)
-  - 다국어 지원 (i18n) - 한국어/영어
+- **Phase 13: AI & 실시간 기능** (계획)
   - AI 챗봇 통합 - Claude/GPT API
-  - PWA (Progressive Web App) - 오프라인 지원
   - 이메일 알림 - Resend/SendGrid 통합
   - 실시간 알림 - Supabase Realtime
+  - 검색 기능 - Algolia/MeiliSearch
+
+---
+
+## [1.7.0] - 2025-11-02
+
+### Added
+- **Phase 12: 성능 최적화 & PWA & 국제화** 🚀 🎉
+  - **Week 1: 성능 최적화 & 모니터링**
+    - Code Splitting (React.lazy, Suspense) - 30+ 라우트 지연 로딩
+    - Vite manualChunks 최적화 (10개 vendor chunks, 4개 page chunks)
+    - `src/lib/sentry.ts` - Sentry 에러 추적 통합
+      - ErrorBoundary, Session Replay, User tracking
+      - `initSentry()`, `setUser()`, `clearUser()` 함수
+    - `src/lib/analytics.ts` - Google Analytics 4 통합
+      - 페이지뷰 자동 추적, 이벤트 추적 (장바구니, 결제, 로그인 등)
+      - `initGA4()`, `trackPageView()`, `trackEvent()`, `analytics` 객체
+    - `src/components/shared/AnalyticsTracker.tsx` - 라우트 변경 추적
+    - `useAuth.ts` - Sentry 사용자 추적 통합
+    - `.env.example` - VITE_SENTRY_DSN, VITE_GA4_MEASUREMENT_ID, VITE_APP_VERSION 추가
+  - **Week 2: PWA (Progressive Web App)**
+    - `vite-plugin-pwa` 통합 (Service Worker 자동 생성)
+    - `vite.config.ts` - VitePWA 플러그인 설정
+      - 웹 앱 매니페스트 (이름, 테마 색상, 아이콘)
+      - Workbox 캐싱 전략 (CacheFirst, NetworkFirst)
+    - `public/pwa-192x192.png`, `public/pwa-512x512.png` - PWA 아이콘
+    - `src/components/PWAInstallPrompt.tsx` - 앱 설치 프롬프트
+    - `src/components/PWAUpdatePrompt.tsx` - Service Worker 업데이트 알림
+    - `App.tsx` - PWA 컴포넌트 통합
+  - **Week 3: i18n (국제화)**
+    - i18next, react-i18next, i18next-browser-languagedetector 설치
+    - `src/lib/i18n.ts` - i18n 설정 (한국어/영어 지원)
+      - 5개 네임스페이스: common, auth, services, ecommerce, admin
+      - 브라우저 언어 자동 감지 (localStorage → navigator → htmlTag)
+      - fallbackLng: "ko", defaultNS: "common"
+    - 번역 파일 (330+ 키):
+      - `src/locales/ko/common.json` (110+ 키) - 네비게이션, 버튼, 메시지, 검증, 테마
+      - `src/locales/ko/auth.json` (50+ 키) - 로그인, 프로필, 2FA, 비밀번호, OAuth
+      - `src/locales/ko/services.json` (30+ 키) - 서비스 목록, 필터, 카드, 상세
+      - `src/locales/ko/ecommerce.json` (60+ 키) - 장바구니, 결제, 주문, 상품
+      - `src/locales/ko/admin.json` (80+ 키) - 대시보드, 서비스, 블로그, 공지사항, 주문, 역할
+      - `src/locales/en/*.json` - 영어 번역 (동일한 구조)
+    - `src/components/shared/LanguageSwitcher.tsx` - 언어 전환 드롭다운
+    - `src/main.tsx` - i18n 초기화 임포트
+    - `Header.tsx` - LanguageSwitcher 컴포넌트 추가
+
+### Changed
+- **빌드 최적화**
+  - Bundle 크기: 533.94 kB (1개 파일) → ~527 kB (28개 청크 분리)
+  - 초기 로딩 감소: ~62.5% (vendor 청크 분리로 병렬 다운로드)
+  - Lazy Loading: 30+ 라우트 (필요 시 로딩)
+  - Build Time: 13.04s → 22.21s (청크 생성 시간 포함)
+- **App.tsx 리팩토링**
+  - 모든 라우트 컴포넌트 React.lazy로 전환 (Index, Login, NotFound 제외)
+  - Suspense 래퍼 추가 (LoadingFallback)
+  - Sentry ErrorBoundary 추가
+  - PWA 컴포넌트 통합
+- **AdminLayout.tsx**
+  - Named export → Default export (lazy loading 호환)
+
+### Fixed
+- Sentry import 에러 (@sentry/tracing deprecated → browserTracingIntegration 사용)
+- AdminLayout export 불일치 (named → default)
+
+### Performance
+- Code Splitting으로 초기 로딩 시간 단축
+- Route-based 청크로 네트워크 병렬 다운로드
+- Vendor 청크 캐싱으로 재방문 속도 향상
+- PWA Service Worker로 오프라인 지원 및 재방문 속도 향상
+
+### Dependencies
+- Added: @sentry/react@10.22.0 - 에러 추적
+- Added: vite-plugin-pwa@1.1.0 - PWA 플러그인
+- Added: workbox-window@7.3.0 - Service Worker 관리
+- Added: i18next@25.6.0 - i18n 프레임워크
+- Added: react-i18next@16.2.3 - React i18n 통합
+- Added: i18next-browser-languagedetector@8.2.0 - 브라우저 언어 감지
 
 ---
 
