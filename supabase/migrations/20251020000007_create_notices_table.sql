@@ -54,9 +54,16 @@ CREATE INDEX IF NOT EXISTS idx_notices_type ON public.notices(type);
 CREATE INDEX IF NOT EXISTS idx_notices_is_pinned ON public.notices(is_pinned);
 
 -- Partial index for active notices (most common query)
+-- Note: Cannot use now() in index predicate (must be IMMUTABLE)
+-- Filter expires_at > now() in application queries instead
 CREATE INDEX IF NOT EXISTS idx_notices_active
   ON public.notices(is_pinned DESC, published_at DESC)
-  WHERE status = 'published' AND (expires_at IS NULL OR expires_at > now());
+  WHERE status = 'published' AND expires_at IS NULL;
+
+-- Additional index for notices with expiration dates
+CREATE INDEX IF NOT EXISTS idx_notices_expires_at
+  ON public.notices(expires_at)
+  WHERE status = 'published' AND expires_at IS NOT NULL;
 
 -- =====================================================
 -- 2. RLS POLICIES (RBAC-based)
