@@ -2,11 +2,16 @@
 
 > Claude와의 개발 협업을 위한 프로젝트 핵심 문서
 
-**마지막 업데이트**: 2025-11-02
-**프로젝트 버전**: 1.7.0
-**상태**: ✅ Production Ready | 🚀 Phase 12 완료 (성능 최적화 & PWA & i18n)
+**마지막 업데이트**: 2025-11-03
+**프로젝트 버전**: 1.7.1
+**상태**: ✅ Production Ready | 🚀 Phase 13 진행 중 (AI & 실시간 기능)
 
 **최신 업데이트**:
+- 2025-11-03: **Phase 13 Week 1 완료** 🔍 - 통합 검색 시스템
+  - useSearch 훅 (서비스/블로그/공지사항 통합 검색)
+  - Search 페이지 (검색어 입력, 타입 필터, 결과 표시)
+  - SearchResultCard 컴포넌트 (하이라이팅, 타입별 아이콘)
+  - Header 검색 버튼 통합 (데스크톱/모바일)
 - 2025-11-02: **Phase 12 완료** 🎉 - 성능 최적화, PWA, 국제화 지원
   - Week 1: Code Splitting (62.5% 번들 감소), Sentry, GA4
   - Week 2: PWA (Service Worker, 설치 프롬프트, 오프라인 지원)
@@ -369,7 +374,7 @@ npm run lint      # ESLint 검사
       - Notices, AdminNotices 페이지
       - robots.txt, sitemap.xml, RSS 피드 생성
 
-14. **Phase 12: 성능 최적화 & PWA & 국제화** (100%) 🚀 ✅ NEW
+14. **Phase 12: 성능 최적화 & PWA & 국제화** (100%) 🚀 ✅
     - **Week 1: 성능 최적화 & 모니터링** ✅
       - Code Splitting (React.lazy, Suspense)
       - Vite manualChunks (10개 vendor chunks, 4개 page chunks)
@@ -389,19 +394,42 @@ npm run lint      # ESLint 검사
       - LanguageSwitcher 컴포넌트
       - 브라우저 언어 자동 감지
 
+15. **Phase 13: AI & 실시간 기능** (33%) 🔍 ⭐ 진행 중
+    - **Week 1: 통합 검색 시스템** ✅ 완료
+      - useSearch 훅 (서비스, 블로그, 공지사항 통합 검색)
+      - Search 페이지 (/search)
+        - 검색어 입력 폼 (최소 2자)
+        - 타입 필터 탭 (전체/서비스/블로그/공지)
+        - 검색 결과 목록 (30개 제한)
+        - URL 쿼리 파라미터 지원 (?q=검색어&type=service)
+      - SearchResultCard 컴포넌트
+        - 타입별 아이콘 및 배지 (Package/FileText/Bell)
+        - 검색어 하이라이팅 (<mark> 태그)
+        - 이미지 썸네일 (서비스/블로그)
+        - 날짜 표시 (yyyy년 M월 d일)
+      - Header 검색 버튼 추가 (데스크톱/모바일)
+      - React Query 캐싱 (staleTime: 5분)
+    - **Week 2: AI 챗봇 통합** (대기)
+      - Claude/OpenAI API 연동
+      - 채팅 UI 컴포넌트 (ChatWidget, ChatMessage)
+      - 컨텍스트 관리 (프로젝트 정보 임베딩)
+      - 스트리밍 응답 지원
+    - **Week 3: 알림 시스템** (대기)
+      - 이메일 알림 (Resend/SendGrid)
+      - 실시간 알림 (Supabase Realtime)
+      - 알림 센터 UI
+
 ### 🚀 다음 단계
 
 #### 즉시 가능 작업
-- **i18n 적용**: Header, Hero, Services 컴포넌트에 useTranslation 적용
-- **테스트 실행 & 검증**: E2E/Unit 테스트 실행하여 통과율 확인
+- **Phase 13 Week 2**: AI 챗봇 통합 시작
+- **테스트 추가**: Search 페이지 E2E 테스트, useSearch 유닛 테스트
+- **i18n 적용**: Search 페이지 다국어 지원
 - **문서 정리**: 아카이브 업데이트, 로드맵 진행률 갱신
 
-#### Phase 13: AI & 실시간 기능 (계획)
-**예상 기간**: 2-3주
-- [ ] AI 챗봇 통합 - Claude/GPT API
-- [ ] 이메일 알림 - Resend/SendGrid 통합
-- [ ] 실시간 알림 - Supabase Realtime
-- [ ] 검색 기능 - Algolia/MeiliSearch
+#### Phase 13 완료 후
+- [ ] Phase 14: 고급 분석 대시보드
+- [ ] Phase 15: 모니터링 & 성능 개선
 
 #### 백로그 & 개선 사항
 - [ ] 추가 컴포넌트 유닛 테스트 (Hero, Features, Services)
@@ -409,49 +437,52 @@ npm run lint      # ESLint 검사
 - [ ] Phase 12 문서 아카이브 정리
 - [ ] Lighthouse 성능 점수 측정
 
-### 빌드 통계 (2025-11-02)
+### 빌드 통계 (2025-11-03)
 
-**v1.7.0 - Phase 12 완료 (Code Splitting 적용)**
+**v1.7.1 - Phase 13 Week 1 완료 (통합 검색 시스템)**
 ```
 dist/manifest.webmanifest                          0.50 kB
-dist/index.html                                    2.67 kB │ gzip:   0.98 kB
-dist/assets/index-BHupA1uc.css                    85.33 kB │ gzip:  14.11 kB
+dist/index.html                                    2.67 kB │ gzip:   0.99 kB
+dist/assets/index-DP0Q-y5H.css                    86.83 kB │ gzip:  14.30 kB
+dist/assets/Forbidden-DxsV0sgU.js                  1.49 kB │ gzip:   0.79 kB
+dist/assets/TwoFactorVerify-CrYBMnJW.js            2.41 kB │ gzip:   1.29 kB
+dist/assets/AdminLayout-CDmmaV-0.js                3.33 kB │ gzip:   1.43 kB
 dist/assets/vendor-payments-YkKx6g3r.js            3.87 kB │ gzip:   1.47 kB
-dist/assets/pages-cms-BVXA3xnh.js                 32.94 kB │ gzip:   7.97 kB
-dist/assets/pages-services-BHQoOAnq.js            35.18 kB │ gzip:  12.95 kB
+dist/assets/Search-DDPPI54_.js                     9.29 kB │ gzip:   3.45 kB ⭐ NEW
+dist/assets/pages-cms-DmScmEIN.js                 32.94 kB │ gzip:   7.97 kB
+dist/assets/pages-services-trO3Wt9Q.js            35.18 kB │ gzip:  12.95 kB
 dist/assets/vendor-query-BklQ26iR.js              39.19 kB │ gzip:  11.69 kB
 dist/assets/vendor-auth-C0KVTEQY.js               48.49 kB │ gzip:  18.59 kB
 dist/assets/vendor-forms-B1vg1mTg.js              55.09 kB │ gzip:  12.88 kB
-dist/assets/index-GmuAJAvc.js                     65.58 kB │ gzip:  22.30 kB
-dist/assets/pages-ecommerce-D8AefHR0.js           89.81 kB │ gzip:  29.68 kB
+dist/assets/index-B8TmASwE.js                     65.76 kB │ gzip:  22.35 kB
+dist/assets/pages-ecommerce-Chf5Jfmc.js           90.14 kB │ gzip:  29.75 kB
 dist/assets/vendor-ui-C6uuvVdR.js                131.23 kB │ gzip:  41.05 kB
 dist/assets/vendor-supabase-BXcIgd3p.js          148.46 kB │ gzip:  39.35 kB
-dist/assets/pages-admin-MIpPfV21.js              191.31 kB │ gzip:  50.65 kB
+dist/assets/pages-admin-ByMAXcg8.js              191.33 kB │ gzip:  50.30 kB
 dist/assets/vendor-sentry-Cpk0hEOu.js            315.03 kB │ gzip: 103.77 kB
 dist/assets/vendor-markdown-C-WVu4T1.js          315.63 kB │ gzip:  99.08 kB
 dist/assets/vendor-react-DYZSAxpH.js             317.73 kB │ gzip: 104.11 kB
-dist/assets/vendor-charts-DWXrKpvN.js            371.72 kB │ gzip: 101.16 kB
+dist/assets/vendor-charts-D1c_hNob.js            371.72 kB │ gzip: 101.16 kB
 
-Total (gzip): ~527 kB (28개 chunk)
-Build Time: 22.21s
-PWA: 41 entries (2669.78 KiB) cached
+Total (gzip): ~530 kB (28개 chunk)
+Build Time: 24.43s
+PWA: 42 entries (2681.26 KiB) cached
 ```
 
 **변경 사항**:
-- v1.6.1 → v1.7.0 (Phase 12)
-  - ❌ 이전: 1개 거대한 번들 (533.94 kB gzip)
-  - ✅ 현재: 28개 최적화된 청크 (~527 kB gzip)
-  - 🚀 **초기 로딩 감소**: ~62.5% (주요 vendor 청크 분리)
-  - 📦 추가 기능:
-    - Sentry: +103.77 kB (에러 추적)
-    - PWA: Service Worker + Manifest
-    - i18next: +3 kB (국제화)
-  - 📊 Lazy Loading: 30+ 라우트 (필요 시 로딩)
+- v1.7.0 → v1.7.1 (Phase 13 Week 1)
+  - ⭐ **새 기능**: 통합 검색 시스템
+  - 📦 **Search 청크**: 9.29 kB / 3.45 kB gzip (lazy loaded)
+  - 📈 **Total 증가**: 527 kB → 530 kB gzip (+0.6%)
+  - 🔍 **검색 페이지**: /search 라우트 추가
+  - 📊 **PWA 캐시**: 41 → 42 entries
+  - ⚡ **Lazy Loading**: Search 페이지 필요 시에만 로딩
 
 **성능 개선**:
-- Code Splitting으로 초기 로딩 시간 단축
+- Code Splitting으로 초기 로딩 시간 단축 유지
 - Route-based 청크로 네트워크 병렬 다운로드
 - Vendor 청크 캐싱으로 재방문 속도 향상
+- Search 페이지 lazy loading으로 초기 번들 크기 최소화
 
 ---
 
