@@ -21,6 +21,7 @@ import {
   ScrollText,
   BarChart3,
   TrendingUp,
+  Activity,
   LogOut,
   Home,
   Menu,
@@ -79,6 +80,11 @@ const navItems = [
     title: '매출 분석',
     href: '/admin/revenue',
     icon: TrendingUp,
+  },
+  {
+    title: '실시간 대시보드',
+    href: '/admin/realtime',
+    icon: Activity,
   },
 ]
 
