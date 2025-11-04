@@ -94,6 +94,7 @@ const AdminRoles = lazy(() => import("./pages/admin/AdminRoles"));
 const AuditLogs = lazy(() => import("./pages/admin/AuditLogs"));
 const AdminOrders = lazy(() => import("./pages/admin/Orders"));
 const Analytics = lazy(() => import("./pages/admin/Analytics"));
+const Revenue = lazy(() => import("./pages/admin/Revenue"));
 
 // Sentry 초기화
 initSentry();
@@ -170,6 +171,7 @@ const App = () => (
                 <Route path="audit-logs" element={<AuditLogs />} />
                 <Route path="orders" element={<AdminOrders />} />
                 <Route path="analytics" element={<Analytics />} />
+                <Route path="revenue" element={<Revenue />} />
               </Route>
 
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

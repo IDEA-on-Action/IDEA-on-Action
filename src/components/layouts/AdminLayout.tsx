@@ -20,6 +20,7 @@ import {
   Shield,
   ScrollText,
   BarChart3,
+  TrendingUp,
   LogOut,
   Home,
   Menu,
@@ -73,6 +74,11 @@ const navItems = [
     title: '분석 대시보드',
     href: '/admin/analytics',
     icon: BarChart3,
+  },
+  {
+    title: '매출 분석',
+    href: '/admin/revenue',
+    icon: TrendingUp,
   },
 ]
 
