@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useRegisterSW } from "virtual:pwa-register/react";
 import { Button } from "@/components/ui/button";
 import { RefreshCw } from "lucide-react";
+import { devLog } from "@/lib/errors";
 
 export function PWAUpdatePrompt() {
   const [showReload, setShowReload] = useState(false);
@@ -12,10 +13,10 @@ export function PWAUpdatePrompt() {
     updateServiceWorker,
   } = useRegisterSW({
     onRegistered(r) {
-      console.log("SW Registered:", r);
+      devLog("SW Registered:", r);
     },
     onRegisterError(error) {
-      console.log("SW registration error", error);
+      devLog("SW registration error", error);
     },
   });
 

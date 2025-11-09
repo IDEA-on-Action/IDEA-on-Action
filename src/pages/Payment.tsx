@@ -15,6 +15,7 @@ import { supabase } from '@/integrations/supabase/client'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { AlertCircle, Loader2 } from 'lucide-react'
 import type { PaymentProvider } from '@/lib/payments/types'
+import { devError } from '@/lib/errors'
 
 interface OrderInfo {
   id: string
@@ -65,7 +66,7 @@ export default function Payment() {
           itemName,
         })
       } catch (err) {
-        console.error('주문 정보 조회 실패:', err)
+        devError(err, { operation: '주문 정보 조회', service: 'Payment' })
         setError(err instanceof Error ? err.message : '주문 정보 조회 실패')
       } finally {
         setIsLoading(false)
@@ -96,7 +97,7 @@ export default function Payment() {
         )
       }
     } catch (err) {
-      console.error('결제 시작 실패:', err)
+      devError(err, { operation: '결제 시작', service: 'Payment' })
       setError(err instanceof Error ? err.message : '결제 시작 실패')
     }
   }

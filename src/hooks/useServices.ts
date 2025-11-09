@@ -10,6 +10,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
 import type { Service, ServiceWithCategory } from '@/types/database'
+import { devError } from '@/lib/errors'
 
 // 정렬 옵션 타입
 export type ServiceSortBy = 'newest' | 'oldest' | 'price-asc' | 'price-desc' | 'popular'
@@ -66,7 +67,7 @@ export function useServices(filters?: ServiceFilters) {
       const { data, error } = await query
 
       if (error) {
-        console.error('Error fetching services:', error)
+        devError(error, { operation: '서비스 목록 조회', table: 'services' })
         throw new Error(error.message)
       }
 
@@ -93,7 +94,7 @@ export function useServiceDetail(serviceId: string) {
         .single()
 
       if (error) {
-        console.error('Error fetching service detail:', error)
+        devError(error, { operation: '서비스 상세 조회', table: 'services' })
         throw new Error(error.message)
       }
 
@@ -117,7 +118,7 @@ export function useServiceCategories() {
         .order('display_order', { ascending: true })
 
       if (error) {
-        console.error('Error fetching categories:', error)
+        devError(error, { operation: '카테고리 조회', table: 'service_categories' })
         throw new Error(error.message)
       }
 

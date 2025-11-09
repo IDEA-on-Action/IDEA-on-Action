@@ -9,6 +9,7 @@
 
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
+import { devError } from '@/lib/errors'
 
 // Types
 export interface SearchResult {
@@ -77,7 +78,7 @@ export function useSearch({
           .limit(Math.ceil(limit / types.length))
 
         if (servicesError) {
-          console.error('Services search error:', servicesError)
+          devError(servicesError, { operation: '서비스 검색', table: 'services' })
         }
 
         if (services) {
@@ -115,7 +116,7 @@ export function useSearch({
           .limit(Math.ceil(limit / types.length))
 
         if (postsError) {
-          console.error('Blog posts search error:', postsError)
+          devError(postsError, { operation: '블로그 검색', table: 'blog_posts' })
         }
 
         if (posts) {
@@ -152,7 +153,7 @@ export function useSearch({
           .limit(Math.ceil(limit / types.length))
 
         if (noticesError) {
-          console.error('Notices search error:', noticesError)
+          devError(noticesError, { operation: '공지사항 검색', table: 'notices' })
         }
 
         if (notices) {

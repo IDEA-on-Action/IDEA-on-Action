@@ -80,7 +80,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
                     />
                   ),
                   // 코드 블록 스타일
-                  code: ({ node, inline, ...props }: any) =>
+                  code: ({ inline, ...props }: { inline?: boolean; [key: string]: unknown }) =>
                     inline ? (
                       <code
                         {...props}

@@ -13,6 +13,7 @@ import type {
   TossPaymentConfirmRequest,
   TossPaymentCancelRequest,
 } from './types'
+import { extractErrorMessage, devLog, devError } from '@/lib/errors'
 
 // ===================================================================
 // Constants
@@ -39,9 +40,9 @@ export async function initializeTossPayments(): Promise<TossPaymentsInstance> {
   if (!tossPaymentsInstance) {
     try {
       tossPaymentsInstance = await loadTossPayments(CLIENT_KEY)
-      console.log('[Toss Payments] SDK initialized')
+      devLog('[Toss Payments] SDK initialized')
     } catch (error) {
-      console.error('[Toss Payments] SDK initialization failed:', error)
+      devError(error, { service: 'Toss Payments', operation: 'SDK 초기화' })
       throw new Error('Toss Payments SDK 초기화 실패')
     }
   }
@@ -64,20 +65,6 @@ function getHeaders() {
   }
 }
 
-/**
- * 에러 메시지 추출
- */
-function extractErrorMessage(error: unknown): string {
-  if (axios.isAxiosError(error)) {
-    const axiosError = error as AxiosError<any>
-    if (axiosError.response?.data) {
-      const data = axiosError.response.data
-      return data.message || '결제 처리 중 오류가 발생했습니다.'
-    }
-    return axiosError.message
-  }
-  return error instanceof Error ? error.message : '알 수 없는 오류'
-}
 
 // ===================================================================
 // API Functions
@@ -93,7 +80,7 @@ export async function requestTossPayment(params: TossPaymentRequest): Promise<vo
   try {
     const tossPayments = await initializeTossPayments()
 
-    console.log('[Toss Payments] Request payment:', {
+    devLog('[Toss Payments] Request payment:', {
       orderId: params.orderId,
       amount: params.amount,
     })
@@ -112,7 +99,7 @@ export async function requestTossPayment(params: TossPaymentRequest): Promise<vo
     // 사용자가 결제 승인하면 successUrl로 리다이렉트됨
   } catch (error) {
     const message = extractErrorMessage(error)
-    console.error('[Toss Payments] Request failed:', message)
+    devError(error, { service: 'Toss Payments', operation: '결제 요청' })
     throw new Error(`Toss Payments 결제 요청 실패: ${message}`)
   }
 }
@@ -127,7 +114,7 @@ export async function confirmTossPayment(
   params: TossPaymentConfirmRequest
 ): Promise<TossPaymentResponse> {
   try {
-    console.log('[Toss Payments] Confirm request:', {
+    devLog('[Toss Payments] Confirm request:', {
       orderId: params.orderId,
       amount: params.amount,
     })
@@ -138,7 +125,7 @@ export async function confirmTossPayment(
       { headers: getHeaders() }
     )
 
-    console.log('[Toss Payments] Confirm success:', {
+    devLog('[Toss Payments] Confirm success:', {
       paymentKey: response.data.paymentKey,
       approvedAt: response.data.approvedAt,
       method: response.data.method,
@@ -147,7 +134,7 @@ export async function confirmTossPayment(
     return response.data
   } catch (error) {
     const message = extractErrorMessage(error)
-    console.error('[Toss Payments] Confirm failed:', message)
+    devError(error, { service: 'Toss Payments', operation: '결제 승인' })
     throw new Error(`Toss Payments 결제 승인 실패: ${message}`)
   }
 }
@@ -162,7 +149,7 @@ export async function cancelTossPayment(
   params: TossPaymentCancelRequest
 ): Promise<TossPaymentResponse> {
   try {
-    console.log('[Toss Payments] Cancel request:', {
+    devLog('[Toss Payments] Cancel request:', {
       paymentKey: params.paymentKey,
       cancelReason: params.cancelReason,
       cancelAmount: params.cancelAmount,
@@ -177,7 +164,7 @@ export async function cancelTossPayment(
       { headers: getHeaders() }
     )
 
-    console.log('[Toss Payments] Cancel success:', {
+    devLog('[Toss Payments] Cancel success:', {
       paymentKey: response.data.paymentKey,
       status: response.data.status,
     })
@@ -185,7 +172,7 @@ export async function cancelTossPayment(
     return response.data
   } catch (error) {
     const message = extractErrorMessage(error)
-    console.error('[Toss Payments] Cancel failed:', message)
+    devError(error, { service: 'Toss Payments', operation: '결제 취소' })
     throw new Error(`Toss Payments 결제 취소 실패: ${message}`)
   }
 }
@@ -198,7 +185,7 @@ export async function cancelTossPayment(
  */
 export async function getTossPayment(paymentKey: string): Promise<TossPaymentResponse> {
   try {
-    console.log('[Toss Payments] Query payment:', { paymentKey })
+    devLog('[Toss Payments] Query payment:', { paymentKey })
 
     const response = await axios.get<TossPaymentResponse>(
       `${TOSS_API_BASE}/${paymentKey}`,
@@ -208,7 +195,7 @@ export async function getTossPayment(paymentKey: string): Promise<TossPaymentRes
     return response.data
   } catch (error) {
     const message = extractErrorMessage(error)
-    console.error('[Toss Payments] Query failed:', message)
+    devError(error, { service: 'Toss Payments', operation: '결제 조회' })
     throw new Error(`Toss Payments 결제 조회 실패: ${message}`)
   }
 }

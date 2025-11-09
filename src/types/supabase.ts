@@ -139,20 +139,20 @@ export interface Database {
         Row: {
           id: string
           is_admin: boolean
-          [key: string]: any
+          [key: string]: unknown
         }
-        Insert: any
-        Update: any
+        Insert: Record<string, unknown>
+        Update: Record<string, unknown>
       }
       services: {
-        Row: any
-        Insert: any
-        Update: any
+        Row: Record<string, unknown>
+        Insert: Record<string, unknown>
+        Update: Record<string, unknown>
       }
       [key: string]: {
-        Row: any
-        Insert: any
-        Update: any
+        Row: Record<string, unknown>
+        Insert: Record<string, unknown>
+        Update: Record<string, unknown>
       }
     }
     Views: {

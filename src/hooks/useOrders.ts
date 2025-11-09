@@ -9,6 +9,15 @@ import { supabase } from '@/integrations/supabase/client'
 import { useAuth } from './useAuth'
 import { toast } from 'sonner'
 import type { OrderWithItems, OrderInsert, OrderItemInsert, ShippingAddress } from '@/types/database'
+import { handleSupabaseError, devError } from '@/lib/errors'
+import { createQueryKeys, commonQueryOptions, createUserQueryKey } from '@/lib/react-query'
+
+// ===================================================================
+// Query Keys
+// ===================================================================
+
+const orderQueryKeys = createQueryKeys('orders')
+const adminOrderQueryKeys = createQueryKeys('admin-orders')
 
 // ===================================================================
 // 1. 주문 목록 조회 (GET)
@@ -18,7 +27,7 @@ export function useOrders() {
   const { user } = useAuth()
 
   return useQuery<OrderWithItems[]>({
-    queryKey: ['orders', user?.id],
+    queryKey: createUserQueryKey('orders', user?.id),
     queryFn: async () => {
       if (!user) return []
 
@@ -38,14 +47,21 @@ export function useOrders() {
         .order('created_at', { ascending: false })
 
       if (error) {
-        console.error('주문 목록 조회 실패:', error)
+        const result = handleSupabaseError(error, {
+          table: 'orders',
+          operation: '주문 목록 조회',
+          fallbackValue: [],
+        })
+        if (result !== null) {
+          return result
+        }
         throw error
       }
 
       return data as OrderWithItems[]
     },
     enabled: !!user,
-    staleTime: 1000 * 60 * 5, // 5분
+    staleTime: commonQueryOptions.defaultStaleTime,
   })
 }
 
@@ -57,7 +73,7 @@ export function useOrderDetail(orderId: string | undefined) {
   const { user } = useAuth()
 
   return useQuery<OrderWithItems | null>({
-    queryKey: ['order', orderId],
+    queryKey: orderQueryKeys.detail(orderId || ''),
     queryFn: async () => {
       if (!orderId || !user) return null
 
@@ -78,7 +94,14 @@ export function useOrderDetail(orderId: string | undefined) {
         .maybeSingle()
 
       if (error) {
-        console.error('주문 상세 조회 실패:', error)
+        const result = handleSupabaseError(error, {
+          table: 'orders',
+          operation: '주문 상세 조회',
+          fallbackValue: null,
+        })
+        if (result !== null) {
+          return result
+        }
         throw error
       }
 
@@ -195,12 +218,12 @@ export function useCreateOrder() {
       return order
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['orders'] })
+      queryClient.invalidateQueries({ queryKey: orderQueryKeys.all() })
       queryClient.invalidateQueries({ queryKey: ['cart'] })
       toast.success('주문이 완료되었습니다')
     },
     onError: (error: Error) => {
-      console.error('주문 생성 실패:', error)
+      devError(error, { operation: '주문 생성' })
       toast.error(error.message || '주문 생성에 실패했습니다')
     },
   })
@@ -229,11 +252,11 @@ export function useCancelOrder() {
       return { success: true }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['orders'] })
+      queryClient.invalidateQueries({ queryKey: orderQueryKeys.all() })
       toast.success('주문이 취소되었습니다')
     },
     onError: (error: Error) => {
-      console.error('주문 취소 실패:', error)
+      devError(error, { operation: '주문 취소' })
       toast.error('주문 취소에 실패했습니다')
     },
   })
@@ -245,7 +268,7 @@ export function useCancelOrder() {
 
 export function useAdminOrders() {
   return useQuery<OrderWithItems[]>({
-    queryKey: ['admin-orders'],
+    queryKey: adminOrderQueryKeys.all(),
     queryFn: async () => {
       const { data, error } = await supabase
         .from('orders')
@@ -262,13 +285,20 @@ export function useAdminOrders() {
         .order('created_at', { ascending: false })
 
       if (error) {
-        console.error('관리자 주문 목록 조회 실패:', error)
+        const result = handleSupabaseError(error, {
+          table: 'orders',
+          operation: '관리자 주문 목록 조회',
+          fallbackValue: [],
+        })
+        if (result !== null) {
+          return result
+        }
         throw error
       }
 
       return data as OrderWithItems[]
     },
-    staleTime: 1000 * 60 * 1, // 1분 (자주 갱신)
+    staleTime: commonQueryOptions.shortStaleTime,
   })
 }
 
@@ -304,12 +334,12 @@ export function useUpdateOrderStatus() {
       return { success: true }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['orders'] })
-      queryClient.invalidateQueries({ queryKey: ['admin-orders'] })
+      queryClient.invalidateQueries({ queryKey: orderQueryKeys.all() })
+      queryClient.invalidateQueries({ queryKey: adminOrderQueryKeys.all() })
       toast.success('주문 상태가 변경되었습니다')
     },
     onError: (error: Error) => {
-      console.error('주문 상태 변경 실패:', error)
+      devError(error, { operation: '주문 상태 변경' })
       toast.error('주문 상태 변경에 실패했습니다')
     },
   })

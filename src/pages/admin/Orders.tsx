@@ -338,8 +338,8 @@ export default function AdminOrders() {
                     <div>받는 사람: {selectedOrder.shipping_name}</div>
                     <div>연락처: {selectedOrder.shipping_phone}</div>
                     <div>
-                      주소: {(selectedOrder.shipping_address as any)?.address}{' '}
-                      {(selectedOrder.shipping_address as any)?.addressDetail}
+                      주소: {(selectedOrder.shipping_address as { address?: string; addressDetail?: string })?.address}{' '}
+                      {(selectedOrder.shipping_address as { address?: string; addressDetail?: string })?.addressDetail}
                     </div>
                     {selectedOrder.shipping_note && (
                       <div>배송 요청사항: {selectedOrder.shipping_note}</div>

@@ -65,7 +65,7 @@ export default function Notifications() {
           {/* 필터 탭 */}
           <Tabs
             value={filter}
-            onValueChange={(v: any) => setFilter(v)}
+            onValueChange={(v) => setFilter(v as typeof filter)}
             className="mb-6"
           >
             <TabsList className="w-full md:w-auto">

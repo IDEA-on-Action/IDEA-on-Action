@@ -15,6 +15,7 @@ import {
   limitContext,
   type ChatMessage,
 } from '@/lib/openai'
+import { devError } from '@/lib/errors'
 
 export interface Message {
   id: string
@@ -57,15 +58,15 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
     try {
       const stored = localStorage.getItem(storageKey)
       if (stored) {
-        const parsed = JSON.parse(stored)
-        const messagesWithDates = parsed.map((msg: any) => ({
+        const parsed = JSON.parse(stored) as Array<Omit<Message, 'createdAt'> & { createdAt: string }>
+        const messagesWithDates = parsed.map((msg) => ({
           ...msg,
           createdAt: new Date(msg.createdAt),
         }))
         setMessages(messagesWithDates)
       }
     } catch (err) {
-      console.error('Failed to load messages from localStorage:', err)
+      devError(err, { operation: '로컬 스토리지에서 메시지 로드' })
     }
   }, [storageKey])
 
@@ -75,7 +76,7 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
       try {
         localStorage.setItem(storageKey, JSON.stringify(messages))
       } catch (err) {
-        console.error('Failed to save messages to localStorage:', err)
+        devError(err, { operation: '로컬 스토리지에 메시지 저장' })
       }
     }
   }, [messages, storageKey])
@@ -141,7 +142,7 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
           )
         }
       } catch (err) {
-        console.error('Chat error:', err)
+        devError(err, { operation: '채팅 메시지 전송' })
         setError(
           err instanceof Error
             ? err

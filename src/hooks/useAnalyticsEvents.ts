@@ -15,7 +15,7 @@ export interface AnalyticsEvent {
   user_id: string | null
   session_id: string
   event_name: string
-  event_params: Record<string, any>
+  event_params: Record<string, unknown>
   page_url: string | null
   referrer: string | null
   user_agent: string | null
@@ -230,7 +230,7 @@ export function useSessionTimeline(sessionId: string) {
       return data as Array<{
         id: string
         event_name: string
-        event_params: Record<string, any>
+        event_params: Record<string, unknown>
         page_url: string
         created_at: string
       }>

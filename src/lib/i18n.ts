@@ -8,6 +8,7 @@ import koAuth from "@/locales/ko/auth.json";
 import koServices from "@/locales/ko/services.json";
 import koEcommerce from "@/locales/ko/ecommerce.json";
 import koAdmin from "@/locales/ko/admin.json";
+import koSearch from "@/locales/ko/search.json";
 
 // 영어 번역
 import enCommon from "@/locales/en/common.json";
@@ -15,6 +16,7 @@ import enAuth from "@/locales/en/auth.json";
 import enServices from "@/locales/en/services.json";
 import enEcommerce from "@/locales/en/ecommerce.json";
 import enAdmin from "@/locales/en/admin.json";
+import enSearch from "@/locales/en/search.json";
 
 // i18n 초기화
 i18n
@@ -28,6 +30,7 @@ i18n
         services: koServices,
         ecommerce: koEcommerce,
         admin: koAdmin,
+        search: koSearch,
       },
       en: {
         common: enCommon,
@@ -35,11 +38,12 @@ i18n
         services: enServices,
         ecommerce: enEcommerce,
         admin: enAdmin,
+        search: enSearch,
       },
     },
     fallbackLng: "ko", // 기본 언어: 한국어
     defaultNS: "common", // 기본 네임스페이스
-    ns: ["common", "auth", "services", "ecommerce", "admin"],
+    ns: ["common", "auth", "services", "ecommerce", "admin", "search"],
 
     interpolation: {
       escapeValue: false, // React가 XSS 방지를 자동 처리

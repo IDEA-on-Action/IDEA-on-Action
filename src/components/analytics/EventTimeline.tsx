@@ -18,6 +18,7 @@ import {
   FileText,
   Bell,
   MessageSquare,
+  type LucideIcon,
   Share2,
   Download,
   AlertCircle,
@@ -40,7 +41,7 @@ export function EventTimeline({ startDate, endDate, limit = 50 }: EventTimelineP
 
   // 이벤트 타입별 아이콘 및 색상 매핑
   const getEventStyle = (eventName: string) => {
-    const styles: Record<string, { icon: any; color: string; label: string }> = {
+    const styles: Record<string, { icon: LucideIcon; color: string; label: string }> = {
       sign_up: { icon: UserPlus, color: 'bg-green-100 text-green-600', label: '회원가입' },
       login: { icon: UserPlus, color: 'bg-blue-100 text-blue-600', label: '로그인' },
       view_service: { icon: Eye, color: 'bg-purple-100 text-purple-600', label: '서비스 조회' },

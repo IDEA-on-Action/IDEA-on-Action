@@ -49,7 +49,7 @@ export function useLogAction() {
       action: string
       resource: string
       resourceId?: string
-      details?: Record<string, any>
+      details?: Record<string, unknown>
     }) => {
       const { error } = await supabase.rpc('log_action', {
         p_user_id: (await supabase.auth.getUser()).data.user?.id,

@@ -26,7 +26,7 @@ export default function AdminNotices() {
   const { data: notices, isLoading } = useNotices({
     filters: {
       status: statusFilter === 'all' ? undefined : statusFilter,
-      type: typeFilter === 'all' ? undefined : (typeFilter as any),
+      type: typeFilter === 'all' ? undefined : (typeFilter as 'general' | 'maintenance' | 'update' | 'event'),
       include_expired: true,
     },
     sortBy: 'created_at',

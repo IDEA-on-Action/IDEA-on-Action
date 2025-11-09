@@ -18,6 +18,7 @@ import { useNavigate } from 'react-router-dom'
 import { Loader2, Eye, Upload, X } from 'lucide-react'
 import { useCategories, useTags, useCreateBlogPost, useUpdateBlogPost } from '@/hooks/useBlogPosts'
 import { generateSlug, calculateReadingTime } from '@/types/blog'
+import { devError } from '@/lib/errors'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -159,7 +160,7 @@ export function BlogPostForm({ post, mode }: BlogPostFormProps) {
         description: 'Image uploaded successfully',
       })
     } catch (error) {
-      console.error('Upload error:', error)
+      devError(error, { operation: '이미지 업로드', service: 'Blog' })
       toast({
         title: 'Error',
         description: 'Failed to upload image',
@@ -201,7 +202,7 @@ export function BlogPostForm({ post, mode }: BlogPostFormProps) {
         navigate('/admin/blog')
       }
     } catch (error) {
-      console.error('Submit error:', error)
+      devError(error, { operation: '블로그 포스트 제출', service: 'Blog' })
       toast({
         title: 'Error',
         description: `Failed to ${mode} blog post`,

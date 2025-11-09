@@ -12,6 +12,7 @@ import { useNavigate } from 'react-router-dom'
 import { supabase } from '@/integrations/supabase/client'
 import type { User, Session } from '@supabase/supabase-js'
 import { setUser as setSentryUser, clearUser as clearSentryUser } from '@/lib/sentry'
+import { devError } from '@/lib/errors'
 
 interface UseAuthReturn {
   user: User | null
@@ -75,7 +76,7 @@ export function useAuth(): UseAuthReturn {
     })
 
     if (error) {
-      console.error('Google login error:', error)
+      devError(error, { service: 'Auth', operation: 'Google 로그인' })
       throw error
     }
   }
@@ -92,7 +93,7 @@ export function useAuth(): UseAuthReturn {
     })
 
     if (error) {
-      console.error('GitHub login error:', error)
+      devError(error, { service: 'Auth', operation: 'GitHub 로그인' })
       throw error
     }
   }
@@ -109,7 +110,7 @@ export function useAuth(): UseAuthReturn {
     })
 
     if (error) {
-      console.error('Kakao login error:', error)
+      devError(error, { service: 'Auth', operation: 'Kakao 로그인' })
       throw error
     }
   }
@@ -127,7 +128,7 @@ export function useAuth(): UseAuthReturn {
     })
 
     if (error) {
-      console.error('Microsoft login error:', error)
+      devError(error, { service: 'Auth', operation: 'Microsoft 로그인' })
       throw error
     }
   }
@@ -145,7 +146,7 @@ export function useAuth(): UseAuthReturn {
     })
 
     if (error) {
-      console.error('Apple login error:', error)
+      devError(error, { service: 'Auth', operation: 'Apple 로그인' })
       throw error
     }
   }
@@ -161,7 +162,7 @@ export function useAuth(): UseAuthReturn {
     })
 
     if (error) {
-      console.error('Email login error:', error)
+      devError(error, { service: 'Auth', operation: '이메일 로그인' })
       throw error
     }
   }
@@ -173,7 +174,7 @@ export function useAuth(): UseAuthReturn {
     const { error } = await supabase.auth.signOut()
 
     if (error) {
-      console.error('Signout error:', error)
+      devError(error, { service: 'Auth', operation: '로그아웃' })
       throw error
     }
 

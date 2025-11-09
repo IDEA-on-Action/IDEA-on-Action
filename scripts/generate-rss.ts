@@ -82,7 +82,7 @@ async function generateRSS() {
   xml += `    <atom:link href="${SITE_URL}/rss.xml" rel="self" type="application/rss+xml"/>\n`
 
   if (posts) {
-    posts.forEach((post: any) => {
+    posts.forEach((post: BlogPost) => {
       const author = post.author?.raw_user_meta_data?.full_name || post.author?.email || 'VIBE WORKING'
       const description = post.excerpt || post.content.substring(0, 200) + '...'
 

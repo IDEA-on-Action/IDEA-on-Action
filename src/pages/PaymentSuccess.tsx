@@ -13,6 +13,7 @@ import { PaymentStatus } from '@/components/payment/PaymentStatus'
 import { usePayment } from '@/hooks/usePayment'
 import { supabase } from '@/integrations/supabase/client'
 import { Loader2 } from 'lucide-react'
+import { devError } from '@/lib/errors'
 
 export default function PaymentSuccess() {
   const navigate = useNavigate()
@@ -73,7 +74,7 @@ export default function PaymentSuccess() {
 
         setIsProcessing(false)
       } catch (err) {
-        console.error('결제 승인 실패:', err)
+        devError(err, { operation: '결제 승인', service: 'Payment' })
         setError(err instanceof Error ? err.message : '결제 승인 실패')
         setIsProcessing(false)
       }

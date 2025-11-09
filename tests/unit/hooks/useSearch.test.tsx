@@ -49,7 +49,7 @@ describe('useSearch', () => {
       limit: vi.fn().mockResolvedValue({ data: [], error: null }),
     }
 
-    vi.mocked(supabaseModule.supabase.from).mockReturnValue(mockSupabase as any)
+    vi.mocked(supabaseModule.supabase.from).mockReturnValue(mockSupabase as unknown as ReturnType<typeof supabaseModule.supabase.from>)
 
     const { result } = renderHook(
       () =>
@@ -89,7 +89,7 @@ describe('useSearch', () => {
       limit: vi.fn().mockResolvedValue({ data: mockResults, error: null }),
     }
 
-    vi.mocked(supabaseModule.supabase.from).mockReturnValue(mockSupabase as any)
+    vi.mocked(supabaseModule.supabase.from).mockReturnValue(mockSupabase as unknown as ReturnType<typeof supabaseModule.supabase.from>)
 
     const { result } = renderHook(
       () =>
@@ -160,7 +160,7 @@ describe('useSearch', () => {
         .mockResolvedValueOnce({ data: mockNoticeResults, error: null }),
     }
 
-    vi.mocked(supabaseModule.supabase.from).mockReturnValue(mockSupabase as any)
+    vi.mocked(supabaseModule.supabase.from).mockReturnValue(mockSupabase as unknown as ReturnType<typeof supabaseModule.supabase.from>)
 
     const { result } = renderHook(
       () =>
@@ -208,7 +208,7 @@ describe('useSearch', () => {
       limit: vi.fn().mockResolvedValue({ data: mockResults, error: null }),
     }
 
-    vi.mocked(supabaseModule.supabase.from).mockReturnValue(mockSupabase as any)
+    vi.mocked(supabaseModule.supabase.from).mockReturnValue(mockSupabase as unknown as ReturnType<typeof supabaseModule.supabase.from>)
 
     const { result } = renderHook(
       () =>
@@ -242,7 +242,7 @@ describe('useSearch', () => {
       limit: vi.fn().mockResolvedValue({ data: [], error: null }),
     }
 
-    vi.mocked(supabaseModule.supabase.from).mockReturnValue(mockSupabase as any)
+    vi.mocked(supabaseModule.supabase.from).mockReturnValue(mockSupabase as unknown as ReturnType<typeof supabaseModule.supabase.from>)
 
     const { result } = renderHook(
       () =>
@@ -284,7 +284,7 @@ describe('useSearch', () => {
       limit: vi.fn().mockResolvedValue({ data: mockResults, error: null }),
     }
 
-    vi.mocked(supabaseModule.supabase.from).mockReturnValue(mockSupabase as any)
+    vi.mocked(supabaseModule.supabase.from).mockReturnValue(mockSupabase as unknown as ReturnType<typeof supabaseModule.supabase.from>)
 
     const { result, rerender } = renderHook(
       () =>
@@ -330,7 +330,7 @@ describe('useSearch', () => {
       ),
     }
 
-    vi.mocked(supabaseModule.supabase.from).mockReturnValue(mockSupabase as any)
+    vi.mocked(supabaseModule.supabase.from).mockReturnValue(mockSupabase as unknown as ReturnType<typeof supabaseModule.supabase.from>)
 
     const { result } = renderHook(
       () =>
@@ -363,7 +363,7 @@ describe('useSearch', () => {
       }),
     }
 
-    vi.mocked(supabaseModule.supabase.from).mockReturnValue(mockSupabase as any)
+    vi.mocked(supabaseModule.supabase.from).mockReturnValue(mockSupabase as unknown as ReturnType<typeof supabaseModule.supabase.from>)
 
     const { result } = renderHook(
       () =>
@@ -394,7 +394,7 @@ describe('useSearch', () => {
         .mockResolvedValueOnce({ data: [{ id: '2', title: 'ML' }], error: null }),
     }
 
-    vi.mocked(supabaseModule.supabase.from).mockReturnValue(mockSupabase as any)
+    vi.mocked(supabaseModule.supabase.from).mockReturnValue(mockSupabase as unknown as ReturnType<typeof supabaseModule.supabase.from>)
 
     const { result, rerender } = renderHook(
       ({ query }: { query: string }) =>
@@ -432,7 +432,7 @@ describe('useSearch', () => {
       limit: vi.fn().mockResolvedValue({ data: [], error: null }),
     }
 
-    vi.mocked(supabaseModule.supabase.from).mockReturnValue(mockSupabase as any)
+    vi.mocked(supabaseModule.supabase.from).mockReturnValue(mockSupabase as unknown as ReturnType<typeof supabaseModule.supabase.from>)
 
     renderHook(
       () =>

@@ -9,6 +9,14 @@ import { supabase } from '@/integrations/supabase/client'
 import { useAuth } from './useAuth'
 import { toast } from 'sonner'
 import type { CartWithItems, CartItemInsert, CartItemUpdate } from '@/types/database'
+import { handleSupabaseError, handleApiError, devError } from '@/lib/errors'
+import { createQueryKeys, commonQueryOptions, createUserQueryKey } from '@/lib/react-query'
+
+// ===================================================================
+// Query Keys
+// ===================================================================
+
+const cartQueryKeys = createQueryKeys('cart')
 
 // ===================================================================
 // 1. 장바구니 조회 (GET)
@@ -18,7 +26,7 @@ export function useCart() {
   const { user } = useAuth()
 
   return useQuery<CartWithItems | null>({
-    queryKey: ['cart', user?.id],
+    queryKey: createUserQueryKey('cart', user?.id),
     queryFn: async () => {
       if (!user) return null
 
@@ -38,14 +46,17 @@ export function useCart() {
         .maybeSingle()
 
       if (error) {
-        console.error('장바구니 조회 실패:', error)
-        throw error
+        return handleSupabaseError(error, {
+          table: 'carts',
+          operation: '장바구니 조회',
+          fallbackValue: null,
+        })
       }
 
       return data
     },
     enabled: !!user,
-    staleTime: 1000 * 60 * 5, // 5분간 fresh 상태 유지
+    staleTime: commonQueryOptions.defaultStaleTime,
   })
 }
 
@@ -68,13 +79,15 @@ export function useAddToCart() {
       if (!user) throw new Error('로그인이 필요합니다')
 
       // 1. 장바구니가 없으면 생성
-      let { data: cart, error: cartError } = await supabase
+      const { data: existingCart, error: cartError } = await supabase
         .from('carts')
         .select('id')
         .eq('user_id', user.id)
         .maybeSingle()
 
       if (cartError) throw cartError
+
+      let cart = existingCart
 
       if (!cart) {
         const { data: newCart, error: createError } = await supabase
@@ -122,11 +135,14 @@ export function useAddToCart() {
       return { success: true }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['cart'] })
+      queryClient.invalidateQueries({ queryKey: cartQueryKeys.all() })
       toast.success('장바구니에 추가되었습니다')
     },
     onError: (error: Error) => {
-      console.error('장바구니 추가 실패:', error)
+      const errorMessage = handleApiError(error, {
+        service: 'carts',
+        operation: '장바구니 추가',
+      })
       toast.error(error.message || '장바구니 추가에 실패했습니다')
     },
   })
@@ -163,10 +179,10 @@ export function useUpdateCartItem() {
       return { success: true }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['cart'] })
+      queryClient.invalidateQueries({ queryKey: cartQueryKeys.all() })
     },
     onError: (error: Error) => {
-      console.error('수량 변경 실패:', error)
+      devError(error, { operation: '수량 변경' })
       toast.error(error.message || '수량 변경에 실패했습니다')
     },
   })
@@ -192,7 +208,7 @@ export function useRemoveCartItem() {
       toast.success('장바구니에서 삭제되었습니다')
     },
     onError: (error: Error) => {
-      console.error('항목 삭제 실패:', error)
+      devError(error, { operation: '항목 삭제' })
       toast.error('삭제에 실패했습니다')
     },
   })
@@ -232,7 +248,7 @@ export function useClearCart() {
       toast.success('장바구니가 비워졌습니다')
     },
     onError: (error: Error) => {
-      console.error('장바구니 비우기 실패:', error)
+      devError(error, { operation: '장바구니 비우기' })
       toast.error('장바구니 비우기에 실패했습니다')
     },
   })

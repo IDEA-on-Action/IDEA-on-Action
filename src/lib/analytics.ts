@@ -3,15 +3,17 @@
  * 페이지뷰, 이벤트, 전환 추적
  */
 
+import { devLog, devWarn } from '@/lib/errors'
+
 // GA4 타입 정의
 declare global {
   interface Window {
     gtag?: (
       command: string,
       targetId: string,
-      config?: Record<string, any>
+      config?: Record<string, unknown>
     ) => void;
-    dataLayer?: any[];
+    dataLayer?: unknown[];
   }
 }
 
@@ -20,7 +22,7 @@ export function initGA4() {
   const measurementId = import.meta.env.VITE_GA4_MEASUREMENT_ID;
 
   if (!measurementId) {
-    console.warn("GA4 Measurement ID가 설정되지 않았습니다.");
+    devWarn("GA4 Measurement ID가 설정되지 않았습니다.");
     return;
   }
 
@@ -43,7 +45,7 @@ export function initGA4() {
   `;
   document.head.appendChild(script2);
 
-  console.log("GA4 초기화 완료:", measurementId);
+  devLog("GA4 초기화 완료:", measurementId);
 }
 
 // 페이지뷰 추적
@@ -59,7 +61,7 @@ export function trackPageView(path: string, title?: string) {
 // 커스텀 이벤트 추적
 export function trackEvent(
   eventName: string,
-  parameters?: Record<string, any>
+  parameters?: Record<string, unknown>
 ) {
   if (!window.gtag) return;
 
@@ -105,7 +107,7 @@ export const analytics = {
   },
 
   // 체크아웃 시작
-  beginCheckout: (items: any[], totalValue: number) => {
+  beginCheckout: (items: unknown[], totalValue: number) => {
     trackEvent("begin_checkout", {
       currency: "KRW",
       value: totalValue,
@@ -114,7 +116,7 @@ export const analytics = {
   },
 
   // 구매 완료
-  purchase: (orderId: string, totalValue: number, items: any[]) => {
+  purchase: (orderId: string, totalValue: number, items: unknown[]) => {
     trackEvent("purchase", {
       transaction_id: orderId,
       value: totalValue,
@@ -301,7 +303,7 @@ export const analytics = {
   },
 
   // 15. 커스텀 이벤트
-  customEvent: (eventName: string, params: Record<string, any>) => {
+  customEvent: (eventName: string, params: Record<string, unknown>) => {
     trackEvent(eventName, params);
   },
 };

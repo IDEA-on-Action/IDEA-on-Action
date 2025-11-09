@@ -3,6 +3,8 @@
  * 브라우저 세션 ID 생성 및 관리
  */
 
+import { devWarn } from '@/lib/errors'
+
 const SESSION_KEY = 'analytics_session_id'
 const SESSION_DURATION = 30 * 60 * 1000 // 30분 (밀리초)
 
@@ -42,7 +44,7 @@ export function getSessionId(): string {
     return sessionId
   } catch (error) {
     // sessionStorage 접근 실패 시 임시 세션 ID 반환
-    console.warn('Failed to access sessionStorage:', error)
+    devWarn('Failed to access sessionStorage:', error)
     return `temp-${Date.now()}-${Math.random().toString(36).substring(7)}`
   }
 }
@@ -56,7 +58,7 @@ export function clearSessionId(): void {
     sessionStorage.removeItem(`${SESSION_KEY}_start`)
     sessionStorage.removeItem(`${SESSION_KEY}_last_activity`)
   } catch (error) {
-    console.warn('Failed to clear session:', error)
+    devWarn('Failed to clear session:', error)
   }
 }
 
@@ -68,7 +70,7 @@ export function updateSessionActivity(): void {
   try {
     sessionStorage.setItem(`${SESSION_KEY}_last_activity`, Date.now().toString())
   } catch (error) {
-    console.warn('Failed to update session activity:', error)
+    devWarn('Failed to update session activity:', error)
   }
 }
 
@@ -83,7 +85,7 @@ export function getSessionStartTime(): Date | null {
     }
     return null
   } catch (error) {
-    console.warn('Failed to get session start time:', error)
+    devWarn('Failed to get session start time:', error)
     return null
   }
 }
@@ -100,7 +102,7 @@ export function getSessionDuration(): number {
     }
     return 0
   } catch (error) {
-    console.warn('Failed to get session duration:', error)
+    devWarn('Failed to get session duration:', error)
     return 0
   }
 }

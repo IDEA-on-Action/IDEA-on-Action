@@ -8,6 +8,7 @@
  */
 
 import OpenAI from 'openai'
+import { devError } from '@/lib/errors'
 
 // OpenAI 클라이언트 초기화
 export const openai = new OpenAI({
@@ -79,7 +80,7 @@ export async function createChatCompletion(
 
     return response.choices[0]?.message?.content || ''
   } catch (error) {
-    console.error('OpenAI API Error:', error)
+    devError(error, { service: 'OpenAI', operation: '채팅 완료 요청' })
     throw new Error('채팅 응답을 받는 중 오류가 발생했습니다.')
   }
 }
@@ -106,7 +107,7 @@ export async function* createChatCompletionStream(
       }
     }
   } catch (error) {
-    console.error('OpenAI Streaming Error:', error)
+    devError(error, { service: 'OpenAI', operation: '스트리밍 응답' })
     throw new Error('스트리밍 응답 중 오류가 발생했습니다.')
   }
 }

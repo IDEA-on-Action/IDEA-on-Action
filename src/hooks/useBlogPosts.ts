@@ -93,10 +93,13 @@ export function useBlogPosts(options: UsePostsOptions = {}) {
       if (error) throw error
 
       // Transform data to include tags as array
-      const posts: BlogPostWithRelations[] = (data || []).map((post: any) => ({
-        ...post,
-        tags: post.tags?.map((t: any) => t.tag).filter(Boolean) || [],
-      }))
+      const posts: BlogPostWithRelations[] = (data || []).map((post: unknown) => {
+        const p = post as BlogPost & { tags?: Array<{ tag: PostTag }> }
+        return {
+          ...p,
+          tags: p.tags?.map((t) => t.tag).filter(Boolean) || [],
+        }
+      })
 
       return posts
     },
@@ -126,9 +129,10 @@ export function useBlogPost(id: string | undefined) {
       if (error) throw error
 
       // Transform data
+      const d = data as BlogPost & { tags?: Array<{ tag: PostTag }> }
       const post: BlogPostWithRelations = {
-        ...data,
-        tags: data.tags?.map((t: any) => t.tag).filter(Boolean) || [],
+        ...d,
+        tags: d.tags?.map((t) => t.tag).filter(Boolean) || [],
       }
 
       return post
@@ -160,9 +164,10 @@ export function useBlogPostBySlug(slug: string | undefined) {
       if (error) throw error
 
       // Transform data
+      const d = data as BlogPost & { tags?: Array<{ tag: PostTag }> }
       const post: BlogPostWithRelations = {
-        ...data,
-        tags: data.tags?.map((t: any) => t.tag).filter(Boolean) || [],
+        ...d,
+        tags: d.tags?.map((t) => t.tag).filter(Boolean) || [],
       }
 
       return post

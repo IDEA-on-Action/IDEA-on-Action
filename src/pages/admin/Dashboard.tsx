@@ -239,7 +239,7 @@ export default function Dashboard() {
                       ))}
                     </Pie>
                     <Tooltip
-                      formatter={(value: number, name: string, props: any) =>
+                      formatter={(value: number, name: string, props: { payload: { amount: number } }) =>
                         `${value}건 (₩${props.payload.amount.toLocaleString()})`
                       }
                     />

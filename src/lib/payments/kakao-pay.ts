@@ -14,6 +14,7 @@ import type {
   KakaoPayCancelRequest,
   KakaoPayCancelResponse,
 } from './types'
+import { extractErrorMessage, devLog, devError } from '@/lib/errors'
 
 // ===================================================================
 // Constants
@@ -41,26 +42,12 @@ function getHeaders() {
 /**
  * URL-encoded form data 생성
  */
-function toFormData(params: Record<string, any>): string {
+function toFormData(params: Record<string, unknown>): string {
   return Object.keys(params)
-    .map((key) => `${encodeURIComponent(key)}=${encodeURIComponent(params[key])}`)
+    .map((key) => `${encodeURIComponent(key)}=${encodeURIComponent(String(params[key]))}`)
     .join('&')
 }
 
-/**
- * 에러 메시지 추출
- */
-function extractErrorMessage(error: unknown): string {
-  if (axios.isAxiosError(error)) {
-    const axiosError = error as AxiosError<any>
-    if (axiosError.response?.data) {
-      const data = axiosError.response.data
-      return data.msg || data.message || '결제 처리 중 오류가 발생했습니다.'
-    }
-    return axiosError.message
-  }
-  return error instanceof Error ? error.message : '알 수 없는 오류'
-}
 
 // ===================================================================
 // API Functions
@@ -81,7 +68,7 @@ export async function prepareKakaoPayment(
       ...params,
     }
 
-    console.log('[Kakao Pay] Ready request:', {
+    devLog('[Kakao Pay] Ready request:', {
       ...requestData,
       cid: CID.substring(0, 5) + '***', // 보안을 위해 일부만 출력
     })
@@ -92,7 +79,7 @@ export async function prepareKakaoPayment(
       { headers: getHeaders() }
     )
 
-    console.log('[Kakao Pay] Ready success:', {
+    devLog('[Kakao Pay] Ready success:', {
       tid: response.data.tid,
       created_at: response.data.created_at,
     })
@@ -100,7 +87,7 @@ export async function prepareKakaoPayment(
     return response.data
   } catch (error) {
     const message = extractErrorMessage(error)
-    console.error('[Kakao Pay] Ready failed:', message)
+    devError(error, { service: 'Kakao Pay', operation: '결제 준비' })
     throw new Error(`Kakao Pay 결제 준비 실패: ${message}`)
   }
 }
@@ -120,7 +107,7 @@ export async function approveKakaoPayment(
       ...params,
     }
 
-    console.log('[Kakao Pay] Approve request:', {
+    devLog('[Kakao Pay] Approve request:', {
       tid: requestData.tid,
       partner_order_id: requestData.partner_order_id,
     })
@@ -131,7 +118,7 @@ export async function approveKakaoPayment(
       { headers: getHeaders() }
     )
 
-    console.log('[Kakao Pay] Approve success:', {
+    devLog('[Kakao Pay] Approve success:', {
       aid: response.data.aid,
       approved_at: response.data.approved_at,
       amount: response.data.amount.total,
@@ -140,7 +127,7 @@ export async function approveKakaoPayment(
     return response.data
   } catch (error) {
     const message = extractErrorMessage(error)
-    console.error('[Kakao Pay] Approve failed:', message)
+    devError(error, { service: 'Kakao Pay', operation: '결제 승인' })
     throw new Error(`Kakao Pay 결제 승인 실패: ${message}`)
   }
 }
@@ -160,7 +147,7 @@ export async function cancelKakaoPayment(
       ...params,
     }
 
-    console.log('[Kakao Pay] Cancel request:', {
+    devLog('[Kakao Pay] Cancel request:', {
       tid: requestData.tid,
       cancel_amount: requestData.cancel_amount,
     })
@@ -171,7 +158,7 @@ export async function cancelKakaoPayment(
       { headers: getHeaders() }
     )
 
-    console.log('[Kakao Pay] Cancel success:', {
+    devLog('[Kakao Pay] Cancel success:', {
       aid: response.data.aid,
       canceled_at: response.data.canceled_at,
       status: response.data.status,
@@ -180,7 +167,7 @@ export async function cancelKakaoPayment(
     return response.data
   } catch (error) {
     const message = extractErrorMessage(error)
-    console.error('[Kakao Pay] Cancel failed:', message)
+    devError(error, { service: 'Kakao Pay', operation: '결제 취소' })
     throw new Error(`Kakao Pay 결제 취소 실패: ${message}`)
   }
 }

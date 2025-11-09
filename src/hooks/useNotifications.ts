@@ -11,6 +11,7 @@ import { useEffect } from 'react'
 import { supabase } from '@/integrations/supabase/client'
 import { useAuth } from '@/hooks/useAuth'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { handleSupabaseError, devError, devLog } from '@/lib/errors'
 
 export interface Notification {
   id: string
@@ -56,7 +57,13 @@ export function useNotifications(): UseNotificationsReturn {
         .order('created_at', { ascending: false })
         .limit(50)
 
-      if (error) throw error
+      if (error) {
+        return handleSupabaseError(error, {
+          table: 'notifications',
+          operation: '알림 조회',
+          fallbackValue: [],
+        }) || []
+      }
       return data as Notification[]
     },
     enabled: !!user,
@@ -81,7 +88,7 @@ export function useNotifications(): UseNotificationsReturn {
           filter: `user_id=eq.${user.id}`,
         },
         (payload) => {
-          console.log('New notification:', payload.new)
+          devLog('New notification:', payload.new)
           // 쿼리 무효화하여 자동 리페치
           queryClient.invalidateQueries({ queryKey: ['notifications', user.id] })
         }
@@ -162,7 +169,7 @@ export function useNotifications(): UseNotificationsReturn {
       if (error) throw error
       return data as Notification
     } catch (error) {
-      console.error('Create notification error:', error)
+      devError(error, { operation: '알림 생성' })
       return null
     }
   }

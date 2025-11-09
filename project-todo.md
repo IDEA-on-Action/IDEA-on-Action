@@ -432,93 +432,52 @@ CI/CD:            3개 워크플로우 (test-e2e, test-unit, lighthouse)
 
 ---
 
-### Phase 14: 고급 분석 대시보드 (계획 수립 완료) - 0% 📋
+### Phase 14: 고급 분석 대시보드 ✅ 완료 (100%) 📊
 
-**시작일**: 2025-11-11 (예상)
-**예상 완료**: 2025-12-02 (3주)
+**시작일**: 2025-11-04
+**완료일**: 2025-11-04
+**최종 버전**: v1.8.0
 **목표**: 데이터 기반 의사결정을 위한 분석 시스템 구축
 
-#### Week 1: 사용자 행동 분석 (대기)
-- [ ] GA4 이벤트 확장 (15개 추가)
-  - [ ] signup, viewService, addToCart, removeFromCart
-  - [ ] beginCheckout, addPaymentInfo, purchase
-  - [ ] viewBlogPost, search, clickCTA, shareContent
-  - [ ] downloadFile, error, customEvent
-- [ ] 데이터베이스 스키마
-  - [ ] analytics_events 테이블 (user_id, session_id, event_name, event_params)
-  - [ ] 인덱스 5개 (event_name, created_at, user_id, session_id, params)
-  - [ ] RLS 정책 2개 (관리자 조회, service_role 삽입)
-- [ ] SQL 함수
-  - [ ] calculate_funnel() - 퍼널 분석
-  - [ ] calculate_bounce_rate() - 이탈률 계산
-- [ ] useAnalyticsEvents 훅 (3개 함수)
-  - [ ] useAnalyticsEvents() - 이벤트 조회
-  - [ ] useFunnelAnalysis() - 퍼널 분석
-  - [ ] useBounceRate() - 이탈률 계산
-- [ ] Analytics 페이지 (/admin/analytics)
-  - [ ] DateRangePicker 컴포넌트
-  - [ ] 4개 탭 (개요/퍼널/사용자 행동/이벤트 타임라인)
-- [ ] 차트 컴포넌트
-  - [ ] FunnelChart (BarChart, 전환율 표시)
-  - [ ] BounceRateCard (KPI 카드)
-  - [ ] EventTimeline (시계열 차트)
-- [ ] E2E 테스트 8개
-- [ ] 유닛 테스트 5개
+#### Week 1: 사용자 행동 분석 ✅ 완료
+- [x] GA4 이벤트 15개 추가 (viewService, removeFromCart, addPaymentInfo, etc.)
+- [x] analytics_events 테이블 마이그레이션 (4개 인덱스, RLS)
+- [x] SQL 함수 4개 (calculate_funnel, calculate_bounce_rate, get_event_counts, get_session_timeline)
+- [x] useAnalyticsEvents 훅 (7개 함수)
+- [x] src/lib/session.ts (SessionStorage 기반, 30분 타임아웃)
+- [x] Analytics 페이지 (/admin/analytics, 4개 탭)
+- [x] 차트 컴포넌트 4개 (DateRangePicker, FunnelChart, BounceRateCard, EventTimeline)
 
-#### Week 2: 매출 차트 & KPI (대기)
-- [ ] SQL 함수
-  - [ ] get_revenue_by_date() - 일/주/월별 매출
-  - [ ] get_revenue_by_service() - 서비스별 매출
-  - [ ] get_kpis() - 전체 KPI 계산
-- [ ] useRevenue 훅 (4개 함수)
-  - [ ] useRevenueByDate() - 일/주/월별 매출 조회
-  - [ ] useRevenueByService() - 서비스별 매출 조회
-  - [ ] useKPIs() - KPI 조회
-  - [ ] useLTV() - 사용자 LTV 계산
-- [ ] Revenue 페이지 (/admin/revenue)
-  - [ ] 일/주/월 전환 탭
-  - [ ] CSV 내보내기 버튼
-- [ ] KPI 카드 6개
-  - [ ] 총 매출, 주문 수, 평균 주문액
-  - [ ] 전환율, 신규 고객, 재구매 고객
-- [ ] 차트 컴포넌트
-  - [ ] RevenueChart (LineChart, 일/주/월)
-  - [ ] ServiceRevenueChart (PieChart, 서비스별 비중)
-  - [ ] KPICard (숫자/통화/퍼센트 포맷)
-- [ ] E2E 테스트 6개
-- [ ] 유닛 테스트 4개
+#### Week 2: 매출 차트 & KPI ✅ 완료
+- [x] SQL 함수 3개 (get_revenue_by_date, get_revenue_by_service, get_kpis)
+- [x] useRevenue 훅 (5개 함수)
+- [x] 차트 컴포넌트 4개 (RevenueChart, ServiceRevenueChart, OrdersChart, RevenueComparisonChart)
+- [x] KPICard 컴포넌트 (KPIGrid, 6개 개별 카드)
+- [x] Revenue 페이지 (/admin/revenue, 4개 탭, CSV 내보내기)
 
-#### Week 3: 실시간 대시보드 (대기)
-- [ ] useRealtimeDashboard 훅
-  - [ ] orders 테이블 Realtime 구독
-  - [ ] payments 테이블 Realtime 구독
-  - [ ] 최근 10개 주문 상태 관리
-  - [ ] KPI 쿼리 자동 무효화
-- [ ] useAutoRefresh 훅 (30초 자동 새로고침)
-- [ ] RealtimeDashboard 페이지 (/admin/realtime)
-  - [ ] 실시간 KPI 4개 (오늘 매출/주문/평균 주문액/전환율)
-  - [ ] LiveActivityFeed (최근 주문 활동)
-  - [ ] LIVE Badge 표시
-- [ ] LiveActivityFeed 컴포넌트
-  - [ ] 주문 타입별 아이콘 (ShoppingCart/CreditCard/Package)
-  - [ ] 상대 시간 표시 (formatDistanceToNow)
-  - [ ] 애니메이션 (slide-in-from-top)
-- [ ] E2E 테스트 4개
-- [ ] 유닛 테스트 3개
+#### Week 3: 실시간 대시보드 ✅ 완료
+- [x] useRealtimeDashboard 훅 (3개: Realtime 구독, 자동 새로고침, 실시간 메트릭)
+- [x] Supabase Realtime 구독 (orders, analytics_events 테이블)
+- [x] Presence API (온라인 사용자 추적)
+- [x] LiveMetricCard 컴포넌트 (LIVE 배지, 펄스 애니메이션)
+- [x] LiveActivityFeed 컴포넌트 (최근 10개 주문, 상태별 아이콘)
+- [x] RealtimeDashboard 페이지 (/admin/realtime, 자동 새로고침 간격 설정)
 
-#### 기술 스택
-- **recharts** (이미 설치됨, Phase 9)
-- **date-fns** (새로 추가, 날짜 유틸리티)
-- **Supabase Realtime** (이미 사용 중, Phase 13)
-- **Google Analytics 4** (이미 통합, Phase 12)
+#### 최종 결과물
+- **32개 파일**: 24개 신규, 8개 수정
+- **6,531줄 코드** 추가
+- **SQL 함수**: 7개 (퍼널, 이탈률, 이벤트 집계, 매출 집계, KPI)
+- **차트**: 11개 (Funnel, BounceRate, Revenue, ServiceRevenue, Orders, etc.)
+- **Bundle 증가**: pages-admin 50.28 kB → 61.23 kB gzip (+10.95 kB, +21.8%)
+- **Total**: 552 kB → 602 kB gzip (+50 kB, +9.1%)
 
-#### 예상 결과물
-- 17개 파일 생성, 5개 수정
-- 20+ 차트 컴포넌트
-- E2E 테스트 18개, 유닛 테스트 12개
-- 번들 크기 +30 kB gzip
+**기술 스택**:
+- recharts (차트 라이브러리)
+- date-fns (날짜 유틸리티)
+- Supabase Realtime (실시간 구독)
+- Google Analytics 4 (이벤트 추적)
 
-**상세 문서**: [docs/project/phase14-analytics-plan.md](docs/project/phase14-analytics-plan.md)
+**상세 문서**: [docs/archive/phase14-analytics.md](docs/archive/phase14-analytics.md) (예정)
 
 ---
 

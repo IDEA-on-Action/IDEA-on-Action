@@ -13,6 +13,7 @@ import { supabase } from '@/integrations/supabase/client'
 import { generateTOTPSecret, verifyTOTPToken, generateBackupCodes } from '@/lib/auth/totp'
 import { useAuth } from './useAuth'
 import { toast } from 'sonner'
+import { devError } from '@/lib/errors'
 
 // ===================================================================
 // Types
@@ -136,7 +137,7 @@ export function useSetup2FA() {
       toast.success('2FA 설정이 초기화되었습니다')
     },
     onError: (error: Error) => {
-      console.error('2FA setup error:', error)
+      devError(error, { operation: '2FA 설정', service: '2FA' })
       toast.error('2FA 설정 실패: ' + error.message)
     },
   })
@@ -186,7 +187,7 @@ export function useEnable2FA() {
       toast.success('2FA가 활성화되었습니다')
     },
     onError: (error: Error) => {
-      console.error('2FA enable error:', error)
+      devError(error, { operation: '2FA 활성화', service: '2FA' })
       toast.error('2FA 활성화 실패: ' + error.message)
     },
   })
@@ -228,7 +229,7 @@ export function useDisable2FA() {
       toast.success('2FA가 비활성화되었습니다')
     },
     onError: (error: Error) => {
-      console.error('2FA disable error:', error)
+      devError(error, { operation: '2FA 비활성화', service: '2FA' })
       toast.error('2FA 비활성화 실패: ' + error.message)
     },
   })
@@ -266,7 +267,7 @@ export function useRegenerateBackupCodes() {
       toast.success('백업 코드가 재생성되었습니다')
     },
     onError: (error: Error) => {
-      console.error('Backup codes regeneration error:', error)
+      devError(error, { operation: '백업 코드 재생성', service: '2FA' })
       toast.error('백업 코드 재생성 실패: ' + error.message)
     },
   })
@@ -334,7 +335,7 @@ export function useVerify2FA() {
       toast.success('2FA 인증 성공')
     },
     onError: (error: Error) => {
-      console.error('2FA verification error:', error)
+      devError(error, { operation: '2FA 인증', service: '2FA' })
       toast.error('2FA 인증 실패: ' + error.message)
     },
   })

@@ -9,6 +9,7 @@
 
 import { Resend } from 'resend'
 import type { ReactElement } from 'react'
+import { devWarn, devError } from '@/lib/errors'
 
 // Resend 클라이언트 초기화
 export const resend = new Resend(import.meta.env.VITE_RESEND_API_KEY)
@@ -24,8 +25,8 @@ export interface SendEmailOptions {
 
 export interface SendEmailResult {
   success: boolean
-  data?: any
-  error?: any
+  data?: unknown
+  error?: unknown
 }
 
 /**
@@ -37,7 +38,7 @@ export async function sendEmail(
   try {
     // API 키 체크
     if (!import.meta.env.VITE_RESEND_API_KEY) {
-      console.warn('VITE_RESEND_API_KEY is not set')
+      devWarn('VITE_RESEND_API_KEY is not set')
       return {
         success: false,
         error: 'Email API key is not configured',
@@ -53,7 +54,7 @@ export async function sendEmail(
 
     return { success: true, data }
   } catch (error) {
-    console.error('Email send error:', error)
+    devError(error, { service: 'Email', operation: '이메일 전송' })
     return { success: false, error }
   }
 }
@@ -76,7 +77,7 @@ export async function sendOrderConfirmationEmail(order: {
       props: {
         children: `주문이 완료되었습니다. 주문번호: ${order.id}`,
       },
-    } as any,
+    } as ReactElement,
   })
 }
 
@@ -95,7 +96,7 @@ export async function sendPasswordResetEmail(
       props: {
         children: `비밀번호 재설정 링크: ${resetLink}`,
       },
-    } as any,
+    } as ReactElement,
   })
 }
 
@@ -117,6 +118,6 @@ export async function sendAnnouncementEmail(
       props: {
         children: announcement.content,
       },
-    } as any,
+    } as ReactElement,
   })
 }

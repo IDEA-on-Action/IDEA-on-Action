@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { X, Download } from "lucide-react";
+import { devLog } from "@/lib/errors";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -36,7 +37,7 @@ export function PWAInstallPrompt() {
     // Wait for the user to respond to the prompt
     const { outcome } = await deferredPrompt.userChoice;
 
-    console.log(`User response to the install prompt: ${outcome}`);
+    devLog(`User response to the install prompt: ${outcome}`);
 
     // Clear the deferredPrompt
     setDeferredPrompt(null);

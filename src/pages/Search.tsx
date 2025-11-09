@@ -32,7 +32,7 @@ export default function Search() {
   const [query, setQuery] = useState(initialQuery)
   const [inputValue, setInputValue] = useState(initialQuery)
   const [selectedType, setSelectedType] = useState<'all' | 'service' | 'blog' | 'notice'>(
-    initialType as any
+    (initialType as 'all' | 'service' | 'blog' | 'notice') || 'all'
   )
 
   // 검색 실행
@@ -41,7 +41,7 @@ export default function Search() {
 
   const { data: results, isLoading, isError } = useSearch({
     query,
-    types: types as any,
+    types: types as ('service' | 'blog' | 'notice')[],
     limit: 30,
   })
 
@@ -141,7 +141,7 @@ export default function Search() {
             {/* 타입 필터 */}
             {query && (
               <div className="mt-6">
-                <Tabs value={selectedType} onValueChange={(value: any) => setSelectedType(value)}>
+                <Tabs value={selectedType} onValueChange={(value) => setSelectedType(value as typeof selectedType)}>
                   <TabsList className="w-full grid grid-cols-4">
                     <TabsTrigger value="all">
                       {t('search:filters.all')} ({totalCount})

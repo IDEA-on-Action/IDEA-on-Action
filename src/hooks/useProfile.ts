@@ -11,6 +11,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
 import { useAuth } from './useAuth'
 import { toast } from 'sonner'
+import { devError } from '@/lib/errors'
 
 // ===================================================================
 // Types
@@ -147,7 +148,7 @@ export function useUpdateProfile() {
       toast.success('프로필이 업데이트되었습니다.')
     },
     onError: (error: Error) => {
-      console.error('프로필 업데이트 실패:', error)
+      devError(error, { operation: '프로필 업데이트', service: 'Profile' })
       toast.error('프로필 업데이트에 실패했습니다.')
     },
   })
@@ -224,7 +225,7 @@ export function useUploadAvatar() {
       toast.success('프로필 사진이 업데이트되었습니다.')
     },
     onError: (error: Error) => {
-      console.error('아바타 업로드 실패:', error)
+      devError(error, { operation: '아바타 업로드', service: 'Profile' })
       toast.error(error.message || '아바타 업로드에 실패했습니다.')
     },
   })
@@ -292,7 +293,7 @@ export function useDisconnectAccount() {
       toast.success(`${result.provider} 계정 연결이 해제되었습니다.`)
     },
     onError: (error: Error) => {
-      console.error('계정 연결 해제 실패:', error)
+      devError(error, { operation: '계정 연결 해제', service: 'Profile' })
       toast.error(error.message || '계정 연결 해제에 실패했습니다.')
     },
   })

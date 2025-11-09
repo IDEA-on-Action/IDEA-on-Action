@@ -62,7 +62,7 @@ export function initSentry() {
 }
 
 // 수동 에러 로깅
-export function logError(error: Error, context?: Record<string, any>) {
+export function logError(error: Error, context?: Record<string, unknown>) {
   Sentry.captureException(error, {
     contexts: {
       custom: context,
@@ -85,7 +85,7 @@ export function clearUser() {
 }
 
 // 커스텀 이벤트 추적
-export function trackEvent(eventName: string, data?: Record<string, any>) {
+export function trackEvent(eventName: string, data?: Record<string, unknown>) {
   Sentry.captureMessage(eventName, {
     level: "info",
     contexts: {

@@ -6,6 +6,7 @@
 import { useEffect, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
+import { devLog, devError } from '@/lib/errors'
 
 // ============================================
 // 타입 정의
@@ -43,7 +44,7 @@ export function useRealtimeDashboard() {
         .limit(10)
 
       if (error) {
-        console.error('Failed to load recent orders:', error)
+        devError(error, { operation: '최근 주문 로드', table: 'orders' })
         return
       }
 
@@ -69,11 +70,18 @@ export function useRealtimeDashboard() {
           table: 'orders',
         },
         (payload) => {
-          console.log('Orders change detected:', payload)
+          devLog('Orders change detected:', payload)
 
           // 새 주문 추가
           if (payload.eventType === 'INSERT') {
-            const newOrder = payload.new as any
+            const newOrder = payload.new as {
+              id: string
+              order_number: string
+              user_id: string
+              total_amount: number
+              status: string
+              created_at: string
+            }
             setLiveOrders((prev) => [
               {
                 id: newOrder.id,
@@ -107,7 +115,7 @@ export function useRealtimeDashboard() {
           table: 'analytics_events',
         },
         (payload) => {
-          console.log('Analytics event detected:', payload)
+          devLog('Analytics event detected:', payload)
 
           // 이벤트 관련 쿼리 무효화
           queryClient.invalidateQueries({ queryKey: ['analytics-events'] })
@@ -146,7 +154,7 @@ export function useAutoRefresh(interval = 30000) {
       queryClient.invalidateQueries({ queryKey: ['revenue-by-service'] })
       queryClient.invalidateQueries({ queryKey: ['total-revenue'] })
 
-      console.log(`[Auto Refresh] Queries invalidated at ${new Date().toLocaleTimeString()}`)
+      devLog(`[Auto Refresh] Queries invalidated at ${new Date().toLocaleTimeString()}`)
     }, interval)
 
     return () => clearInterval(timer)
@@ -181,10 +189,10 @@ export function useRealtimeMetrics() {
         setOnlineUsers(Object.keys(state).length)
       })
       .on('presence', { event: 'join' }, ({ newPresences }) => {
-        console.log('User joined:', newPresences)
+        devLog('User joined:', newPresences)
       })
       .on('presence', { event: 'leave' }, ({ leftPresences }) => {
-        console.log('User left:', leftPresences)
+        devLog('User left:', leftPresences)
       })
       .subscribe(async (status) => {
         if (status === 'SUBSCRIBED') {
@@ -211,7 +219,7 @@ export function useRealtimeMetrics() {
         .gte('created_at', thirtyMinutesAgo.toISOString())
 
       if (error) {
-        console.error('Failed to fetch active sessions:', error)
+        devError(error, { operation: '활성 세션 조회', table: 'analytics_events' })
         return
       }
 

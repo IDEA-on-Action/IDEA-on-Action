@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { formatDistanceToNow } from 'date-fns'
+import { devError } from '@/lib/errors'
 
 export default function BlogPost() {
   const { slug } = useParams<{ slug: string }>()
@@ -70,7 +71,7 @@ export default function BlogPost() {
           url: window.location.href,
         })
       } catch (err) {
-        console.error('Share failed:', err)
+        devError(err, { operation: '콘텐츠 공유', service: 'Blog' })
       }
     } else {
       // Fallback: Copy to clipboard

@@ -10,6 +10,7 @@
 
 import * as OTPAuth from 'otpauth'
 import QRCode from 'qrcode'
+import { devError } from '@/lib/errors'
 
 // ===================================================================
 // Types
@@ -126,7 +127,7 @@ export function verifyTOTPToken(secret: string, token: string): TOTPVerifyResult
       delta,
     }
   } catch (error) {
-    console.error('TOTP verification error:', error)
+    devError(error, { operation: 'TOTP 검증', service: 'TOTP' })
     return { valid: false }
   }
 }
