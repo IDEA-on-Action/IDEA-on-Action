@@ -1,12 +1,18 @@
-# VIBE WORKING 프로젝트 개발 문서
+# IDEA on Action 프로젝트 개발 문서
 
 > Claude와의 개발 협업을 위한 프로젝트 핵심 문서
 
-**마지막 업데이트**: 2025-11-04
-**프로젝트 버전**: 1.8.0
-**상태**: ✅ Production Ready | 🎉 Phase 14 완료 (고급 분석 대시보드)
+**마지막 업데이트**: 2025-11-09
+**현재 버전**: 1.8.0
+**다음 버전**: 2.0.0 (계획 중)
+**상태**: ✅ Production Ready | 🚀 Version 2.0 전환 준비
 
 **최신 업데이트**:
+- 2025-11-09: **Version 2.0 계획 수립** 🌱 - 커뮤니티형 프로덕트 스튜디오로 진화
+  - Vision: "아이디어 실험실이자 커뮤니티형 프로덕트 스튜디오"
+  - 3 Sprint Plan (3주): Structure → Integration → Automation
+  - 새 페이지: About, Roadmap, Portfolio, Now, Lab, Community, Work-with-Us, Status
+  - 핵심 루프: "아이디어 → 실험 → 결과공유 → 참여 → 다음 아이디어"
 - 2025-11-04: **Phase 14 완료** 🎉 - 고급 분석 대시보드 (3주)
   - Week 1: 사용자 행동 분석 (GA4 15개, 퍼널, 이탈률, Analytics 페이지)
   - Week 2: 매출 차트 & KPI (일/주/월 매출, 서비스별, 6개 KPI, CSV 내보내기)
@@ -89,13 +95,23 @@ npm run release:major  # 메이저 버전
 
 ## 📋 프로젝트 개요
 
+### Vision & Direction
+
+> **"생각을 멈추지 않고, 행동으로 옮기는 회사"**
+>
+> IDEA on Action은 "아이디어 실험실이자 커뮤니티형 프로덕트 스튜디오"로 진화합니다.
+> Version 2.0에서는 단순한 소개용 웹사이트를 넘어 **Roadmap, Portfolio, Now, Lab, Community**가 상호작용하는 형태로 확장합니다.
+
+**핵심 루프**:
+"아이디어 → 실험 → 결과공유 → 참여 → 다음 아이디어"
+
 ### 기본 정보
-- **프로젝트명**: VIBE WORKING
+- **프로젝트명**: IDEA on Action (구 VIBE WORKING)
 - **회사명**: 생각과행동 (IdeaonAction)
-- **목적**: AI 기반 워킹 솔루션 제공
+- **목적**: 아이디어 실험실 & 커뮤니티형 프로덕트 스튜디오
 - **슬로건**: KEEP AWAKE, LIVE PASSIONATE
 - **웹사이트**: https://www.ideaonaction.ai/
-- **GitHub**: https://github.com/IDEA-on-Action/IdeaonAction-Homepage
+- **GitHub**: https://github.com/IDEA-on-Action/idea-on-action
 
 ### 연락처
 - **대표자**: 서민원
@@ -463,24 +479,69 @@ npm run lint      # ESLint 검사
       - RealtimeDashboard 페이지 (/admin/realtime, 자동 새로고침 간격 설정)
     - **전체 통계**: 32개 파일 (24개 신규, 8개 수정), 6,531줄 코드 추가
 
-### 🚀 다음 단계
+### 🚀 Version 2.0 Plan
 
-#### 즉시 가능 작업
-- **테스트 실행**: Phase 14 E2E/유닛 테스트 작성 및 검증
-- **Phase 14 문서 아카이브**: phase14-analytics.md 작성
-- **성능 최적화**: Bundle 크기 분석 및 최적화
+> **💡 From:** 소개용 정적 웹사이트
+> **🚀 To:** 실시간 커뮤니티형 프로덕트 스튜디오
 
-#### 다음 Phase
-- [ ] Phase 15: 모니터링 & 성능 개선 (APM, 로그 수집, 성능 최적화)
-- [ ] Phase 16: 고급 기능 (알림 자동화, 스케줄링, 워크플로우)
+#### Key Goals
 
-#### 백로그 & 개선 사항
+| 구분 | 목표 | KPI (지표) |
+|------|------|-------------|
+| **콘텐츠화** | About / Roadmap / Portfolio / Now / Lab 페이지 완성 | 페이지 정상동작, 3건 이상의 데이터 |
+| **데이터 기반화** | 정적 JSON → Supabase Schema로 전환 | CRUD API 연결 및 Admin UI |
+| **커뮤니티 구축** | Giscus 기반 피드백/토론 활성화 | 댓글/참여율 15% 이상 |
+| **참여 유도** | Work with Us 폼 + Bounty 시스템 | 제안/참여 5건 이상 |
+| **오픈 메트릭스** | 활동지표 투명 공개 | Status 페이지 1개 운영 |
+| **자동화 운영** | 주간 리캡 자동 요약 및 발행 | Weekly Recap 자동 생성 성공 |
+
+#### 3 Sprint Plan (3주)
+
+**🏁 Sprint 1 — Structure & Static Data (Week 1)**
+- [ ] React Router 라우팅 확장 (`/about`, `/roadmap`, `/portfolio`, `/portfolio/:id`, `/now`, `/lab`, `/community`, `/work-with-us`, `/blog`)
+- [ ] 기존 Hero/Feature 컴포넌트 재활용 → Home 구성 강화
+- [ ] 정적 데이터(JSON) 생성 (`projects.json`, `roadmap.json`, `logs.json`, `bounties.json`)
+- [ ] SEO/OG/JSON-LD 메타태그 추가
+- [ ] Lighthouse 90+ 점 유지
+
+**⚙️ Sprint 2 — Supabase Integration & Community (Week 2)**
+- [ ] Supabase 연결 및 테이블 스키마 생성 (`projects`, `roadmap`, `logs`, `bounties`, `posts`, `comments`, `profiles`)
+- [ ] Supabase .env 구성 (`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`)
+- [ ] Giscus 댓글 임베드 (Community + Blog)
+- [ ] Work with Us 폼 + Webhook 알림 (Cal.com 또는 Google Calendar 연동)
+- [ ] Newsletter (Resend / Beehiiv 위젯) 추가
+
+**🔄 Sprint 3 — Automation & Open Metrics (Week 3)**
+- [ ] Now / Changelog 주간 리캡 자동 생성 (Supabase Function)
+- [ ] `/status` 페이지 — 오픈 메트릭스 노출 (프로젝트 수, 참여자, 커뮤니티 댓글 수, 바운티 완료율)
+- [ ] 이벤트 트래킹 삽입 (`view_home`, `cta_click`, `subscribe_newsletter`, `join_community`, `apply_bounty`)
+- [ ] Vitest 단위 테스트 + Playwright E2E 테스트
+- [ ] SEO / 사이트맵 / robots.txt / 구조화 데이터
+
+#### Information Architecture
+
+```
+/
+├── Home (Now, Roadmap, Portfolio, Bounty)
+├── About (우리는 어떤 회사인가)
+├── Roadmap (Quarterly 목표 + 진행률)
+├── Portfolio (Case Study 목록)
+│   └── [slug] (상세 페이지)
+├── Now (최근 활동 / 로그)
+├── Lab (실험 / Bounty / Prototype)
+├── Community (Giscus 기반 토론)
+├── Blog (Notes / Weekly Recap)
+│   └── [slug] (상세 페이지)
+├── Work-with-Us (의뢰 / 협업)
+└── Status (Open Metrics)
+```
+
+#### 백로그 & Phase 14 완료 작업
 - [ ] Phase 14 E2E 테스트 작성 (Analytics, Revenue, Realtime)
 - [ ] Phase 14 유닛 테스트 작성 (useRevenue, useRealtimeDashboard)
+- [ ] Phase 14 문서 아카이브: phase14-analytics.md 작성
 - [ ] 추가 컴포넌트 유닛 테스트 (Hero, Features, Services)
-- [ ] Manual 테스트 체크리스트
 - ✅ Phase 13 문서 아카이브 정리 (완료)
-- [ ] 알림 이메일 템플릿 작성 (React Email)
 
 ### 빌드 통계 (2025-11-04)
 
@@ -825,15 +886,6 @@ tests/
 **상세 내역**: [docs/archive/completed-phases-2025-10-18.md](docs/archive/completed-phases-2025-10-18.md)
 
 
-### 🔜 다음 Phase
-
-**Phase 9**: 전자상거래 (장바구니, 주문, 결제) - 2025 Q4-Q1
-**Phase 10**: SSO & 인증 강화 - 2025 Q1
-**Phase 11**: 콘텐츠 관리 (블로그, CMS) - 2025 Q2
-**Phase 12**: 고도화 (i18n, AI, PWA) - 2025 Q2-Q3
-
-**전체 로드맵**: [docs/project/roadmap.md](docs/project/roadmap.md)
-
 ---
 
 ## 📝 참고사항
@@ -865,6 +917,145 @@ tests/
 **Project TODO**: `project-todo.md`
 **Design System**: `docs/guides/design-system/README.md`
 **Changelog**: `docs/project/changelog.md`
+
+---
+
+## 🌱 Version 2.0 상세 사양
+
+### Data Model (Supabase Schema)
+
+```sql
+-- Projects
+CREATE TABLE projects (
+  id TEXT PRIMARY KEY,
+  title TEXT,
+  summary TEXT,
+  status TEXT CHECK (status IN ('backlog','in-progress','validate','launched')),
+  tags TEXT[],
+  metrics JSONB,
+  links JSONB,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Roadmap
+CREATE TABLE roadmap (
+  id BIGSERIAL PRIMARY KEY,
+  quarter TEXT,
+  goal TEXT,
+  progress INT,
+  owner TEXT,
+  related_projects TEXT[]
+);
+
+-- Logs / Now
+CREATE TABLE logs (
+  id BIGSERIAL PRIMARY KEY,
+  type TEXT CHECK (type IN ('decision','learning','release')),
+  content TEXT,
+  project_id TEXT REFERENCES projects(id),
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Bounties
+CREATE TABLE bounties (
+  id BIGSERIAL PRIMARY KEY,
+  title TEXT,
+  skill TEXT,
+  reward INT,
+  deadline DATE,
+  status TEXT CHECK (status IN ('open','assigned','done')),
+  applicants UUID[]
+);
+
+-- Posts (Blog)
+CREATE TABLE posts (
+  id BIGSERIAL PRIMARY KEY,
+  slug TEXT UNIQUE,
+  title TEXT,
+  body TEXT,
+  tags TEXT[],
+  series TEXT,
+  published_at TIMESTAMPTZ
+);
+
+-- Comments
+CREATE TABLE comments (
+  id BIGSERIAL PRIMARY KEY,
+  parent_id BIGINT,
+  author UUID REFERENCES auth.users(id),
+  content TEXT,
+  upvotes INT DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+```
+
+### Component Mapping
+
+| 페이지 | 주요 컴포넌트 | 데이터 소스 |
+|--------|--------------|-------------|
+| Home | Hero, NowList, RoadmapProgress, PortfolioHighlight, OpenBounty | JSON/Supabase |
+| About | Mission, Vision, Values, TeamSection | 정적 |
+| Roadmap | QuarterTabs, ProgressRing, RiskBadge | Supabase |
+| Portfolio | CaseCard, FilterBar, DetailLayout | Supabase |
+| Now | LogCard, WeeklyRecap | Supabase |
+| Lab | ExperimentCard, BountyCard | Supabase |
+| Community | GiscusEmbed | GitHub Discussions |
+| Blog | PostList, PostDetail | Markdown/Supabase |
+| Work with Us | PackageTile, BriefForm | Supabase |
+| Status | MetricCard, ChartBlock | Supabase / Plausible |
+
+### Automation & AI Integration
+
+| 기능 | 설명 | 구현 방법 |
+|------|------|-----------|
+| Weekly Recap 자동 생성 | Logs → 주간 요약 자동 Markdown 생성 | Supabase Function + CRON |
+| AI 요약/추천 | 프로젝트/실험 내용을 요약 | Vibe Coding Agent 활용 (로컬 API) |
+| Open Metrics | 활동 데이터 자동 집계 | API /api/metrics |
+| 뉴스레터 자동화 | Recap → Newsletter 발행 초안 | Beehiiv / Resend API |
+
+### UI/UX Principles
+
+**"호기심 유발 + 진정성"**
+- 여백 중심, 타이포 강조, 포커스 컬러 1개
+- 카드형 구조 / Micro Animation / Hover Reveal
+- 접근성 (Lighthouse 90+ 유지)
+
+### Test & Quality
+
+| 구분 | 도구 | 주요 시나리오 |
+|------|------|---------------|
+| 단위 테스트 | Vitest | 컴포넌트 렌더링, 데이터 매퍼 |
+| E2E 테스트 | Playwright | Home → Portfolio → Detail / Form 제출 / 댓글 |
+| 품질 검증 | Lighthouse CI | 성능/접근성/SEO 자동 체크 |
+
+### Deployment & Ops
+
+- **Hosting**: Vercel (CI/CD)
+- **DB**: Supabase
+- **Analytics**: Plausible / PostHog
+- **Email**: Resend
+- **Community**: Giscus (GitHub Discussions)
+- **CI/CD**: GitHub Actions
+- **Branch**: main → production / dev → preview
+
+### Timeline (3주)
+
+| 주차 | 목표 | 결과물 |
+|------|------|--------|
+| Week 1 | IA 구조 / 정적 데이터 완성 | 라우팅 + 목데이터 |
+| Week 2 | Supabase 연동 / 커뮤니티 기능 | DB 연동 + 댓글/폼 |
+| Week 3 | 자동화 / 메트릭스 / 테스트 | Status + Recap + QA |
+
+### Launch Checklist
+
+- [ ] About / Roadmap / Portfolio / Now / Lab / Community 페이지 구현
+- [ ] Supabase 연결 및 환경변수 설정
+- [ ] 목데이터(프로젝트 3 / 로그 10 / 로드맵 5 / 바운티 2)
+- [ ] Giscus + Work with Us 폼 + Newsletter 위젯
+- [ ] Open Metrics / 분석 이벤트 삽입
+- [ ] SEO / Sitemap / robots.txt
+- [ ] Vitest / Playwright 테스트 3건
+- [ ] README 업데이트
 
 ---
 

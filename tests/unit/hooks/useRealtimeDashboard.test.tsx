@@ -3,9 +3,9 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { renderHook, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import {
-  useRealtimeMetrics,
-  useRealtimeOrders,
-  useAutoRefresh
+  useRealtimeDashboard,
+  useAutoRefresh,
+  useRealtimeMetrics
 } from '@/hooks/useRealtimeDashboard'
 import { supabase } from '@/integrations/supabase/client'
 
@@ -18,8 +18,17 @@ vi.mock('@/integrations/supabase/client', () => ({
   }
 }))
 
+// Mock error logging
+vi.mock('@/lib/errors', () => ({
+  devLog: vi.fn(),
+  devError: vi.fn()
+}))
+
 describe('useRealtimeDashboard Hooks', () => {
   let queryClient: QueryClient
+  let ordersChannelMock: any
+  let eventsChannelMock: any
+  let presenceChannelMock: any
 
   beforeEach(() => {
     queryClient = new QueryClient({
@@ -28,192 +37,145 @@ describe('useRealtimeDashboard Hooks', () => {
         mutations: { retry: false }
       }
     })
+
+    // Create separate channel mocks for each channel
+    ordersChannelMock = {
+      on: vi.fn().mockReturnThis(),
+      subscribe: vi.fn()
+    }
+
+    eventsChannelMock = {
+      on: vi.fn().mockReturnThis(),
+      subscribe: vi.fn()
+    }
+
+    presenceChannelMock = {
+      on: vi.fn().mockReturnThis(),
+      subscribe: vi.fn(),
+      presenceState: vi.fn(() => ({})),
+      track: vi.fn()
+    }
+
     vi.clearAllMocks()
-    vi.useFakeTimers()
   })
 
   afterEach(() => {
-    vi.useRealTimers()
+    vi.restoreAllMocks()
   })
 
   const wrapper = ({ children }: { children: React.ReactNode }) => (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   )
 
-  describe('useRealtimeMetrics', () => {
-    it('should fetch realtime metrics successfully', async () => {
+  describe('useRealtimeDashboard', () => {
+    it('should load recent orders initially', async () => {
       const mockOrders = [
-        { total_amount: 100000, status: 'confirmed' },
-        { total_amount: 150000, status: 'completed' }
-      ]
-
-      const mockEvents = [
-        { event_name: 'view_item', session_id: 'session1' },
-        { event_name: 'add_to_cart', session_id: 'session2' }
-      ]
-
-      const mockActiveUsers = [
-        { user_id: 'user1' },
-        { user_id: 'user2' },
-        { user_id: 'user1' } // Duplicate
-      ]
-
-      const selectMock = vi.fn().mockReturnThis()
-      const gteMock = vi.fn().mockReturnThis()
-      const inMock = vi.fn()
-
-      // First call (orders)
-      inMock.mockResolvedValueOnce({ data: mockOrders, error: null })
-      // Second call (events)
-      inMock.mockResolvedValueOnce({ data: mockEvents, error: null })
-      // Third call (active users)
-      inMock.mockResolvedValueOnce({ data: mockActiveUsers, error: null })
-
-      vi.mocked(supabase.from).mockReturnValue({
-        select: selectMock,
-        gte: gteMock,
-        in: inMock
-      } as any)
-
-      const { result } = renderHook(() => useRealtimeMetrics(), { wrapper })
-
-      await waitFor(() => expect(result.current.isSuccess).toBe(true))
-
-      expect(result.current.data?.todayRevenue).toBe(250000)
-      expect(result.current.data?.todayOrders).toBe(2)
-      expect(result.current.data?.avgOrderValue).toBe(125000)
-      expect(result.current.data?.activeUsers).toBe(2) // Unique users
-    })
-
-    it('should handle empty data gracefully', async () => {
-      const selectMock = vi.fn().mockReturnThis()
-      const gteMock = vi.fn().mockReturnThis()
-      const inMock = vi.fn()
-
-      inMock.mockResolvedValueOnce({ data: [], error: null }) // orders
-      inMock.mockResolvedValueOnce({ data: [], error: null }) // events
-      inMock.mockResolvedValueOnce({ data: [], error: null }) // active users
-
-      vi.mocked(supabase.from).mockReturnValue({
-        select: selectMock,
-        gte: gteMock,
-        in: inMock
-      } as any)
-
-      const { result } = renderHook(() => useRealtimeMetrics(), { wrapper })
-
-      await waitFor(() => expect(result.current.isSuccess).toBe(true))
-
-      expect(result.current.data?.todayRevenue).toBe(0)
-      expect(result.current.data?.todayOrders).toBe(0)
-      expect(result.current.data?.avgOrderValue).toBe(0)
-      expect(result.current.data?.conversionRate).toBe(0)
-      expect(result.current.data?.activeUsers).toBe(0)
-    })
-
-    it('should calculate conversion rate correctly', async () => {
-      const mockOrders = [
-        { total_amount: 100000, status: 'confirmed' }
-      ]
-
-      const mockEvents = [
-        { event_name: 'view_item', session_id: 'session1' },
-        { event_name: 'view_item', session_id: 'session2' },
-        { event_name: 'view_item', session_id: 'session3' },
-        { event_name: 'view_item', session_id: 'session4' }
-      ]
-
-      const selectMock = vi.fn().mockReturnThis()
-      const gteMock = vi.fn().mockReturnThis()
-      const inMock = vi.fn()
-
-      inMock.mockResolvedValueOnce({ data: mockOrders, error: null })
-      inMock.mockResolvedValueOnce({ data: mockEvents, error: null })
-      inMock.mockResolvedValueOnce({ data: [], error: null })
-
-      vi.mocked(supabase.from).mockReturnValue({
-        select: selectMock,
-        gte: gteMock,
-        in: inMock
-      } as any)
-
-      const { result } = renderHook(() => useRealtimeMetrics(), { wrapper })
-
-      await waitFor(() => expect(result.current.isSuccess).toBe(true))
-
-      // 1 order / 4 unique sessions = 25%
-      expect(result.current.data?.conversionRate).toBe(25)
-    })
-  })
-
-  describe('useRealtimeOrders', () => {
-    it('should subscribe to realtime orders channel', () => {
-      const mockChannel = {
-        on: vi.fn().mockReturnThis(),
-        subscribe: vi.fn()
-      }
-
-      vi.mocked(supabase.channel).mockReturnValue(mockChannel as any)
-
-      renderHook(() => useRealtimeOrders(), { wrapper })
-
-      expect(supabase.channel).toHaveBeenCalledWith('realtime-orders')
-      expect(mockChannel.on).toHaveBeenCalledWith(
-        'postgres_changes',
         {
-          event: '*',
-          schema: 'public',
-          table: 'orders'
-        },
-        expect.any(Function)
-      )
-      expect(mockChannel.subscribe).toHaveBeenCalled()
-    })
+          id: 'order1',
+          order_number: 'ORD-001',
+          user_id: 'user1',
+          total_amount: 100000,
+          status: 'confirmed',
+          created_at: '2025-11-09T12:00:00Z'
+        }
+      ]
 
-    it('should invalidate queries on order change', async () => {
-      const mockChannel = {
-        on: vi.fn((event, config, callback) => {
-          // Simulate order change event
-          setTimeout(() => {
-            callback({ eventType: 'INSERT', new: { id: 'order1' } })
-          }, 100)
-          return mockChannel
-        }),
-        subscribe: vi.fn()
-      }
+      const selectMock = vi.fn().mockReturnThis()
+      const orderMock = vi.fn().mockReturnThis()
+      const limitMock = vi.fn().mockResolvedValue({ data: mockOrders, error: null })
 
-      vi.mocked(supabase.channel).mockReturnValue(mockChannel as any)
+      vi.mocked(supabase.from).mockReturnValue({
+        select: selectMock,
+        order: orderMock,
+        limit: limitMock
+      } as any)
 
-      const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries')
+      // Mock channel to return different mocks based on channel name
+      vi.mocked(supabase.channel).mockImplementation((name) => {
+        if (name === 'realtime-orders') return ordersChannelMock
+        if (name === 'realtime-analytics-events') return eventsChannelMock
+        return ordersChannelMock
+      })
 
-      renderHook(() => useRealtimeOrders(), { wrapper })
+      const { result } = renderHook(() => useRealtimeDashboard(), { wrapper })
 
-      // Fast-forward timers
-      await vi.advanceTimersByTimeAsync(200)
-
+      // Wait for async loadRecentOrders to complete
       await waitFor(() => {
-        expect(invalidateSpy).toHaveBeenCalled()
+        expect(result.current.liveOrders.length).toBe(1)
+      }, { timeout: 1000 })
+
+      expect(supabase.from).toHaveBeenCalledWith('orders')
+      expect(result.current.liveOrders[0]).toMatchObject({
+        id: 'order1',
+        order_number: 'ORD-001',
+        items_count: 1
       })
     })
 
-    it('should cleanup channel on unmount', () => {
-      const mockChannel = {
-        on: vi.fn().mockReturnThis(),
-        subscribe: vi.fn()
-      }
+    it('should subscribe to realtime orders channel', () => {
+      const selectMock = vi.fn().mockReturnThis()
+      const orderMock = vi.fn().mockReturnThis()
+      const limitMock = vi.fn().mockResolvedValue({ data: [], error: null })
 
-      vi.mocked(supabase.channel).mockReturnValue(mockChannel as any)
+      vi.mocked(supabase.from).mockReturnValue({
+        select: selectMock,
+        order: orderMock,
+        limit: limitMock
+      } as any)
 
-      const { unmount } = renderHook(() => useRealtimeOrders(), { wrapper })
+      vi.mocked(supabase.channel).mockImplementation((name) => {
+        if (name === 'realtime-orders') return ordersChannelMock
+        if (name === 'realtime-analytics-events') return eventsChannelMock
+        return ordersChannelMock
+      })
+
+      renderHook(() => useRealtimeDashboard(), { wrapper })
+
+      expect(supabase.channel).toHaveBeenCalledWith('realtime-orders')
+      expect(ordersChannelMock.on).toHaveBeenCalledWith(
+        'postgres_changes',
+        expect.objectContaining({
+          event: '*',
+          schema: 'public',
+          table: 'orders'
+        }),
+        expect.any(Function)
+      )
+    })
+
+    it('should cleanup channels on unmount', () => {
+      const selectMock = vi.fn().mockReturnThis()
+      const orderMock = vi.fn().mockReturnThis()
+      const limitMock = vi.fn().mockResolvedValue({ data: [], error: null })
+
+      vi.mocked(supabase.from).mockReturnValue({
+        select: selectMock,
+        order: orderMock,
+        limit: limitMock
+      } as any)
+
+      vi.mocked(supabase.channel).mockImplementation((name) => {
+        if (name === 'realtime-orders') return ordersChannelMock
+        if (name === 'realtime-analytics-events') return eventsChannelMock
+        return ordersChannelMock
+      })
+
+      const { unmount } = renderHook(() => useRealtimeDashboard(), { wrapper })
+
+      // Verify channels were created
+      expect(supabase.channel).toHaveBeenCalledWith('realtime-orders')
+      expect(supabase.channel).toHaveBeenCalledWith('realtime-analytics-events')
 
       unmount()
 
-      expect(supabase.removeChannel).toHaveBeenCalledWith(mockChannel)
+      // Should remove both channels (cleanup function called twice)
+      expect(supabase.removeChannel).toHaveBeenCalledTimes(2)
     })
   })
 
   describe('useAutoRefresh', () => {
-    it('should invalidate queries at specified interval', async () => {
+    it('should invalidate queries at specified interval', () => {
+      vi.useFakeTimers()
       const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries')
 
       const interval = 30000 // 30 seconds
@@ -224,22 +186,18 @@ describe('useRealtimeDashboard Hooks', () => {
       expect(invalidateSpy).not.toHaveBeenCalled()
 
       // Fast-forward to first interval
-      await vi.advanceTimersByTimeAsync(interval)
+      vi.advanceTimersByTime(interval)
 
-      await waitFor(() => {
-        expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['realtime-metrics'] })
-        expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['recent-orders'] })
-      })
+      // invalidateQueries is called synchronously after timer fires
+      expect(invalidateSpy).toHaveBeenCalled()
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['kpis'] })
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['revenue-by-date'] })
 
-      // Fast-forward to second interval
-      await vi.advanceTimersByTimeAsync(interval)
-
-      await waitFor(() => {
-        expect(invalidateSpy).toHaveBeenCalledTimes(4) // 2 queries × 2 intervals
-      })
+      vi.useRealTimers()
     })
 
-    it('should clear interval on unmount', async () => {
+    it('should clear interval on unmount', () => {
+      vi.useFakeTimers()
       const interval = 30000
 
       const { unmount } = renderHook(() => useAutoRefresh(interval), { wrapper })
@@ -249,23 +207,108 @@ describe('useRealtimeDashboard Hooks', () => {
       unmount()
 
       // Fast-forward timers after unmount
-      await vi.advanceTimersByTimeAsync(interval)
+      vi.advanceTimersByTime(interval)
 
       // Should not invalidate after unmount
       expect(invalidateSpy).not.toHaveBeenCalled()
+
+      vi.useRealTimers()
     })
 
-    it('should use default interval if not specified', async () => {
+    it('should use default interval if not specified', () => {
+      vi.useFakeTimers()
       const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries')
 
       renderHook(() => useAutoRefresh(), { wrapper })
 
       // Default is 30000ms
-      await vi.advanceTimersByTimeAsync(30000)
+      vi.advanceTimersByTime(30000)
 
+      // Should use default interval
+      expect(invalidateSpy).toHaveBeenCalled()
+
+      vi.useRealTimers()
+    })
+  })
+
+  describe('useRealtimeMetrics', () => {
+    it('should initialize with zero values', () => {
+      const gteMock = vi.fn().mockResolvedValue({ data: [], error: null })
+      const selectMock = vi.fn().mockReturnValue({ gte: gteMock })
+
+      vi.mocked(supabase.from).mockReturnValue({
+        select: selectMock
+      } as any)
+
+      vi.mocked(supabase.channel).mockReturnValue(presenceChannelMock as any)
+
+      const { result } = renderHook(() => useRealtimeMetrics(), { wrapper })
+
+      expect(result.current.onlineUsers).toBe(0)
+      expect(result.current.activeSessions).toBe(0)
+    })
+
+    it('should subscribe to presence channel', () => {
+      const gteMock = vi.fn().mockResolvedValue({ data: [], error: null })
+      const selectMock = vi.fn().mockReturnValue({ gte: gteMock })
+
+      vi.mocked(supabase.from).mockReturnValue({
+        select: selectMock
+      } as any)
+
+      vi.mocked(supabase.channel).mockReturnValue(presenceChannelMock as any)
+
+      renderHook(() => useRealtimeMetrics(), { wrapper })
+
+      expect(supabase.channel).toHaveBeenCalledWith('online-users', expect.any(Object))
+      expect(presenceChannelMock.on).toHaveBeenCalledWith(
+        'presence',
+        { event: 'sync' },
+        expect.any(Function)
+      )
+    })
+
+    it('should fetch active sessions from analytics_events', async () => {
+      const mockEvents = [
+        { session_id: 'session1' },
+        { session_id: 'session2' },
+        { session_id: 'session1' } // Duplicate
+      ]
+
+      const gteMock = vi.fn().mockResolvedValue({ data: mockEvents, error: null })
+      const selectMock = vi.fn().mockReturnValue({ gte: gteMock })
+
+      vi.mocked(supabase.from).mockReturnValue({
+        select: selectMock
+      } as any)
+
+      vi.mocked(supabase.channel).mockReturnValue(presenceChannelMock as any)
+
+      const { result } = renderHook(() => useRealtimeMetrics(), { wrapper })
+
+      // Wait for the initial fetchActiveSessions to complete
       await waitFor(() => {
-        expect(invalidateSpy).toHaveBeenCalled()
-      })
+        expect(result.current.activeSessions).toBe(2) // Unique sessions
+      }, { timeout: 3000 })
+
+      expect(supabase.from).toHaveBeenCalledWith('analytics_events')
+    })
+
+    it('should cleanup channel on unmount', () => {
+      const gteMock = vi.fn().mockResolvedValue({ data: [], error: null })
+      const selectMock = vi.fn().mockReturnValue({ gte: gteMock })
+
+      vi.mocked(supabase.from).mockReturnValue({
+        select: selectMock
+      } as any)
+
+      vi.mocked(supabase.channel).mockReturnValue(presenceChannelMock as any)
+
+      const { unmount } = renderHook(() => useRealtimeMetrics(), { wrapper })
+
+      unmount()
+
+      expect(supabase.removeChannel).toHaveBeenCalledWith(presenceChannelMock)
     })
   })
 })

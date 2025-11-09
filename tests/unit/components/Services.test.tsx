@@ -15,7 +15,8 @@ describe('Services Component', () => {
 
   it('displays the section title', () => {
     render(<Services />);
-    expect(screen.getByText('혁신적인 솔루션')).toBeInTheDocument();
+    expect(screen.getByText('혁신적인')).toBeInTheDocument();
+    expect(screen.getByText('솔루션')).toBeInTheDocument();
   });
 
   it('displays the section description', () => {
@@ -64,14 +65,14 @@ describe('Services Component', () => {
   });
 
   it('displays loading state correctly', () => {
-    render(<Services isLoading={true} />);
+    const { container } = render(<Services isLoading={true} />);
     
     // Check for loading skeleton elements
     const loadingElements = screen.getAllByRole('region');
     expect(loadingElements).toHaveLength(1);
     
     // Check for skeleton animation classes
-    const skeletonElements = screen.getAllByLabelText('', { selector: '.animate-pulse' });
+    const skeletonElements = container.querySelectorAll('.animate-pulse');
     expect(skeletonElements.length).toBeGreaterThan(0);
   });
 
@@ -163,9 +164,9 @@ describe('Services Component', () => {
   });
 
   it('has proper icon rendering', () => {
-    render(<Services />);
+    const { container } = render(<Services />);
     
-    const icons = screen.getAllByLabelText('', { selector: '[aria-hidden="true"]' });
+    const icons = container.querySelectorAll('[aria-hidden="true"]');
     expect(icons.length).toBeGreaterThan(0);
   });
 
@@ -200,10 +201,10 @@ describe('Services Component', () => {
   });
 
   it('renders loading skeleton with correct structure', () => {
-    render(<Services isLoading={true} />);
+    const { container } = render(<Services isLoading={true} />);
     
     // Check for skeleton cards
-    const skeletonCards = screen.getAllByLabelText('', { selector: '.animate-pulse' });
+    const skeletonCards = container.querySelectorAll('.animate-pulse');
     expect(skeletonCards.length).toBeGreaterThan(0);
   });
 

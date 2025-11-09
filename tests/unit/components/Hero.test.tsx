@@ -1,41 +1,46 @@
 import { render, screen } from '@testing-library/react';
 import { describe, it, expect } from 'vitest';
 import { axe, toHaveNoViolations } from 'jest-axe';
+import { BrowserRouter } from 'react-router-dom';
 import Hero from '@/components/Hero';
 
 // Extend Vitest matchers
 expect.extend(toHaveNoViolations);
 
+const TestWrapper = ({ children }: { children: React.ReactNode }) => (
+  <BrowserRouter>{children}</BrowserRouter>
+);
+
 describe('Hero Component', () => {
   it('renders without crashing', () => {
-    const { container } = render(<Hero />);
+    const { container } = render(<Hero />, { wrapper: TestWrapper });
     expect(container.querySelector('section')).toBeInTheDocument();
   });
 
   it('displays the main heading', () => {
-    render(<Hero />);
+    render(<Hero />, { wrapper: TestWrapper });
     expect(screen.getByText('생각과 행동으로')).toBeInTheDocument();
     expect(screen.getByText('미래를 설계하다')).toBeInTheDocument();
   });
 
   it('displays the slogan', () => {
-    render(<Hero />);
+    render(<Hero />, { wrapper: TestWrapper });
     expect(screen.getByText('KEEP AWAKE, LIVE PASSIONATE')).toBeInTheDocument();
   });
 
   it('displays the badge text', () => {
-    render(<Hero />);
+    render(<Hero />, { wrapper: TestWrapper });
     expect(screen.getByText('AI 기반 워킹 솔루션')).toBeInTheDocument();
   });
 
   it('displays CTA buttons', () => {
-    render(<Hero />);
+    render(<Hero />, { wrapper: TestWrapper });
     expect(screen.getByLabelText('무료로 시작하기')).toBeInTheDocument();
     expect(screen.getByLabelText('더 알아보기')).toBeInTheDocument();
   });
 
   it('displays the logo with proper alt text', () => {
-    render(<Hero />);
+    render(<Hero />, { wrapper: TestWrapper });
     const logo = screen.getByAltText('VIBE WORKING - KEEP AWAKE, LIVE PASSIONATE');
     expect(logo).toBeInTheDocument();
     expect(logo).toHaveAttribute('width', '96');
@@ -44,13 +49,13 @@ describe('Hero Component', () => {
 
   it('applies custom className when provided', () => {
     const customClass = 'custom-hero-class';
-    const { container } = render(<Hero className={customClass} />);
+    const { container } = render(<Hero className={customClass} />, { wrapper: TestWrapper });
     const heroSection = container.querySelector('section');
     expect(heroSection).toHaveClass(customClass);
   });
 
   it('has proper semantic structure', () => {
-    render(<Hero />);
+    render(<Hero />, { wrapper: TestWrapper });
     
     // Check for main heading
     const heading = screen.getByRole('heading', { level: 1 });
@@ -62,21 +67,21 @@ describe('Hero Component', () => {
   });
 
   it('has decorative elements marked as aria-hidden', () => {
-    render(<Hero />);
+    const { container } = render(<Hero />, { wrapper: TestWrapper });
     
     // Check for aria-hidden decorative elements
-    const decorativeElements = screen.getAllByLabelText('', { selector: '[aria-hidden="true"]' });
+    const decorativeElements = container.querySelectorAll('[aria-hidden="true"]');
     expect(decorativeElements.length).toBeGreaterThan(0);
   });
 
   it('meets accessibility standards', async () => {
-    const { container } = render(<Hero />);
+    const { container } = render(<Hero />, { wrapper: TestWrapper });
     const results = await axe(container);
     expect(results).toHaveNoViolations();
   });
 
   it('has proper focus management', () => {
-    render(<Hero />);
+    render(<Hero />, { wrapper: TestWrapper });
     
     // Check that buttons are focusable
     const primaryButton = screen.getByLabelText('무료로 시작하기');
@@ -87,7 +92,7 @@ describe('Hero Component', () => {
   });
 
   it('renders with proper responsive classes', () => {
-    render(<Hero />);
+    render(<Hero />, { wrapper: TestWrapper });
     
     // Check for responsive text classes
     const heading = screen.getByRole('heading', { level: 1 });
@@ -98,7 +103,7 @@ describe('Hero Component', () => {
   });
 
   it('has proper animation classes', () => {
-    const { container } = render(<Hero />);
+    const { container } = render(<Hero />, { wrapper: TestWrapper });
 
     // Check for animation classes
     const mainContainer = container.querySelector('.animate-fade-in');

@@ -15,7 +15,8 @@ describe('Features Component', () => {
 
   it('displays the section title', () => {
     render(<Features />);
-    expect(screen.getByText(/VIBE WORKING.*강점/)).toBeInTheDocument();
+    expect(screen.getByText('VIBE WORKING')).toBeInTheDocument();
+    expect(screen.getByText('의 강점')).toBeInTheDocument();
   });
 
   it('displays the section description', () => {
@@ -79,7 +80,7 @@ describe('Features Component', () => {
     
     // Check for proper ARIA labels
     const articles = screen.getAllByRole('article');
-    const expectedIds = ['feature-title-fast-implementation', 'feature-title-stability', 'feature-title-scalability', 'feature-title-innovation'];
+    const expectedIds = ['feature-title-fast-implementation', 'feature-title-stability', 'feature-title-scalability', 'feature-title-collaboration'];
     
     articles.forEach((article, index) => {
       expect(article).toHaveAttribute('aria-labelledby', expectedIds[index]);
@@ -143,9 +144,9 @@ describe('Features Component', () => {
   });
 
   it('has proper icon rendering', () => {
-    render(<Features />);
+    const { container } = render(<Features />);
     
-    const icons = screen.getAllByLabelText('', { selector: '[aria-hidden="true"]' });
+    const icons = container.querySelectorAll('[aria-hidden="true"]');
     expect(icons.length).toBeGreaterThan(0);
   });
 

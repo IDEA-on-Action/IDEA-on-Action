@@ -1,0 +1,115 @@
+issues:
+  - title: "🧭 EPIC - Version 2.0 IA & Community Transformation"
+    body: |
+      **Goal:** 사이트를 커뮤니티형 구조로 전환
+      - About / Roadmap / Portfolio / Now / Lab / Community / Blog / Work-with-Us
+      - 3 Sprint 운영, KPI: 페이지 정상동작, Supabase 연동, Giscus, Metrics 자동화
+    labels: ["epic","v2.0","planning"]
+    priority: "High"
+    sprint: "All"
+    status: "Backlog"
+    assignees: ["SinclairSeo"]
+
+  - title: "[feat] Routing & Page Scaffolding"
+    body: "React Router 기반 페이지 구조 생성 및 기본 템플릿 추가"
+    labels: ["feature","structure","sprint1"]
+    priority: "High"
+    sprint: "Sprint 1"
+    status: "Backlog"
+    assignees: []
+
+  - title: "[feat] Home 4-Block 구성"
+    body: "Home에 Now / Roadmap / Portfolio / Bounty 섹션 추가 (기존 Hero/Feature 재활용)"
+    labels: ["uiux","feature","sprint1"]
+    priority: "High"
+    sprint: "Sprint 1"
+    status: "Backlog"
+    assignees: []
+
+  - title: "[data] JSON Mock Data 구성"
+    body: "프로젝트/로드맵/로그/바운티 초기 JSON (/src/data) 작성"
+    labels: ["data","sprint1"]
+    priority: "Medium"
+    sprint: "Sprint 1"
+    status: "Backlog"
+    assignees: []
+
+  - title: "[infra] Supabase Schema & Connection"
+    body: "Supabase 스키마 생성 및 .env 연결 테스트"
+    labels: ["infra","backend","sprint2"]
+    priority: "High"
+    sprint: "Sprint 2"
+    status: "Backlog"
+    assignees: []
+
+  - title: "[data] Supabase CRUD API 연동"
+    body: "프로젝트/로그/바운티 등 데이터 CRUD 연결"
+    labels: ["backend","api","sprint2"]
+    priority: "High"
+    sprint: "Sprint 2"
+    status: "Backlog"
+    assignees: []
+
+  - title: "[community] Giscus Comment 임베드"
+    body: "Community/Blog에 Giscus 추가, GitHub Discussions 연동"
+    labels: ["community","uiux","sprint2"]
+    priority: "Medium"
+    sprint: "Sprint 2"
+    status: "Backlog"
+    assignees: []
+
+  - title: "[feat] Work with Us 폼 + Webhook"
+    body: "의뢰/협업 폼 제작 및 Slack/Email Webhook 알림"
+    labels: ["feature","form","sprint2"]
+    priority: "Medium"
+    sprint: "Sprint 2"
+    status: "Backlog"
+    assignees: []
+
+  - title: "[feat] Blog & Weekly Recap 자동화"
+    body: "Logs → Weekly Recap 자동 초안(Supabase Function)"
+    labels: ["automation","content","sprint3"]
+    priority: "Medium"
+    sprint: "Sprint 3"
+    status: "Backlog"
+    assignees: []
+
+  - title: "[feat] Status(Open Metrics) 페이지"
+    body: "프로젝트/커뮤니티/바운티 지표 시각화(/status)"
+    labels: ["feature","metrics","sprint3"]
+    priority: "Medium"
+    sprint: "Sprint 3"
+    status: "Backlog"
+    assignees: []
+
+  - title: "[ops] Event Tracking 추가"
+    body: "Plausible/PostHog 이벤트: view_home/cta_click/apply_bounty/subscribe_newsletter 등"
+    labels: ["ops","analytics","sprint3"]
+    priority: "Medium"
+    sprint: "Sprint 3"
+    status: "Backlog"
+    assignees: []
+
+  - title: "[test] Vitest 단위 테스트"
+    body: "컴포넌트 렌더/데이터 매퍼 테스트"
+    labels: ["test","sprint3"]
+    priority: "Low"
+    sprint: "Sprint 3"
+    status: "Backlog"
+    assignees: []
+
+  - title: "[test] Playwright E2E 테스트"
+    body: "홈→포트폴리오→상세 / 폼 제출 / 댓글 작성 시나리오 자동화"
+    labels: ["test","e2e","sprint3"]
+    priority: "Low"
+    sprint: "Sprint 3"
+    status: "Backlog"
+    assignees: []
+
+  - title: "[ops] Lighthouse CI + SEO 설정"
+    body: "Lighthouse CI 유지, sitemap/robots/meta/JSON-LD 설정"
+    labels: ["ops","seo","sprint3"]
+    priority: "Low"
+    sprint: "Sprint 3"
+    status: "Backlog"
+    assignees: []

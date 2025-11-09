@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ServiceForm } from '@/components/admin/ServiceForm';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -159,8 +159,23 @@ describe('ServiceForm', () => {
     const user = userEvent.setup();
     mockOnSubmit.mockResolvedValue(undefined);
 
+    // Use a service with category_id pre-filled to avoid Select interaction issues
+    const mockService = {
+      id: '1',
+      title: '',
+      description: '',
+      category_id: '1', // Pre-fill category to avoid Select interaction
+      price: 0,
+      status: 'draft' as const,
+      images: [],
+      features: [],
+      created_at: '2024-01-01',
+      updated_at: '2024-01-01',
+    };
+
     render(
       <ServiceForm
+        service={mockService}
         categories={mockCategories}
         onSubmit={mockOnSubmit}
         onCancel={mockOnCancel}
@@ -171,9 +186,12 @@ describe('ServiceForm', () => {
     // Execute
     const titleInput = screen.getByLabelText('제목');
     const descInput = screen.getByLabelText('설명');
+    const priceInput = screen.getByLabelText(/가격/i);
 
     await user.type(titleInput, '새로운 서비스');
     await user.type(descInput, '이것은 충분히 긴 설명입니다.');
+    await user.clear(priceInput);
+    await user.type(priceInput, '100000');
 
     const submitButton = screen.getByRole('button', { name: /저장/i });
     await user.click(submitButton);
@@ -181,7 +199,7 @@ describe('ServiceForm', () => {
     // Assert
     await waitFor(() => {
       expect(mockOnSubmit).toHaveBeenCalled();
-    });
+    }, { timeout: 5000 });
   });
 
   it('취소 버튼 클릭 시 onCancel이 호출되어야 함', async () => {

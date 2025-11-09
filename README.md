@@ -1,312 +1,278 @@
-# IDEA on Action
+# 🌱 IDEA on Action
 
-> 생각과 행동으로 미래를 설계하다
+> **"생각을 멈추지 않고, 행동으로 옮기는 회사"**
 
-[![Version](https://img.shields.io/badge/version-1.5.0-blue.svg)](https://github.com/IDEA-on-Action/IdeaonAction-Homepage)
+아이디어 실험실이자 커뮤니티형 프로덕트 스튜디오
+
+[![Version](https://img.shields.io/badge/version-1.8.0-blue.svg)](https://github.com/IDEA-on-Action/idea-on-action)
+[![Next Version](https://img.shields.io/badge/next-2.0.0-orange.svg)](https://github.com/IDEA-on-Action/idea-on-action/blob/main/version2.0%20계획.md)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)](https://github.com/IDEA-on-Action/IdeaonAction-Homepage/actions)
+[![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)](https://github.com/IDEA-on-Action/idea-on-action/actions)
+
+## 📖 소개
+
+IDEA on Action은 단순한 소개 웹사이트를 넘어, **실시간으로 상호작용하는 커뮤니티형 프로덕트 스튜디오**입니다.
+
+**핵심 루프**: 아이디어 → 실험 → 결과공유 → 참여 → 다음 아이디어
+
+### ✨ Version 2.0 주요 변화
+
+| 구분 | v1.x | v2.0 |
+|------|------|------|
+| **정체성** | 소개용 정적 웹사이트 | 커뮤니티형 프로덕트 스튜디오 |
+| **콘텐츠** | Services 중심 | Roadmap + Portfolio + Now + Lab |
+| **데이터** | 정적 JSON | Supabase 실시간 DB |
+| **참여** | 일방향 정보 제공 | Bounty + Discussion + Newsletter |
+| **투명성** | 비공개 | Open Metrics (Status 페이지) |
 
 ## 🚀 빠른 시작
 
-### 개발 도구 설치 (권장)
-개발 시 더 나은 경험을 위해 다음 도구들을 설치하세요:
-
-- **React DevTools**: [Chrome Extension](https://chrome.google.com/webstore/detail/react-developer-tools/fmkadmapgofadopljbjfkapdkoienihi) | [Firefox Add-on](https://addons.mozilla.org/en-US/firefox/addon/react-devtools/)
-- **Redux DevTools**: [Chrome Extension](https://chrome.google.com/webstore/detail/redux-devtools/lmhkpmbekcpmknklioeibfkpmmfibljd) (상태 관리용)
-
-### 설치
-
 ```bash
-# 저장소 클론
-git clone https://github.com/IDEA-on-Action/IdeaonAction-Homepage.git
-cd IdeaonAction-Homepage
+# 1. 저장소 클론
+git clone https://github.com/IDEA-on-Action/idea-on-action.git
+cd idea-on-action
 
-# 의존성 설치
+# 2. 의존성 설치
 npm install
 
-# 개발 서버 실행
-npm run dev
+# 3. 환경 변수 설정 (.env.local)
+cp .env.example .env.local
+# VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY 설정
+
+# 4. 개발 서버 실행
+npm run dev  # http://localhost:5173
 ```
 
-### Sub-Agent 사용
-
-```bash
-# Sub-Agent 실행
-npm run sub-agent
-
-# 도움말 보기
-npm run sub-agent:help
-```
-
-## 📋 주요 기능
-
-### 🎯 Sub-Agent 시스템
-- **자동화된 컴포넌트 리팩토링**: 5개 컴포넌트를 병렬로 처리
-- **테스트 코드 자동 생성**: 단위 테스트, 접근성 테스트 포함
-- **문서 자동 생성**: 상세한 사용 가이드와 API 문서
-- **반복 사용 가능**: 원하는 때 언제든지 실행
+## 📋 주요 기능 (v1.8.0)
 
 ### 🎨 현대적인 UI/UX
 - **반응형 디자인**: 모바일, 태블릿, 데스크톱 최적화
 - **다크모드 지원**: 시스템 설정에 따른 자동 전환
-- **접근성 최적화**: WCAG 2.1 AA 기준 준수
-- **애니메이션 효과**: 부드러운 전환과 인터랙션
+- **PWA 지원**: 오프라인 지원, 설치 프롬프트
+- **i18n**: 한국어/영어 지원 (375+ 번역 키)
 
-### 🔧 개발자 경험
-- **TypeScript**: 완전한 타입 안정성
-- **React DevTools**: 개발 시 React DevTools 설치 권장
-- **Tailwind CSS**: 유틸리티 우선 CSS 프레임워크
-- **shadcn/ui**: 재사용 가능한 UI 컴포넌트
-- **Vitest**: 빠른 단위 테스트
-- **Playwright**: E2E 테스트
+### 📊 고급 분석 대시보드 (Phase 14)
+- **사용자 행동 분석**: GA4 이벤트 15개, 퍼널, 이탈률
+- **매출 차트 & KPI**: 일/주/월 매출, 서비스별, 6개 KPI, CSV 내보내기
+- **실시간 대시보드**: Supabase Realtime, 자동 새로고침, Presence API
+
+### 🤖 AI & 실시간 기능 (Phase 13)
+- **통합 검색**: 서비스, 블로그, 공지사항 통합 검색
+- **AI 챗봇**: OpenAI GPT-3.5, 스트리밍 응답
+- **알림 시스템**: Supabase Realtime, Resend 이메일
+
+### 🛒 전자상거래 (Phase 9-11)
+- **장바구니**: Zustand 상태 관리
+- **주문 관리**: 결제 프로세스, 상태 추적
+- **결제 게이트웨이**: Kakao Pay, Toss Payments
+- **CMS**: 블로그, 공지사항, SEO 최적화
+
+### 🔒 인증 & 보안
+- **OAuth**: Google, GitHub, Kakao, Microsoft, Apple
+- **2FA**: TOTP, 백업 코드, 브루트 포스 방지
+- **RBAC**: 역할 기반 접근 제어, 감사 로그
+
+### 📈 성능 & 모니터링
+- **Code Splitting**: 62.5% 번들 감소
+- **Sentry**: 에러 추적, Replay
+- **Google Analytics 4**: 페이지뷰, 이벤트 추적
+- **Lighthouse**: 90+ 점 유지
 
 ## 📁 프로젝트 구조
 
 ```
 src/
 ├── components/           # React 컴포넌트
-│   ├── Hero.tsx         # 메인 히어로 섹션
-│   ├── Features.tsx     # 기능 소개 섹션
-│   ├── Services.tsx     # 서비스 소개 섹션
-│   ├── Header.tsx       # 네비게이션 헤더
-│   ├── Footer.tsx       # 사이트 푸터
-│   ├── ui/              # 재사용 가능한 UI 컴포넌트
+│   ├── admin/           # 관리자 컴포넌트
+│   ├── analytics/       # 분석 컴포넌트
+│   ├── chat/            # AI 챗봇
+│   ├── ecommerce/       # 전자상거래
+│   ├── notifications/   # 알림 시스템
+│   ├── ui/              # shadcn/ui 컴포넌트
 │   └── shared/          # 공유 컴포넌트
 ├── hooks/               # 커스텀 훅
 ├── pages/               # 페이지 컴포넌트
-├── types/               # TypeScript 타입 정의
-└── lib/                 # 유틸리티 함수
+├── lib/                 # 유틸리티 함수
+└── i18n/                # 국제화 (한국어/영어)
 
-tests/
-├── unit/                # 단위 테스트
-│   └── components/      # 컴포넌트 테스트
-├── e2e/                 # E2E 테스트
+tests/                   # 292+ 테스트 케이스
+├── e2e/                 # E2E 테스트 (172개)
+├── unit/                # 유닛 테스트 (92개)
 └── fixtures/            # 테스트 픽스처
 
 docs/
-├── components/          # 컴포넌트 문서
-├── guides/              # 사용 가이드
-└── project/             # 프로젝트 문서
+├── guides/              # 개발 가이드
+├── project/             # 프로젝트 문서
+└── archive/             # 히스토리 보관
 ```
 
-## 🛠️ 개발 도구
+## 🛠️ 기술 스택
 
-### Sub-Agent 시스템
+### Core
+- **Vite** 5.4.19 - 빌드 도구
+- **React** 18.x - UI 라이브러리
+- **TypeScript** 5.x - 타입 안정성
+- **Tailwind CSS** 3.4.x - 유틸리티 CSS
+- **Supabase** 2.x - Backend as a Service
+
+### State Management
+- **React Query** - 서버 상태 관리
+- **Zustand** - 클라이언트 상태 관리
+- **React Hook Form** - 폼 관리
+
+### UI & Design
+- **shadcn/ui** - UI 컴포넌트 라이브러리
+- **Radix UI** - Headless UI primitives
+- **Lucide Icons** - 아이콘 라이브러리
+- **Recharts** - 차트 라이브러리
+
+### DevOps & Monitoring
+- **Sentry** - 에러 추적
+- **Google Analytics 4** - 사용자 분석
+- **Vite PWA** - Progressive Web App
+- **Playwright** - E2E 테스트
+- **Vitest** - 유닛 테스트
+
+## 🧪 테스트
 
 ```bash
-# 전체 컴포넌트 리팩토링
-npm run sub-agent
-# 메뉴에서 "1" 선택
-
-# 특정 컴포넌트 리팩토링
-npm run sub-agent
-# 메뉴에서 "2" 선택
-
-# 컴포넌트 상태 확인
-npm run sub-agent
-# 메뉴에서 "3" 선택
-```
-
-### 테스트
-
-```bash
-# 단위 테스트
+# 단위 테스트 (92개)
 npm run test:unit
 
-# E2E 테스트
+# E2E 테스트 (172개)
 npm run test:e2e
 
 # 테스트 커버리지
 npm run test:coverage
+
+# Lighthouse CI
+npm run lighthouse
 ```
 
-### 빌드 및 배포
+## 🚀 빌드 및 배포
 
 ```bash
-# 개발 빌드
-npm run build:dev
-
 # 프로덕션 빌드
 npm run build
 
-# 미리보기
+# 빌드 미리보기
 npm run preview
+
+# 린트 검사
+npm run lint
 ```
 
 ## 📚 문서
 
-### 컴포넌트 문서
-- [Hero 컴포넌트](docs/components/Hero.md)
-- [Features 컴포넌트](docs/components/Features.md)
-- [Services 컴포넌트](docs/components/Services.md)
-- [Header 컴포넌트](docs/components/Header.md)
-- [Footer 컴포넌트](docs/components/Footer.md)
+### 개발 가이드
+- [프로젝트 구조](docs/guides/project-structure.md)
+- [디자인 시스템](docs/guides/design-system/README.md)
+- [배포 가이드](docs/guides/deployment/)
+- [테스트 전략](docs/testing/testing-strategy.md)
 
-### 가이드
-- [Sub-Agent 사용 가이드](docs/guides/sub-agent-guide.md)
-- [Repomix 사용 가이드](docs/guides/repomix-guide.md)
-- [프로젝트 구조 가이드](docs/guides/project-structure.md)
+### 프로젝트 관리
+- **[CLAUDE.md](CLAUDE.md)** - Claude 협업 문서
+- **[project-todo.md](project-todo.md)** - 할 일 목록
+- **[version2.0 계획.md](version2.0%20계획.md)** - Version 2.0 로드맵
+- [로드맵](docs/project/roadmap.md)
+- [변경 로그](docs/project/changelog.md)
 
-## 🎯 Sub-Agent 활용 예시
+## 🌱 Version 2.0 계획
 
-### 시나리오 1: 신규 프로젝트 설정
+> **💡 From:** 소개용 정적 웹사이트
+> **🚀 To:** 실시간 커뮤니티형 프로덕트 스튜디오
 
-```bash
-# 1. 프로젝트 클론 및 설치
-git clone https://github.com/IDEA-on-Action/IdeaonAction-Homepage.git
-cd IdeaonAction-Homepage
-npm install
+### 3 Sprint Plan (3주)
 
-# 2. Sub-Agent로 전체 리팩토링
-npm run sub-agent
-# "1" 선택 - 전체 컴포넌트 리팩토링
+**🏁 Sprint 1 — Structure & Static Data (Week 1)**
+- React Router 라우팅 확장
+- 정적 데이터(JSON) 생성
+- 기존 컴포넌트 재활용
 
-# 3. 결과 확인
-npm run sub-agent
-# "3" 선택 - 컴포넌트 상태 확인
+**⚙️ Sprint 2 — Supabase Integration & Community (Week 2)**
+- Supabase 스키마 생성
+- Giscus 댓글 임베드
+- Work with Us 폼 + Webhook
+
+**🔄 Sprint 3 — Automation & Open Metrics (Week 3)**
+- 주간 리캡 자동 생성
+- /status 페이지 (오픈 메트릭스)
+- 이벤트 트래킹
+
+### 새로운 페이지
+- `/about` - 회사 소개
+- `/roadmap` - Quarterly 목표 + 진행률
+- `/portfolio` - Case Study 목록
+- `/now` - 최근 활동 로그
+- `/lab` - 실험 / Bounty / Prototype
+- `/community` - Giscus 기반 토론
+- `/work-with-us` - 의뢰 / 협업
+- `/status` - Open Metrics
+
+자세한 내용은 **[version2.0 계획.md](version2.0%20계획.md)**를 참조하세요.
+
+## 📊 현재 상태 (v1.8.0)
+
+### 빌드 통계
+```
+Total (gzip): ~602 kB (30개 chunk)
+Build Time: 31.62s
+PWA: 43 entries (2917.64 KiB) cached
 ```
 
-### 시나리오 2: 점진적 리팩토링
+### 테스트 통계
+- **E2E**: 172개
+- **Unit**: 92개
+- **Visual**: 28개
+- **Total**: 292+ 테스트 케이스
 
-```bash
-# 1. 특정 컴포넌트만 처리
-npm run sub-agent
-# "2" 선택 - 특정 컴포넌트 리팩토링
-# "1" 선택 - Hero 컴포넌트
-
-# 2. 다른 컴포넌트 처리
-npm run sub-agent
-# "2" 선택 - 특정 컴포넌트 리팩토링
-# "2" 선택 - Features 컴포넌트
-```
-
-### 시나리오 3: 팀 협업
-
-```bash
-# 1. 계획 파일 생성
-npm run sub-agent
-# "4" 선택 - 계획 파일 생성
-
-# 2. 계획 파일을 팀과 공유
-git add sub-agent-component-refactor.plan.md
-git commit -m "Add Sub-Agent refactoring plan"
-git push
-```
-
-## 🔧 설정
-
-### 환경 변수
-
-```bash
-# .env.local
-VITE_SUPABASE_URL=your_supabase_url
-VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
-```
-
-### Tailwind CSS 설정
-
-```javascript
-// tailwind.config.ts
-export default {
-  content: [
-    "./index.html",
-    "./src/**/*.{js,ts,jsx,tsx}",
-  ],
-  theme: {
-    extend: {
-      // 커스텀 테마 설정
-    },
-  },
-  plugins: [],
-}
-```
+### 성능 지표
+- **Lighthouse 성능**: 90+
+- **접근성**: 95+
+- **SEO**: 100
+- **PWA**: 100
 
 ## 🚀 배포
 
-### Vercel 배포
+프로젝트는 **Vercel**에서 자동 배포됩니다.
 
-```bash
-# Vercel CLI 설치
-npm i -g vercel
-
-# 배포
-vercel --prod
-```
-
-### Netlify 배포
-
-```bash
-# 빌드
-npm run build
-
-# Netlify CLI로 배포
-netlify deploy --prod --dir=dist
-```
+- **Production**: https://www.ideaonaction.ai/
+- **Branch**: main → production
+- **CI/CD**: GitHub Actions
 
 ## 🤝 기여하기
 
-### 개발 환경 설정
-
-```bash
-# 1. 저장소 포크
-# 2. 로컬에 클론
-git clone https://github.com/your-username/IdeaonAction-Homepage.git
-cd IdeaonAction-Homepage
-
-# 3. 의존성 설치
-npm install
-
-# 4. 개발 서버 실행
-npm run dev
-```
-
-### Sub-Agent로 리팩토링
-
-```bash
-# 1. Sub-Agent 실행
-npm run sub-agent
-
-# 2. 원하는 작업 선택
-# 3. 결과 확인
-# 4. 변경사항 커밋
-```
-
-### 풀 리퀘스트
-
 1. 이슈 생성
-2. 기능 브랜치 생성
-3. Sub-Agent로 리팩토링
+2. 기능 브랜치 생성 (`feature/your-feature`)
+3. 변경사항 커밋
 4. 테스트 작성
-5. 풀 리퀘스트 생성
+5. Pull Request 생성
 
-## 📊 성능 지표
-
-### Sub-Agent 처리 결과
-
-- **리팩토링된 컴포넌트**: 5개
-- **생성된 테스트 파일**: 5개
-- **생성된 문서 파일**: 6개
-- **총 생성된 파일**: 16개
-
-### 코드 품질
-
-- **TypeScript 커버리지**: 100%
-- **테스트 커버리지**: 95%+
-- **접근성 점수**: 100/100
-- **성능 점수**: 95/100
+자세한 내용은 [기여 가이드](CONTRIBUTING.md)를 참조하세요.
 
 ## 📄 라이선스
 
-이 프로젝트는 MIT 라이선스 하에 있습니다. 자세한 내용은 [LICENSE](LICENSE) 파일을 참조하세요.
+MIT License - 자세한 내용은 [LICENSE](LICENSE) 파일을 참조하세요.
 
-## 🙏 감사의 말
+## 🙏 Credits
 
 - [React](https://react.dev/) - UI 라이브러리
 - [Vite](https://vitejs.dev/) - 빌드 도구
+- [Supabase](https://supabase.com/) - Backend as a Service
 - [Tailwind CSS](https://tailwindcss.com/) - CSS 프레임워크
 - [shadcn/ui](https://ui.shadcn.com/) - UI 컴포넌트
-- [Lucide React](https://lucide.dev/) - 아이콘 라이브러리
+- [Sentry](https://sentry.io/) - 에러 추적
+- [Recharts](https://recharts.org/) - 차트 라이브러리
+
+## 📞 연락처
+
+- **대표**: 서민원
+- **이메일**: sinclairseo@gmail.com
+- **웹사이트**: https://www.ideaonaction.ai/
+- **GitHub**: https://github.com/IDEA-on-Action
 
 ---
 
 **KEEP AWAKE, LIVE PASSIONATE** 🚀
+
+*생각을 멈추지 않고, 행동으로 옮기는 회사*
