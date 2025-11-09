@@ -121,3 +121,111 @@ export async function sendAnnouncementEmail(
     } as ReactElement,
   })
 }
+
+/**
+ * 뉴스레터 구독 확인 이메일 전송
+ */
+export async function sendNewsletterConfirmationEmail(
+  email: string,
+  confirmationToken: string
+): Promise<SendEmailResult> {
+  const confirmUrl = `${window.location.origin}/newsletter/confirm?token=${confirmationToken}`
+
+  return sendEmail({
+    to: email,
+    subject: 'IDEA on Action 뉴스레터 구독 확인',
+    react: {
+      type: 'div',
+      props: {
+        style: { fontFamily: 'sans-serif', maxWidth: '600px', margin: '0 auto' },
+        children: [
+          {
+            type: 'h1',
+            props: {
+              style: { fontSize: '24px', marginBottom: '16px' },
+              children: '뉴스레터 구독을 확인해주세요',
+            },
+          },
+          {
+            type: 'p',
+            props: {
+              style: { fontSize: '16px', lineHeight: '1.5', marginBottom: '24px' },
+              children: 'IDEA on Action 뉴스레터 구독 신청을 완료하려면 아래 버튼을 클릭해주세요.',
+            },
+          },
+          {
+            type: 'a',
+            props: {
+              href: confirmUrl,
+              style: {
+                display: 'inline-block',
+                padding: '12px 24px',
+                backgroundColor: '#3b82f6',
+                color: '#ffffff',
+                textDecoration: 'none',
+                borderRadius: '6px',
+                fontWeight: 'bold',
+              },
+              children: '구독 확인하기',
+            },
+          },
+          {
+            type: 'p',
+            props: {
+              style: { fontSize: '14px', color: '#666', marginTop: '24px' },
+              children: '이 이메일을 요청하지 않으셨다면 무시하셔도 됩니다.',
+            },
+          },
+        ],
+      },
+    } as ReactElement,
+  })
+}
+
+/**
+ * 뉴스레터 웰컴 이메일 전송
+ */
+export async function sendNewsletterWelcomeEmail(
+  email: string
+): Promise<SendEmailResult> {
+  return sendEmail({
+    to: email,
+    subject: 'IDEA on Action 뉴스레터에 오신 것을 환영합니다!',
+    react: {
+      type: 'div',
+      props: {
+        style: { fontFamily: 'sans-serif', maxWidth: '600px', margin: '0 auto' },
+        children: [
+          {
+            type: 'h1',
+            props: {
+              style: { fontSize: '24px', marginBottom: '16px' },
+              children: '환영합니다! 🎉',
+            },
+          },
+          {
+            type: 'p',
+            props: {
+              style: { fontSize: '16px', lineHeight: '1.5', marginBottom: '16px' },
+              children: 'IDEA on Action 뉴스레터 구독을 확인했습니다.',
+            },
+          },
+          {
+            type: 'p',
+            props: {
+              style: { fontSize: '16px', lineHeight: '1.5', marginBottom: '24px' },
+              children: '앞으로 새로운 프로젝트, 인사이트, 그리고 업데이트를 가장 먼저 받아보실 수 있습니다.',
+            },
+          },
+          {
+            type: 'p',
+            props: {
+              style: { fontSize: '14px', color: '#666' },
+              children: 'Keep Awake, Live Passionate - IDEA on Action',
+            },
+          },
+        ],
+      },
+    } as ReactElement,
+  })
+}

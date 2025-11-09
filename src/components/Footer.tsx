@@ -1,5 +1,6 @@
 import { Github, Linkedin, Mail, LucideIcon } from "lucide-react";
 import logoSymbol from "@/assets/logo-symbol.png";
+import { NewsletterForm } from "@/components/forms/NewsletterForm";
 
 // Types
 interface FooterProps {
@@ -98,14 +99,14 @@ const Footer = ({ className = "" }: FooterProps) => {
   return (
     <footer className={`border-t border-border bg-card/30 backdrop-blur-sm ${className}`}>
       <div className="container mx-auto px-4 py-12">
-        <div className="grid md:grid-cols-4 gap-8 mb-8">
+        <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-8 mb-8">
           {/* Brand Section */}
-          <div>
+          <div className="lg:col-span-2">
             <div className="flex items-center gap-3 mb-4">
-              <img 
-                src={BRAND_INFO.logo} 
-                alt={BRAND_INFO.logoAlt} 
-                className="h-10 w-10" 
+              <img
+                src={BRAND_INFO.logo}
+                alt={BRAND_INFO.logoAlt}
+                className="h-10 w-10"
                 width={40}
                 height={40}
               />
@@ -118,7 +119,7 @@ const Footer = ({ className = "" }: FooterProps) => {
               {BRAND_INFO.description}
             </p>
             <nav aria-label="소셜 미디어 링크">
-              <div className="flex items-center gap-3" role="list">
+              <div className="flex items-center gap-3 mb-6" role="list">
                 {SOCIAL_LINKS.map((social, index) => {
                   const Icon = social.icon;
                   return (
@@ -136,6 +137,15 @@ const Footer = ({ className = "" }: FooterProps) => {
                 })}
               </div>
             </nav>
+
+            {/* Newsletter Section */}
+            <div className="mt-6">
+              <h4 className="font-semibold mb-3 text-sm">뉴스레터 구독</h4>
+              <p className="text-xs text-muted-foreground mb-3">
+                최신 소식과 인사이트를 받아보세요
+              </p>
+              <NewsletterForm variant="stacked" showIcon={false} />
+            </div>
           </div>
 
           {/* Footer Sections */}

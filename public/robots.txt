@@ -1,9 +1,17 @@
-# robots.txt for VIBE WORKING
+# robots.txt for IDEA on Action
 # https://www.ideaonaction.ai/
 
 # Allow search engines to crawl public content
 User-agent: *
 Allow: /
+Allow: /about
+Allow: /roadmap
+Allow: /portfolio
+Allow: /now
+Allow: /lab
+Allow: /community
+Allow: /work-with-us
+Allow: /status
 Allow: /services
 Allow: /blog
 Allow: /notices
