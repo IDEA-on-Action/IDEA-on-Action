@@ -57,6 +57,7 @@ function AnalyticsTracker() {
 // Eager load (Initial Bundle) - Critical pages
 import Index from "./pages/Index";
 import Login from "./pages/Login";
+import AuthCallback from "./pages/AuthCallback";
 import NotFound from "./pages/NotFound";
 
 // Lazy load (Code Split) - Public pages
@@ -156,6 +157,7 @@ const App = () => (
               <Route path="/profile" element={<Profile />} />
               <Route path="/notifications" element={<Notifications />} />
               <Route path="/login" element={<Login />} />
+              <Route path="/auth/callback" element={<AuthCallback />} />
               <Route path="/2fa/setup" element={<TwoFactorSetup />} />
               <Route path="/2fa/verify" element={<TwoFactorVerify />} />
               <Route path="/forbidden" element={<Forbidden />} />

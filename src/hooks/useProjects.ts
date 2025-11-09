@@ -1,22 +1,33 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useSupabaseQuery, useSupabaseMutation, supabaseQuery } from '@/lib/react-query';
 import type { Project } from '@/types/v2';
 
 /**
  * Hook to fetch all projects
  */
 export const useProjects = () => {
-  return useQuery({
+  return useSupabaseQuery<Project[]>({
     queryKey: ['projects'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('projects')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      return data as Project[];
+      return await supabaseQuery(
+        async () => {
+          const result = await supabase
+            .from('projects')
+            .select('*')
+            .order('created_at', { ascending: false });
+          return { data: result.data, error: result.error };
+        },
+        {
+          table: 'projects',
+          operation: 'Project 목록 조회',
+          fallbackValue: [],
+        }
+      );
     },
+    table: 'projects',
+    operation: 'Project 목록 조회',
+    fallbackValue: [],
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 };
@@ -25,18 +36,28 @@ export const useProjects = () => {
  * Hook to fetch a single project by slug
  */
 export const useProject = (slug: string) => {
-  return useQuery({
+  return useSupabaseQuery<Project>({
     queryKey: ['projects', slug],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('projects')
-        .select('*')
-        .eq('slug', slug)
-        .single();
-
-      if (error) throw error;
-      return data as Project;
+      return await supabaseQuery(
+        async () => {
+          const result = await supabase
+            .from('projects')
+            .select('*')
+            .eq('slug', slug)
+            .single();
+          return { data: result.data, error: result.error };
+        },
+        {
+          table: 'projects',
+          operation: 'Project 상세 조회',
+          fallbackValue: null,
+        }
+      );
     },
+    table: 'projects',
+    operation: 'Project 상세 조회',
+    fallbackValue: null,
     enabled: !!slug,
   });
 };
@@ -45,22 +66,33 @@ export const useProject = (slug: string) => {
  * Hook to fetch projects by status
  */
 export const useProjectsByStatus = (status?: Project['status']) => {
-  return useQuery({
+  return useSupabaseQuery<Project[]>({
     queryKey: ['projects', 'status', status],
     queryFn: async () => {
-      let query = supabase
-        .from('projects')
-        .select('*')
-        .order('created_at', { ascending: false });
+      return await supabaseQuery(
+        async () => {
+          let query = supabase
+            .from('projects')
+            .select('*')
+            .order('created_at', { ascending: false });
 
-      if (status) {
-        query = query.eq('status', status);
-      }
+          if (status) {
+            query = query.eq('status', status);
+          }
 
-      const { data, error } = await query;
-      if (error) throw error;
-      return data as Project[];
+          const result = await query;
+          return { data: result.data, error: result.error };
+        },
+        {
+          table: 'projects',
+          operation: 'Project 상태별 조회',
+          fallbackValue: [],
+        }
+      );
     },
+    table: 'projects',
+    operation: 'Project 상태별 조회',
+    fallbackValue: [],
     staleTime: 5 * 60 * 1000,
   });
 };
@@ -69,22 +101,33 @@ export const useProjectsByStatus = (status?: Project['status']) => {
  * Hook to fetch projects by category
  */
 export const useProjectsByCategory = (category?: string) => {
-  return useQuery({
+  return useSupabaseQuery<Project[]>({
     queryKey: ['projects', 'category', category],
     queryFn: async () => {
-      let query = supabase
-        .from('projects')
-        .select('*')
-        .order('created_at', { ascending: false });
+      return await supabaseQuery(
+        async () => {
+          let query = supabase
+            .from('projects')
+            .select('*')
+            .order('created_at', { ascending: false });
 
-      if (category) {
-        query = query.eq('category', category);
-      }
+          if (category) {
+            query = query.eq('category', category);
+          }
 
-      const { data, error } = await query;
-      if (error) throw error;
-      return data as Project[];
+          const result = await query;
+          return { data: result.data, error: result.error };
+        },
+        {
+          table: 'projects',
+          operation: 'Project 카테고리별 조회',
+          fallbackValue: [],
+        }
+      );
     },
+    table: 'projects',
+    operation: 'Project 카테고리별 조회',
+    fallbackValue: [],
     staleTime: 5 * 60 * 1000,
   });
 };
@@ -95,7 +138,7 @@ export const useProjectsByCategory = (category?: string) => {
 export const useCreateProject = () => {
   const queryClient = useQueryClient();
 
-  return useMutation({
+  return useSupabaseMutation<Project, Omit<Project, 'id' | 'created_at' | 'updated_at'>>({
     mutationFn: async (project: Omit<Project, 'id' | 'created_at' | 'updated_at'>) => {
       const { data, error } = await supabase
         .from('projects')
@@ -106,6 +149,8 @@ export const useCreateProject = () => {
       if (error) throw error;
       return data as Project;
     },
+    table: 'projects',
+    operation: 'Project 생성',
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['projects'] });
     },
@@ -118,7 +163,7 @@ export const useCreateProject = () => {
 export const useUpdateProject = () => {
   const queryClient = useQueryClient();
 
-  return useMutation({
+  return useSupabaseMutation<Project, { id: string; updates: Partial<Project> }>({
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<Project> }) => {
       const { data, error } = await supabase
         .from('projects')
@@ -130,6 +175,8 @@ export const useUpdateProject = () => {
       if (error) throw error;
       return data as Project;
     },
+    table: 'projects',
+    operation: 'Project 수정',
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['projects'] });
       queryClient.invalidateQueries({ queryKey: ['projects', data.slug] });
@@ -143,7 +190,7 @@ export const useUpdateProject = () => {
 export const useDeleteProject = () => {
   const queryClient = useQueryClient();
 
-  return useMutation({
+  return useSupabaseMutation<string, string>({
     mutationFn: async (id: string) => {
       const { error } = await supabase
         .from('projects')
@@ -153,6 +200,8 @@ export const useDeleteProject = () => {
       if (error) throw error;
       return id;
     },
+    table: 'projects',
+    operation: 'Project 삭제',
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['projects'] });
     },

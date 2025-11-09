@@ -1,7 +1,10 @@
 import { Helmet } from "react-helmet-async";
-import { Activity, Briefcase, Award, Users, TrendingUp, GitBranch, AlertCircle, Mail } from "lucide-react";
+import { Activity, Briefcase, Award, Users, TrendingUp, GitBranch, Mail } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { PageLayout } from "@/components/layouts/PageLayout";
+import { LoadingState } from "@/components/shared/LoadingState";
+import { ErrorState } from "@/components/shared/ErrorState";
 import { useProjects } from "@/hooks/useProjects";
 import { useBounties } from "@/hooks/useBounties";
 import { useLogs } from "@/hooks/useLogs";
@@ -16,22 +19,22 @@ const Status = () => {
   // Loading state
   if (projectsLoading || bountiesLoading || logsLoading || newsletterLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-      </div>
+      <PageLayout>
+        <LoadingState />
+      </PageLayout>
     );
   }
 
   // Error state
   if (projectsError || bountiesError || logsError) {
+    const error = projectsError || bountiesError || logsError;
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Card className="glass-card p-8 max-w-md text-center">
-          <AlertCircle className="w-12 h-12 text-destructive mx-auto mb-4" />
-          <h2 className="text-xl font-bold mb-2">데이터 로드 실패</h2>
-          <p className="text-muted-foreground">일부 데이터를 불러오지 못했습니다.</p>
-        </Card>
-      </div>
+      <PageLayout>
+        <ErrorState
+          error={error}
+          title="데이터 로드 실패"
+        />
+      </PageLayout>
     );
   }
 
@@ -62,7 +65,7 @@ const Status = () => {
   }).length;
 
   return (
-    <>
+    <PageLayout>
       <Helmet>
         <title>Status - 오픈 메트릭스 - IDEA on Action</title>
         <meta
@@ -297,7 +300,7 @@ const Status = () => {
           </div>
         </section>
       </div>
-    </>
+    </PageLayout>
   );
 };
 

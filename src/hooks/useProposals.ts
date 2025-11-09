@@ -1,22 +1,33 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useSupabaseQuery, useSupabaseMutation, supabaseQuery } from '@/lib/react-query';
 import type { Proposal, ProposalFormValues } from '@/types/v2';
 
 /**
  * Hook to fetch all proposals (Admin only)
  */
 export const useProposals = () => {
-  return useQuery({
+  return useSupabaseQuery<Proposal[]>({
     queryKey: ['proposals'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('proposals')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      return data as Proposal[];
+      return await supabaseQuery(
+        async () => {
+          const result = await supabase
+            .from('proposals')
+            .select('*')
+            .order('created_at', { ascending: false });
+          return { data: result.data, error: result.error };
+        },
+        {
+          table: 'proposals',
+          operation: 'Proposal 목록 조회',
+          fallbackValue: [],
+        }
+      );
     },
+    table: 'proposals',
+    operation: 'Proposal 목록 조회',
+    fallbackValue: [],
   });
 };
 
@@ -24,21 +35,33 @@ export const useProposals = () => {
  * Hook to fetch user's own proposals
  */
 export const useMyProposals = () => {
-  return useQuery({
+  return useSupabaseQuery<Proposal[]>({
     queryKey: ['proposals', 'me'],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return [];
+      return await supabaseQuery(
+        async () => {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (!user) {
+            return { data: [], error: null };
+          }
 
-      const { data, error } = await supabase
-        .from('proposals')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      return data as Proposal[];
+          const result = await supabase
+            .from('proposals')
+            .select('*')
+            .eq('user_id', user.id)
+            .order('created_at', { ascending: false });
+          return { data: result.data, error: result.error };
+        },
+        {
+          table: 'proposals',
+          operation: '내 Proposal 조회',
+          fallbackValue: [],
+        }
+      );
     },
+    table: 'proposals',
+    operation: '내 Proposal 조회',
+    fallbackValue: [],
   });
 };
 
@@ -46,22 +69,33 @@ export const useMyProposals = () => {
  * Hook to fetch proposals by status (Admin only)
  */
 export const useProposalsByStatus = (status?: Proposal['status']) => {
-  return useQuery({
+  return useSupabaseQuery<Proposal[]>({
     queryKey: ['proposals', 'status', status],
     queryFn: async () => {
-      let query = supabase
-        .from('proposals')
-        .select('*')
-        .order('created_at', { ascending: false });
+      return await supabaseQuery(
+        async () => {
+          let query = supabase
+            .from('proposals')
+            .select('*')
+            .order('created_at', { ascending: false });
 
-      if (status) {
-        query = query.eq('status', status);
-      }
+          if (status) {
+            query = query.eq('status', status);
+          }
 
-      const { data, error } = await query;
-      if (error) throw error;
-      return data as Proposal[];
+          const result = await query;
+          return { data: result.data, error: result.error };
+        },
+        {
+          table: 'proposals',
+          operation: 'Proposal 상태별 조회',
+          fallbackValue: [],
+        }
+      );
     },
+    table: 'proposals',
+    operation: 'Proposal 상태별 조회',
+    fallbackValue: [],
   });
 };
 
@@ -71,7 +105,7 @@ export const useProposalsByStatus = (status?: Proposal['status']) => {
 export const useSubmitProposal = () => {
   const queryClient = useQueryClient();
 
-  return useMutation({
+  return useSupabaseMutation<Proposal, ProposalFormValues>({
     mutationFn: async (proposal: ProposalFormValues) => {
       const { data, error } = await supabase
         .from('proposals')
@@ -82,6 +116,8 @@ export const useSubmitProposal = () => {
       if (error) throw error;
       return data as Proposal;
     },
+    table: 'proposals',
+    operation: 'Proposal 제출',
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['proposals'] });
     },
@@ -94,7 +130,7 @@ export const useSubmitProposal = () => {
 export const useUpdateProposalStatus = () => {
   const queryClient = useQueryClient();
 
-  return useMutation({
+  return useSupabaseMutation<Proposal, { id: number; status: Proposal['status']; admin_notes?: string }>({
     mutationFn: async ({
       id,
       status,
@@ -114,6 +150,8 @@ export const useUpdateProposalStatus = () => {
       if (error) throw error;
       return data as Proposal;
     },
+    table: 'proposals',
+    operation: 'Proposal 상태 수정',
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['proposals'] });
     },
@@ -126,7 +164,7 @@ export const useUpdateProposalStatus = () => {
 export const useDeleteProposal = () => {
   const queryClient = useQueryClient();
 
-  return useMutation({
+  return useSupabaseMutation<number, number>({
     mutationFn: async (id: number) => {
       const { error } = await supabase
         .from('proposals')
@@ -136,6 +174,8 @@ export const useDeleteProposal = () => {
       if (error) throw error;
       return id;
     },
+    table: 'proposals',
+    operation: 'Proposal 삭제',
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['proposals'] });
     },

@@ -15,6 +15,9 @@ import { GiscusComments } from '@/components/community/GiscusComments'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
+import { PageLayout } from '@/components/layouts/PageLayout'
+import { LoadingState } from '@/components/shared/LoadingState'
+import { ErrorState } from '@/components/shared/ErrorState'
 import { formatDistanceToNow } from 'date-fns'
 import { devError } from '@/lib/errors'
 
@@ -32,42 +35,21 @@ export default function BlogPost() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-primary/5 p-4">
-        <div className="text-center space-y-4">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-          <p className="text-muted-foreground">Loading post...</p>
-          <Button variant="ghost" asChild>
-            <Link to="/">
-              <Home className="mr-2 h-4 w-4" />
-              홈으로 돌아가기
-            </Link>
-          </Button>
-        </div>
-      </div>
+      <PageLayout>
+        <LoadingState message="게시글을 불러오는 중..." />
+      </PageLayout>
     )
   }
 
   if (error || !post) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-primary/5 p-4">
-        <div className="text-center space-y-4 max-w-md">
-          <p className="text-destructive text-lg">Post not found</p>
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Button asChild>
-              <Link to="/blog">
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Blog
-              </Link>
-            </Button>
-            <Button variant="outline" asChild>
-              <Link to="/">
-                <Home className="w-4 h-4 mr-2" />
-                홈으로 돌아가기
-              </Link>
-            </Button>
-          </div>
-        </div>
-      </div>
+      <PageLayout>
+        <ErrorState
+          error={error || new Error('게시글을 찾을 수 없습니다.')}
+          title="게시글을 찾을 수 없습니다"
+          onRetry={() => window.location.reload()}
+        />
+      </PageLayout>
     )
   }
 
@@ -96,7 +78,7 @@ export default function BlogPost() {
   }
 
   return (
-    <>
+    <PageLayout>
       <Helmet>
         <title>{post.meta_title || post.title} | VIBE WORKING</title>
         <meta
@@ -255,6 +237,6 @@ export default function BlogPost() {
           </div>
         </article>
       </div>
-    </>
+    </PageLayout>
   )
 }

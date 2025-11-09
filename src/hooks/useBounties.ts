@@ -11,10 +11,13 @@ export const useBounties = () => {
     queryKey: ['bounties'],
     queryFn: async () => {
       return await supabaseQuery(
-        () => supabase
-          .from('bounties')
-          .select('*')
-          .order('created_at', { ascending: false }),
+        async () => {
+          const result = await supabase
+            .from('bounties')
+            .select('*')
+            .order('created_at', { ascending: false });
+          return { data: result.data, error: result.error };
+        },
         {
           table: 'bounties',
           operation: 'Bounty 목록 조회',
@@ -36,17 +39,20 @@ export const useBountiesByStatus = (status?: Bounty['status']) => {
   return useSupabaseQuery<Bounty[]>({
     queryKey: ['bounties', 'status', status],
     queryFn: async () => {
-      let query = supabase
-        .from('bounties')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (status) {
-        query = query.eq('status', status);
-      }
-
       return await supabaseQuery(
-        () => query,
+        async () => {
+          let query = supabase
+            .from('bounties')
+            .select('*')
+            .order('created_at', { ascending: false });
+
+          if (status) {
+            query = query.eq('status', status);
+          }
+
+          const result = await query;
+          return { data: result.data, error: result.error };
+        },
         {
           table: 'bounties',
           operation: 'Bounty 상태별 조회',
@@ -69,11 +75,14 @@ export const useBounty = (id: number) => {
     queryKey: ['bounties', id],
     queryFn: async () => {
       return await supabaseQuery(
-        () => supabase
-          .from('bounties')
-          .select('*')
-          .eq('id', id)
-          .single(),
+        async () => {
+          const result = await supabase
+            .from('bounties')
+            .select('*')
+            .eq('id', id)
+            .single();
+          return { data: result.data, error: result.error };
+        },
         {
           table: 'bounties',
           operation: 'Bounty 상세 조회',
