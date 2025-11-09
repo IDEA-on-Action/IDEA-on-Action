@@ -1,18 +1,20 @@
 import { Helmet } from "react-helmet-async";
-import { Activity, Briefcase, Award, Users, TrendingUp, GitBranch, AlertCircle } from "lucide-react";
+import { Activity, Briefcase, Award, Users, TrendingUp, GitBranch, AlertCircle, Mail } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { useProjects } from "@/hooks/useProjects";
 import { useBounties } from "@/hooks/useBounties";
 import { useLogs } from "@/hooks/useLogs";
+import { useNewsletterStats } from "@/hooks/useNewsletter";
 
 const Status = () => {
   const { data: projectsData, isLoading: projectsLoading, error: projectsError } = useProjects();
   const { data: bountiesData, isLoading: bountiesLoading, error: bountiesError } = useBounties();
   const { data: logsData, isLoading: logsLoading, error: logsError } = useLogs(20);
+  const { data: newsletterStats, isLoading: newsletterLoading } = useNewsletterStats();
 
   // Loading state
-  if (projectsLoading || bountiesLoading || logsLoading) {
+  if (projectsLoading || bountiesLoading || logsLoading || newsletterLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
@@ -95,7 +97,7 @@ const Status = () => {
         {/* Key Metrics */}
         <section className="py-16 px-4">
           <div className="container mx-auto max-w-6xl">
-            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+            <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-6 mb-12">
               {/* Total Projects */}
               <Card className="glass-card p-6 space-y-4">
                 <div className="flex items-center justify-between">
@@ -157,6 +159,23 @@ const Status = () => {
                 </div>
                 <div className="text-xs text-muted-foreground">
                   주간 활동 {weeklyActivityCount}건
+                </div>
+              </Card>
+
+              {/* Newsletter Subscribers */}
+              <Card className="glass-card p-6 space-y-4">
+                <div className="flex items-center justify-between">
+                  <Mail className="w-8 h-8 text-primary" />
+                  <TrendingUp className="w-5 h-5 text-green-600" />
+                </div>
+                <div>
+                  <div className="text-4xl font-bold">{newsletterStats?.confirmed || 0}</div>
+                  <div className="text-sm text-muted-foreground mt-1">구독자</div>
+                </div>
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <span>{newsletterStats?.pending || 0} 대기</span>
+                  <span>•</span>
+                  <span>{newsletterStats?.total || 0} 전체</span>
                 </div>
               </Card>
             </div>
