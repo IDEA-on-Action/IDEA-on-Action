@@ -314,11 +314,250 @@ CREATE POLICY "Logs are viewable by everyone"
   USING (true);
 
 -- ============================================
--- 11. newsletter_subscribers 뷰 RLS 정책 확인
+-- 11. newsletter_subscriptions 테이블 RLS 정책 재생성
+-- ============================================
+
+-- Enable Row Level Security
+ALTER TABLE public.newsletter_subscriptions ENABLE ROW LEVEL SECURITY;
+
+-- Drop existing policies
+DROP POLICY IF EXISTS "newsletter_admin_read" ON public.newsletter_subscriptions;
+DROP POLICY IF EXISTS "newsletter_public_insert" ON public.newsletter_subscriptions;
+DROP POLICY IF EXISTS "newsletter_owner_update" ON public.newsletter_subscriptions;
+
+-- 누구나 구독 가능 (INSERT) - anon과 authenticated 모두 허용
+CREATE POLICY "newsletter_public_insert"
+  ON public.newsletter_subscriptions
+  FOR INSERT
+  TO anon, authenticated
+  WITH CHECK (true);
+
+-- 관리자는 모든 구독자 조회 가능 (SELECT)
+CREATE POLICY "newsletter_admin_read"
+  ON public.newsletter_subscriptions
+  FOR SELECT
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.user_roles
+      JOIN public.roles ON user_roles.role_id = roles.id
+      WHERE user_roles.user_id = auth.uid()
+      AND roles.name = 'admin'
+    )
+  );
+
+-- 본인 이메일만 업데이트 가능 (UPDATE)
+CREATE POLICY "newsletter_owner_update"
+  ON public.newsletter_subscriptions
+  FOR UPDATE
+  TO authenticated
+  USING (email = (SELECT email FROM auth.users WHERE id = auth.uid()))
+  WITH CHECK (email = (SELECT email FROM auth.users WHERE id = auth.uid()));
+
+-- ============================================
+-- 12. newsletter_subscribers 뷰 RLS 정책 확인
 -- ============================================
 
 -- Enable Row Level Security (뷰는 기본 테이블의 정책을 따름)
 -- newsletter_subscribers는 뷰이므로 기본 테이블에 정책이 있어야 함
+
+-- ============================================
+-- 13. post_categories 테이블 RLS 정책 재생성
+-- ============================================
+
+-- Enable Row Level Security
+ALTER TABLE public.post_categories ENABLE ROW LEVEL SECURITY;
+
+-- Drop existing policies
+DROP POLICY IF EXISTS "Categories are viewable by everyone" ON public.post_categories;
+DROP POLICY IF EXISTS "Categories are insertable by blog managers" ON public.post_categories;
+DROP POLICY IF EXISTS "Categories are updatable by blog managers" ON public.post_categories;
+DROP POLICY IF EXISTS "Categories are deletable by blog managers" ON public.post_categories;
+
+-- 누구나 카테고리 조회 가능 (SELECT) - anon과 authenticated 모두 허용
+CREATE POLICY "Categories are viewable by everyone"
+  ON public.post_categories FOR SELECT
+  TO anon, authenticated
+  USING (true);
+
+-- 관리자만 카테고리 생성/수정/삭제 가능 (INSERT/UPDATE/DELETE)
+CREATE POLICY "Categories are insertable by blog managers"
+  ON public.post_categories FOR INSERT
+  TO authenticated
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM public.user_roles
+      JOIN public.roles ON user_roles.role_id = roles.id
+      WHERE user_roles.user_id = auth.uid()
+      AND roles.name = 'admin'
+    )
+  );
+
+CREATE POLICY "Categories are updatable by blog managers"
+  ON public.post_categories FOR UPDATE
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.user_roles
+      JOIN public.roles ON user_roles.role_id = roles.id
+      WHERE user_roles.user_id = auth.uid()
+      AND roles.name = 'admin'
+    )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM public.user_roles
+      JOIN public.roles ON user_roles.role_id = roles.id
+      WHERE user_roles.user_id = auth.uid()
+      AND roles.name = 'admin'
+    )
+  );
+
+CREATE POLICY "Categories are deletable by blog managers"
+  ON public.post_categories FOR DELETE
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.user_roles
+      JOIN public.roles ON user_roles.role_id = roles.id
+      WHERE user_roles.user_id = auth.uid()
+      AND roles.name = 'admin'
+    )
+  );
+
+-- ============================================
+-- 14. post_tags 테이블 RLS 정책 재생성
+-- ============================================
+
+-- Enable Row Level Security
+ALTER TABLE public.post_tags ENABLE ROW LEVEL SECURITY;
+
+-- Drop existing policies
+DROP POLICY IF EXISTS "Tags are viewable by everyone" ON public.post_tags;
+DROP POLICY IF EXISTS "Tags are insertable by blog managers" ON public.post_tags;
+DROP POLICY IF EXISTS "Tags are updatable by blog managers" ON public.post_tags;
+DROP POLICY IF EXISTS "Tags are deletable by blog managers" ON public.post_tags;
+
+-- 누구나 태그 조회 가능 (SELECT) - anon과 authenticated 모두 허용
+CREATE POLICY "Tags are viewable by everyone"
+  ON public.post_tags FOR SELECT
+  TO anon, authenticated
+  USING (true);
+
+-- 관리자만 태그 생성/수정/삭제 가능 (INSERT/UPDATE/DELETE)
+CREATE POLICY "Tags are insertable by blog managers"
+  ON public.post_tags FOR INSERT
+  TO authenticated
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM public.user_roles
+      JOIN public.roles ON user_roles.role_id = roles.id
+      WHERE user_roles.user_id = auth.uid()
+      AND roles.name = 'admin'
+    )
+  );
+
+CREATE POLICY "Tags are updatable by blog managers"
+  ON public.post_tags FOR UPDATE
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.user_roles
+      JOIN public.roles ON user_roles.role_id = roles.id
+      WHERE user_roles.user_id = auth.uid()
+      AND roles.name = 'admin'
+    )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM public.user_roles
+      JOIN public.roles ON user_roles.role_id = roles.id
+      WHERE user_roles.user_id = auth.uid()
+      AND roles.name = 'admin'
+    )
+  );
+
+CREATE POLICY "Tags are deletable by blog managers"
+  ON public.post_tags FOR DELETE
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.user_roles
+      JOIN public.roles ON user_roles.role_id = roles.id
+      WHERE user_roles.user_id = auth.uid()
+      AND roles.name = 'admin'
+    )
+  );
+
+-- ============================================
+-- 15. blog_posts 테이블 RLS 정책 재생성
+-- ============================================
+
+-- Enable Row Level Security
+ALTER TABLE public.blog_posts ENABLE ROW LEVEL SECURITY;
+
+-- Drop existing policies
+DROP POLICY IF EXISTS "Published posts are viewable by everyone" ON public.blog_posts;
+DROP POLICY IF EXISTS "Posts are insertable by blog creators" ON public.blog_posts;
+DROP POLICY IF EXISTS "Posts are updatable by managers or authors" ON public.blog_posts;
+DROP POLICY IF EXISTS "Posts are deletable by blog managers" ON public.blog_posts;
+
+-- Published posts는 모든 사용자가 조회 가능, Draft/Archived는 작성자 또는 관리자만
+CREATE POLICY "Published posts are viewable by everyone"
+  ON public.blog_posts FOR SELECT
+  TO anon, authenticated
+  USING (
+    status = 'published' OR
+    author_id = auth.uid() OR
+    EXISTS (
+      SELECT 1 FROM public.user_roles
+      JOIN public.roles ON user_roles.role_id = roles.id
+      WHERE user_roles.user_id = auth.uid()
+      AND roles.name = 'admin'
+    )
+  );
+
+-- 작성자만 게시글 생성 가능 (INSERT) - 모든 인증된 사용자가 작성 가능
+CREATE POLICY "Posts are insertable by blog creators"
+  ON public.blog_posts FOR INSERT
+  TO authenticated
+  WITH CHECK (author_id = auth.uid());
+
+-- 작성자 또는 관리자만 게시글 수정 가능 (UPDATE)
+CREATE POLICY "Posts are updatable by managers or authors"
+  ON public.blog_posts FOR UPDATE
+  TO authenticated
+  USING (
+    author_id = auth.uid() OR
+    EXISTS (
+      SELECT 1 FROM public.user_roles
+      JOIN public.roles ON user_roles.role_id = roles.id
+      WHERE user_roles.user_id = auth.uid()
+      AND roles.name = 'admin'
+    )
+  )
+  WITH CHECK (
+    author_id = auth.uid() OR
+    EXISTS (
+      SELECT 1 FROM public.user_roles
+      JOIN public.roles ON user_roles.role_id = roles.id
+      WHERE user_roles.user_id = auth.uid()
+      AND roles.name = 'admin'
+    )
+  );
+
+-- 관리자만 게시글 삭제 가능 (DELETE)
+CREATE POLICY "Posts are deletable by blog managers"
+  ON public.blog_posts FOR DELETE
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.user_roles
+      JOIN public.roles ON user_roles.role_id = roles.id
+      WHERE user_roles.user_id = auth.uid()
+      AND roles.name = 'admin'
+    )
+  );
 
 -- ============================================
 -- 완료 메시지
@@ -337,6 +576,10 @@ BEGIN
   RAISE NOTICE '- projects 테이블: RLS 정책 1개 재생성 (Status 페이지용)';
   RAISE NOTICE '- bounties 테이블: RLS 정책 1개 재생성 (Status 페이지용)';
   RAISE NOTICE '- logs 테이블: RLS 정책 1개 재생성 (Status 페이지용)';
+  RAISE NOTICE '- newsletter_subscriptions 테이블: RLS 정책 3개 재생성';
+  RAISE NOTICE '- post_categories 테이블: RLS 정책 4개 재생성';
+  RAISE NOTICE '- post_tags 테이블: RLS 정책 4개 재생성';
+  RAISE NOTICE '- blog_posts 테이블: RLS 정책 4개 재생성';
   RAISE NOTICE '';
   RAISE NOTICE '⚠️ 주의: 프로덕션 환경에서는 user_roles, user_profiles 정책을 더 엄격하게 설정하세요';
 END $$;

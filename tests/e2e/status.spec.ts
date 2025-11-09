@@ -65,7 +65,7 @@ test.describe('Status 페이지', () => {
     expect(text?.trim()).toMatch(/^\d+$/);
   });
 
-  test.skip('바운티 완료율이 퍼센티지로 표시됨 (데이터 필요)', async ({ page }) => {
+  test('바운티 완료율이 퍼센티지로 표시됨', async ({ page }) => {
     // 바운티 완료율 퍼센티지 찾기
     const bountyPercentage = page.locator('text=/\\d+%/').first();
     await expect(bountyPercentage).toBeVisible();
@@ -77,7 +77,7 @@ test.describe('Status 페이지', () => {
     }
   });
 
-  test.skip('Newsletter 구독자 통계가 표시됨 (데이터 필요)', async ({ page }) => {
+  test('Newsletter 구독자 통계가 표시됨', async ({ page }) => {
     // 구독자 카드 찾기
     const subscribersSection = page.locator('text=/구독자|Subscribers/i').first();
     await subscribersSection.scrollIntoViewIfNeeded();

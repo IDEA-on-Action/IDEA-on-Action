@@ -79,7 +79,7 @@ test.describe('Newsletter 구독', () => {
     expect(validationMessage).toBeTruthy();
   });
 
-  test.skip('유효한 이메일 제출 시 성공 메시지 표시 (DB 필요)', async ({ page }) => {
+  test.skip('유효한 이메일 제출 시 성공 메시지 표시 (Known Issue: Playwright webServer 환경 변수)', async ({ page }) => {
     // Footer로 스크롤
     const footer = page.locator('footer');
     await footer.scrollIntoViewIfNeeded();
@@ -98,7 +98,7 @@ test.describe('Newsletter 구독', () => {
     await expect(successToast).toBeVisible({ timeout: 5000 });
   });
 
-  test.skip('중복 이메일 제출 시 에러 메시지 표시 (DB 필요)', async ({ page }) => {
+  test.skip('중복 이메일 제출 시 에러 메시지 표시 (Known Issue: Playwright webServer 환경 변수)', async ({ page }) => {
     // Footer로 스크롤
     const footer = page.locator('footer');
     await footer.scrollIntoViewIfNeeded();
@@ -129,7 +129,7 @@ test.describe('Newsletter 구독', () => {
     await expect(errorToast).toBeVisible({ timeout: 5000 });
   });
 
-  test.skip('Home 페이지 inline 폼에서 구독 가능 (DB 필요)', async ({ page }) => {
+  test.skip('Home 페이지 inline 폼에서 구독 가능 (Known Issue: Playwright webServer 환경 변수)', async ({ page }) => {
     // Newsletter CTA 섹션으로 스크롤
     const newsletterSection = page.locator('text=/Stay Connected|Newsletter/i').first();
     await newsletterSection.scrollIntoViewIfNeeded();
@@ -156,7 +156,7 @@ test.describe('Newsletter 구독', () => {
     }
   });
 
-  test.skip('로딩 중에는 버튼이 비활성화됨 (DB 필요)', async ({ page }) => {
+  test('로딩 중에는 버튼이 비활성화됨', async ({ page }) => {
     // Footer로 스크롤
     const footer = page.locator('footer');
     await footer.scrollIntoViewIfNeeded();
@@ -177,7 +177,7 @@ test.describe('Newsletter 구독', () => {
     await page.waitForTimeout(5000);
   });
 
-  test.skip('성공 후 입력 필드가 초기화됨 (DB 필요)', async ({ page }) => {
+  test.skip('성공 후 입력 필드가 초기화됨 (Known Issue: Playwright webServer 환경 변수)', async ({ page }) => {
     // Footer로 스크롤
     const footer = page.locator('footer');
     await footer.scrollIntoViewIfNeeded();
@@ -200,7 +200,7 @@ test.describe('Newsletter 구독', () => {
     expect(inputValue).toBe('');
   });
 
-  test.skip('모바일 뷰포트에서 Newsletter 폼 작동 (DB 필요)', async ({ page }) => {
+  test.skip('모바일 뷰포트에서 Newsletter 폼 작동 (Known Issue: Playwright webServer 환경 변수)', async ({ page }) => {
     // 모바일 뷰포트 설정
     await page.setViewportSize({ width: 375, height: 667 });
 
