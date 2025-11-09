@@ -3,12 +3,43 @@
 > 프로젝트 작업 목록 및 진행 상황 관리
 
 **마지막 업데이트**: 2025-01-09
-**현재 Phase**: ✅ Version 2.0 Sprint 3.8 완료 (페이지 개선 및 버그 수정)
-**프로젝트 버전**: 2.0.0-sprint3.8
+**현재 Phase**: ✅ Version 2.0 Sprint 3.8.1 완료 (React 청크 로딩 순서 핫픽스)
+**프로젝트 버전**: 2.0.0-sprint3.8.1
 
 ---
 
 ## ✅ 완료된 작업
+
+### Version 2.0 Sprint 3.8.1: React 청크 로딩 순서 핫픽스 ✅ 완료 (2025-01-09)
+**목표**: 프로덕션 런타임 에러 수정
+**완료일**: 2025-01-09
+**총 소요**: 30분
+
+#### 문제 분석 🔍
+- **에러**: `Uncaught TypeError: Cannot read properties of undefined (reading 'createContext')`
+- **원인**: vendor-query (React Query) 청크가 vendor-react보다 먼저 로드
+- **영향**: 프로덕션 사이트 완전 다운 (페이지 렌더링 불가)
+
+#### 해결 방법 ✅
+- [x] **Vite manualChunks 수정**
+  - React Query를 vendor-react 청크에 포함
+  - React + React DOM + React Query를 하나의 청크로 묶음
+  - vendor-query 청크 제거
+
+#### 결과 ✅
+- **빌드 성공**: 20.08초
+- **청크 크기**: vendor-react 348.77 kB → 388.32 kB (125.25 kB gzip)
+- **로컬 테스트**: 프리뷰 서버 정상 동작 확인
+- **배포**: Vercel Production 배포 완료 (커밋 9150a3b)
+
+#### 기술적 교훈 📝
+- React 생태계 라이브러리는 React와 함께 번들링하는 것이 안전
+- Vite manualChunks는 로딩 순서를 보장하지 않음
+- 의존성 체인이 있는 청크는 하나로 묶거나 modulepreload 사용 필요
+
+**다음 단계**: 프로덕션 사이트 동작 확인 후 Sprint 3.9 또는 RLS 정책 적용
+
+---
 
 ### Version 2.0 Sprint 3.8: 페이지 개선 및 버그 수정 ✅ 완료 (2025-01-09)
 **목표**: 페이지 개선 및 React 경고/오류 수정

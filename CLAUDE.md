@@ -3,11 +3,17 @@
 > Claude와의 개발 협업을 위한 프로젝트 핵심 문서
 
 **마지막 업데이트**: 2025-01-09
-**현재 버전**: 2.0.0-sprint3.8
+**현재 버전**: 2.0.0-sprint3.8.1
 **다음 버전**: 2.0.0 (Sprint 3 완료)
 **상태**: ✅ Production Ready | 🚀 Version 2.0 Sprint 3 진행 중
 
 **최신 업데이트**:
+- 2025-01-09: **Version 2.0 Sprint 3.8.1 완료** 🚨 - React 청크 로딩 순서 핫픽스
+  - **문제**: vendor-query가 vendor-react보다 먼저 로드되어 "Cannot read properties of undefined (reading 'createContext')" 런타임 에러 발생
+  - **해결**: React Query를 vendor-react 청크에 포함 (React + React DOM + React Query 통합)
+  - **결과**: vendor-react 388.32 kB (125.25 kB gzip), 프로덕션 정상 동작
+  - **교훈**: React 생태계 라이브러리는 React와 함께 번들링, Vite manualChunks는 로딩 순서 미보장
+  - 커밋: 9150a3b (vite.config.ts 1개 파일 수정)
 - 2025-01-09: **Version 2.0 Sprint 3.8 완료** 🔧 - 페이지 개선 및 버그 수정
   - **페이지 개선**
     - Portfolio 페이지: React Hooks 순서 오류 수정 (useMemo를 early return 전으로 이동)

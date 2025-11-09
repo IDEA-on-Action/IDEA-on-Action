@@ -1,22 +1,30 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useSupabaseQuery, useSupabaseMutation, supabaseQuery } from '@/lib/react-query';
 import type { Bounty } from '@/types/v2';
 
 /**
  * Hook to fetch all bounties
  */
 export const useBounties = () => {
-  return useQuery({
+  return useSupabaseQuery<Bounty[]>({
     queryKey: ['bounties'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('bounties')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      return data as Bounty[];
+      return await supabaseQuery(
+        () => supabase
+          .from('bounties')
+          .select('*')
+          .order('created_at', { ascending: false }),
+        {
+          table: 'bounties',
+          operation: 'Bounty 목록 조회',
+          fallbackValue: [],
+        }
+      );
     },
+    table: 'bounties',
+    operation: 'Bounty 목록 조회',
+    fallbackValue: [],
     staleTime: 1 * 60 * 1000, // 1 minute
   });
 };
@@ -25,7 +33,7 @@ export const useBounties = () => {
  * Hook to fetch bounties by status
  */
 export const useBountiesByStatus = (status?: Bounty['status']) => {
-  return useQuery({
+  return useSupabaseQuery<Bounty[]>({
     queryKey: ['bounties', 'status', status],
     queryFn: async () => {
       let query = supabase
@@ -37,10 +45,18 @@ export const useBountiesByStatus = (status?: Bounty['status']) => {
         query = query.eq('status', status);
       }
 
-      const { data, error } = await query;
-      if (error) throw error;
-      return data as Bounty[];
+      return await supabaseQuery(
+        () => query,
+        {
+          table: 'bounties',
+          operation: 'Bounty 상태별 조회',
+          fallbackValue: [],
+        }
+      );
     },
+    table: 'bounties',
+    operation: 'Bounty 상태별 조회',
+    fallbackValue: [],
     staleTime: 1 * 60 * 1000,
   });
 };
@@ -49,18 +65,25 @@ export const useBountiesByStatus = (status?: Bounty['status']) => {
  * Hook to fetch a single bounty by ID
  */
 export const useBounty = (id: number) => {
-  return useQuery({
+  return useSupabaseQuery<Bounty>({
     queryKey: ['bounties', id],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('bounties')
-        .select('*')
-        .eq('id', id)
-        .single();
-
-      if (error) throw error;
-      return data as Bounty;
+      return await supabaseQuery(
+        () => supabase
+          .from('bounties')
+          .select('*')
+          .eq('id', id)
+          .single(),
+        {
+          table: 'bounties',
+          operation: 'Bounty 상세 조회',
+          fallbackValue: null,
+        }
+      );
     },
+    table: 'bounties',
+    operation: 'Bounty 상세 조회',
+    fallbackValue: null,
     enabled: !!id,
   });
 };
@@ -71,7 +94,7 @@ export const useBounty = (id: number) => {
 export const useApplyToBounty = () => {
   const queryClient = useQueryClient();
 
-  return useMutation({
+  return useSupabaseMutation<unknown, number>({
     mutationFn: async (bountyId: number) => {
       const { data, error } = await supabase.rpc('apply_to_bounty', {
         bounty_id: bountyId,
@@ -80,6 +103,8 @@ export const useApplyToBounty = () => {
       if (error) throw error;
       return data;
     },
+    table: 'bounties',
+    operation: 'Bounty 지원',
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bounties'] });
     },
@@ -92,7 +117,7 @@ export const useApplyToBounty = () => {
 export const useCreateBounty = () => {
   const queryClient = useQueryClient();
 
-  return useMutation({
+  return useSupabaseMutation<Bounty, Omit<Bounty, 'id' | 'created_at' | 'updated_at' | 'applicants'>>({
     mutationFn: async (bounty: Omit<Bounty, 'id' | 'created_at' | 'updated_at' | 'applicants'>) => {
       const { data, error } = await supabase
         .from('bounties')
@@ -103,6 +128,8 @@ export const useCreateBounty = () => {
       if (error) throw error;
       return data as Bounty;
     },
+    table: 'bounties',
+    operation: 'Bounty 생성',
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bounties'] });
     },
@@ -115,7 +142,7 @@ export const useCreateBounty = () => {
 export const useUpdateBounty = () => {
   const queryClient = useQueryClient();
 
-  return useMutation({
+  return useSupabaseMutation<Bounty, { id: number; updates: Partial<Bounty> }>({
     mutationFn: async ({ id, updates }: { id: number; updates: Partial<Bounty> }) => {
       const { data, error } = await supabase
         .from('bounties')
@@ -127,6 +154,8 @@ export const useUpdateBounty = () => {
       if (error) throw error;
       return data as Bounty;
     },
+    table: 'bounties',
+    operation: 'Bounty 수정',
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bounties'] });
     },
@@ -139,7 +168,7 @@ export const useUpdateBounty = () => {
 export const useDeleteBounty = () => {
   const queryClient = useQueryClient();
 
-  return useMutation({
+  return useSupabaseMutation<number, number>({
     mutationFn: async (id: number) => {
       const { error } = await supabase
         .from('bounties')
@@ -149,6 +178,8 @@ export const useDeleteBounty = () => {
       if (error) throw error;
       return id;
     },
+    table: 'bounties',
+    operation: 'Bounty 삭제',
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bounties'] });
     },
@@ -161,7 +192,7 @@ export const useDeleteBounty = () => {
 export const useAssignBounty = () => {
   const queryClient = useQueryClient();
 
-  return useMutation({
+  return useSupabaseMutation<Bounty, { bountyId: number; userId: string }>({
     mutationFn: async ({ bountyId, userId }: { bountyId: number; userId: string }) => {
       const { data, error } = await supabase
         .from('bounties')
@@ -176,6 +207,8 @@ export const useAssignBounty = () => {
       if (error) throw error;
       return data as Bounty;
     },
+    table: 'bounties',
+    operation: 'Bounty 할당',
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bounties'] });
     },

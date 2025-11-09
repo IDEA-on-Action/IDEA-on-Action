@@ -115,50 +115,32 @@ export default defineConfig(({ mode }) => ({
     rollupOptions: {
       output: {
         manualChunks: (id) => {
-          // Vendor chunks - React ecosystem (including React Query)
+          // Vendor chunks - React ecosystem (all React-dependent libraries)
+          // IMPORTANT: All React-based libraries must be in the same chunk to avoid
+          // "Cannot read properties of undefined" errors due to loading order issues
           if (
             id.includes('node_modules/react') ||
             id.includes('node_modules/react-dom') ||
-            id.includes('node_modules/@tanstack/react-query')
+            id.includes('node_modules/@tanstack/react-query') ||
+            id.includes('node_modules/react-router') ||
+            id.includes('node_modules/recharts') ||
+            id.includes('node_modules/@radix-ui') ||
+            id.includes('node_modules/react-markdown') ||
+            id.includes('node_modules/remark') ||
+            id.includes('node_modules/rehype') ||
+            id.includes('node_modules/react-hook-form') ||
+            id.includes('node_modules/@hookform')
           ) {
             return 'vendor-react';
           }
 
-          // Vendor chunks - Supabase
+          // Vendor chunks - Supabase (independent of React)
           if (id.includes('node_modules/@supabase')) {
             return 'vendor-supabase';
           }
 
-          // Vendor chunks - Radix UI (shadcn/ui base)
-          if (id.includes('node_modules/@radix-ui')) {
-            return 'vendor-ui';
-          }
-
-          // Vendor chunks - React Router
-          if (id.includes('node_modules/react-router')) {
-            return 'vendor-router';
-          }
-
-          // Vendor chunks - Charts (Recharts)
-          if (id.includes('node_modules/recharts')) {
-            return 'vendor-charts';
-          }
-
-          // Vendor chunks - Markdown (react-markdown, remark, rehype)
-          if (
-            id.includes('node_modules/react-markdown') ||
-            id.includes('node_modules/remark') ||
-            id.includes('node_modules/rehype')
-          ) {
-            return 'vendor-markdown';
-          }
-
-          // Vendor chunks - Forms (react-hook-form, zod)
-          if (
-            id.includes('node_modules/react-hook-form') ||
-            id.includes('node_modules/zod') ||
-            id.includes('node_modules/@hookform')
-          ) {
+          // Vendor chunks - Forms (zod only, react-hook-form moved to vendor-react)
+          if (id.includes('node_modules/zod')) {
             return 'vendor-forms';
           }
 
@@ -180,42 +162,13 @@ export default defineConfig(({ mode }) => ({
             return 'vendor-sentry';
           }
 
-          // Admin pages chunk
-          if (id.includes('/src/pages/admin/')) {
-            return 'pages-admin';
-          }
-
-          // Blog & CMS chunk
-          if (
-            id.includes('/src/pages/Blog') ||
-            id.includes('/src/pages/Notices') ||
-            id.includes('/src/components/blog/') ||
-            id.includes('/src/components/notices/')
-          ) {
-            return 'pages-cms';
-          }
-
-          // E-commerce chunk
-          if (
-            id.includes('/src/pages/Checkout') ||
-            id.includes('/src/pages/Payment') ||
-            id.includes('/src/pages/Orders') ||
-            id.includes('/src/components/cart/')
-          ) {
-            return 'pages-ecommerce';
-          }
-
-          // Services chunk
-          if (
-            id.includes('/src/pages/Services') ||
-            id.includes('/src/pages/ServiceDetail')
-          ) {
-            return 'pages-services';
-          }
+          // NOTE: Application code (src/) is NOT manually chunked.
+          // Let Vite handle code-splitting automatically via lazy loading.
+          // This ensures vendor-react is always loaded first.
         },
       },
     },
-    // Set chunk size warning limit to 500 kB
-    chunkSizeWarningLimit: 500,
+    // Set chunk size warning limit to 1000 kB (vendor-react can be large)
+    chunkSizeWarningLimit: 1000,
   },
 }));
