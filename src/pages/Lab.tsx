@@ -1,10 +1,12 @@
 import { Helmet } from "react-helmet-async";
+import { useEffect } from "react";
 import { Beaker, Award, Clock, Target, Users, DollarSign, Package } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useBounties } from "@/hooks/useBounties";
 import { PageLayout, HeroSection, Section } from "@/components/layouts";
 import { LoadingState, ErrorState, EmptyState } from "@/components/shared";
+import { analytics } from "@/lib/analytics";
 
 const Lab = () => {
   const { data: bountiesData, isLoading, error } = useBounties();
@@ -27,6 +29,12 @@ const Lab = () => {
     "중급": "text-yellow-600",
     "고급": "text-red-600"
   };
+
+  // GA4: Lab 페이지 조회 이벤트
+  useEffect(() => {
+    // Lab 페이지 방문 시 커뮤니티 참여 이벤트로 트래킹
+    analytics.joinCommunity("view", "bounties");
+  }, []);
 
   if (isLoading) {
     return <LoadingState />;

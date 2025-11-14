@@ -11,6 +11,7 @@ import { useRoadmap } from "@/hooks/useRoadmap";
 import { PageLayout, HeroSection, Section } from "@/components/layouts";
 import { LoadingState, ErrorState, EmptyState } from "@/components/shared";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
+import { analytics } from "@/lib/analytics";
 
 const Roadmap = () => {
   const { data: roadmapData, isLoading, error } = useRoadmap();
@@ -22,6 +23,14 @@ const Roadmap = () => {
   useEffect(() => {
     if (roadmapData && roadmapData.length > 0 && !selectedQuarter) {
       setSelectedQuarter(roadmapData[0].quarter);
+    }
+  }, [roadmapData, selectedQuarter]);
+
+  // GA4: 로드맵 조회 이벤트
+  useEffect(() => {
+    if (roadmapData && roadmapData.length > 0 && selectedQuarter) {
+      const currentQuarter = roadmapData.find(q => q.quarter === selectedQuarter);
+      analytics.viewRoadmap(selectedQuarter, currentQuarter?.theme);
     }
   }, [roadmapData, selectedQuarter]);
 

@@ -1,9 +1,16 @@
 import { Helmet } from "react-helmet-async";
+import { useEffect } from "react";
 import { MessageCircle, Heart, Users, TrendingUp } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { GiscusComments } from "@/components/community/GiscusComments";
+import { analytics } from "@/lib/analytics";
 
 const Community = () => {
+  // GA4: 커뮤니티 페이지 조회 이벤트
+  useEffect(() => {
+    analytics.joinCommunity("view");
+  }, []);
+
   return (
     <>
       <Helmet>
