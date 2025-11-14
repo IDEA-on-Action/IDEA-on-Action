@@ -19,6 +19,7 @@ import { useProjects } from "@/hooks/useProjects";
 import { useBounties } from "@/hooks/useBounties";
 import { Link } from "react-router-dom";
 import { analytics } from "@/lib/analytics";
+import { generateOrganizationSchema, generateWebSiteSchema, injectJsonLd } from "@/lib/json-ld";
 
 const Index = () => {
   // Version 2.0 데이터 훅
@@ -104,30 +105,14 @@ const Index = () => {
         <meta name="twitter:description" content="투명한 개발 과정과 커뮤니티 참여를 통해 혁신적인 프로젝트를 만들어갑니다" />
         <meta name="twitter:image" content="https://www.ideaonaction.ai/og-image.png" />
 
-        {/* JSON-LD Structured Data */}
+        {/* JSON-LD Structured Data - Organization */}
         <script type="application/ld+json">
-          {JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "Organization",
-            "name": "IDEA on Action",
-            "alternateName": "생각과행동",
-            "url": "https://www.ideaonaction.ai",
-            "logo": "https://www.ideaonaction.ai/logo-full.png",
-            "description": "아이디어 실험실이자 커뮤니티형 프로덕트 스튜디오",
-            "founder": {
-              "@type": "Person",
-              "name": "서민원",
-              "jobTitle": "대표"
-            },
-            "contactPoint": {
-              "@type": "ContactPoint",
-              "email": "sinclairseo@gmail.com",
-              "contactType": "customer service"
-            },
-            "sameAs": [
-              "https://github.com/IDEA-on-Action"
-            ]
-          })}
+          {injectJsonLd(generateOrganizationSchema())}
+        </script>
+
+        {/* JSON-LD Structured Data - WebSite */}
+        <script type="application/ld+json">
+          {injectJsonLd(generateWebSiteSchema())}
         </script>
       </Helmet>
       <Header />
@@ -365,7 +350,7 @@ const Index = () => {
               </div>
 
               <div className="text-center">
-                <Link to="/lab">
+                <Link to="/lab" onClick={() => analytics.clickCTA("home_bounty", "모든 바운티 보기", "/lab")}>
                   <Button variant="outline" className="gap-2">
                     모든 바운티 보기
                     <ArrowRight className="w-4 h-4" />

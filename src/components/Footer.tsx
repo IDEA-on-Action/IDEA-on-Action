@@ -75,17 +75,26 @@ const FOOTER_SECTIONS: FooterSection[] = [
   {
     title: "리소스",
     links: [
-      { 
-        label: "GitHub", 
-        href: "https://github.com/IDEA-on-Action/IdeaonAction-Homepage", 
-        isExternal: true 
+      {
+        label: "GitHub",
+        href: "https://github.com/IDEA-on-Action/IdeaonAction-Homepage",
+        isExternal: true
       },
-      { 
-        label: "웹사이트", 
-        href: "https://www.ideaonaction.ai", 
-        isExternal: true 
+      {
+        label: "웹사이트",
+        href: "https://www.ideaonaction.ai",
+        isExternal: true
       },
       { label: "블로그", href: "/blog" }
+    ]
+  },
+  {
+    title: "법적 정보",
+    links: [
+      { label: "이용약관", href: "/terms" },
+      { label: "개인정보처리방침", href: "/privacy" },
+      { label: "환불정책", href: "/refund-policy" },
+      { label: "전자금융거래약관", href: "/electronic-finance-terms" }
     ]
   }
 ];
@@ -192,11 +201,30 @@ const Footer = ({ className = "" }: FooterProps) => {
         </div>
 
         {/* Copyright Section */}
-        <div className="pt-8 border-t border-border text-center text-sm text-muted-foreground">
-          <p>
-            © {COPYRIGHT_INFO.year} {COPYRIGHT_INFO.company}. {COPYRIGHT_INFO.rights}
-          </p>
-          <p className="mt-2 text-accent font-semibold">{BRAND_INFO.slogan}</p>
+        <div className="pt-8 border-t border-border">
+          {/* Business Information */}
+          <div className="text-center text-xs text-muted-foreground mb-6 space-y-1">
+            <p>
+              <span className="font-semibold">IDEA on Action (생각과행동)</span> | 대표자: 서민원
+            </p>
+            <p>
+              사업자등록번호: 537-05-01511 | 신고번호: 2025-경기시흥-2094
+            </p>
+            <p>
+              주소: 경기도 시흥시 대은로104번길 11 (은행동, 우남아파트) 103동 601호
+            </p>
+            <p>
+              이메일: sinclair.seo@ideaonaction.ai | 전화: 010-4904-2671
+            </p>
+          </div>
+
+          {/* Copyright & Slogan */}
+          <div className="text-center text-sm text-muted-foreground">
+            <p>
+              © {COPYRIGHT_INFO.year} {COPYRIGHT_INFO.company}. {COPYRIGHT_INFO.rights}
+            </p>
+            <p className="mt-2 text-accent font-semibold">{BRAND_INFO.slogan}</p>
+          </div>
         </div>
       </div>
     </footer>

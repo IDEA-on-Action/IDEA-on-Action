@@ -20,6 +20,7 @@ import { LoadingState } from '@/components/shared/LoadingState'
 import { ErrorState } from '@/components/shared/ErrorState'
 import { formatDistanceToNow } from 'date-fns'
 import { devError } from '@/lib/errors'
+import { generateArticleSchema, injectJsonLd } from '@/lib/json-ld'
 
 export default function BlogPost() {
   const { slug } = useParams<{ slug: string }>()
@@ -90,6 +91,20 @@ export default function BlogPost() {
         {post.featured_image && (
           <meta property="og:image" content={post.featured_image} />
         )}
+
+        {/* JSON-LD Structured Data - Article */}
+        <script type="application/ld+json">
+          {injectJsonLd(generateArticleSchema({
+            title: post.title,
+            description: post.excerpt || '',
+            slug: slug || '',
+            publishedAt: post.published_at || '',
+            updatedAt: post.updated_at,
+            author: authorName,
+            image: post.featured_image,
+            tags: post.tags?.map(tag => tag.name).filter(Boolean) || []
+          }))}
+        </script>
       </Helmet>
 
       <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">

@@ -122,11 +122,12 @@ describe('WorkWithUsForm', () => {
     const emailInput = screen.getByLabelText('이메일 *');
     const messageInput = screen.getByLabelText('프로젝트 설명 *');
 
-    await user.type(nameInput, '홍길동');
-    await user.type(emailInput, 'invalid-email');
+    await user.type(nameInput, '홍길동', { delay: null });
+    await user.type(emailInput, 'invalid-email', { delay: null });
     await user.type(
       messageInput,
-      '프로젝트에 대해 상세히 설명해주세요. 어떤 문제를 해결하고 싶으신가요? 목표는 무엇인가요? 최소 50자 이상의 내용을 작성해야 합니다.'
+      '프로젝트에 대해 상세히 설명해주세요. 어떤 문제를 해결하고 싶으신가요? 목표는 무엇인가요? 최소 50자 이상의 내용을 작성해야 합니다.',
+      { delay: null }
     );
 
     const submitButton = screen.getByRole('button', { name: /제안서 보내기/i });

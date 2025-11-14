@@ -1,14 +1,17 @@
 import { Helmet } from "react-helmet-async";
+import { Link } from "react-router-dom";
 import { Activity, Briefcase, Award, Users, TrendingUp, GitBranch, Mail } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { PageLayout } from "@/components/layouts/PageLayout";
 import { LoadingState } from "@/components/shared/LoadingState";
 import { ErrorState } from "@/components/shared/ErrorState";
+import { ActivityTrendChart } from "@/components/status/ActivityTrendChart";
 import { useProjects } from "@/hooks/useProjects";
 import { useBounties } from "@/hooks/useBounties";
 import { useLogs } from "@/hooks/useLogs";
 import { useNewsletterStats } from "@/hooks/useNewsletter";
+import { analytics } from "@/lib/analytics";
 
 const Status = () => {
   const { data: projectsData, isLoading: projectsLoading, error: projectsError } = useProjects();
@@ -228,6 +231,11 @@ const Status = () => {
               </Card>
             </div>
 
+            {/* Activity Trend Chart */}
+            <div className="mb-12">
+              <ActivityTrendChart logs={logs} />
+            </div>
+
             {/* Tech Stack Stats */}
             <Card className="glass-card p-8">
               <h2 className="text-2xl font-bold mb-6">기술 스택 사용 현황</h2>
@@ -284,18 +292,20 @@ const Status = () => {
               투명한 지표는 함께 만들어갈 때 더 의미있습니다.
             </p>
             <div className="flex items-center justify-center gap-4">
-              <a
-                href="/lab"
+              <Link
+                to="/lab"
                 className="px-6 py-3 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors font-semibold"
+                onClick={() => analytics.clickCTA("status_cta", "바운티 참여하기", "/lab")}
               >
                 바운티 참여하기
-              </a>
-              <a
-                href="/work-with-us"
+              </Link>
+              <Link
+                to="/work-with-us"
                 className="px-6 py-3 glass-card rounded-md hover:bg-muted/50 transition-colors font-semibold"
+                onClick={() => analytics.clickCTA("status_cta", "협업 제안하기", "/work-with-us")}
               >
                 협업 제안하기
-              </a>
+              </Link>
             </div>
           </div>
         </section>

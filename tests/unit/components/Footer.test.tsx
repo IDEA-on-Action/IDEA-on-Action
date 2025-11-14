@@ -1,9 +1,20 @@
-import { render, screen } from '@testing-library/react';
+import { render as rtlRender, screen } from '@testing-library/react';
+import { BrowserRouter } from 'react-router-dom';
 import { axe, toHaveNoViolations } from 'jest-axe';
 import Footer from '@/components/Footer';
 
 // Extend Jest matchers
 expect.extend(toHaveNoViolations);
+
+// Custom render with Router wrapper
+const render = (ui: React.ReactElement, options = {}) => {
+  return rtlRender(ui, {
+    wrapper: ({ children }: { children: React.ReactNode }) => (
+      <BrowserRouter>{children}</BrowserRouter>
+    ),
+    ...options,
+  });
+};
 
 describe('Footer Component', () => {
   it('renders without crashing', () => {

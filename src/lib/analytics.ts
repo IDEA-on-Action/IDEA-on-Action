@@ -373,4 +373,12 @@ export const analytics = {
       goal: goal,
     });
   },
+
+  // 21. Portfolio 조회
+  viewPortfolio: (projectId?: string, projectTitle?: string) => {
+    trackEvent("view_portfolio", {
+      project_id: projectId,
+      project_title: projectTitle,
+    });
+  },
 };

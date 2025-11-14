@@ -1,5 +1,5 @@
 import { Helmet } from "react-helmet-async";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Briefcase, GitBranch, Users, TrendingUp, ExternalLink, Github } from "lucide-react";
 import { Card } from "@/components/ui/card";
@@ -10,11 +10,17 @@ import { Button } from "@/components/ui/button";
 import { useProjects } from "@/hooks/useProjects";
 import { PageLayout, HeroSection, Section } from "@/components/layouts";
 import { LoadingState, ErrorState, EmptyState } from "@/components/shared";
+import { analytics } from "@/lib/analytics";
 
 const Portfolio = () => {
   const { data: projectsData, isLoading, error } = useProjects();
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
   const navigate = useNavigate();
+
+  // GA4: Portfolio 페이지 조회 이벤트
+  useEffect(() => {
+    analytics.viewPortfolio();
+  }, []);
 
   const statusLabels = {
     "all": "전체",

@@ -9,7 +9,41 @@
 
 ---
 
-## [Unreleased] - Version 2.0 진행 중
+## [2.0.0] - 2025-11-14
+
+### 🎉 Version 2.0 Sprint 3 완료 - Automation & Open Metrics
+
+**완료율**: 100% (7/7 작업)
+**테스트**: 223개 (E2E 55, Unit 168)
+**SEO**: sitemap 15개 URL, JSON-LD 5개 스키마
+**배포**: Ready to Deploy
+
+#### Added
+- **E2E 테스트 55개** (Task 3.5)
+  - 사용자 여정 테스트: journey-1-visitor (9), journey-2-collaborator (10), journey-3-fan (11)
+  - 폼 제출 테스트: work-with-us (14), newsletter (11)
+- **JSON-LD 구조화 데이터** (Task 3.6)
+  - src/lib/json-ld.ts (5개 스키마 생성기)
+  - Organization, WebSite, Person, Article, Breadcrumb 스키마
+- **Vercel 배포 가이드** (Task 3.7)
+  - docs/guides/deployment/vercel-deployment-sprint3.md
+
+#### Changed
+- **SEO 메타데이터 개선** (Task 3.6)
+  - Index.tsx: Organization + WebSite JSON-LD 추가
+  - About.tsx: Person JSON-LD 추가
+  - BlogPost.tsx: Article JSON-LD 추가
+- **sitemap.xml 재생성** (15개 URL)
+  - 12개 정적 페이지 + 3개 프로젝트 페이지
+
+#### Fixed
+- Lighthouse 성능 측정 (로컬: P44-53, 프로덕션 예상: P75-85)
+- 환경 변수 12개 검증 완료
+- GitHub Actions 워크플로우 6개 검증
+
+---
+
+## [Unreleased]
 
 ### Completed
 - **Phase 14: 고급 분석 대시보드** (완료 - 100%) ✅

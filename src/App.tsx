@@ -90,6 +90,12 @@ const Community = lazy(() => import("./pages/Community"));
 const WorkWithUs = lazy(() => import("./pages/WorkWithUs"));
 const Status = lazy(() => import("./pages/Status"));
 
+// Lazy load (Code Split) - Legal pages
+const Terms = lazy(() => import("./pages/Terms"));
+const Privacy = lazy(() => import("./pages/Privacy"));
+const RefundPolicy = lazy(() => import("./pages/RefundPolicy"));
+const ElectronicFinanceTerms = lazy(() => import("./pages/ElectronicFinanceTerms"));
+
 // Lazy load (Code Split) - Admin pages (separate chunk)
 const AdminLayout = lazy(() => import("./components/layouts/AdminLayout"));
 const Dashboard = lazy(() => import("./pages/admin/Dashboard"));
@@ -172,6 +178,12 @@ const App = () => (
               <Route path="/community" element={<Community />} />
               <Route path="/work-with-us" element={<WorkWithUs />} />
               <Route path="/status" element={<Status />} />
+
+              {/* Legal Routes */}
+              <Route path="/terms" element={<Terms />} />
+              <Route path="/privacy" element={<Privacy />} />
+              <Route path="/refund-policy" element={<RefundPolicy />} />
+              <Route path="/electronic-finance-terms" element={<ElectronicFinanceTerms />} />
 
               {/* Admin Routes */}
               <Route

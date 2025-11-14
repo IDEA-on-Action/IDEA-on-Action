@@ -3,13 +3,81 @@
 > 프로젝트 작업 목록 및 진행 상황 관리
 
 **마지막 업데이트**: 2025-11-14
-**현재 Phase**: ✅ Version 2.0 Sprint 1 완료 → Sprint 2 준비
-**프로젝트 버전**: 2.0.0-sprint1.0
-**다음 작업**: GitHub Secret 등록, OG Image 생성, Sprint 2 시작
+**현재 Phase**: 🎉 Version 2.0 Sprint 3 완료 → 배포 준비 완료
+**프로젝트 버전**: 2.0.0
+**다음 작업**: 프로덕션 배포, Google Search Console sitemap 제출, 성능 측정
 
 ---
 
 ## ✅ 완료된 작업
+
+### Version 2.0 Sprint 3 완료 🎉 (2025-11-14)
+**목표**: Automation & Open Metrics - 테스트, SEO 최적화, 배포 준비
+**완료일**: 2025-11-14
+**총 소요**: 6시간
+**완료율**: 100% (7/7 작업)
+
+#### Task 3.5: Playwright E2E 테스트 작성 ✅
+- [x] **사용자 여정 테스트 3개** (30개 테스트)
+  - journey-1-visitor.spec.ts (9개) - 처음 방문 → 커뮤니티 참여
+  - journey-2-collaborator.spec.ts (10개) - 협업 제안 → 프로젝트 시작
+  - journey-3-fan.spec.ts (11개) - 정기 방문 → 팬 되기
+- [x] **폼 제출 테스트 2개** (25개 테스트)
+  - work-with-us.spec.ts (14개) - 협업 제안 폼 (유효성 검증, 성공/실패)
+  - newsletter.spec.ts (11개, 기존) - 뉴스레터 구독
+- **총 테스트**: 55개 (목표 20개의 275% 달성)
+- **파일**: 4개 신규 (journey-*.spec.ts, work-with-us.spec.ts)
+
+#### Task 3.6: SEO 최적화 ✅
+- [x] **sitemap.xml 동적 생성** (15개 URL)
+  - 12개 정적 페이지 (Home, About, Roadmap, Portfolio, etc.)
+  - 3개 동적 페이지 (프로젝트 p001, p002, p003)
+  - scripts/generate-sitemap.ts (Supabase 데이터 기반)
+- [x] **robots.txt 검증** (최적화 완료)
+  - Allow: / (모든 공개 페이지)
+  - Disallow: /admin (관리자 페이지)
+- [x] **JSON-LD 구조화 데이터** (5개 스키마)
+  - src/lib/json-ld.ts (유틸리티 라이브러리)
+  - Organization 스키마 (Home)
+  - WebSite 스키마 (Home)
+  - Person 스키마 (About)
+  - Article 스키마 (BlogPost)
+  - Breadcrumb 스키마 (공통)
+- **파일**: 5개 (json-ld.ts 신규, Index.tsx/About.tsx/BlogPost.tsx 수정, sitemap.xml)
+
+#### Task 3.7: 최종 배포 및 검증 ✅
+- [x] **빌드 검증** (21.97s, 3.3 MB)
+  - Main bundle: 357.66 KB → 108.97 KB gzip
+  - Vendor React: 1.2 MB → 383.79 KB gzip
+  - PWA: 122 entries cached
+- [x] **환경 변수 확인** (12개 필수 변수)
+  - Supabase, OAuth, OpenAI, GA4, Payments, Resend
+- [x] **GitHub Actions 워크플로우 검증**
+  - CI Pipeline, Deploy Production, Lighthouse CI
+  - Test E2E, Test Unit, Weekly Recap
+- [x] **Lighthouse CI 실행** (로컬 측정)
+  - Home: P44, A95+, S90+ → 프로덕션 P75-85 예상
+  - Services: P51, A84, S90+
+  - Login: P53, A95+, S66
+- [x] **Vercel 배포 가이드 작성**
+  - docs/guides/deployment/vercel-deployment-sprint3.md
+
+#### 결과 ✅
+- ✅ E2E 테스트: 55개 (목표 20개의 275%)
+- ✅ 단위 테스트: 168개 (기존 133개 + 35개)
+- ✅ SEO: sitemap 15개 URL, JSON-LD 5개 스키마
+- ✅ 배포 준비: 빌드, 환경 변수, CI/CD, Lighthouse
+- 📦 번들: 3.3 MB (108.97 KB gzip main)
+- ⏱️ 빌드: 21.97s
+- 🚀 상태: Ready to Deploy
+
+**다음 단계**:
+- main 브랜치 푸시 → GitHub Actions 자동 배포
+- 프로덕션 Lighthouse 재측정
+- Google Search Console sitemap 제출
+- GA4 이벤트 트래킹 모니터링
+
+---
 
 ### Version 2.0 Sprint 1 완료 ✅ 완료 (2025-11-14)
 **목표**: Structure & Static Data - Home 페이지 강화, SEO 최적화, Weekly Recap 자동화

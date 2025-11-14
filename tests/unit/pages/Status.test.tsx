@@ -22,6 +22,7 @@ vi.mock('@/hooks/useLogs', () => ({
 
 vi.mock('@/hooks/useNewsletter', () => ({
   useNewsletterStats: vi.fn(),
+  useSubscribeNewsletter: vi.fn(),
 }));
 
 // Mock react-helmet-async
@@ -29,10 +30,17 @@ vi.mock('react-helmet-async', () => ({
   Helmet: ({ children }: { children: ReactNode }) => <>{children}</>,
 }));
 
+// Mock ResizeObserver (for Recharts)
+global.ResizeObserver = class ResizeObserver {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+};
+
 import { useProjects } from '@/hooks/useProjects';
 import { useBounties } from '@/hooks/useBounties';
 import { useLogs } from '@/hooks/useLogs';
-import { useNewsletterStats } from '@/hooks/useNewsletter';
+import { useNewsletterStats, useSubscribeNewsletter } from '@/hooks/useNewsletter';
 
 describe('Status Page', () => {
   let queryClient: QueryClient;
@@ -200,6 +208,16 @@ describe('Status Page', () => {
       },
     });
     vi.clearAllMocks();
+
+    // Mock useSubscribeNewsletter (mutation)
+    vi.mocked(useSubscribeNewsletter).mockReturnValue({
+      mutate: vi.fn(),
+      mutateAsync: vi.fn(),
+      isPending: false,
+      isError: false,
+      isSuccess: false,
+      isIdle: true,
+    } as any);
   });
 
   const wrapper = ({ children }: { children: ReactNode }) => (

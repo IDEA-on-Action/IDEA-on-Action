@@ -2,6 +2,7 @@ import { Helmet } from "react-helmet-async";
 import { Target, Eye, Heart, Users } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { PageLayout, HeroSection, Section } from "@/components/layouts";
+import { generatePersonSchema, injectJsonLd } from "@/lib/json-ld";
 
 const About = () => {
   const mission = {
@@ -62,6 +63,11 @@ const About = () => {
         <meta property="og:title" content="회사 소개 - IDEA on Action" />
         <meta property="og:description" content="아이디어 실험실이자 커뮤니티형 프로덕트 스튜디오" />
         <meta property="og:type" content="website" />
+
+        {/* JSON-LD Structured Data - Person */}
+        <script type="application/ld+json">
+          {injectJsonLd(generatePersonSchema())}
+        </script>
       </Helmet>
 
       <PageLayout>
