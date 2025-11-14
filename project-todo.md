@@ -2,14 +2,105 @@
 
 > 프로젝트 작업 목록 및 진행 상황 관리
 
-**마지막 업데이트**: 2025-11-13
-**현재 Phase**: ✅ P0 긴급 이슈 해결 완료 및 테스트 검증
-**프로젝트 버전**: 2.0.0-sprint3.8.1
-**다음 작업**: GA4 이벤트 트래킹 + Version 2.0 Sprint 3 마무리
+**마지막 업데이트**: 2025-11-14
+**현재 Phase**: ✅ Version 2.0 Sprint 3 - Automation & Open Metrics
+**프로젝트 버전**: 2.0.0-sprint3.10
+**다음 작업**: SEO 최적화, E2E 테스트 작성, 최종 배포
 
 ---
 
 ## ✅ 완료된 작업
+
+### Weekly Recap 자동화 구현 ✅ 완료 (2025-11-14)
+**목표**: 활동 로그 기반 주간 요약 자동 생성 및 블로그 발행
+**완료일**: 2025-11-14
+**총 소요**: 45분
+
+#### 구현 내용 ✅
+- [x] **SQL 함수 생성** (20251114000001_weekly_recap_function.sql, 138줄)
+  - `get_weekly_logs()`: 주간 로그 집계 (타입별 그룹화)
+  - `get_weekly_project_activity()`: 주간 프로젝트 활동 집계
+  - `get_weekly_stats()`: 주간 통계 요약 (총 로그, 인기 태그)
+
+- [x] **Supabase Edge Function** (supabase/functions/weekly-recap/index.ts, 287줄)
+  - Deno/TypeScript 기반
+  - Markdown 템플릿 자동 생성 (release/learning/decision 구분)
+  - posts 테이블에 자동 발행
+  - 중복 방지 (slug 기반 upsert)
+
+- [x] **CRON Job 설정** (20251114000002_weekly_recap_cron.sql, 95줄)
+  - pg_cron 기반 스케줄링
+  - 매주 일요일 자정 (KST) 자동 실행
+  - 수동 실행 함수 (trigger_weekly_recap)
+
+- [x] **배포 가이드** (docs/guides/weekly-recap-setup.md, 520줄)
+  - 설치 단계 (Step 1-3)
+  - 테스트 방법 (SQL/cURL/CLI)
+  - 트러블슈팅 가이드 (4가지 케이스)
+  - 커스터마이징 방법
+
+#### 결과 ✅
+- ✅ 총 840줄 코드 추가 (4개 파일)
+- ✅ 바운티 요구사항 충족 (150,000원, 12시간 예상)
+- 커밋: 6ed92b0
+- 배포 대기: Supabase CLI로 Edge Function 배포 필요
+
+**다음 단계**:
+- Supabase CLI로 Edge Function 배포 (선택)
+- AI 요약 통합 (OpenAI API, 선택)
+- 이메일 발송 (Resend API, 선택)
+
+---
+
+### GA4 이벤트 트래킹 완료 ✅ 완료 (2025-11-14)
+**목표**: Version 2.0 Sprint 3 이벤트 트래킹 전체 완료
+**완료일**: 2025-11-14
+**총 소요**: 1시간
+
+#### 1단계: Home & Newsletter 이벤트 추가 ✅
+- [x] **analytics.ts 이벤트 함수 5개 추가**
+  - viewHome(): 홈 페이지 조회
+  - subscribeNewsletter(email, location): 뉴스레터 구독 (위치 트래킹)
+  - joinCommunity(action, topic): 커뮤니티 참여
+  - applyBounty(bountyId, title, reward): 바운티 신청
+  - viewRoadmap(quarter, goal): 로드맵 조회
+
+- [x] **Index.tsx (Home)**
+  - useEffect로 analytics.viewHome() 호출
+  - NewsletterForm에 location="home_inline" prop 추가
+
+- [x] **NewsletterForm.tsx**
+  - location prop 추가 (footer, home_inline, popup)
+  - analytics.subscribeNewsletter() 호출
+  - 성공 시 이메일 초기화 (setEmail(''))
+
+- [x] **Footer.tsx**
+  - NewsletterForm에 location="footer" prop 추가
+
+#### 2단계: Roadmap, Community, Lab 이벤트 추가 ✅
+- [x] **Roadmap.tsx**
+  - analytics.viewRoadmap(quarter, theme) 호출
+  - 분기 선택 시마다 트래킹
+
+- [x] **Community.tsx**
+  - analytics.joinCommunity("view") 호출
+  - 페이지 방문 트래킹
+
+- [x] **Lab.tsx**
+  - analytics.joinCommunity("view", "bounties") 호출
+  - 바운티 조회 트래킹
+
+#### 결과 ✅
+- ✅ 5개 이벤트 전체 적용 완료
+- ✅ 빌드 성공: 38.11s, 120 entries (3040.53 KiB)
+- 커밋: 77229cb (Home & Newsletter), d002e68 (Roadmap, Community, Lab)
+- GTM/GA4 dataLayer를 통해 자동 전송
+
+**Privacy 고려사항**:
+- 이메일 도메인만 저장 (개인정보 보호)
+- 위치 기반 트래킹 (사용자 행동 분석)
+
+---
 
 ### Playwright Newsletter 테스트 활성화 및 검증 ✅ 완료 (2025-11-13)
 **목표**: RLS 정책 수정 효과 검증
