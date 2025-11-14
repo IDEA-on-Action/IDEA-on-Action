@@ -32,6 +32,8 @@ coverage/
 blob-report/
 playwright/.cache/
 .lighthouseci/
+lighthouse-report.html
+localhost_*.report.html
 
 # Repomix output
 repomix-output.md
