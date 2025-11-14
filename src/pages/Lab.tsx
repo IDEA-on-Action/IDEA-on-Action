@@ -139,7 +139,7 @@ const Lab = () => {
                       </div>
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <Clock className="w-4 h-4" />
-                        <span>~{bounty.estimatedHours}시간</span>
+                        <span>~{bounty.estimated_hours}시간</span>
                       </div>
                     </div>
                     <div className="space-y-2">
@@ -157,9 +157,9 @@ const Lab = () => {
                   </div>
 
                   {/* Skills */}
-                  {bounty.skillsRequired && bounty.skillsRequired.length > 0 && (
+                  {bounty.skills_required && bounty.skills_required.length > 0 && (
                     <div className="flex flex-wrap gap-2">
-                      {bounty.skillsRequired.map((skill, skillIndex) => (
+                      {bounty.skills_required.map((skill, skillIndex) => (
                         <Badge key={skillIndex} variant="secondary" className="text-xs">
                           {skill}
                         </Badge>

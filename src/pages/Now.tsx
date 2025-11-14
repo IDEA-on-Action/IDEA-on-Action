@@ -95,14 +95,12 @@ const Now = () => {
                         <div className="flex items-center gap-4 text-sm text-muted-foreground pt-2 border-t">
                           <div className="flex items-center gap-1">
                             <Clock className="w-3 h-3" />
-                            {new Date(log.createdAt).toLocaleDateString('ko-KR', {
+                            {new Date(log.created_at).toLocaleDateString('ko-KR', {
                               year: 'numeric',
                               month: 'long',
                               day: 'numeric'
                             })}
                           </div>
-                          <span>•</span>
-                          <span>{log.author}</span>
                           {log.tags && log.tags.length > 0 && (
                             <>
                               <span>•</span>
