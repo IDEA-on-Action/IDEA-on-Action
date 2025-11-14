@@ -151,7 +151,7 @@ const Footer = ({ className = "" }: FooterProps) => {
               <p className="text-xs text-muted-foreground mb-3">
                 최신 소식과 인사이트를 받아보세요
               </p>
-              <NewsletterForm variant="stacked" showIcon={false} />
+              <NewsletterForm variant="stacked" showIcon={false} location="footer" />
             </div>
           </div>
 

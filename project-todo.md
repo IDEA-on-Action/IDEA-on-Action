@@ -2,13 +2,95 @@
 
 > 프로젝트 작업 목록 및 진행 상황 관리
 
-**마지막 업데이트**: 2025-01-09
-**현재 Phase**: ✅ 전체 프로젝트 리팩토링 완료 및 배포
+**마지막 업데이트**: 2025-11-13
+**현재 Phase**: ✅ P0 긴급 이슈 해결 완료 및 테스트 검증
 **프로젝트 버전**: 2.0.0-sprint3.8.1
+**다음 작업**: GA4 이벤트 트래킹 + Version 2.0 Sprint 3 마무리
 
 ---
 
 ## ✅ 완료된 작업
+
+### Playwright Newsletter 테스트 활성화 및 검증 ✅ 완료 (2025-11-13)
+**목표**: RLS 정책 수정 효과 검증
+**완료일**: 2025-11-13
+**총 소요**: 30분
+
+#### 테스트 활성화 ✅
+- [x] **Newsletter E2E 테스트 5개 활성화**
+  - tests/e2e/newsletter.spec.ts: `.skip` 제거
+  - "유효한 이메일 제출 시 성공 메시지 표시"
+  - "중복 이메일 제출 시 에러 메시지 표시"
+  - "Home 페이지 inline 폼에서 구독 가능"
+  - "성공 후 입력 필드가 초기화됨"
+  - "모바일 뷰포트에서 Newsletter 폼 작동"
+
+#### 테스트 결과 ✅
+- **전체**: 55개 테스트 (11개 × 5개 브라우저)
+- **통과**: 43개 (78.2% 성공률)
+- **실패**: 12개 (21.8%)
+- **핵심 성공**: Newsletter 구독 기능 5/5 브라우저 통과 ✅
+
+#### 발견된 이슈 ❌
+- **입력 필드 초기화 버그** (P1): 성공 후 이메일 필드 미초기화 (5/5 브라우저)
+- **Firefox 타임아웃** (P2): 페이지 로딩 지연 (6개 테스트)
+- **Mobile Chrome 타임아웃** (P2): 모바일 성능 (2개 테스트)
+
+#### 결과 ✅
+- RLS 정책 수정 효과 확인 완료
+- 핵심 기능 정상 동작
+- 커밋: c61f038
+- 문서: CLAUDE.md, docs/daily-summary-2025-11-13.md 업데이트
+
+**다음 단계**: P1 이슈 수정 (선택) 또는 Version 2.0 Sprint 3 마무리
+
+---
+
+### P0 긴급 이슈 해결: Roadmap/Newsletter RLS 정책 수정 ✅ 완료 (2025-11-13)
+**목표**: 프로덕션 사이트 401 오류 해결
+**완료일**: 2025-11-13
+**총 소요**: 2시간
+
+#### 문제 분석 🔍
+- **Roadmap 페이지**: `GET /rest/v1/roadmap → 401 Unauthorized`
+- **Newsletter 구독**: `POST /rest/v1/newsletter_subscriptions → 401 Unauthorized`
+- **근본 원인**: PostgreSQL RLS = GRANT 권한 + RLS 정책 (둘 다 필요)
+
+#### 해결 방법 ✅
+- [x] **스키마 조회 우선**
+  - STEP1-schema-inspection.sql 생성
+  - 실제 GRANT 권한 및 RLS 정책 확인
+
+- [x] **Roadmap 권한 부여**
+  - FINAL-FIX-roadmap-grant.sql
+  - `GRANT SELECT ON roadmap TO anon, authenticated;`
+
+- [x] **user_roles 권한 부여**
+  - FIX-user-roles-grant.sql
+  - `GRANT SELECT ON user_roles, roles TO anon, authenticated;`
+  - INSERT RETURNING에서 SELECT 정책 평가 시 필요
+
+- [x] **Newsletter RLS 정책 정리**
+  - FINAL-newsletter-rls-cleanup.sql
+  - 7개 중복 정책 → 4개 명확한 정책
+  - anon SELECT 정책 추가 (INSERT RETURNING용)
+
+#### 결과 ✅
+- ✅ Roadmap 페이지 정상 동작
+- ✅ Newsletter 구독 성공 ("뉴스레터 구독 신청 완료!" 토스트)
+- ✅ 프로덕션 사이트 안정화
+- 커밋: 2a23fbb
+- 문서: docs/daily-summary-2025-11-13.md 생성
+
+#### 교훈 📝
+- PostgreSQL RLS는 GRANT + RLS 정책 2단계
+- INSERT RETURNING은 SELECT 정책 필요
+- 스키마 조회가 최우선 (추측 금지)
+- 정책 중복은 충돌 유발
+
+**다음 단계**: Newsletter 테스트 검증
+
+---
 
 ### 전체 프로젝트 리팩토링 완료 ✅ 완료 (2025-01-09)
 **목표**: 코드 품질 전반 개선 (타입 안정성, 에러 처리, 코드 중복 제거, 컴포넌트 구조)

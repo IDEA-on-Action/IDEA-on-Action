@@ -330,4 +330,47 @@ export const analytics = {
   customEvent: (eventName: string, params: Record<string, unknown>) => {
     trackEvent(eventName, params);
   },
+
+  // ===== Version 2.0 Sprint 3 이벤트 (5개) =====
+
+  // 16. 홈 페이지 조회
+  viewHome: () => {
+    trackEvent("view_home", {
+      page: "home",
+      timestamp: new Date().toISOString(),
+    });
+  },
+
+  // 17. 뉴스레터 구독
+  subscribeNewsletter: (email: string, location: string) => {
+    trackEvent("subscribe_newsletter", {
+      location: location, // 'footer', 'home_inline', 'popup' 등
+      email_domain: email.split("@")[1], // 도메인만 저장 (개인정보 보호)
+    });
+  },
+
+  // 18. 커뮤니티 참여
+  joinCommunity: (action: "comment" | "discussion" | "view", topic?: string) => {
+    trackEvent("join_community", {
+      action: action,
+      topic: topic,
+    });
+  },
+
+  // 19. 바운티 신청
+  applyBounty: (bountyId: string, bountyTitle: string, reward: number) => {
+    trackEvent("apply_bounty", {
+      bounty_id: bountyId,
+      bounty_title: bountyTitle,
+      reward: reward,
+    });
+  },
+
+  // 20. Roadmap 조회
+  viewRoadmap: (quarter?: string, goal?: string) => {
+    trackEvent("view_roadmap", {
+      quarter: quarter,
+      goal: goal,
+    });
+  },
 };

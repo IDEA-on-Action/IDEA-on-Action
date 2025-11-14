@@ -12,12 +12,14 @@ import { useSubscribeNewsletter } from '@/hooks/useNewsletter'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Mail, Loader2 } from 'lucide-react'
+import { analytics } from '@/lib/analytics'
 
 export interface NewsletterFormProps {
   variant?: 'inline' | 'stacked'
   placeholder?: string
   buttonText?: string
   showIcon?: boolean
+  location?: string // 'footer', 'home_inline', 'popup' 등
 }
 
 export function NewsletterForm({
@@ -25,6 +27,7 @@ export function NewsletterForm({
   placeholder = '이메일 주소를 입력하세요',
   buttonText = '구독하기',
   showIcon = true,
+  location = 'unknown',
 }: NewsletterFormProps) {
   const [email, setEmail] = useState('')
   const subscribe = useSubscribeNewsletter()
@@ -33,11 +36,16 @@ export function NewsletterForm({
     e.preventDefault()
     if (!email.trim()) return
 
-    await subscribe.mutateAsync(email)
+    try {
+      await subscribe.mutateAsync(email)
 
-    // 성공 시 이메일 초기화
-    if (subscribe.isSuccess) {
+      // GA4: 뉴스레터 구독 이벤트
+      analytics.subscribeNewsletter(email, location)
+
+      // 성공 시 이메일 초기화
       setEmail('')
+    } catch (error) {
+      // 에러는 useSubscribeNewsletter 훅에서 처리
     }
   }
 
