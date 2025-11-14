@@ -33,7 +33,7 @@ export default function RefundPolicy() {
 
         <div className="prose prose-slate dark:prose-invert max-w-none">
           <p className="text-sm text-muted-foreground">
-            <strong>시행일</strong>: 2025년 1월 14일
+            <strong>시행일</strong>: 2025년 11월 14일
           </p>
 
           <p>
@@ -206,7 +206,7 @@ export default function RefundPolicy() {
 
           <h2>제9조 (환불정책의 변경)</h2>
           <p>
-            이 환불정책은 2025년 1월 14일부터 적용되며, 법령 및 정책에 따른 변경사항이 있는 경우에는
+            이 환불정책은 2025년 11월 14일부터 적용되며, 법령 및 정책에 따른 변경사항이 있는 경우에는
             변경사항의 시행 7일 전부터 공지사항을 통하여 고지할 것입니다.
           </p>
 
@@ -215,7 +215,7 @@ export default function RefundPolicy() {
           <div className="bg-muted/50 p-6 rounded-lg">
             <h3 className="text-lg font-semibold mb-2">부칙</h3>
             <p>
-              <strong>시행일</strong>: 이 환불정책은 2025년 1월 14일부터 시행합니다.
+              <strong>시행일</strong>: 이 환불정책은 2025년 11월 14일부터 시행합니다.
             </p>
           </div>
 

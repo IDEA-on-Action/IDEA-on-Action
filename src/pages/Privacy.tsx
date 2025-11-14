@@ -36,7 +36,7 @@ export default function Privacy() {
 
         <div className="prose prose-slate dark:prose-invert max-w-none">
           <p className="text-sm text-muted-foreground">
-            <strong>시행일</strong>: 2025년 1월 14일
+            <strong>시행일</strong>: 2025년 11월 14일
           </p>
 
           <p>
@@ -253,7 +253,7 @@ export default function Privacy() {
 
           <h2>제11조 (개인정보처리방침의 변경)</h2>
           <p>
-            이 개인정보처리방침은 2025년 1월 14일부터 적용되며, 법령 및 방침에 따른 변경내용의 추가, 삭제 및 정정이 있는 경우에는
+            이 개인정보처리방침은 2025년 11월 14일부터 적용되며, 법령 및 방침에 따른 변경내용의 추가, 삭제 및 정정이 있는 경우에는
             변경사항의 시행 7일 전부터 공지사항을 통하여 고지할 것입니다.
           </p>
 
@@ -262,7 +262,7 @@ export default function Privacy() {
           <div className="bg-muted/50 p-6 rounded-lg">
             <h3 className="text-lg font-semibold mb-2">부칙</h3>
             <p>
-              <strong>시행일</strong>: 이 개인정보처리방침은 2025년 1월 14일부터 시행합니다.
+              <strong>시행일</strong>: 이 개인정보처리방침은 2025년 11월 14일부터 시행합니다.
             </p>
           </div>
 

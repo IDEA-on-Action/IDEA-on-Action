@@ -33,7 +33,7 @@ export default function Terms() {
 
         <div className="prose prose-slate dark:prose-invert max-w-none">
           <p className="text-sm text-muted-foreground">
-            <strong>시행일</strong>: 2025년 1월 14일
+            <strong>시행일</strong>: 2025년 11월 14일
           </p>
 
           <h2>제1조 (목적)</h2>
@@ -177,7 +177,7 @@ export default function Terms() {
           <div className="bg-muted/50 p-6 rounded-lg">
             <h3 className="text-lg font-semibold mb-2">부칙</h3>
             <p>
-              <strong>시행일</strong>: 이 약관은 2025년 1월 14일부터 시행합니다.
+              <strong>시행일</strong>: 이 약관은 2025년 11월 14일부터 시행합니다.
             </p>
           </div>
 
