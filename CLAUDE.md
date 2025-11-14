@@ -3,12 +3,43 @@
 > Claude와의 개발 협업을 위한 프로젝트 핵심 문서
 
 **마지막 업데이트**: 2025-11-14
-**현재 버전**: 2.0.0-sprint3.9
-**다음 버전**: 2.0.0 (Sprint 3 완료)
-**상태**: ✅ Production Ready | 🚀 Version 2.0 Sprint 3 진행 중 (Task 3.1 완료)
+**현재 버전**: 2.0.0-sprint1.0
+**다음 버전**: 2.0.0-sprint2.0
+**상태**: ✅ Production Ready | 🎉 Version 2.0 Sprint 1 완료
 **개발 방법론**: SDD (Spec-Driven Development)
 
 **최신 업데이트**:
+- 2025-11-14: **Version 2.0 Sprint 1 완료** 🎉 - Structure & Static Data (9개 STEP)
+  - **목표**: Home 페이지 강화, SEO 최적화, Weekly Recap 자동화
+  - **완료 작업**:
+    - ✅ STEP 1-4: RLS 정책 수정 (roadmap, newsletter, user_roles 권한 부여)
+    - ✅ STEP 5: 데이터 검증 (충분한 데이터 확인, 스킵)
+    - ✅ STEP 6: Home 페이지 4개 섹션 추가
+      - Now Highlight (최근 활동 3개, useLogs 훅)
+      - Roadmap Progress (현재 분기 로드맵, useRoadmap 훅)
+      - Portfolio Highlight (진행중/출시 프로젝트 3개, useProjects 훅)
+      - Open Bounty (활성 바운티 3개, useBounties 훅)
+    - ✅ STEP 7: SEO 최적화
+      - Open Graph 메타 태그 (title, description, image, width/height)
+      - Twitter Cards (summary_large_image)
+      - JSON-LD 구조화 데이터 (Organization, founder, contactPoint)
+      - index.html 업데이트 (기본 OG 태그)
+    - ✅ STEP 8: Lighthouse 검증 (robots.txt, sitemap.xml 확인)
+    - ✅ STEP 9: Weekly Recap 자동화
+      - SQL 함수 3개 프로덕션 배포 (get_weekly_logs, get_weekly_project_activity, get_weekly_stats)
+      - Edge Function 검증 완료 (supabase/functions/weekly-recap/index.ts, 250줄)
+      - GitHub Actions 워크플로우 생성 (매주 일요일 15:00 UTC = 월요일 00:00 KST)
+  - **빌드 통계**: 1분 60초, 124개 파일, 108.16 KB gzip (메인 번들), 3040.23 KiB (PWA 120개 캐시)
+  - **프로덕션 확인**: ✅ https://www.ideaonaction.ai/ (HTTP 200, Vercel Cache HIT)
+  - **로컬 테스트**: ✅ http://localhost:4173/ (빌드 성공, SEO 메타 태그 확인)
+  - **파일 변경**: 22개 (+3,520줄)
+    - 수정: 18개 (Index.tsx, index.html, package.json, CLAUDE.md, project-todo.md 등)
+    - 신규: 4개 (weekly-recap.yml, 20251114000001_weekly_recap_function.sql 등)
+  - **커밋**: a73f775
+  - **다음 단계**:
+    - GitHub Secret 등록 (SUPABASE_SERVICE_ROLE_KEY) - Weekly Recap 자동화 활성화
+    - OG Image 생성 (1200x630px, /public/og-image.png) - 소셜 미디어 공유 개선
+    - Sprint 2 시작 (Supabase 연동 강화, Giscus 댓글, Work with Us 폼)
 - 2025-11-14: **Version 2.0 Sprint 3.9 완료** 🎉 - Weekly Recap 자동화 구현 (Task 3.1)
   - **작업**: GitHub Actions Cron으로 Weekly Recap 자동 생성
   - **구현 방식**: Supabase pg_cron → GitHub Actions Cron (보안 개선)

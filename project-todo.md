@@ -3,13 +3,91 @@
 > 프로젝트 작업 목록 및 진행 상황 관리
 
 **마지막 업데이트**: 2025-11-14
-**현재 Phase**: ✅ Version 2.0 Sprint 3 - Automation & Open Metrics
-**프로젝트 버전**: 2.0.0-sprint3.10
-**다음 작업**: SEO 최적화, E2E 테스트 작성, 최종 배포
+**현재 Phase**: ✅ Version 2.0 Sprint 1 완료 → Sprint 2 준비
+**프로젝트 버전**: 2.0.0-sprint1.0
+**다음 작업**: GitHub Secret 등록, OG Image 생성, Sprint 2 시작
 
 ---
 
 ## ✅ 완료된 작업
+
+### Version 2.0 Sprint 1 완료 ✅ 완료 (2025-11-14)
+**목표**: Structure & Static Data - Home 페이지 강화, SEO 최적화, Weekly Recap 자동화
+**완료일**: 2025-11-14
+**총 소요**: 4시간
+
+#### STEP 1-4: RLS 정책 수정 ✅
+- [x] roadmap 테이블 anon SELECT 권한 부여
+- [x] newsletter_subscriptions RLS 정책 정리 (7개 → 4개)
+- [x] user_roles, roles 테이블 anon SELECT 권한 부여
+
+#### STEP 5: 데이터 검증 ✅
+- [x] 충분한 데이터 확인 (스킵 처리)
+
+#### STEP 6: Home 페이지 4개 섹션 추가 ✅
+- [x] **Now Highlight** (최근 활동 3개)
+  - useLogs() 훅 사용
+  - Badge 타입별 variant (release/learning/decision)
+  - /now 페이지 링크
+- [x] **Roadmap Progress** (현재 분기 로드맵)
+  - useRoadmap() 훅 사용
+  - Progress bar 컴포넌트
+  - 위험도 Badge (high/medium/low)
+  - /roadmap 페이지 링크
+- [x] **Portfolio Highlight** (진행중/출시 프로젝트 3개)
+  - useProjects() 훅 사용
+  - 상태별 필터링 (in-progress, launched)
+  - 메트릭 표시 (contributors, commits)
+  - /portfolio 페이지 링크
+- [x] **Open Bounty** (활성 바운티 3개)
+  - useBounties() 훅 사용
+  - 상태 필터링 (open)
+  - 보상 금액 포맷팅 (KRW)
+  - 난이도/예상 시간 표시
+  - /lab 페이지 링크
+
+#### STEP 7: SEO 최적화 ✅
+- [x] **Index.tsx Helmet 추가**
+  - Open Graph 메타 태그 (title, description, type, url, image, width, height)
+  - Twitter Cards (card, title, description, image)
+  - JSON-LD 구조화 데이터 (Organization, founder, contactPoint, sameAs)
+- [x] **index.html 업데이트**
+  - 기본 OG 메타 태그
+  - Twitter Card 메타 태그
+  - og:image 경로 설정
+
+#### STEP 8: Lighthouse 검증 ✅
+- [x] robots.txt 확인 (11개 Allow, 7개 Disallow)
+- [x] sitemap.xml 확인 (11개 URL)
+
+#### STEP 9: Weekly Recap 자동화 ✅
+- [x] **SQL 함수 3개 프로덕션 배포**
+  - get_weekly_logs(start_date, end_date): 타입별 로그 집계
+  - get_weekly_project_activity(start_date, end_date): 프로젝트 활동 집계
+  - get_weekly_stats(start_date, end_date): 주간 통계 요약
+- [x] **Edge Function 검증**
+  - supabase/functions/weekly-recap/index.ts (250줄)
+  - Markdown 템플릿 생성
+  - posts 테이블 자동 발행
+- [x] **GitHub Actions 워크플로우**
+  - .github/workflows/weekly-recap.yml
+  - 매주 일요일 15:00 UTC (월요일 00:00 KST)
+  - HTTP 200 검증 로직
+
+#### 결과 ✅
+- ✅ 빌드 성공: 1분 60초, 124개 파일, 108.16 KB gzip (메인 번들)
+- ✅ PWA: 120개 파일 캐시 (3040.23 KiB)
+- ✅ 프로덕션 배포: https://www.ideaonaction.ai/ (HTTP 200, Vercel Cache HIT)
+- ✅ 로컬 테스트: http://localhost:4173/ (SEO 메타 태그 확인)
+- 파일 변경: 22개 (+3,520줄)
+- 커밋: a73f775
+
+**다음 단계**:
+- GitHub Secret 등록 (SUPABASE_SERVICE_ROLE_KEY)
+- OG Image 생성 (1200x630px, /public/og-image.png)
+- Sprint 2 시작 (Supabase 연동, Giscus 댓글, Work with Us 폼)
+
+---
 
 ### Weekly Recap 자동화 구현 ✅ 완료 (2025-11-14)
 **목표**: 활동 로그 기반 주간 요약 자동 생성 및 블로그 발행
