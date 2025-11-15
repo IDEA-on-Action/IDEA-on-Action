@@ -50,7 +50,49 @@
 
 ---
 
-## [2.0.0] - 2025-11-14
+## [2.0.0] - 2025-11-15
+
+### 🎉 Version 2.0.0 릴리스 - 커뮤니티형 프로덕트 스튜디오
+
+**주요 기능**:
+- ✅ **Sprint 1**: Structure & Static Data (Home 강화, SEO, Weekly Recap)
+- ✅ **Sprint 2**: Supabase Integration & Community (CRUD 훅, 동적 페이지, Giscus, Work with Us, Newsletter)
+- ✅ **Sprint 3**: Automation & Open Metrics (GA4, 테스트, SEO 최적화)
+
+**새 페이지** (8개):
+- About, Roadmap, Portfolio, Now, Lab, Community, Work-with-Us, Status
+
+**핵심 기능**:
+- 프로젝트 관리 (Portfolio, Roadmap)
+- 활동 로그 (Now)
+- 바운티 시스템 (Lab)
+- 커뮤니티 댓글 (Giscus)
+- Work with Us 폼
+- Newsletter 구독
+- 오픈 메트릭스 (Status)
+- Weekly Recap 자동 생성
+
+**기술 스택**:
+- React 18 + TypeScript + Vite
+- Supabase (Backend)
+- React Query (Data Fetching)
+- Giscus (댓글)
+- GA4 (분석)
+- PWA (오프라인 지원)
+
+**테스트**:
+- 단위 테스트: 261/305 통과 (85.6%)
+- E2E 테스트: 24개 파일
+- SEO: sitemap 15개, JSON-LD 5개
+
+**빌드**:
+- 빌드 시간: 21.29s
+- Main bundle: 109.60 kB gzip
+- PWA: 129 entries (3.9 MB)
+
+---
+
+## [2.0.0-sprint3] - 2025-11-14
 
 ### 🎉 Version 2.0 Sprint 3 완료 - Automation & Open Metrics
 
