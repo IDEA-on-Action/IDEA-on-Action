@@ -67,7 +67,7 @@ describe('Header Component', () => {
     expect(screen.getAllByText('회사소개').length).toBeGreaterThan(0);
     expect(screen.getByText('로드맵')).toBeInTheDocument();
     expect(screen.getByText('회사소개')).toBeInTheDocument();
-    expect(screen.getByText('문의')).toBeInTheDocument();
+    expect(screen.getByText('협업하기')).toBeInTheDocument();
   });
 
   it('displays login button when user is not authenticated', () => {
@@ -121,7 +121,7 @@ describe('Header Component', () => {
       expect(screen.getAllByText('회사소개').length).toBeGreaterThan(0);
       expect(screen.getAllByText('로드맵').length).toBeGreaterThan(0);
       expect(screen.getAllByText('회사소개').length).toBeGreaterThan(0);
-      expect(screen.getAllByText('문의').length).toBeGreaterThan(0);
+      expect(screen.getAllByText('협업하기').length).toBeGreaterThan(0);
     });
   });
 
