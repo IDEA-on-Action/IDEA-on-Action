@@ -1,4 +1,5 @@
 {
+  "$comment": "Cache invalidation trigger - 2025-11-16",
   "routes": [
     { "handle": "filesystem" },
     { "src": "/.*", "dest": "/index.html" }
