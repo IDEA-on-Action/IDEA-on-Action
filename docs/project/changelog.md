@@ -50,6 +50,84 @@
 
 ---
 
+## [2.0.0-phase5.2] - 2025-11-15
+
+### 🎯 Phase 5-2 완료 - 성능 & 접근성 개선
+
+**완료율**: 100% (4/4 작업)
+**커밋**: 7개 (305a97d, fc8d7e2, 19c26ef, 63fdf21, 3b10a19, 303e923, c40a12d)
+**변경 파일**: 6개 (Login.tsx, ServiceCard.tsx, BlogCard.tsx, SearchResultCard.tsx, Services.tsx, index.html, src/index.css)
+**빌드**: 23.45s ~ 35.41s, 150 PWA entries
+
+#### 개선 작업 (4개)
+
+**1. Login SEO 메타태그 추가** (커밋 305a97d)
+- Open Graph 태그 4개 (title, description, type, url)
+- Twitter Card 태그 3개 (card, title, description)
+- Canonical URL
+- robots: noindex, nofollow (보안)
+- **예상 효과**: Lighthouse SEO 66% → 85%+ (+19%+)
+
+**2. 이미지 최적화 (CLS 개선)** (커밋 fc8d7e2)
+- ServiceCard.tsx: width=400, height=192
+- BlogCard.tsx: width=400, height=192 + lazy loading
+- SearchResultCard.tsx: width=96, height=96 + lazy loading
+- **효과**:
+  - CLS (Cumulative Layout Shift) 개선
+  - 브라우저 레이아웃 사전 계산 (리플로우 방지)
+  - lazy loading으로 LCP 개선
+- **예상 효과**: Lighthouse Performance 47% → 60%+ (+13%+)
+
+**3. 폰트 preload 최적화 (LCP 개선)** (커밋 19c26ef)
+- Google Fonts preconnect 태그 추가
+  - fonts.googleapis.com
+  - fonts.gstatic.com (crossorigin)
+- CSS @import → HTML `<link>` 변환
+  - 병렬 다운로드 가능
+  - CSS 파싱 대기 불필요
+- **폰트**: Inter (본문) + JetBrains Mono (코드), 9개 웨이트
+- **효과**:
+  - 폰트 다운로드 시작 시점 빨라짐
+  - LCP (Largest Contentful Paint) 개선
+- **예상 효과**: Lighthouse Performance 60% → 65%+ (+5%+)
+
+**4. Services 페이지 접근성 개선** (커밋 63fdf21)
+- 폼 요소 레이블 연결 (aria-labelledby)
+  - Select (정렬) → "sort-label"
+  - Tabs (카테고리) → "category-label"
+- ARIA 속성 추가 (8개)
+  - main: aria-label="서비스 목록"
+  - 로딩 상태: aria-label="카테고리 로딩 중"
+  - 빈 상태: role="status"
+  - 장식용 아이콘: aria-hidden="true"
+- **효과**:
+  - 스크린 리더 폼 컨트롤 정확 인식
+  - 상태 변화 명확 전달
+  - WCAG 2.1 AA 준수 향상
+- **예상 효과**: Lighthouse Accessibility 84% → 85%+ (+1%+)
+
+#### 문서화
+
+- docs/deployment/phase5-monitoring-report.md 업데이트 (3개 커밋)
+- R-5.2 섹션 완성: 완료된 개선 작업 4개 상세 기록
+
+#### 예상 Lighthouse 점수 개선
+
+| 지표 | 이전 (로컬) | 개선 후 (예상) | 증가 |
+|------|------------|---------------|------|
+| **Performance (Home)** | 47% | 65%+ | +18%+ |
+| **Accessibility (Services)** | 84% | 85%+ | +1%+ |
+| **SEO (Login)** | 66% | 85%+ | +19%+ |
+
+#### 남은 작업 (복잡도 높음, 선택)
+
+- Critical CSS 인라인화
+- JavaScript 번들 크기 최적화
+- Code splitting 개선
+- Third-party 스크립트 최적화
+
+---
+
 ## [2.0.0] - 2025-11-15
 
 ### 🎉 Version 2.0.0 릴리스 - 커뮤니티형 프로덕트 스튜디오

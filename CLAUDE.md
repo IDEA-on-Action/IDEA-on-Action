@@ -3,12 +3,38 @@
 > Claude와의 개발 협업을 위한 프로젝트 핵심 문서
 
 **마지막 업데이트**: 2025-11-15
-**현재 버전**: 2.0.0-sprint3.0 (Sprint 3 완료)
-**다음 버전**: 2.0.0 (프로덕션 릴리스 준비)
-**상태**: ✅ Production Ready | 🚀 Sprint 3 완료 (Automation & Open Metrics)
+**현재 버전**: 2.0.0 (프로덕션 릴리스)
+**다음 버전**: 2.1.0 (선택적 기능 추가)
+**상태**: ✅ Production Ready | 📊 Phase 5 완료 (모니터링 & 개선)
 **개발 방법론**: SDD (Spec-Driven Development)
 
 **최신 업데이트**:
+- 2025-11-15: **Phase 5-2 완료** 🎯 - 성능 & 접근성 개선 (4개 작업)
+  - **작업 1: Login SEO 메타태그** ✅ (커밋 305a97d)
+    - Open Graph 태그 4개, Twitter Card 3개, Canonical URL, robots meta
+    - 예상 효과: Lighthouse SEO 66% → 85%+
+  - **작업 2: 이미지 최적화 (CLS 개선)** ✅ (커밋 fc8d7e2)
+    - ServiceCard, BlogCard, SearchResultCard width/height 속성 추가
+    - lazy loading 추가 (BlogCard, SearchResultCard)
+    - 예상 효과: CLS 개선, Performance 47% → 60%+
+  - **작업 3: 폰트 preload 최적화 (LCP 개선)** ✅ (커밋 19c26ef)
+    - Google Fonts preconnect 태그 추가
+    - CSS @import → HTML `<link>` 변환 (병렬 다운로드)
+    - 예상 효과: LCP 개선, Performance 60% → 65%+
+  - **작업 4: Services 접근성 개선** ✅ (커밋 63fdf21)
+    - ARIA 속성 8개 추가 (aria-labelledby, aria-label, role, aria-hidden)
+    - 폼 요소 레이블 연결 (Select, Tabs)
+    - 예상 효과: Lighthouse Accessibility 84% → 85%+
+  - **문서화**: phase5-monitoring-report.md 업데이트 (커밋 3b10a19, 303e923, c40a12d)
+  - **예상 Lighthouse 점수**:
+    - Performance (Home): 47% → 65%+ (+18%+)
+    - Accessibility (Services): 84% → 85%+ (+1%+)
+    - SEO (Login): 66% → 85%+ (+19%+)
+  - **남은 작업** (복잡도 높음, 선택):
+    - Critical CSS 인라인화
+    - JavaScript 번들 크기 최적화
+    - Code splitting 개선
+    - Third-party 스크립트 최적화
 - 2025-11-15: **Version 2.0 Sprint 3 완료** 🎉 - Automation & Open Metrics (Tasks 3.1-3.7)
   - **Task 3.1: Weekly Recap 자동 생성** ✅ (이미 완료)
     - GitHub Actions Cron (매주 일요일 15:00 UTC)
