@@ -207,6 +207,13 @@ const App = () => (
               <Route path="/services/development/design" element={<DesignPage />} />
               <Route path="/services/development/operations" element={<OperationsPage />} />
               <Route path="/services/compass/navigator" element={<NavigatorPage />} />
+
+              {/* Toss Payments Review URLs - Short aliases */}
+              <Route path="/services/mvp" element={<MVPServicePage />} />
+              <Route path="/services/fullstack" element={<FullstackPage />} />
+              <Route path="/services/design" element={<DesignPage />} />
+              <Route path="/services/operations" element={<OperationsPage />} />
+
               <Route path="/pricing" element={<PricingPage />} />
 
               {/* Legal Routes */}

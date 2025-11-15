@@ -22,7 +22,7 @@ export default function MVPServicePage() {
   const { mutate: addToCart, isPending: isAddingToCart } = useAddToCart();
 
   // slug로 데이터베이스 서비스 조회
-  const { data: dbService } = useServiceBySlug(service.id);
+  const { data: dbService } = useServiceBySlug(service.slug);
 
   // 장바구니 담기 핸들러
   const handleAddToCart = (pkg: Package) => {

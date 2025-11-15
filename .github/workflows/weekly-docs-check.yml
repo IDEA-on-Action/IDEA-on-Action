@@ -1,0 +1,75 @@
+name: Weekly Docs Size Check
+
+# 매주 일요일 00:00 (UTC) = 매주 일요일 09:00 (KST)
+on:
+  schedule:
+    - cron: '0 0 * * 0'  # 매주 일요일
+  workflow_dispatch:  # 수동 실행 가능
+
+jobs:
+  check-docs-size:
+    name: Check Documentation Size
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Check docs size
+        id: check
+        run: |
+          node scripts/check-docs-size.js
+        continue-on-error: true
+
+      - name: Create Issue on Warning
+        if: steps.check.outcome == 'failure'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const now = new Date().toISOString().split('T')[0];
+
+            const issue = await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `⚠️ 문서 크기 경고 (${now})`,
+              body: `## ⚠️ 문서 크기가 목표를 초과했습니다
+
+            **체크 날짜**: ${now}
+            **자동화**: GitHub Actions (weekly-docs-check.yml)
+
+            ### 권장 조치
+
+            #### CLAUDE.md (목표: 800 라인 이하)
+            - 과거 업데이트를 \`docs/archive/CLAUDE-history-*.md\`로 이동
+            - 최신 업데이트 5개만 유지
+            - 핵심 섹션(SDD, Constitution, 기술 스택 등)은 유지
+
+            #### project-todo.md (목표: 300 라인 이하)
+            - 완료된 작업을 아카이브로 이동
+            - 스크립트 실행: \`node scripts/archive-completed-todos.js\`
+            - 진행 중/대기 중 작업만 유지
+
+            ### 자동 정리
+            - **월간**: 완료된 TODO 자동 아카이브 (매월 1일)
+            - **주간**: 문서 크기 체크 (매주 일요일)
+
+            ### 참고 문서
+            - [문서 정리 가이드](docs/guides/documentation-maintenance.md)
+            - [아카이브 전략](docs/archive/README.md)
+
+            ---
+            🤖 Automated by GitHub Actions`,
+              labels: ['documentation', 'maintenance', 'automated']
+            });
+
+            console.log(\`Issue created: \${issue.data.html_url}\`);
+
+      - name: Success
+        if: steps.check.outcome == 'success'
+        run: |
+          echo "✅ 모든 문서가 목표 크기 내에 있습니다!"

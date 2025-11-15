@@ -33,7 +33,9 @@
     "check:rls": "node scripts/check-rls-policies.js",
     "fix:rls": "node scripts/apply-rls-policies.js",
     "verify:gtm": "node scripts/verify-google-tags.js",
-    "cancel:workflows": "node scripts/cancel-non-deployment-workflows.js"
+    "cancel:workflows": "node scripts/cancel-non-deployment-workflows.js",
+    "docs:archive": "node scripts/archive-completed-todos.js",
+    "docs:check": "node scripts/check-docs-size.js"
   },
   "dependencies": {
     "@giscus/react": "^3.1.0",
