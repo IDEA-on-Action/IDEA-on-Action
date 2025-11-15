@@ -6,7 +6,11 @@ const path = require('path');
 const envPath = path.join(__dirname, '..', '.env.local');
 if (fs.existsSync(envPath)) {
   const envContent = fs.readFileSync(envPath, 'utf-8');
-  envContent.split('\n').forEach(line => {
+  envContent.split(/\r?\n/).forEach(line => {
+    // Remove carriage return and trim
+    line = line.replace(/\r$/, '').trim();
+    if (!line || line.startsWith('#')) return;
+    
     const match = line.match(/^([^=:#]+)=(.*)$/);
     if (match) {
       const key = match[1].trim();

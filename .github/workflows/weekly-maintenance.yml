@@ -1,0 +1,152 @@
+name: Weekly Maintenance
+
+# 매주 일요일 00:00 UTC (월요일 09:00 KST)
+on:
+  schedule:
+    - cron: '0 0 * * 0'
+  workflow_dispatch:  # 수동 실행 가능
+
+jobs:
+  # 문서 크기 체크
+  docs-check:
+    name: Documentation Size Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Check docs size
+        id: check
+        run: |
+          node scripts/check-docs-size.js
+        continue-on-error: true
+
+      - name: Create Issue on Warning
+        if: steps.check.outcome == 'failure'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const now = new Date().toISOString().split('T')[0];
+
+            const issue = await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `⚠️ 문서 크기 경고 (${now})`,
+              body: `## ⚠️ 문서 크기가 목표를 초과했습니다
+
+            **체크 날짜**: ${now}
+            **자동화**: GitHub Actions (weekly-maintenance.yml)
+
+            ### 권장 조치
+
+            #### CLAUDE.md (목표: 800 라인 이하)
+            - 과거 업데이트를 \`docs/archive/CLAUDE-history-*.md\`로 이동
+            - 최신 업데이트 5개만 유지
+            - 핵심 섹션(SDD, Constitution, 기술 스택 등)은 유지
+
+            #### project-todo.md (목표: 300 라인 이하)
+            - 완료된 작업을 아카이브로 이동
+            - 스크립트 실행: \`npm run docs:archive\`
+            - 진행 중/대기 중 작업만 유지
+
+            ### 자동 정리
+            - **월간**: 완료된 TODO 자동 아카이브 (매월 1일)
+            - **주간**: 문서 크기 체크 (매주 일요일)
+
+            ### 참고 문서
+            - [문서 유지보수 가이드](docs/guides/documentation-maintenance.md)
+            - [아카이브 전략](docs/archive/README.md)
+
+            ---
+            🤖 Automated by GitHub Actions`,
+              labels: ['documentation', 'maintenance', 'automated']
+            });
+
+            console.log(\`Issue created: \${issue.data.html_url}\`);
+
+      - name: Success
+        if: steps.check.outcome == 'success'
+        run: |
+          echo "✅ 모든 문서가 목표 크기 내에 있습니다!"
+
+  # Weekly Recap 생성
+  weekly-recap:
+    name: Weekly Recap Generation
+    runs-on: ubuntu-latest
+    needs: docs-check  # 문서 체크 후 실행
+    timeout-minutes: 5
+
+    steps:
+      - name: Generate Weekly Recap
+        run: |
+          response=$(curl -X POST \
+            https://zykjdneewbzyazfukzyg.supabase.co/functions/v1/weekly-recap \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d '{}' \
+            --fail-with-body \
+            --silent \
+            --show-error \
+            -w "\nHTTP_CODE:%{http_code}")
+
+          echo "$response"
+          http_code=$(echo "$response" | grep HTTP_CODE | cut -d: -f2)
+
+          if [ "$http_code" -eq 200 ]; then
+            echo "✅ Weekly Recap generated successfully"
+          else
+            echo "❌ Weekly Recap generation failed (HTTP $http_code)"
+            exit 1
+          fi
+
+      - name: Log Success
+        if: success()
+        run: echo "📅 Weekly Recap completed at $(date -u +"%Y-%m-%d %H:%M:%S UTC")"
+
+      - name: Log Failure
+        if: failure()
+        run: echo "⚠️ Weekly Recap failed at $(date -u +"%Y-%m-%d %H:%M:%S UTC")"
+
+  # 주간 요약 리포트
+  summary:
+    name: Weekly Summary
+    runs-on: ubuntu-latest
+    needs: [docs-check, weekly-recap]
+    if: always()
+
+    steps:
+      - name: Create Summary
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const docsCheck = '${{ needs.docs-check.result }}';
+            const weeklyRecap = '${{ needs.weekly-recap.result }}';
+
+            const summary = `## 📅 Weekly Maintenance Summary
+
+            **Date**: ${new Date().toISOString().split('T')[0]}
+
+            ### Results
+
+            | Task | Status |
+            |------|--------|
+            | Documentation Size Check | ${docsCheck === 'success' ? '✅' : '❌'} ${docsCheck} |
+            | Weekly Recap Generation | ${weeklyRecap === 'success' ? '✅' : '❌'} ${weeklyRecap} |
+
+            ### Next Run
+            - **Weekly Maintenance**: Every Sunday 00:00 UTC (Monday 09:00 KST)
+            - **Monthly TODO Archive**: 1st of every month
+            - **Quarterly Backlog Review**: 1st of Mar/Jun/Sep/Dec
+
+            ---
+            🤖 Automated by GitHub Actions
+            `;
+
+            console.log(summary);

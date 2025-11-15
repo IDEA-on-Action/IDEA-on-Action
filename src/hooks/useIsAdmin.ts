@@ -14,26 +14,19 @@ import { handleSupabaseError } from '@/lib/errors'
 export function useIsAdmin() {
   const { user } = useAuth()
 
-  console.log('[useIsAdmin] Hook called, user:', user?.id, user?.email)
-
   return useQuery({
     queryKey: ['isAdmin', user?.id],
     queryFn: async () => {
-      console.log('[useIsAdmin] queryFn executing, user.id:', user?.id)
       if (!user?.id) {
-        console.log('[useIsAdmin] No user ID, returning false')
         return false
       }
 
       // admins 테이블에서 관리자 역할 확인 (CMS Phase 3)
-      console.log('[useIsAdmin] Querying admins table for user:', user.id)
       const { data, error } = await supabase
         .from('admins')
         .select('user_id, role')
         .eq('user_id', user.id)
         .maybeSingle()
-
-      console.log('[useIsAdmin] Query result:', { data, error })
 
       if (error) {
         const result = handleSupabaseError(error, {

@@ -7,9 +7,11 @@ on:
     branches: [main, staging, develop]
 
 jobs:
-  lint-and-test:
-    name: Lint & Type Check
+  # Setup: 의존성 설치 및 빌드 (1회만)
+  setup:
+    name: Setup & Build
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     steps:
       - name: Checkout code
@@ -18,31 +20,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Run ESLint
-        run: npm run lint
-
-      - name: TypeScript Type Check
-        run: npx tsc --noEmit
-
-  build:
-    name: Build
-    runs-on: ubuntu-latest
-    needs: lint-and-test
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
+          node-version: '20'
           cache: 'npm'
 
       - name: Install dependencies
@@ -50,6 +28,9 @@ jobs:
 
       - name: Build project
         run: npm run build
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
 
       - name: Check bundle size
         run: |
@@ -57,7 +38,7 @@ jobs:
           du -sh dist
           echo ""
           echo "📊 Detailed breakdown:"
-          du -h dist/* | sort -rh
+          du -h dist/* | sort -rh | head -20
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
@@ -65,3 +46,312 @@ jobs:
           name: build-artifacts
           path: dist
           retention-days: 7
+
+      - name: Cache node_modules
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-modules-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-modules-
+
+  # Lint & Type Check
+  lint:
+    name: Lint & Type Check
+    runs-on: ubuntu-latest
+    needs: setup
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Restore node_modules cache
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-modules-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-modules-
+
+      - name: Run ESLint
+        run: npm run lint
+
+      - name: TypeScript Type Check
+        run: npx tsc --noEmit
+
+  # Unit Tests
+  test-unit:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    needs: setup
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Restore node_modules cache
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-modules-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-modules-
+
+      - name: Run unit tests
+        run: npm run test:unit
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+
+      - name: Run unit tests with coverage
+        run: npm run test:coverage
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+
+      - name: Upload coverage reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-report
+          path: coverage/
+          retention-days: 30
+
+      - name: Comment PR with coverage
+        if: github.event_name == 'pull_request' && always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+
+            let comment = '## 🧪 Unit Test Coverage\n\n';
+
+            try {
+              const coveragePath = 'coverage/coverage-summary.json';
+              if (fs.existsSync(coveragePath)) {
+                const coverage = JSON.parse(fs.readFileSync(coveragePath, 'utf8'));
+                const total = coverage.total;
+
+                comment += '| Metric | Coverage |\n';
+                comment += '|--------|----------|\n';
+                comment += `| Statements | ${total.statements.pct}% |\n`;
+                comment += `| Branches | ${total.branches.pct}% |\n`;
+                comment += `| Functions | ${total.functions.pct}% |\n`;
+                comment += `| Lines | ${total.lines.pct}% |\n`;
+
+                const threshold = 80;
+                const meetsThreshold = total.lines.pct >= threshold;
+                comment += `\n**Status**: ${meetsThreshold ? '✅' : '❌'} ${meetsThreshold ? 'Meets' : 'Below'} threshold (${threshold}%)\n`;
+              } else {
+                comment += '⚠️ Coverage report not found\n';
+              }
+
+              comment += `\n[View detailed report](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})\n`;
+            } catch (error) {
+              comment += `\n⚠️ Could not read coverage: ${error.message}\n`;
+            }
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+
+  # E2E Tests
+  test-e2e:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+    needs: setup
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Restore node_modules cache
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-modules-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-modules-
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts
+          path: dist
+
+      - name: Run E2E tests
+        run: npm run test:e2e
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 30
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: test-results/
+          retention-days: 30
+
+      - name: Comment PR with test results
+        if: github.event_name == 'pull_request' && always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+
+            let comment = '## 🧪 E2E Test Results\n\n';
+
+            try {
+              const testResultsDir = 'test-results';
+              if (fs.existsSync(testResultsDir)) {
+                const files = fs.readdirSync(testResultsDir);
+                comment += `- Test artifacts: ${files.length} files\n`;
+              }
+
+              comment += `\n**Status**: ${{ job.status }}\n`;
+              comment += `\n[View Playwright report](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})\n`;
+            } catch (error) {
+              comment += `\n⚠️ Could not read test results: ${error.message}\n`;
+            }
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+
+  # Lighthouse CI
+  lighthouse:
+    name: Lighthouse CI
+    runs-on: ubuntu-latest
+    needs: setup
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Restore node_modules cache
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-modules-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-modules-
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts
+          path: dist
+
+      - name: Run Lighthouse CI
+        run: npx lhci autorun
+        env:
+          LHCI_GITHUB_APP_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Lighthouse reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: lighthouse-reports
+          path: .lighthouseci/
+          retention-days: 30
+
+      - name: Comment PR with Lighthouse results
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+
+            const manifestPath = '.lighthouseci/manifest.json';
+            if (!fs.existsSync(manifestPath)) {
+              console.log('No Lighthouse manifest found');
+              return;
+            }
+
+            const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+            const reports = manifest.map(entry => {
+              const report = JSON.parse(fs.readFileSync(entry.jsonPath, 'utf8'));
+              return {
+                url: entry.url,
+                performance: Math.round(report.categories.performance.score * 100),
+                accessibility: Math.round(report.categories.accessibility.score * 100),
+                bestPractices: Math.round(report.categories['best-practices'].score * 100),
+                seo: Math.round(report.categories.seo.score * 100),
+                fcp: Math.round(report.audits['first-contentful-paint'].numericValue),
+                lcp: Math.round(report.audits['largest-contentful-paint'].numericValue),
+                cls: report.audits['cumulative-layout-shift'].numericValue.toFixed(3),
+                tbt: Math.round(report.audits['total-blocking-time'].numericValue),
+              };
+            });
+
+            const body = `## 🔍 Lighthouse CI Results
+
+            | URL | Performance | Accessibility | Best Practices | SEO |
+            |-----|-------------|---------------|----------------|-----|
+            ${reports.map(r => `| ${r.url} | ${r.performance} | ${r.accessibility} | ${r.bestPractices} | ${r.seo} |`).join('\n')}
+
+            ### Core Web Vitals
+
+            | URL | FCP (ms) | LCP (ms) | CLS | TBT (ms) |
+            |-----|----------|----------|-----|----------|
+            ${reports.map(r => `| ${r.url} | ${r.fcp} | ${r.lcp} | ${r.cls} | ${r.tbt} |`).join('\n')}
+
+            **Thresholds:**
+            - ✅ Performance: 90+ | Accessibility: 95+ | Best Practices: 90+ | SEO: 90+
+            - ✅ FCP: <2000ms | LCP: <2500ms | CLS: <0.1 | TBT: <300ms
+
+            [View detailed reports](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+            `;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });

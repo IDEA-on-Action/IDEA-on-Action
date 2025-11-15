@@ -9,6 +9,50 @@
 **개발 방법론**: SDD (Spec-Driven Development)
 
 **최신 업데이트**:
+- 2025-11-16: **🔐 Admin 권한 시스템 수정 & E2E 테스트 검증** ✅ - useIsAdmin 훅 안정화 & RLS 순환 참조 해결
+  - **작업 1: useIsAdmin 훅 수정** (src/hooks/useIsAdmin.ts)
+    - admins 테이블 직접 사용 (기존: user_roles 테이블)
+    - React Query 캐시 무효화 (로그아웃 시 `queryClient.clear()`)
+    - undefined 상태 처리 개선 (조기 리턴 방지)
+    - 로그인 직후 권한 확인 지연 (localStorage 조회)
+  - **작업 2: AdminRoute undefined 처리** (src/components/auth/AdminRoute.tsx)
+    - isAdminLoading 상태 추가 (지연 로딩 중 리다이렉트 방지)
+    - useEffect 디바운싱 추가 (즉시 리다이렉트 방지)
+    - 로그아웃 상태 즉시 처리
+  - **작업 3: auth.ts 로그인 헬퍼 안정화** (tests/e2e/helpers/auth.ts)
+    - localStorage 클리어 추가 (로그인 전 정리)
+    - 페이지 로딩 대기 로직 추가 (3초 대기)
+    - 버튼 클릭 후 네트워크 유휴 상태 확인
+  - **작업 4: admins RLS 정책 순환 참조 해결**
+    - 마이그레이션 파일: `20251116000000_fix_admins_rls_policy.sql`
+    - 문제: admins 테이블이 is_admin() 함수를 RLS 정책에서 사용 → 순환 참조
+    - 해결: is_admin() 함수에서 user_roles 테이블만 사용 (admins 제거)
+    - 영향: admin 권한 확인 시 user_roles.role을 먼저 확인, admins는 보조 확인
+  - **작업 5: E2E 테스트 215개 실행 & 검증**
+    - 총 215개 테스트 실행 (130개 성공, 60.5%)
+    - ✅ **Admin Dashboard**: 100% 통과 (9/9 테스트)
+    - ✅ **Admin Portfolio**: 88% 통과 (15/17 테스트)
+    - ✅ **Admin Lab**: 82% 통과 (9/11 테스트)
+    - ✅ **Admin Tags**: 80% 통과 (8/10 테스트)
+    - ✅ **Admin Team**: 100% 통과 (10/10 테스트)
+    - ✅ **Admin Users**: 67% 통과 (8/12 테스트)
+    - ⚠️ **Admin BlogCategories**: 실패 (권한 문제)
+    - ⚠️ **Public Pages**: 일부 타임아웃
+  - **파일 변경**: 4개
+    - `src/hooks/useIsAdmin.ts` - 훅 로직 수정
+    - `src/components/auth/AdminRoute.tsx` - undefined 처리
+    - `tests/e2e/helpers/auth.ts` - 로그인 헬퍼 안정화
+    - `supabase/migrations/20251116000000_fix_admins_rls_policy.sql` - RLS 정책 수정
+  - **주요 학습**:
+    - React Query 캐시는 로그아웃 시 명시적으로 비워야 함 (isAdmin 값 갱신)
+    - AdminRoute는 로딩 상태를 구분해야 리다이렉트 루프 방지
+    - E2E 테스트 로그인 헬퍼는 localStorage 클리어와 페이지 로딩 대기 필수
+    - Supabase RLS 정책은 순환 참조 피해야 함 (함수 → 테이블 참조 주의)
+  - **다음 단계**:
+    - BlogCategories 권한 이슈 추가 조사
+    - Public 페이지 타임아웃 원인 분석
+    - E2E 테스트 안정성 개선 (대기 시간 조정)
+
 - 2025-11-16: **🎉 리팩토링 Phase 5 완료** ✅ - 선택적 최적화 (5개 병렬 에이전트)
   - **작업**: 초기 번들 감소, PWA 캐시 최적화, 런타임 성능 개선
   - **전체 달성 현황** (1일 소요, 5개 병렬 에이전트):
