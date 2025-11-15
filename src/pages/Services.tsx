@@ -56,7 +56,7 @@ export default function Services() {
       <div className="min-h-screen flex flex-col bg-gradient-to-br from-background via-background to-primary/5">
         <Header />
 
-        <main className="flex-1 container mx-auto px-4 py-16 space-y-12">
+        <main className="flex-1 container mx-auto px-4 py-16 space-y-12" aria-label="서비스 목록">
           {/* 헤더 섹션 */}
           <div className="text-center space-y-4">
             <div className="flex items-center justify-center gap-4">
@@ -83,15 +83,15 @@ export default function Services() {
           <div className="glass-card p-6 space-y-6">
             {/* 카테고리 필터 (Tabs) */}
             <div>
-              <h3 className="text-sm font-medium mb-3">카테고리</h3>
+              <h3 id="category-label" className="text-sm font-medium mb-3">카테고리</h3>
               {categoriesLoading ? (
-                <div className="flex gap-2">
+                <div className="flex gap-2" aria-label="카테고리 로딩 중">
                   {[...Array(4)].map((_, i) => (
                     <Skeleton key={i} className="h-10 w-24" />
                   ))}
                 </div>
               ) : (
-                <Tabs value={selectedCategory} onValueChange={setSelectedCategory}>
+                <Tabs value={selectedCategory} onValueChange={setSelectedCategory} aria-labelledby="category-label">
                   <TabsList className="flex-wrap h-auto">
                     <TabsTrigger value="all">전체</TabsTrigger>
                     {categories?.map((category) => (
@@ -106,9 +106,9 @@ export default function Services() {
 
             {/* 정렬 옵션 */}
             <div className="flex items-center gap-4">
-              <h3 className="text-sm font-medium">정렬</h3>
+              <h3 id="sort-label" className="text-sm font-medium">정렬</h3>
               <Select value={sortBy} onValueChange={(value) => setSortBy(value as ServiceSortBy)}>
-                <SelectTrigger className="w-[180px]">
+                <SelectTrigger className="w-[180px]" aria-labelledby="sort-label">
                   <SelectValue placeholder="정렬 기준" />
                 </SelectTrigger>
                 <SelectContent>
@@ -158,8 +158,8 @@ export default function Services() {
 
             {/* 빈 상태 */}
             {!isLoading && !isError && services?.length === 0 && (
-              <div className="text-center py-16 space-y-4">
-                <PackageOpen className="h-16 w-16 mx-auto text-muted-foreground opacity-50" />
+              <div className="text-center py-16 space-y-4" role="status">
+                <PackageOpen className="h-16 w-16 mx-auto text-muted-foreground opacity-50" aria-hidden="true" />
                 <h3 className="text-lg font-semibold">서비스가 없습니다</h3>
                 <p className="text-muted-foreground">
                   {selectedCategory === 'all'
