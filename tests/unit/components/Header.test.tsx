@@ -65,7 +65,7 @@ describe('Header Component', () => {
     
     // Desktop navigation items should be visible
     expect(screen.getAllByText('회사소개').length).toBeGreaterThan(0);
-    expect(screen.getByText('기술')).toBeInTheDocument();
+    expect(screen.getByText('로드맵')).toBeInTheDocument();
     expect(screen.getByText('회사소개')).toBeInTheDocument();
     expect(screen.getByText('문의')).toBeInTheDocument();
   });
@@ -119,7 +119,7 @@ describe('Header Component', () => {
     
     await waitFor(() => {
       expect(screen.getAllByText('회사소개').length).toBeGreaterThan(0);
-      expect(screen.getAllByText('기술').length).toBeGreaterThan(0);
+      expect(screen.getAllByText('로드맵').length).toBeGreaterThan(0);
       expect(screen.getAllByText('회사소개').length).toBeGreaterThan(0);
       expect(screen.getAllByText('문의').length).toBeGreaterThan(0);
     });
