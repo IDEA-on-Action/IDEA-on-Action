@@ -42,6 +42,8 @@ export function ServiceCard({ service }: ServiceCardProps) {
               alt={title}
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
               loading="lazy"
+              width={400}
+              height={192}
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/20 to-accent/20">

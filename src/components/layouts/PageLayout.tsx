@@ -67,3 +67,4 @@ export const PageLayout = ({
   );
 };
 
+export default PageLayout;

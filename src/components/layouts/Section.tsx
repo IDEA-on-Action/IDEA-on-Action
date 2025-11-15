@@ -54,3 +54,4 @@ export const Section = ({
   );
 };
 
+export default Section;

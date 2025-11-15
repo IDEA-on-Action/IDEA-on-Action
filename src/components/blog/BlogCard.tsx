@@ -32,6 +32,9 @@ export function BlogCard({ post }: BlogCardProps) {
             src={post.featured_image}
             alt={post.title}
             className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+            loading="lazy"
+            width={400}
+            height={192}
           />
           {post.status === 'draft' && (
             <Badge className="absolute top-2 right-2" variant="secondary">

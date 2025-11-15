@@ -85,6 +85,9 @@ export function SearchResultCard({ result, searchTerm }: SearchResultCardProps) 
               src={result.image_url}
               alt={result.title}
               className="w-24 h-24 object-cover rounded-lg"
+              loading="lazy"
+              width={96}
+              height={96}
             />
           </div>
         )}
