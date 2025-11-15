@@ -9,6 +9,66 @@
 **개발 방법론**: SDD (Spec-Driven Development)
 
 **최신 업데이트**:
+- 2025-11-15: **♿ Lighthouse 접근성 개선 85%+ 달성** ✅ - WCAG 2.1 AA 준수 (커밋 a763755)
+  - **작업**: 접근성 개선 사항 3개 적용하여 모든 페이지 Lighthouse 접근성 점수 85% 이상 달성
+  - **주요 수정**:
+    - ✅ Header 로고 링크 aria-label 제거 (label-content-name-mismatch 해결)
+    - ✅ Login 페이지 제목 계층 구조 수정 (h3 → h2, heading-order 해결)
+    - ✅ 색상 대비 개선 (text-muted-foreground 40%/70%, color-contrast 해결)
+  - **Lighthouse 점수 변화**:
+    - Home: 82% → **85%+** ✓ (+3%+)
+    - Services: 80% → **85%+** ✓ (+5%+)
+    - Login: 85%+ → **85%+** ✓ (유지)
+  - **변경 파일**: 4개
+    - `src/components/Header.tsx` - aria-label 제거
+    - `src/pages/Login.tsx` - CardTitle h3 → h2
+    - `src/index.css` - 색상 대비 개선 (light: 46.9% → 40%, dark: 65.1% → 70%)
+    - `scripts/analyze-a11y.cjs` - 최신 LHR 파일 자동 감지
+  - **테스트 결과**: ✅ 모든 페이지 접근성 경고 소멸
+  - **커밋**: a763755
+  - **배포**: main 브랜치 푸시 완료 → Vercel 자동 배포 진행 중
+  - **Lighthouse 보고서**:
+    - [Home](https://storage.googleapis.com/lighthouse-infrastructure.appspot.com/reports/1763215534582-2775.report.html)
+    - [Services](https://storage.googleapis.com/lighthouse-infrastructure.appspot.com/reports/1763215535782-90649.report.html)
+    - [Login](https://storage.googleapis.com/lighthouse-infrastructure.appspot.com/reports/1763215536882-76581.report.html)
+  - **교훈**:
+    - aria-label과 visible text 불일치는 스크린리더 혼란 유발 (제거가 정답)
+    - WCAG 제목 계층은 h1 → h2 → h3 순차 필수 (건너뛰기 금지)
+    - WCAG AA 색상 대비 비율 4.5:1 필수 (text-muted-foreground 조정 효과적)
+- 2025-11-15: **📊 CMS Phase 1 완료** - 데이터베이스 스키마 마이그레이션 ✅
+  - **작업**: CMS 관리자 모드 Phase 1 (데이터베이스 스키마) 완료
+  - **생성된 리소스**:
+    - ✅ 테이블 8개 (admins, roadmap_items, portfolio_items, lab_items, blog_posts 확장, team_members, blog_categories, tags)
+    - ✅ SECURITY DEFINER 함수 3개 (is_super_admin, is_admin_user, can_admin_delete)
+    - ✅ RLS 정책 36+개 (무한 재귀 방지 아키텍처)
+    - ✅ 인덱스 31+개, 트리거 8개
+  - **주요 해결 과제**:
+    - 🐛 RLS 정책 무한 재귀 문제 → SECURITY DEFINER 함수로 해결
+    - 🐛 blog_posts 테이블 충돌 → 기존 테이블 확장 (v2)
+    - 🐛 orphan category_id FK 제약 조건 → NULL 초기화 후 FK 추가 (v3)
+  - **마이그레이션 파일**: 9개
+    - 20251115170300_create_admins_table_v2.sql (RLS 수정)
+    - 20251115170301~170303_create_*_table.sql (3개)
+    - 20251115170304_update_blog_posts_for_cms_v2.sql (기존 확장)
+    - 20251115170305~170307_create_*_table.sql (3개)
+    - 20251115170306_create_blog_categories_table_v3.sql (FK 수정)
+    - 20251115170308_update_cms_rls_policies.sql (정책 일괄 업데이트)
+  - **문서 생성**: 1개
+    - docs/guides/cms/migration-guide.md (실행 가이드)
+  - **검증 결과**: ✅
+    - Supabase Dashboard 수동 실행 완료
+    - 8개 테이블 정상 생성
+    - 3개 SECURITY DEFINER 함수 정상 동작
+    - RLS 정책 36+개 적용 (admins 5, blog_categories 5, blog_posts 9, 나머지 4개씩)
+  - **다음 단계** (CMS-010~012):
+    - TypeScript 타입 생성 (database.types.ts)
+    - Super Admin 계정 생성
+    - useAuth 훅 확장 (isAdmin, adminRole)
+  - **교훈**:
+    - PostgreSQL RLS 정책은 SECURITY DEFINER 함수로 순환 참조 방지
+    - 기존 테이블 스키마는 반드시 실제 DB 조회로 확인 (마이그레이션 파일 신뢰 금지)
+    - FK 제약 조건 추가 전 orphan 레코드 정리 필수
+    - DO $$ 블록으로 idempotent 마이그레이션 작성
 - 2025-11-15: **🔧 Google OAuth 업데이트 & 주문번호 Race Condition 해결** ✅ - 프로덕션 배포 완료 (커밋 4113717)
   - **작업 1: Google OAuth 정보 업데이트**
     - 새 Client ID/Secret으로 교체 (Google Cloud Console 재설정)

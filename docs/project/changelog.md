@@ -11,6 +11,22 @@
 
 ## [Unreleased] - 2025-01-XX
 
+### Improved
+- **♿ Lighthouse 접근성 개선 85%+ 달성** (커밋 a763755) - WCAG 2.1 AA 준수
+  - **주요 수정**:
+    - Header 로고 링크 `aria-label` 제거 (label-content-name-mismatch 해결)
+    - Login 페이지 제목 계층 구조 수정 (h3 → h2, heading-order 해결)
+    - 색상 대비 개선 (text-muted-foreground: light 40%, dark 70%, color-contrast 해결)
+  - **Lighthouse 점수 변화**:
+    - Home: 82% → 85%+ ✓
+    - Services: 80% → 85%+ ✓
+    - Login: 85%+ → 85%+ ✓ (유지)
+  - **변경 파일**: 4개
+    - `src/components/Header.tsx`
+    - `src/pages/Login.tsx`
+    - `src/index.css`
+    - `scripts/analyze-a11y.cjs`
+
 ### Fixed
 - **Work with Us 페이지 404 오류 해결** (커밋 60d80ed)
   - `vercel.json` 생성: SPA 라우팅 rewrites 설정 추가
