@@ -3,9 +3,10 @@
 > 프로젝트 작업 목록 및 진행 상황 관리
 
 **마지막 업데이트**: 2025-11-15
-**현재 Phase**: 🎉 Sprint 2 완료 → Sprint 3 시작 예정
-**프로젝트 버전**: 2.0.0-sprint2.5 (Giscus, Work with Us, Newsletter 통합)
-**다음 작업**: Sprint 3 - Automation & Open Metrics
+**현재 Phase**: 🎉 Version 2.0.0 릴리스 완료
+**프로젝트 버전**: 2.0.0 (커뮤니티형 프로덕트 스튜디오)
+**프로덕션**: https://www.ideaonaction.ai
+**다음 작업**: 사용자 피드백 수집 & 성능 최적화
 
 ---
 
@@ -79,6 +80,52 @@
 - [ ] Phase 1 구현 시작 (7개 필수 페이지, 1-2주)
   - /services, /services/development/mvp, /services/compass/navigator
   - /pricing, /terms, /privacy, /refund
+
+---
+
+### Version 2.0.0 릴리스 완료 🎉 (2025-11-15)
+**목표**: 커뮤니티형 프로덕트 스튜디오 프로덕션 배포
+**완료일**: 2025-11-15
+**프로덕션**: https://www.ideaonaction.ai
+**Release**: https://github.com/IDEA-on-Action/idea-on-action/releases/tag/v2.0.0
+
+#### Sprint 1-3 완료
+- [x] **Sprint 1**: Structure & Static Data (Home 강화, SEO, Weekly Recap)
+- [x] **Sprint 2**: Supabase Integration & Community (CRUD 훅, 동적 페이지, Giscus, Work with Us, Newsletter)
+- [x] **Sprint 3**: Automation & Open Metrics (GA4, 테스트, SEO 최적화)
+
+#### 새 페이지 (8개)
+- [x] About - 우리는 어떤 회사인가
+- [x] Roadmap - Quarterly 목표 + 진행률
+- [x] Portfolio - 프로젝트 Case Study
+- [x] Now - 최근 활동 로그
+- [x] Lab - 실험 & Bounty
+- [x] Community - Giscus 토론
+- [x] Work-with-Us - 협업 제안
+- [x] Status - 오픈 메트릭스
+
+#### 핵심 기능
+- [x] 프로젝트 관리 (Portfolio, Roadmap)
+- [x] 활동 로그 (Now)
+- [x] 바운티 시스템 (Lab)
+- [x] 커뮤니티 댓글 (Giscus)
+- [x] Work with Us 폼
+- [x] Newsletter 구독
+- [x] 오픈 메트릭스 (Status)
+- [x] Weekly Recap 자동 생성
+
+#### 테스트 & 품질
+- [x] 단위 테스트: 261/305 통과 (85.6%)
+- [x] E2E 테스트: 24개 파일
+- [x] SEO: sitemap 15개 URL, JSON-LD 5개 스키마
+- [x] 빌드: 21.29s, 109.60 kB gzip, PWA 129 entries
+
+#### 배포 정보
+- [x] Git tag v2.0.0 생성
+- [x] GitHub Release 생성
+- [x] Vercel 프로덕션 배포
+- [x] sitemap.xml, robots.txt 접근 가능
+- [x] 배포 후 체크리스트 문서 생성 (docs/deployment/post-deployment-checklist.md)
 
 ---
 

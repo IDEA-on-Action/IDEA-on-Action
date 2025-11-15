@@ -4,8 +4,8 @@
 
 아이디어 실험실이자 커뮤니티형 프로덕트 스튜디오
 
-[![Version](https://img.shields.io/badge/version-1.8.0-blue.svg)](https://github.com/IDEA-on-Action/idea-on-action)
-[![Next Version](https://img.shields.io/badge/next-2.0.0-orange.svg)](https://github.com/IDEA-on-Action/idea-on-action/blob/main/version2.0%20계획.md)
+[![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)](https://github.com/IDEA-on-Action/idea-on-action/releases/tag/v2.0.0)
+[![Production](https://img.shields.io/badge/production-live-brightgreen.svg)](https://www.ideaonaction.ai)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)](https://github.com/IDEA-on-Action/idea-on-action/actions)
 
@@ -25,6 +25,23 @@ IDEA on Action은 단순한 소개 웹사이트를 넘어, **실시간으로 상
 | **참여** | 일방향 정보 제공 | Bounty + Discussion + Newsletter |
 | **투명성** | 비공개 | Open Metrics (Status 페이지) |
 
+#### 🆕 새 페이지 (8개)
+
+1. **[About](https://www.ideaonaction.ai/about)** - 우리는 어떤 회사인가
+2. **[Roadmap](https://www.ideaonaction.ai/roadmap)** - Quarterly 목표 + 진행률
+3. **[Portfolio](https://www.ideaonaction.ai/portfolio)** - 프로젝트 Case Study
+4. **[Now](https://www.ideaonaction.ai/now)** - 최근 활동 로그
+5. **[Lab](https://www.ideaonaction.ai/lab)** - 실험 & Bounty
+6. **[Community](https://www.ideaonaction.ai/community)** - Giscus 토론
+7. **[Work-with-Us](https://www.ideaonaction.ai/work-with-us)** - 협업 제안
+8. **[Status](https://www.ideaonaction.ai/status)** - 오픈 메트릭스
+
+#### 🚀 Sprint 요약
+
+- **Sprint 1**: Structure & Static Data (Home 강화, SEO, Weekly Recap)
+- **Sprint 2**: Supabase Integration & Community (CRUD 훅, 동적 페이지, Giscus, Work with Us, Newsletter)
+- **Sprint 3**: Automation & Open Metrics (GA4, 테스트, SEO 최적화)
+
 ## 🚀 빠른 시작
 
 ```bash
@@ -43,7 +60,7 @@ cp .env.example .env.local
 npm run dev  # http://localhost:5173
 ```
 
-## 📋 주요 기능 (v1.8.0)
+## 📋 주요 기능 (v2.0.0)
 
 ### 🎨 현대적인 UI/UX
 - **반응형 디자인**: 모바일, 태블릿, 데스크톱 최적화
