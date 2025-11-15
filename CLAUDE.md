@@ -9,6 +9,66 @@
 **개발 방법론**: SDD (Spec-Driven Development)
 
 **최신 업데이트**:
+- 2025-11-15: **🔧 Google OAuth 업데이트 & 주문번호 Race Condition 해결** ✅ - 프로덕션 배포 완료 (커밋 4113717)
+  - **작업 1: Google OAuth 정보 업데이트**
+    - 새 Client ID/Secret으로 교체 (Google Cloud Console 재설정)
+    - Client ID: `1073580175433-407gbhdutr4r57372q3efg5143tt4lor.apps.googleusercontent.com`
+    - 환경 변수 업데이트: `.env.local`, Vercel, Supabase Dashboard
+    - **영향 범위**: Google 소셜 로그인 기능 (/login)
+  - **작업 2: 주문번호 중복 생성 Race Condition 해결** 🐛
+    - **문제**: 동시 요청 시 `generate_order_number()` 함수에서 동일 주문번호 생성 → 409 Conflict 에러
+    - **원인**: `COUNT(*) + 1` 로직의 Race Condition (동시성 이슈)
+    - **해결**: 타임스탬프 + 랜덤 suffix 방식으로 변경 (Lock 없이 중복 방지)
+    - **주문번호 형식 변경**:
+      - 기존: `ORD-YYYYMMDD-XXXX` (예: `ORD-20251115-0001`)
+      - 변경: `ORD-YYYYMMDD-HHMMSS-XXX` (예: `ORD-20251115-143052-A3F`)
+    - **장점**: 고트래픽 환경에 적합 (Lock 대기 없음), 성능 개선
+    - **영향 범위**: Checkout 페이지 주문 생성 기능
+  - **변경 파일**: 3개
+    - `supabase/migrations/fix-generate-order-number.sql` - 함수 수정 (신규)
+    - `docs/guides/auth/oauth-setup.md` - Google OAuth 정보 업데이트
+    - `docs/hotfix/2025-11-15-order-number-fix.md` - Hotfix 문서 (신규)
+  - **테스트 결과**: ✅
+    - 로컬: 주문번호 3회 생성 → 모두 고유 값 확인
+    - 로컬: Checkout 페이지 주문 생성 성공 (409 에러 해결)
+  - **커밋**: 4113717
+  - **배포**: main 브랜치 푸시 완료 → Vercel 자동 배포 진행 중
+  - **배포 문서**: `docs/deployment/2025-11-15-production-deployment.md`
+  - **모니터링 계획**:
+    - Google 로그인 기능 테스트 (새 OAuth 정보 검증)
+    - Checkout 주문 생성 테스트 (주문번호 중복 에러 소멸 확인)
+    - Sentry 에러 로그 확인 (24시간)
+  - **교훈**:
+    - PostgreSQL 함수의 Race Condition은 타임스탬프나 Advisory Lock으로 해결
+    - OAuth 정보 변경 시 환경별 설정 전체 점검 필요 (로컬/Vercel/Supabase/Google Cloud)
+    - 동시성 이슈는 로컬 테스트만으로 발견 어려움 (프로덕션 모니터링 중요)
+- 2025-11-15: **🚀 프로덕션 배포 완료 & 결제 시스템 환경 변수 설정** ✅
+  - **작업**: Work with Us 페이지 404 오류 해결 및 데이터 연동 완료
+  - **주요 변경**:
+    - ✅ vercel.json 생성 (SPA 라우팅 rewrites 설정)
+    - ✅ WorkWithUs.tsx developmentServices 연동 (3개 → 4개 서비스)
+    - ✅ "자세히 보기" 버튼 추가 (각 서비스 카드 하단)
+    - ✅ Vercel 환경 변수 추가 (Toss Payments 테스트 키)
+  - **해결한 이슈**:
+    - 404 Error: /work-with-us 페이지 접근 불가 → vercel.json 추가로 해결
+    - Missing Services: 로컬(4개) vs 프로덕션(3개) 불일치 → developmentServices 데이터 레이어 연동
+    - Toss Payments Error: VITE_TOSS_CLIENT_KEY 미설정 → Vercel Dashboard 환경 변수 추가
+  - **서비스 목록** (4개):
+    - MVP 개발 (빠른 검증)
+    - Fullstack 개발 (확장 가능한 솔루션)
+    - Design System (일관된 사용자 경험)
+    - Operations 관리 (안정적 운영)
+  - **환경 변수** (Vercel):
+    - `VITE_TOSS_CLIENT_KEY=test_ck_D5GePWvyJnrK0W0k6q8gLzN97Eoq`
+    - `VITE_TOSS_SECRET_KEY=test_sk_zXLkKEypNArWmo50nX3lmeaxYG5R`
+  - **파일 변경**: 2개 (vercel.json 신규, WorkWithUs.tsx 수정)
+  - **커밋**: 60d80ed (vercel.json), ae1fef2 (WorkWithUs)
+  - **배포 확인**: ✅ Last-Modified: Sat, 15 Nov 2025 11:14:26 GMT
+  - **프로덕션 URL**: https://www.ideaonaction.ai/work-with-us
+  - **교훈**:
+    - Vercel은 명시적 SPA rewrites 설정 필요 (index.html fallback)
+    - Git 커밋 전 로컬 변경사항 확인 필수 (git diff)
+    - 결제 시스템은 테스트 키로 개발, 상용화 시 운영 키로 변경 필요
 - 2025-11-15: **🧪 단위 테스트 전체 수정 완료** - Error Handling 테스트 아키텍처 개선
   - **작업**: supabaseQuery fallbackValue 전략에 맞춰 테스트 수정
   - **주요 변경**:

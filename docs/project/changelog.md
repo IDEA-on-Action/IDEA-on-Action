@@ -11,15 +11,33 @@
 
 ## [Unreleased] - 2025-01-XX
 
+### Fixed
+- **Work with Us 페이지 404 오류 해결** (커밋 60d80ed)
+  - `vercel.json` 생성: SPA 라우팅 rewrites 설정 추가
+  - Vercel에서 `/work-with-us` 경로 접근 시 `index.html` fallback 처리
+  - 프로덕션 배포 후 200 OK 응답 확인
+
+- **Work with Us 페이지 서비스 데이터 연동** (커밋 ae1fef2)
+  - `src/pages/WorkWithUs.tsx`: developmentServices 데이터 레이어 연동
+  - 서비스 카드 3개 → 4개로 증가 (MVP, Fullstack, Design, Operations)
+  - "자세히 보기" 버튼 추가 (각 서비스 카드 하단)
+  - 서비스별 아이콘 매핑 추가 (Rocket, Code, Palette, Server)
+
+### Added
+- **Toss Payments 환경 변수 설정** (Vercel Dashboard)
+  - `VITE_TOSS_CLIENT_KEY`: 토스 페이먼츠 클라이언트 키 (테스트)
+  - `VITE_TOSS_SECRET_KEY`: 토스 페이먼츠 시크릿 키 (테스트)
+  - 결제 시스템 테스트 준비 완료
+
+### Documentation
+- `CLAUDE.md`: 2025-11-15 프로덕션 배포 완료 내역 추가
+- `docs/project/changelog.md`: Work with Us 페이지 수정 사항 기록
+
 ### Changed
 - **블로그 메뉴 임시 숨김 처리**
   - `src/components/Header.tsx`: NAVIGATION_ITEMS 배열에서 블로그 메뉴 항목 주석 처리
   - 데스크톱 및 모바일 네비게이션에서 블로그 메뉴 제거
   - 수정 완료 시 주석 해제하여 다시 활성화 예정
-
-### Documentation
-- `docs/archive/analysis-reports/menu-structure-analysis.md`: 블로그 메뉴 숨김 처리 내용 반영
-- `docs/components/Header.md`: 네비게이션 구조 문서 업데이트
 
 ---
 

@@ -63,10 +63,15 @@ VITE_GA4_MEASUREMENT_ID=G-GCEBTH0LX4
 #### Payment Gateway (Test Mode)
 ```
 VITE_KAKAO_PAY_CID=TC0ONETIME
-VITE_KAKAO_PAY_ADMIN_KEY=[YOUR_ADMIN_KEY]
-VITE_TOSS_CLIENT_KEY=[YOUR_CLIENT_KEY]
-VITE_TOSS_SECRET_KEY=[YOUR_SECRET_KEY]
+VITE_KAKAO_PAY_ADMIN_KEY=test_admin_key
+VITE_TOSS_CLIENT_KEY=test_ck_D5GePWvyJnrK0W0k6q8gLzN97Eoq
+VITE_TOSS_SECRET_KEY=test_sk_zXLkKEypNArWmo50nX3lmeaxYG5R
 ```
+
+**참고**:
+- 토스 페이먼츠 테스트 키는 실제 결제가 발생하지 않습니다
+- 상용 서비스 시작 전 **운영 키로 변경** 필요
+- 운영 키는 [토스 페이먼츠 개발자센터](https://developers.tosspayments.com/)에서 발급받을 수 있습니다
 
 #### Email Service
 ```
