@@ -4,14 +4,14 @@ import userEvent from '@testing-library/user-event';
 import { WorkWithUsForm } from '@/components/forms/WorkWithUsForm';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { UseMutationResult } from '@tanstack/react-query';
-import { useSubmitProposal } from '@/hooks/useProposals';
+import { useSubmitWorkInquiry } from '@/hooks/useWorkInquiries';
 import { toast } from 'sonner';
 import type { ReactNode } from 'react';
 import type { Proposal, ProposalFormValues } from '@/types/v2';
 
 // Mock hooks
-vi.mock('@/hooks/useProposals', () => ({
-  useSubmitProposal: vi.fn(),
+vi.mock('@/hooks/useWorkInquiries', () => ({
+  useSubmitWorkInquiry: vi.fn(),
 }));
 
 // Mock toast
@@ -41,7 +41,7 @@ describe('WorkWithUsForm', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(useSubmitProposal).mockReturnValue({
+    vi.mocked(useSubmitWorkInquiry).mockReturnValue({
       mutateAsync: mockMutateAsync,
       mutate: vi.fn(),
       isPending: false,
