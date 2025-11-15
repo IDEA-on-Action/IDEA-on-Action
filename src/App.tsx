@@ -62,68 +62,68 @@ import AuthCallback from "./pages/AuthCallback";
 import NotFound from "./pages/NotFound";
 
 // Lazy load (Code Split) - Public pages
-const Services = lazy(() => import("./pages/Services"));
-const ServiceDetail = lazy(() => import("./pages/ServiceDetail"));
-const Search = lazy(() => import("./pages/Search"));
-const Blog = lazy(() => import("./pages/Blog"));
-const BlogPost = lazy(() => import("./pages/BlogPost"));
-const Notices = lazy(() => import("./pages/Notices"));
-const Checkout = lazy(() => import("./pages/Checkout"));
-const Payment = lazy(() => import("./pages/Payment"));
-const PaymentSuccess = lazy(() => import("./pages/PaymentSuccess"));
-const PaymentFail = lazy(() => import("./pages/PaymentFail"));
-const Orders = lazy(() => import("./pages/Orders"));
-const OrderDetail = lazy(() => import("./pages/OrderDetail"));
-const Profile = lazy(() => import("./pages/Profile"));
-const Notifications = lazy(() => import("./pages/Notifications"));
-const TwoFactorSetup = lazy(() => import("./pages/TwoFactorSetup"));
-const TwoFactorVerify = lazy(() => import("./pages/TwoFactorVerify"));
-const Forbidden = lazy(() => import("./pages/Forbidden"));
+const Services = lazy(() => import("@/pages/Services"));
+const ServiceDetail = lazy(() => import("@/pages/ServiceDetail"));
+const Search = lazy(() => import("@/pages/Search"));
+const Blog = lazy(() => import("@/pages/Blog"));
+const BlogPost = lazy(() => import("@/pages/BlogPost"));
+const Notices = lazy(() => import("@/pages/Notices"));
+const Checkout = lazy(() => import("@/pages/Checkout"));
+const Payment = lazy(() => import("@/pages/Payment"));
+const PaymentSuccess = lazy(() => import("@/pages/PaymentSuccess"));
+const PaymentFail = lazy(() => import("@/pages/PaymentFail"));
+const Orders = lazy(() => import("@/pages/Orders"));
+const OrderDetail = lazy(() => import("@/pages/OrderDetail"));
+const Profile = lazy(() => import("@/pages/Profile"));
+const Notifications = lazy(() => import("@/pages/Notifications"));
+const TwoFactorSetup = lazy(() => import("@/pages/TwoFactorSetup"));
+const TwoFactorVerify = lazy(() => import("@/pages/TwoFactorVerify"));
+const Forbidden = lazy(() => import("@/pages/Forbidden"));
 
 // Lazy load (Code Split) - Version 2.0 pages
-const About = lazy(() => import("./pages/About"));
-const Roadmap = lazy(() => import("./pages/Roadmap"));
-const Portfolio = lazy(() => import("./pages/Portfolio"));
-const PortfolioDetail = lazy(() => import("./pages/PortfolioDetail"));
-const Now = lazy(() => import("./pages/Now"));
-const Lab = lazy(() => import("./pages/Lab"));
-const Community = lazy(() => import("./pages/Community"));
-const WorkWithUs = lazy(() => import("./pages/WorkWithUs"));
-const Status = lazy(() => import("./pages/Status"));
+const About = lazy(() => import("@/pages/About"));
+const Roadmap = lazy(() => import("@/pages/Roadmap"));
+const Portfolio = lazy(() => import("@/pages/Portfolio"));
+const PortfolioDetail = lazy(() => import("@/pages/PortfolioDetail"));
+const Now = lazy(() => import("@/pages/Now"));
+const Lab = lazy(() => import("@/pages/Lab"));
+const Community = lazy(() => import("@/pages/Community"));
+const WorkWithUs = lazy(() => import("@/pages/WorkWithUs"));
+const Status = lazy(() => import("@/pages/Status"));
 
 // Lazy load (Code Split) - Services Platform pages
-const ServicesPage = lazy(() => import("./pages/services-platform/ServicesPage"));
-const MVPServicePage = lazy(() => import("./pages/services-platform/MVPServicePage"));
-const FullstackPage = lazy(() => import("./pages/services-platform/FullstackPage"));
-const DesignPage = lazy(() => import("./pages/services-platform/DesignPage"));
-const OperationsPage = lazy(() => import("./pages/services-platform/OperationsPage"));
-const NavigatorPage = lazy(() => import("./pages/services-platform/NavigatorPage"));
-const PricingPage = lazy(() => import("./pages/services-platform/PricingPage"));
+const ServicesPage = lazy(() => import("@/pages/services-platform/ServicesPage"));
+const MVPServicePage = lazy(() => import("@/pages/services-platform/MVPServicePage"));
+const FullstackPage = lazy(() => import("@/pages/services-platform/FullstackPage"));
+const DesignPage = lazy(() => import("@/pages/services-platform/DesignPage"));
+const OperationsPage = lazy(() => import("@/pages/services-platform/OperationsPage"));
+const NavigatorPage = lazy(() => import("@/pages/services-platform/NavigatorPage"));
+const PricingPage = lazy(() => import("@/pages/services-platform/PricingPage"));
 
 // Lazy load (Code Split) - Legal pages
-const Terms = lazy(() => import("./pages/Terms"));
-const Privacy = lazy(() => import("./pages/Privacy"));
-const RefundPolicy = lazy(() => import("./pages/RefundPolicy"));
-const ElectronicFinanceTerms = lazy(() => import("./pages/ElectronicFinanceTerms"));
+const Terms = lazy(() => import("@/pages/Terms"));
+const Privacy = lazy(() => import("@/pages/Privacy"));
+const RefundPolicy = lazy(() => import("@/pages/RefundPolicy"));
+const ElectronicFinanceTerms = lazy(() => import("@/pages/ElectronicFinanceTerms"));
 
 // Lazy load (Code Split) - Admin pages (separate chunk)
-const AdminLayout = lazy(() => import("./components/layouts/AdminLayout"));
-const Dashboard = lazy(() => import("./pages/admin/Dashboard"));
-const AdminServices = lazy(() => import("./pages/admin/AdminServices"));
-const CreateService = lazy(() => import("./pages/admin/CreateService"));
-const EditService = lazy(() => import("./pages/admin/EditService"));
-const AdminBlog = lazy(() => import("./pages/admin/AdminBlog"));
-const CreateBlogPost = lazy(() => import("./pages/admin/CreateBlogPost"));
-const EditBlogPost = lazy(() => import("./pages/admin/EditBlogPost"));
-const AdminNotices = lazy(() => import("./pages/admin/AdminNotices"));
-const CreateNotice = lazy(() => import("./pages/admin/CreateNotice"));
-const EditNotice = lazy(() => import("./pages/admin/EditNotice"));
-const AdminRoles = lazy(() => import("./pages/admin/AdminRoles"));
-const AuditLogs = lazy(() => import("./pages/admin/AuditLogs"));
-const AdminOrders = lazy(() => import("./pages/admin/Orders"));
-const Analytics = lazy(() => import("./pages/admin/Analytics"));
-const Revenue = lazy(() => import("./pages/admin/Revenue"));
-const RealtimeDashboard = lazy(() => import("./pages/admin/RealtimeDashboard"));
+const AdminLayout = lazy(() => import("@/components/layouts/AdminLayout"));
+const Dashboard = lazy(() => import("@/pages/admin/Dashboard"));
+const AdminServices = lazy(() => import("@/pages/admin/AdminServices"));
+const CreateService = lazy(() => import("@/pages/admin/CreateService"));
+const EditService = lazy(() => import("@/pages/admin/EditService"));
+const AdminBlog = lazy(() => import("@/pages/admin/AdminBlog"));
+const CreateBlogPost = lazy(() => import("@/pages/admin/CreateBlogPost"));
+const EditBlogPost = lazy(() => import("@/pages/admin/EditBlogPost"));
+const AdminNotices = lazy(() => import("@/pages/admin/AdminNotices"));
+const CreateNotice = lazy(() => import("@/pages/admin/CreateNotice"));
+const EditNotice = lazy(() => import("@/pages/admin/EditNotice"));
+const AdminRoles = lazy(() => import("@/pages/admin/AdminRoles"));
+const AuditLogs = lazy(() => import("@/pages/admin/AuditLogs"));
+const AdminOrders = lazy(() => import("@/pages/admin/Orders"));
+const Analytics = lazy(() => import("@/pages/admin/Analytics"));
+const Revenue = lazy(() => import("@/pages/admin/Revenue"));
+const RealtimeDashboard = lazy(() => import("@/pages/admin/RealtimeDashboard"));
 
 // Sentry 초기화
 initSentry();
