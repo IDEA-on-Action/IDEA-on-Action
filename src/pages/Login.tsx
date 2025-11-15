@@ -85,7 +85,38 @@ export default function Login() {
   return (
     <>
       <Helmet>
-        <title>로그인 | VIBE WORKING</title>
+        <title>로그인 | IDEA on Action</title>
+        <meta
+          name="description"
+          content="IDEA on Action에 로그인하여 프로젝트 관리, 바운티 참여, 커뮤니티 토론에 참여하세요. Google, GitHub, Kakao, Microsoft, Apple 소셜 로그인 지원."
+        />
+        <meta
+          name="keywords"
+          content="로그인, 소셜 로그인, OAuth, Google 로그인, GitHub 로그인, Kakao 로그인, IDEA on Action"
+        />
+
+        {/* Open Graph */}
+        <meta property="og:title" content="로그인 | IDEA on Action" />
+        <meta
+          property="og:description"
+          content="IDEA on Action에 로그인하여 프로젝트 관리, 바운티 참여, 커뮤니티 토론에 참여하세요."
+        />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://www.ideaonaction.ai/login" />
+
+        {/* Twitter Card */}
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content="로그인 | IDEA on Action" />
+        <meta
+          name="twitter:description"
+          content="IDEA on Action에 로그인하여 프로젝트 관리, 바운티 참여, 커뮤니티 토론에 참여하세요."
+        />
+
+        {/* Canonical URL */}
+        <link rel="canonical" href="https://www.ideaonaction.ai/login" />
+
+        {/* Robots: noindex for login page (optional, but recommended for security) */}
+        <meta name="robots" content="noindex, nofollow" />
       </Helmet>
 
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-primary/5 p-4">
