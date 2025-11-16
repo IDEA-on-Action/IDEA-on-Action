@@ -72,25 +72,13 @@ export default defineConfig(({ mode }) => ({
         // Precache only essential files
         globPatterns: [
           "**/*.{css,html,ico,png,svg,woff,woff2}",
-          "**/vendor-react-core-*.js",
-          "**/vendor-ui-*.js",
-          "**/vendor-router-*.js",
-          "**/vendor-query-*.js",
-          "**/vendor-supabase-*.js",
-          "**/vendor-forms-*.js",
-          "**/vendor-auth-*.js",
-          "**/vendor-payments-*.js",
-          "**/index-*.js",
-          "**/workbox-*.js",
+          "**/index-*.js",       // Main bundle (all vendors merged)
+          "**/pages-admin-*.js", // Admin pages chunk
+          "**/workbox-*.js",     // PWA service worker
         ],
 
-        // Exclude large vendor chunks and admin pages from precache
+        // Exclude admin pages and lazy-loaded components from precache
         globIgnores: [
-          // Large vendor chunks (lazy load via runtime caching)
-          "**/vendor-charts-*.js",      // ~422 kB (112 kB gzip)
-          "**/vendor-markdown-*.js",    // ~341 kB (108 kB gzip)
-          "**/vendor-sentry-*.js",      // ~317 kB (104 kB gzip)
-
           // Admin pages (lazy load via runtime caching)
           "**/Admin*.js",               // All admin components
           "**/Dashboard-*.js",          // Admin dashboard
@@ -151,20 +139,7 @@ export default defineConfig(({ mode }) => ({
             },
           },
 
-          // 3. Large vendor chunks (on-demand)
-          {
-            urlPattern: /\/assets\/vendor-(charts|markdown|sentry)-.*\.js$/,
-            handler: "CacheFirst",
-            options: {
-              cacheName: "vendor-chunks-cache",
-              expiration: {
-                maxEntries: 10,
-                maxAgeSeconds: 60 * 60 * 24 * 30, // 30일
-              },
-            },
-          },
-
-          // 4. Admin pages (on-demand)
+          // 3. Admin pages (on-demand)
           {
             urlPattern: /\/assets\/(Admin|Dashboard|Analytics|Revenue|RealtimeDashboard|AuditLogs|AdminRoles)-.*\.js$/,
             handler: "CacheFirst",
@@ -177,7 +152,7 @@ export default defineConfig(({ mode }) => ({
             },
           },
 
-          // 5. Other lazy-loaded chunks (on-demand)
+          // 4. Other lazy-loaded chunks (on-demand)
           {
             urlPattern: /\/assets\/DateRangePicker-.*\.js$/,
             handler: "CacheFirst",
@@ -190,7 +165,7 @@ export default defineConfig(({ mode }) => ({
             },
           },
 
-          // 6. Images (on-demand)
+          // 5. Images (on-demand)
           {
             urlPattern: /\.(?:png|jpg|jpeg|svg|gif|webp)$/i,
             handler: "CacheFirst",
@@ -219,12 +194,14 @@ export default defineConfig(({ mode }) => ({
       output: {
         manualChunks: (id) => {
           // ============================================================
-          // VENDOR CHUNKS STRATEGY (Optimized for Performance)
+          // VENDOR CHUNKS STRATEGY (TEMPORARILY DISABLED)
           // ============================================================
-          // Goal: Split large vendor bundles into smaller, cacheable chunks
-          // while maintaining proper loading order for React dependencies.
+          // REASON: React module loading order issues causing "createContext" errors
+          // - vendor-router disabled → vendor-query error appeared
+          // - Indicates async chunk loading race condition
+          // - ALL vendor chunks temporarily merged into index.js for cache invalidation
           //
-          // Chunk Size Targets:
+          // ORIGINAL STRATEGY (to re-enable after cache invalidation):
           // - vendor-react-core:     ~140 kB (React runtime only)
           // - vendor-ui:            ~250 kB (Radix UI components)
           // - vendor-charts:        ~100 kB (Recharts)
@@ -237,100 +214,96 @@ export default defineConfig(({ mode }) => ({
           // - vendor-sentry:        ~100 kB (Error tracking)
           // - vendor-payments:        ~5 kB (Toss Payments SDK)
           //
-          // Total Vendor: ~995 kB (down from 1,291 kB vendor-react)
+          // Total Vendor: ~995 kB
           // ============================================================
 
-          // 1. React Core (MUST LOAD FIRST)
-          // Contains React runtime and DOM rendering engine
-          // Target: ~140 kB gzip
-          if (
-            id.includes('node_modules/react/') ||
-            id.includes('node_modules/react-dom/')
-          ) {
-            return 'vendor-react-core';
-          }
+          // ALL VENDOR CHUNKS TEMPORARILY DISABLED
+          // Uncomment below after successful cache invalidation
 
-          // 2. React Router (depends on React core)
-          // Client-side routing library
-          // Target: ~30 kB gzip
-          // TEMPORARILY DISABLED: Force cache invalidation by including in index.js
+          // // 1. React Core (MUST LOAD FIRST)
+          // if (
+          //   id.includes('node_modules/react/') ||
+          //   id.includes('node_modules/react-dom/')
+          // ) {
+          //   return 'vendor-react-core';
+          // }
+
+          // // 2. React Router
           // if (id.includes('node_modules/react-router')) {
           //   return 'vendor-router';
           // }
 
-          // 3. React Query (depends on React core)
-          // Server state management and caching
-          // Target: ~40 kB gzip
-          if (id.includes('node_modules/@tanstack/react-query')) {
-            return 'vendor-query';
-          }
+          // // 3. React Query
+          // if (id.includes('node_modules/@tanstack/react-query')) {
+          //   return 'vendor-query';
+          // }
 
-          // 4. Radix UI Components (depends on React core)
-          // Headless UI primitives for shadcn/ui
-          // Target: ~250 kB gzip
-          if (id.includes('node_modules/@radix-ui')) {
-            return 'vendor-ui';
-          }
+          // // 4. Radix UI Components (depends on React core)
+          // // Headless UI primitives for shadcn/ui
+          // // Target: ~250 kB gzip
+          // if (id.includes('node_modules/@radix-ui')) {
+          //   return 'vendor-ui';
+          // }
 
-          // 5. Recharts (depends on React core)
-          // Chart library for analytics dashboard
-          // Target: ~100 kB gzip
-          if (id.includes('node_modules/recharts')) {
-            return 'vendor-charts';
-          }
+          // // 5. Recharts (depends on React core)
+          // // Chart library for analytics dashboard
+          // // Target: ~100 kB gzip
+          // if (id.includes('node_modules/recharts')) {
+          //   return 'vendor-charts';
+          // }
 
-          // 6. Markdown Rendering (depends on React core)
-          // react-markdown, remark-gfm, rehype-raw, rehype-sanitize
-          // Target: ~80 kB gzip
-          if (
-            id.includes('node_modules/react-markdown') ||
-            id.includes('node_modules/remark-') ||
-            id.includes('node_modules/rehype-')
-          ) {
-            return 'vendor-markdown';
-          }
+          // // 6. Markdown Rendering (depends on React core)
+          // // react-markdown, remark-gfm, rehype-raw, rehype-sanitize
+          // // Target: ~80 kB gzip
+          // if (
+          //   id.includes('node_modules/react-markdown') ||
+          //   id.includes('node_modules/remark-') ||
+          //   id.includes('node_modules/rehype-')
+          // ) {
+          //   return 'vendor-markdown';
+          // }
 
-          // 7. Form Libraries (depends on React core)
-          // React Hook Form + Zod validation
-          // Target: ~50 kB gzip
-          if (
-            id.includes('node_modules/react-hook-form') ||
-            id.includes('node_modules/@hookform') ||
-            id.includes('node_modules/zod')
-          ) {
-            return 'vendor-forms';
-          }
+          // // 7. Form Libraries (depends on React core)
+          // // React Hook Form + Zod validation
+          // // Target: ~50 kB gzip
+          // if (
+          //   id.includes('node_modules/react-hook-form') ||
+          //   id.includes('node_modules/@hookform') ||
+          //   id.includes('node_modules/zod')
+          // ) {
+          //   return 'vendor-forms';
+          // }
 
-          // 8. Supabase (independent of React)
-          // Backend-as-a-Service SDK
-          // Target: ~150 kB gzip
-          if (id.includes('node_modules/@supabase')) {
-            return 'vendor-supabase';
-          }
+          // // 8. Supabase (independent of React)
+          // // Backend-as-a-Service SDK
+          // // Target: ~150 kB gzip
+          // if (id.includes('node_modules/@supabase')) {
+          //   return 'vendor-supabase';
+          // }
 
-          // 9. Auth & Security (independent of React)
-          // OTP authentication and QR code generation
-          // Target: ~50 kB gzip
-          if (
-            id.includes('node_modules/otpauth') ||
-            id.includes('node_modules/qrcode')
-          ) {
-            return 'vendor-auth';
-          }
+          // // 9. Auth & Security (independent of React)
+          // // OTP authentication and QR code generation
+          // // Target: ~50 kB gzip
+          // if (
+          //   id.includes('node_modules/otpauth') ||
+          //   id.includes('node_modules/qrcode')
+          // ) {
+          //   return 'vendor-auth';
+          // }
 
-          // 10. Sentry (depends on React core)
-          // Error tracking and monitoring
-          // Target: ~100 kB gzip
-          if (id.includes('node_modules/@sentry')) {
-            return 'vendor-sentry';
-          }
+          // // 10. Sentry (depends on React core)
+          // // Error tracking and monitoring
+          // // Target: ~100 kB gzip
+          // if (id.includes('node_modules/@sentry')) {
+          //   return 'vendor-sentry';
+          // }
 
-          // 11. Payment SDKs (independent of React)
-          // Toss Payments integration
-          // Target: ~5 kB gzip
-          if (id.includes('node_modules/@tosspayments')) {
-            return 'vendor-payments';
-          }
+          // // 11. Payment SDKs (independent of React)
+          // // Toss Payments integration
+          // // Target: ~5 kB gzip
+          // if (id.includes('node_modules/@tosspayments')) {
+          //   return 'vendor-payments';
+          // }
 
           // ============================================================
           // APPLICATION CHUNKS STRATEGY
