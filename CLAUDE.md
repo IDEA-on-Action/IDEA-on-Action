@@ -9,6 +9,27 @@
 **개발 방법론**: SDD (Spec-Driven Development)
 
 **최신 업데이트**:
+- 2025-11-16: **🐛 React Key Prop 경고 해결** ✅ - Roadmap 컴포넌트 완전 수정
+  - **배경**: Roadmap 페이지에서 "Each child in a list should have a unique key prop" 경고 발생
+  - **문제 위치**: card.tsx:23, Roadmap.tsx:309
+  - **해결 전략**:
+    - Map 함수에 index 파라미터 추가 (item, index) => ...
+    - Nullable ID 체크 패턴: `id ?? \`fallback-${index}\``
+    - Fragment로 불필요한 wrapper 제거
+    - 조건부 렌더링 wrapper에서 key 제거
+  - **수정 파일**:
+    - src/pages/Roadmap.tsx: 모든 map 자식에 nullable 키 추가
+    - src/lib/roadmap-transforms.ts: milestones/kpis 배열 검증 추가
+  - **결과**:
+    - ✅ React 경고: 완전 제거
+    - ✅ 빌드 성공: 18.28초
+    - ✅ 번들 크기: Roadmap.js 9.20 kB (4.01 kB gzip)
+    - ✅ PWA precache: 27 entries (3617.19 KiB)
+  - **커밋**: ba431fa
+  - **핵심 패턴**:
+    - ✅ Key 필요: `array.map((item, index) => <Component key={item.id ?? \`fallback-${index}\`} />)`
+    - ❌ Key 불필요: 조건부 렌더링 wrapper, 단일 자식 요소
+
 - 2025-11-16: **📋 CMS Phase 4 작업 정리 완료** ✅ - Git 상태 클린업 및 최종 보고서 추가
   - **배경**: CMS Phase 4 병렬 에이전트 작업 후 미커밋 파일들 정리
   - **작업 내용**:
