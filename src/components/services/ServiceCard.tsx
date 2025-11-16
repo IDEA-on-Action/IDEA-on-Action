@@ -69,9 +69,9 @@ export function ServiceCard({ service }: ServiceCardProps) {
           <CardTitle className="line-clamp-2 group-hover:text-primary transition-colors">
             {title}
           </CardTitle>
-          <CardDescription className="line-clamp-3 text-sm prose prose-sm dark:prose-invert max-w-none">
+          <div className="line-clamp-3 text-sm text-muted-foreground prose prose-sm dark:prose-invert max-w-none">
             <ReactMarkdown>{description}</ReactMarkdown>
-          </CardDescription>
+          </div>
         </CardHeader>
 
         <CardContent className="space-y-4">
