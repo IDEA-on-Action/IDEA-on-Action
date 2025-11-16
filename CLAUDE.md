@@ -9,6 +9,117 @@
 **개발 방법론**: SDD (Spec-Driven Development)
 
 **최신 업데이트**:
+- 2025-11-16: **🌍 네비게이션 개선 & 커뮤니티 중심 메시징 강화** ✅ - 병렬 에이전트 8개로 사용자 여정 최적화
+  - **배경**: 사용자가 /services 페이지 접근 불가, 콘텐츠 일관성 문제 (기술 중심 vs 사용자 중심)
+  - **병렬 작업**: 8개 에이전트 동시 실행
+    - Agent 1: Header 네비게이션 "서비스" 메뉴 추가
+    - Agent 2: Index 홈페이지 "모든 서비스 보기" CTA 추가
+    - Agent 3: 브랜드 보이스 가이드 문서 작성 (634줄)
+    - Agent 4: About 페이지 커뮤니티 중심 리라이팅
+    - Agent 5: Roadmap 기술 메트릭 → 사용자 가치 변환
+    - Agent 6: Portfolio 스토리텔링 구조 추가
+    - Agent 7: WorkWithUs 커뮤니티 연결 메시지 추가
+    - Agent 8: NextSteps CTA 컴포넌트 생성 및 4개 페이지 적용
+
+  - **작업 1: 네비게이션 개선**
+    - Header.tsx: "서비스" 메뉴 추가 (홈-회사소개-**서비스**-로드맵-포트폴리오)
+    - Index.tsx: Services 섹션 하단에 "모든 서비스 보기" CTA 버튼
+    - 결과: 사용자가 네비게이션 바에서 /services 페이지 직접 접근 가능
+
+  - **작업 2: 커뮤니티 중심 메시징 (About.tsx)**
+    - "우리의 사명" → "함께하는 사명"
+    - "Team" → "Community Leaders"
+    - "Founder & CEO" → "Founder & Community Lead"
+    - Core Values 모든 항목에 "함께", "참여", "성장" 키워드 추가
+    - NextSteps CTA 추가: 로드맵 보기 → Portfolio 보기
+
+  - **작업 3: WorkWithUs 페이지 확장**
+    - 헤드라인: "Work with Us" → "함께 만들어가는 혁신"
+    - 새 섹션 "다른 참여 방법" 추가:
+      - Lab 바운티 참여 (작은 기여부터 시작)
+      - 디스코드 커뮤니티 참여
+    - Secondary CTA: "바운티 둘러보기" → /lab
+
+  - **작업 4: Portfolio 스토리텔링 구조 (Problem→Solution→Impact)**
+    - TypeScript 타입: `problem?`, `solution?`, `impact?` 필드 추가
+    - UI 구조 변경:
+      - Badge: Status → Problem context ("문제: 수작업 관리")
+      - Impact Metrics: 사용자 수, 시간 절감, 만족도
+      - Tech Details: Accordion으로 collapsible
+    - Fallback: 새 필드 없어도 기존 UI 표시 (backward compatible)
+
+  - **작업 5: Roadmap 사용자 가치 변환**
+    - roadmap-transforms.ts 생성 (200줄):
+      - `getUserFriendlyTheme()`: "Phase 1-14" → "안전하고 빠른 사용자 경험"
+      - `getKPIUserBenefits()`: "292 tests" → "버그 없는 서비스"
+      - `getStabilityBadge()`: "리스크: 낮음" → "안정성 99.9%"
+    - Roadmap.tsx: User benefits 우선 표시, 기술 상세는 Accordion
+
+  - **작업 6: NextSteps CTA 컴포넌트 (재사용)**
+    - NextStepsCTA.tsx 생성 (140줄)
+      - 3가지 variant 지원 (default, gradient, muted)
+      - Primary + Secondary CTA 지원
+      - 접근성 우선 (aria-labels)
+    - 4개 페이지 적용:
+      - About: 로드맵 보기 → Portfolio 보기
+      - Roadmap: 바운티 참여 → Portfolio 보기
+      - Portfolio: 프로젝트 제안 → 바운티 참여
+      - WorkWithUs: 바운티 둘러보기 → Portfolio 보기
+    - 사용자 여정: About → Services → Roadmap → Lab → Portfolio → WorkWithUs
+
+  - **작업 7: 브랜드 보이스 가이드 문서**
+    - brand-voice-guide.md 생성 (634줄)
+      - 브랜드 정체성: "커뮤니티형 프로덕트 스튜디오"
+      - 핵심 메시지 3가지: "함께 만드는 혁신", "투명한 과정", "실험 문화"
+      - 금지 용어 → 권장 용어 매핑
+      - 페이지별 가이드 (About, Roadmap, Portfolio, WorkWithUs, Lab)
+      - Before/After 예시 10개
+      - CTA 표준 정의
+
+  - **작업 8: DB 마이그레이션 준비** (적용은 선택 사항)
+    - 20251116120000_add_user_value_fields.sql 생성:
+      - Roadmap: `user_benefits` (JSONB), `stability_score` (INTEGER 0-100)
+      - Projects: `problem` (TEXT), `solution` (TEXT), `impact` (JSONB)
+      - GIN 인덱스 2개, Check constraint 1개
+    - 마이그레이션 가이드 3개 작성 (36 KB):
+      - user-value-fields-migration.md (전체 가이드, 727줄)
+      - user-value-fields-summary.md (요약, 400줄)
+      - user-value-fields-quick-ref.md (참조, 100줄)
+    - Rollback 스크립트 및 검증 스크립트 포함
+    - 주의: Frontend는 optional 필드로 작성되어 마이그레이션 없이도 작동
+
+  - **파일 변경 통계**:
+    - 수정: 8개 파일 (Header, Index, About, WorkWithUs, Portfolio, Roadmap, v2.ts, project-todo.md)
+    - 생성: 11개 파일 (NextStepsCTA, roadmap-transforms, 브랜드 가이드, DB 마이그레이션 등)
+    - +3,712줄 / -218줄 (순증가 +3,494줄)
+
+  - **사용자 여정 개선**:
+    - Before: 홈 → 로드맵 → 포트폴리오 (고립된 경로)
+    - After: 홈 → 회사소개 → **서비스** → 로드맵 → 실험실 → 포트폴리오 → 협업 (연결된 경로)
+    - NextSteps CTA로 모든 페이지 하단에 명확한 다음 단계 제시
+
+  - **결과**:
+    - ✅ 네비게이션 계층 명확화 (7개 메뉴 → 직관적 구조)
+    - ✅ 브랜드 메시징 일관성 강화 (모든 페이지에서 "함께" 키워드)
+    - ✅ 참여 경로 다양화 (프로젝트 계약 + 바운티 + 커뮤니티)
+    - ✅ 재사용 컴포넌트로 유지보수성 개선 (NextStepsCTA)
+    - ✅ 브랜드 보이스 가이드로 향후 콘텐츠 작성 표준화
+    - ✅ 기술 메트릭 → 사용자 가치 변환 (Roadmap, Portfolio)
+
+  - **빌드 결과**:
+    - ✅ 빌드 성공: 26.04초
+    - ✅ TypeScript 타입 체크: 에러 없음
+    - ✅ ESLint: 1개 경고 (Supabase Edge Function, 허용 가능)
+    - ✅ 번들 크기 영향: +6.58 kB (Accordion 컴포넌트)
+    - ✅ PWA precache: 27 entries (3,617.19 KiB)
+
+  - **커밋**: 2a721ff
+  - **문서**: 11개 (브랜드 가이드, DB 마이그레이션 가이드 3개, 변환 문서 2개 등)
+  - **다음 단계** (선택 사항):
+    - DB 마이그레이션 적용 (Docker Desktop 실행 후 `supabase db reset`)
+    - 상위 5~10개 프로젝트에 스토리텔링 데이터 입력
+    - 로드맵 항목에 user_benefits 데이터 입력
+
 - 2025-11-16: **🎉 CMS Phase 4 전체 완료** ✅ - 병렬 에이전트 9개로 23개 파일 생성 (216 KB, 30분 소요)
   - **배경**: CMS Phase 4 (문서화 & 배포 준비) 완전 완료 - 3회 병렬 작업으로 93% 시간 절감
   - **병렬 작업**: 총 9개 에이전트, 3회 실행
