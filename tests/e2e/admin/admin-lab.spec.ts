@@ -28,7 +28,7 @@ test.describe('AdminLab Page', () => {
       await page.waitForLoadState('networkidle')
 
       // Click on Lab menu item
-      await page.click('a[href="/admin/lab"], text="Lab"')
+      await page.getByRole('link', { name: 'Lab' }).filter({ has: page.locator('[href="/admin/lab"]') }).click()
       await page.waitForURL('/admin/lab', { timeout: 10000 })
 
       // Verify page title
@@ -53,9 +53,14 @@ test.describe('AdminLab Page', () => {
       // Click create button
       await page.click('button:has-text("새 Lab 항목")')
 
+      // Wait for dialog to open by checking for slug input field
+      const dialog = page.getByRole('dialog')
+      const slugInput = dialog.locator('input[placeholder*="ai-chatbot-experiment"]')
+      await slugInput.waitFor({ state: 'visible', timeout: 10000 })
+
       // Verify dialog is open
-      await expect(page.locator('text="새 Lab 항목"').nth(1)).toBeVisible() // Dialog title
-      await expect(page.locator('input[placeholder*="ai-chatbot-experiment"]')).toBeVisible() // Slug field
+      await expect(dialog.locator('text="새 Lab 항목"')).toBeVisible({ timeout: 5000 }) // Dialog title
+      await expect(slugInput).toBeVisible() // Slug field
     })
 
     test('should validate required fields', async ({ page }) => {
@@ -110,11 +115,11 @@ test.describe('AdminLab Page', () => {
 
       // Select category (experiment)
       await page.locator('select, [role="combobox"]').first().click()
-      await page.click('text="실험"')
+      await page.getByText('실험', { exact: true }).click()
 
       // Select status (exploring)
       await page.locator('select, [role="combobox"]').nth(1).click()
-      await page.click('text="탐색 중"')
+      await page.getByText('탐색 중', { exact: true }).click()
 
       // Submit form
       await page.click('button[type="submit"]:has-text("저장")')
@@ -230,7 +235,7 @@ test.describe('AdminLab Page', () => {
 
       // Select "실험" category
       await page.click('select:has-text("전체 카테고리"), [role="combobox"]:has-text("전체 카테고리")')
-      await page.click('text="실험"')
+      await page.getByText('실험', { exact: true }).click()
       await page.waitForTimeout(500)
 
       // Verify all visible items have "실험" badge
@@ -248,7 +253,7 @@ test.describe('AdminLab Page', () => {
 
       // Select "전체 카테고리"
       await page.click('select:has-text("전체 카테고리"), [role="combobox"]:has-text("전체 카테고리")')
-      await page.click('text="전체 카테고리"')
+      await page.getByText('전체 카테고리', { exact: true }).click()
       await page.waitForTimeout(500)
 
       // Should show all items (no filter)
@@ -264,7 +269,7 @@ test.describe('AdminLab Page', () => {
 
       // Select "탐색 중" status
       await page.click('select:has-text("전체 상태"), [role="combobox"]:has-text("전체 상태")')
-      await page.click('text="탐색 중"')
+      await page.getByText('탐색 중', { exact: true }).click()
       await page.waitForTimeout(500)
 
       // Verify all visible items have "탐색 중" badge
@@ -282,12 +287,12 @@ test.describe('AdminLab Page', () => {
 
       // Select category "실험"
       await page.click('select:has-text("전체 카테고리"), [role="combobox"]:has-text("전체 카테고리")')
-      await page.click('text="실험"')
+      await page.getByText('실험', { exact: true }).click()
       await page.waitForTimeout(300)
 
       // Select status "개발 중"
       await page.click('select:has-text("전체 상태"), [role="combobox"]:has-text("전체 상태")')
-      await page.click('text="개발 중"')
+      await page.getByText('개발 중', { exact: true }).click()
       await page.waitForTimeout(500)
 
       // Verify filters are applied

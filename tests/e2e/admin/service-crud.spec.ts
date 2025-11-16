@@ -106,7 +106,7 @@ test.describe('Admin Service CRUD', () => {
       await page.getByRole('button', { name: /저장|save/i }).click();
 
       // Look for toast notification
-      const toast = page.locator('[role="status"], [role="alert"], .toast, text=/생성|created/i');
+      const toast = page.locator('[role="status"], [role="alert"], .toast').filter({ hasText: /생성|created/i });
       if (await toast.count() > 0) {
         await expect(toast.first()).toBeVisible();
       }
@@ -263,7 +263,7 @@ test.describe('Admin Service CRUD', () => {
         await page.click('button[type="submit"]');
 
         // Look for toast
-        const toast = page.locator('[role="status"], [role="alert"], text=/수정|updated/i');
+        const toast = page.locator('[role="status"], [role="alert"]').filter({ hasText: /수정|updated/i });
         if (await toast.count() > 0) {
           await expect(toast.first()).toBeVisible();
         }

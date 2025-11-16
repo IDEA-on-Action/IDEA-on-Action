@@ -120,29 +120,30 @@ test.describe('Admin Team Management', () => {
     test('should create team member successfully with valid data', async ({ page }) => {
       await page.goto('/admin/team');
 
-      // Open dialog
-      await page.getByRole('button', { name: /새 팀원 추가|팀원 추가/i }).click();
+      // Open dialog - .first() added to handle multiple matches
+      await page.getByRole('button', { name: /새 팀원 추가|팀원 추가/i }).first().click();
       await page.waitForTimeout(500);
 
       // Generate unique name
       const uniqueName = `테스트 팀원 ${Date.now()}`;
 
-      // Fill required fields
-      await page.locator('input[placeholder*="홍길동" i]').fill(uniqueName);
-      await page.locator('input[placeholder*="Founder" i], input[placeholder*="CEO" i]').first().fill('Test Engineer');
+      // Fill required fields - Dialog scope to avoid duplicates
+      const dialog = page.locator('[role="dialog"]');
+      await dialog.locator('input[placeholder*="홍길동" i]').fill(uniqueName);
+      await dialog.locator('input[placeholder*="Founder" i]').fill('Test Engineer');
 
       // Fill optional fields
-      await page.locator('textarea[placeholder*="팀원 소개" i]').fill('테스트 팀원 소개입니다');
-      await page.locator('input[type="email"]').fill('test@example.com');
+      await dialog.locator('textarea[placeholder*="팀원 소개" i]').fill('테스트 팀원 소개입니다');
+      await dialog.locator('input[type="email"]').fill('test@example.com');
 
-      // Submit form
-      await page.locator('[role="dialog"] >> button[type="submit"]:has-text("저장")').click();
+      // Submit form - getByRole for better selector
+      await dialog.getByRole('button', { name: /저장|Save/i }).click();
 
       // Wait for success toast
       await page.waitForTimeout(2000);
 
       // Check for success toast
-      const toast = page.locator('[role="status"], text=/팀원 생성 완료|팀원이 추가/i');
+      const toast = page.locator('[role="status"]').filter({ hasText: /팀원 생성 완료|팀원이 추가/i });
       if (await toast.count() > 0) {
         await expect(toast.first()).toBeVisible();
       }
@@ -154,20 +155,21 @@ test.describe('Admin Team Management', () => {
     test('should create team member with avatar URL', async ({ page }) => {
       await page.goto('/admin/team');
 
-      // Open dialog
-      await page.getByRole('button', { name: /새 팀원 추가|팀원 추가/i }).click();
+      // Open dialog - .first() added
+      await page.getByRole('button', { name: /새 팀원 추가|팀원 추가/i }).first().click();
       await page.waitForTimeout(500);
 
-      // Fill required fields
+      // Fill required fields - Dialog scope
       const uniqueName = `아바타 테스트 ${Date.now()}`;
-      await page.locator('input[placeholder*="홍길동" i]').fill(uniqueName);
-      await page.locator('input[placeholder*="Founder" i], input[placeholder*="CEO" i]').first().fill('Designer');
+      const dialog = page.locator('[role="dialog"]');
+      await dialog.locator('input[placeholder*="홍길동" i]').fill(uniqueName);
+      await dialog.locator('input[placeholder*="Founder" i]').fill('Designer');
 
       // Fill avatar URL
-      await page.locator('input[placeholder*="https://..." i]').first().fill('https://via.placeholder.com/150');
+      await dialog.locator('input[placeholder*="https://..." i]').first().fill('https://via.placeholder.com/150');
 
-      // Submit form
-      await page.locator('[role="dialog"] >> button[type="submit"]:has-text("저장")').click();
+      // Submit form - getByRole
+      await dialog.getByRole('button', { name: /저장|Save/i }).click();
       await page.waitForTimeout(2000);
 
       // Verify avatar is displayed (image element)
@@ -204,23 +206,24 @@ test.describe('Admin Team Management', () => {
     test('should create team member with social links', async ({ page }) => {
       await page.goto('/admin/team');
 
-      // Open dialog
-      await page.getByRole('button', { name: /새 팀원 추가|팀원 추가/i }).click();
+      // Open dialog - .first() added
+      await page.getByRole('button', { name: /새 팀원 추가|팀원 추가/i }).first().click();
       await page.waitForTimeout(500);
 
-      // Fill required fields
+      // Fill required fields - Dialog scope
       const uniqueName = `소셜 링크 테스트 ${Date.now()}`;
-      await page.locator('input[placeholder*="홍길동" i]').fill(uniqueName);
-      await page.locator('input[placeholder*="Founder" i], input[placeholder*="CEO" i]').first().fill('Developer Advocate');
+      const dialog = page.locator('[role="dialog"]');
+      await dialog.locator('input[placeholder*="홍길동" i]').fill(uniqueName);
+      await dialog.locator('input[placeholder*="Founder" i]').fill('Developer Advocate');
 
       // Fill social links
-      await page.locator('input[placeholder*="github.com" i]').fill('https://github.com/testuser');
-      await page.locator('input[placeholder*="linkedin.com" i]').fill('https://linkedin.com/in/testuser');
-      await page.locator('input[placeholder*="twitter.com" i]').fill('https://twitter.com/testuser');
-      await page.locator('input[placeholder*="example.com" i]').fill('https://example.com');
+      await dialog.locator('input[placeholder*="github.com" i]').fill('https://github.com/testuser');
+      await dialog.locator('input[placeholder*="linkedin.com" i]').fill('https://linkedin.com/in/testuser');
+      await dialog.locator('input[placeholder*="twitter.com" i]').fill('https://twitter.com/testuser');
+      await dialog.locator('input[placeholder*="example.com" i]').fill('https://example.com');
 
-      // Submit form
-      await page.locator('[role="dialog"] >> button[type="submit"]:has-text("저장")').click();
+      // Submit form - getByRole
+      await dialog.getByRole('button', { name: /저장|Save/i }).click();
       await page.waitForTimeout(2000);
 
       // Verify social link icons are displayed
@@ -397,7 +400,7 @@ test.describe('Admin Team Management', () => {
         await page.waitForTimeout(2000);
 
         // Check for success toast
-        const toast = page.locator('[role="status"], text=/팀원 수정 완료/i');
+        const toast = page.locator('[role="status"]').filter({ hasText: /팀원 수정 완료/i });
         if (await toast.count() > 0) {
           await expect(toast.first()).toBeVisible();
         }
@@ -495,7 +498,7 @@ test.describe('Admin Team Management', () => {
         await page.waitForTimeout(1000);
 
         // Check for success toast
-        const toast = page.locator('[role="status"], text=/활성 상태 변경/i');
+        const toast = page.locator('[role="status"]').filter({ hasText: /활성 상태 변경/i });
         if (await toast.count() > 0) {
           await expect(toast.first()).toBeVisible();
         }
@@ -546,8 +549,8 @@ test.describe('Admin Team Management', () => {
       await page.goto('/admin/team');
       await page.waitForTimeout(1000);
 
-      // Click active filter dropdown
-      const filterButton = page.locator('button:has-text("전체 상태"), button:has-text("활성"), button:has-text("비활성")').first();
+      // Click active filter dropdown - more specific selector with .first()
+      const filterButton = page.getByRole('button').filter({ hasText: /전체 상태|활성|비활성/i }).first();
       if (await filterButton.count() > 0) {
         await filterButton.click();
         await page.waitForTimeout(300);

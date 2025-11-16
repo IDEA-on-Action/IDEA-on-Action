@@ -43,8 +43,8 @@ test.describe('Admin Tags', () => {
       await page.goto('/admin/tags');
       await page.waitForLoadState('networkidle');
 
-      // Check for table
-      const table = page.locator('table, [role="table"]');
+      // Check for table - .first() added to handle multiple matches
+      const table = page.locator('table, [role="table"]').first();
       await expect(table).toBeVisible();
 
       // Check for table headers
@@ -73,15 +73,17 @@ test.describe('Admin Tags', () => {
       const createButton = page.locator('button:has-text("새 태그"), button:has-text("태그 추가"), button:has-text("Add Tag")').first();
       await createButton.click();
 
-      // Wait for dialog to open
-      await page.waitForTimeout(500);
+      // Wait for dialog to open by checking for submit button
+      const dialog = page.getByRole('dialog');
+      const submitButton = dialog.locator('button[type="submit"], button:has-text("저장"), button:has-text("Save")');
+      await submitButton.waitFor({ state: 'visible', timeout: 10000 });
 
       // Verify dialog is visible
-      const dialog = page.locator('[role="dialog"]');
       await expect(dialog).toBeVisible();
 
       // Verify dialog title
-      await expect(dialog.locator('h2, [role="heading"]:has-text("새 태그"), [role="heading"]:has-text("New Tag")')).toBeVisible();
+      const dialogTitle = dialog.locator('h2, [role="heading"]:has-text("새 태그"), [role="heading"]:has-text("New Tag")');
+      await expect(dialogTitle).toBeVisible({ timeout: 5000 });
     });
 
     test('should show validation errors for required fields', async ({ page }) => {
@@ -116,24 +118,25 @@ test.describe('Admin Tags', () => {
       // Open create dialog
       const createButton = page.locator('button:has-text("새 태그"), button:has-text("태그 추가")').first();
       await createButton.click();
-      await page.waitForTimeout(500);
+
+      // Wait for dialog to open
+      const dialog = page.getByRole('dialog');
+      const nameInput = dialog.locator('input[placeholder*="태그명"], input[placeholder*="Tag"]').first();
+      await nameInput.waitFor({ state: 'visible', timeout: 10000 });
 
       // Fill form with invalid slug (spaces, uppercase, special chars)
-      const nameInput = page.locator('[role="dialog"] input[placeholder*="태그명"], [role="dialog"] input[placeholder*="Tag"]').first();
-      const slugInput = page.locator('[role="dialog"] input[placeholder*="slug"]').first();
+      const slugInput = dialog.locator('input[placeholder*="slug"]').first();
 
       await nameInput.fill('Test Tag');
       await slugInput.fill('Invalid Slug!'); // Invalid: spaces and special chars
 
       // Submit form
-      const submitButton = page.locator('[role="dialog"] button[type="submit"], [role="dialog"] button:has-text("저장")');
+      const submitButton = dialog.locator('button[type="submit"], button:has-text("저장")');
       await submitButton.click();
 
-      // Wait for validation error
-      await page.waitForTimeout(500);
-
       // Check for kebab-case validation error
-      const slugError = page.locator('text=/kebab-case|kebab.*형식/i');
+      const slugError = dialog.locator('text=/kebab-case|kebab.*형식/i');
+      await slugError.waitFor({ state: 'visible', timeout: 5000 });
       await expect(slugError).toBeVisible();
     });
 
@@ -150,22 +153,23 @@ test.describe('Admin Tags', () => {
       const uniqueName = `E2E Tag ${Date.now()}`;
       const uniqueSlug = `e2e-tag-${Date.now()}`;
 
-      // Fill form with valid data
-      const nameInput = page.locator('[role="dialog"] input').first();
-      const slugInput = page.locator('[role="dialog"] input').nth(1);
+      // Fill form with valid data - Dialog scope
+      const dialog = page.locator('[role="dialog"]');
+      const nameInput = dialog.locator('input').first();
+      const slugInput = dialog.locator('input').nth(1);
 
       await nameInput.fill(uniqueName);
       await slugInput.fill(uniqueSlug);
 
-      // Submit form
-      const submitButton = page.locator('[role="dialog"] button[type="submit"], [role="dialog"] button:has-text("저장")');
+      // Submit form - getByRole for better selector
+      const submitButton = dialog.getByRole('button', { name: /저장|Save/i });
       await submitButton.click();
 
       // Wait for creation
       await page.waitForTimeout(2000);
 
       // Check for success toast
-      const toast = page.locator('[role="status"], [role="alert"], text=/생성.*완료|created/i');
+      const toast = page.locator('[role="status"], [role="alert"]').filter({ hasText: /생성.*완료|created/i });
       if (await toast.count() > 0) {
         await expect(toast.first()).toBeVisible();
       }
@@ -205,7 +209,7 @@ test.describe('Admin Tags', () => {
       await expect(tagRow).toBeVisible();
 
       // Verify usage count badge shows "미사용" or "0"
-      const usageBadge = tagRow.locator('[role="status"], .badge, text=/미사용|0/i');
+      const usageBadge = tagRow.locator('[role="status"], .badge').filter({ hasText: /미사용|0/i });
       await expect(usageBadge).toBeVisible();
     });
   });
@@ -321,8 +325,8 @@ test.describe('Admin Tags', () => {
       await submitButton.click();
       await page.waitForTimeout(2000);
 
-      // Find the new tag and verify badge
-      const tagRow = page.locator(`tr:has-text("${uniqueName}")`);
+      // Find the new tag and verify badge - .first() added to filter
+      const tagRow = page.locator(`tr`).filter({ hasText: uniqueName }).first();
       const unusedBadge = tagRow.locator('text=/미사용|unused/i');
 
       await expect(unusedBadge).toBeVisible();

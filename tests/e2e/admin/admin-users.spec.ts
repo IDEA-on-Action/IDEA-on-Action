@@ -204,7 +204,7 @@ test.describe('AdminUsers Page', () => {
     await expect(page.locator('text=Editor (편집 권한)')).toBeVisible();
 
     // Select "Editor" role
-    await page.click('text=Editor (편집 권한)');
+    await page.getByText('Editor (편집 권한)', { exact: true }).click();
 
     // Role should be selected
     await expect(page.locator('button[role="combobox"]')).toContainText('Editor');
@@ -280,7 +280,7 @@ test.describe('AdminUsers Page', () => {
     await page.click('button[role="combobox"]:has-text("전체 역할")');
 
     // Select "Super Admin" filter
-    await page.click('text=Super Admin');
+    await page.getByText('Super Admin', { exact: true }).click();
 
     // Wait for filter to apply
     await page.waitForTimeout(300);

@@ -99,7 +99,7 @@ test.describe('Realtime Dashboard Page', () => {
     await page.waitForLoadState('networkidle');
 
     // Check for online users indicator
-    const onlineUsers = page.locator('text=/온라인|Online/i, text=/사용자|Users/i').first();
+    const onlineUsers = page.locator('text=/온라인|Online/i').or(page.locator('text=/사용자|Users/i')).first();
     const isVisible = await onlineUsers.isVisible({ timeout: 5000 }).catch(() => false);
 
     if (isVisible) {

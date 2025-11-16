@@ -54,13 +54,17 @@ test.describe('AdminPortfolio', () => {
 
   test.describe('Create New Portfolio', () => {
     test('should open create dialog when clicking add button', async ({ page }) => {
-      // Click "새 포트폴리오 항목" button
-      await page.click('button:has-text("새 포트폴리오 항목")');
+      // Click "새 포트폴리오 항목" button - .first() added to handle multiple matches
+      await page.getByRole('button', { name: /새 포트폴리오 항목/i }).first().click();
+
+      // Wait for dialog to open by checking DialogTitle or DialogDescription
+      const dialogTitle = page.getByRole('heading', { name: /새 포트폴리오 항목|포트폴리오 수정/i })
+      await dialogTitle.waitFor({ state: 'visible', timeout: 10000 })
 
       // Dialog should appear
-      await expect(page.locator('[role="dialog"]')).toBeVisible();
-      await expect(page.locator('text=새 포트폴리오 항목')).toBeVisible();
-      await expect(page.locator('text=포트폴리오 정보를 입력하세요')).toBeVisible();
+      const dialog = page.getByRole('dialog')
+      await expect(dialog).toBeVisible();
+      await expect(dialog.getByText(/포트폴리오 정보를 입력하세요/i)).toBeVisible({ timeout: 5000 });
     });
 
     test('should validate required fields', async ({ page }) => {
@@ -82,7 +86,11 @@ test.describe('AdminPortfolio', () => {
     test('should create portfolio with all required fields', async ({ page }) => {
       // Open create dialog
       await page.click('button:has-text("새 포트폴리오 항목")');
-      await page.waitForSelector('[role="dialog"]');
+
+      // Wait for dialog to open
+      const dialog = page.getByRole('dialog')
+      const slugInput = dialog.locator('input[placeholder*="project-name"]')
+      await slugInput.waitFor({ state: 'visible', timeout: 10000 })
 
       // Generate unique slug
       const timestamp = Date.now();
@@ -90,65 +98,68 @@ test.describe('AdminPortfolio', () => {
       const title = `테스트 포트폴리오 ${timestamp}`;
 
       // Fill required fields
-      await page.fill('input[placeholder*="project-name"]', slug);
-      await page.fill('input[placeholder*="프로젝트 제목"]', title);
-      await page.fill('textarea[placeholder*="프로젝트 요약"]', '테스트 포트폴리오 요약입니다.');
+      await slugInput.fill(slug);
+      await dialog.locator('input[placeholder*="프로젝트 제목"]').fill(title);
+      await dialog.locator('textarea[placeholder*="프로젝트 요약"]').fill('테스트 포트폴리오 요약입니다.');
 
       // Select project type
-      const projectTypeSelect = page.locator('select, button').filter({ hasText: /MVP|Fullstack/ }).first();
+      const projectTypeSelect = dialog.locator('select, button').filter({ hasText: /MVP|Fullstack/ }).first();
       await projectTypeSelect.click();
       await page.waitForTimeout(300);
-      await page.click('text=MVP');
+      await page.getByText('MVP', { exact: true }).click();
 
       // Submit form
-      await page.click('button[type="submit"]:has-text("저장")');
-
-      // Wait for success
-      await page.waitForTimeout(2000);
+      await dialog.locator('button[type="submit"]:has-text("저장")').click();
 
       // Check for success toast
-      const toast = page.locator('[role="status"], [role="alert"], text=/포트폴리오 생성 완료|생성되었습니다/i');
+      const toast = page.locator('[role="status"], [role="alert"]').filter({ hasText: /포트폴리오 생성 완료|생성되었습니다/i });
+      await toast.first().waitFor({ state: 'visible', timeout: 5000 })
       if (await toast.count() > 0) {
-        await expect(toast.first()).toBeVisible({ timeout: 5000 });
+        await expect(toast.first()).toBeVisible();
       }
 
       // Dialog should close
-      await expect(page.locator('[role="dialog"]')).not.toBeVisible({ timeout: 3000 });
+      await expect(dialog).not.toBeVisible({ timeout: 5000 });
 
       // New item should appear in table
-      await expect(page.locator(`text=${title}`)).toBeVisible({ timeout: 5000 });
+      const newItem = page.locator(`text=${title}`)
+      await newItem.waitFor({ state: 'visible', timeout: 10000 })
+      await expect(newItem).toBeVisible();
     });
 
     test('should create portfolio with optional fields', async ({ page }) => {
       await page.click('button:has-text("새 포트폴리오 항목")');
-      await page.waitForSelector('[role="dialog"]');
+
+      // Wait for dialog to open
+      const dialog = page.getByRole('dialog')
+      const slugInput = dialog.locator('input[placeholder*="project-name"]')
+      await slugInput.waitFor({ state: 'visible', timeout: 10000 })
 
       const timestamp = Date.now();
       const slug = `full-portfolio-${timestamp}`;
 
       // Fill required fields
-      await page.fill('input[placeholder*="project-name"]', slug);
-      await page.fill('input[placeholder*="프로젝트 제목"]', `완전한 포트폴리오 ${timestamp}`);
-      await page.fill('textarea[placeholder*="프로젝트 요약"]', '완전한 테스트 포트폴리오');
+      await slugInput.fill(slug);
+      await dialog.locator('input[placeholder*="프로젝트 제목"]').fill(`완전한 포트폴리오 ${timestamp}`);
+      await dialog.locator('textarea[placeholder*="프로젝트 요약"]').fill('완전한 테스트 포트폴리오');
 
       // Fill optional fields
-      await page.fill('input[placeholder*="ABC Corp"]', '테스트 클라이언트');
-      await page.fill('input[placeholder*="https://..." i]', 'https://example.com/logo.png');
-      await page.fill('input[placeholder*="3개월"]', '6개월');
-      await page.fill('input[type="number"]', '5');
+      await dialog.locator('input[placeholder*="ABC Corp"]').fill('테스트 클라이언트');
+      await dialog.locator('input[placeholder*="https://..." i]').fill('https://example.com/logo.png');
+      await dialog.locator('input[placeholder*="3개월"]').fill('6개월');
+      await dialog.locator('input[type="number"]').fill('5');
 
       // Select project type
-      const projectTypeSelect = page.locator('select, button').filter({ hasText: /MVP|Fullstack/ }).first();
+      const projectTypeSelect = dialog.locator('select, button').filter({ hasText: /MVP|Fullstack/ }).first();
       await projectTypeSelect.click();
       await page.waitForTimeout(300);
-      await page.click('text=Fullstack');
+      await page.getByText('Fullstack', { exact: true }).click();
 
       // Submit
-      await page.click('button[type="submit"]:has-text("저장")');
-      await page.waitForTimeout(2000);
+      await dialog.locator('button[type="submit"]:has-text("저장")').click();
 
       // Verify creation
-      await expect(page.locator('[role="dialog"]')).not.toBeVisible({ timeout: 3000 });
+      await expect(dialog).not.toBeVisible({ timeout: 5000 });
     });
 
     test('should handle tech stack JSON array input', async ({ page }) => {
@@ -170,7 +181,7 @@ test.describe('AdminPortfolio', () => {
       const projectTypeSelect = page.locator('select, button').filter({ hasText: /MVP|Fullstack/ }).first();
       await projectTypeSelect.click();
       await page.waitForTimeout(300);
-      await page.click('text=Design');
+      await page.getByText('Design', { exact: true }).click();
 
       // Submit
       await page.click('button[type="submit"]:has-text("저장")');
@@ -206,7 +217,7 @@ test.describe('AdminPortfolio', () => {
       const projectTypeSelect = page.locator('select, button').filter({ hasText: /MVP|Fullstack/ }).first();
       await projectTypeSelect.click();
       await page.waitForTimeout(300);
-      await page.click('text=Operations');
+      await page.getByText('Operations', { exact: true }).click();
 
       // Submit
       await page.click('button[type="submit"]:has-text("저장")');
@@ -239,7 +250,7 @@ test.describe('AdminPortfolio', () => {
       const projectTypeSelect = page.locator('select, button').filter({ hasText: /MVP|Fullstack/ }).first();
       await projectTypeSelect.click();
       await page.waitForTimeout(300);
-      await page.click('text=MVP');
+      await page.getByText('MVP', { exact: true }).click();
 
       // Submit
       await page.click('button[type="submit"]:has-text("저장")');
@@ -294,7 +305,7 @@ test.describe('AdminPortfolio', () => {
       await page.waitForTimeout(300);
 
       // Select MVP
-      await page.click('text=MVP');
+      await page.getByText('MVP', { exact: true }).click();
       await page.waitForTimeout(500);
 
       // Check if filter is applied (badge should be visible in filtered rows)
@@ -311,7 +322,7 @@ test.describe('AdminPortfolio', () => {
       await typeFilter.click();
       await page.waitForTimeout(300);
 
-      await page.click('text=Fullstack');
+      await page.getByText('Fullstack', { exact: true }).click();
       await page.waitForTimeout(500);
     });
 
@@ -322,7 +333,7 @@ test.describe('AdminPortfolio', () => {
       await typeFilter.click();
       await page.waitForTimeout(300);
 
-      await page.click('text=Design');
+      await page.getByText('Design', { exact: true }).click();
       await page.waitForTimeout(500);
     });
 
@@ -333,7 +344,7 @@ test.describe('AdminPortfolio', () => {
       await typeFilter.click();
       await page.waitForTimeout(300);
 
-      await page.click('text=Operations');
+      await page.getByText('Operations', { exact: true }).click();
       await page.waitForTimeout(500);
     });
 
@@ -344,7 +355,7 @@ test.describe('AdminPortfolio', () => {
       await typeFilter.click();
       await page.waitForTimeout(300);
 
-      await page.click('text=전체 타입');
+      await page.getByText('전체 타입', { exact: true }).click();
       await page.waitForTimeout(500);
     });
   });
@@ -357,7 +368,7 @@ test.describe('AdminPortfolio', () => {
       await statusFilter.click();
       await page.waitForTimeout(300);
 
-      await page.click('text=공개');
+      await page.getByText('공개', { exact: true }).click();
       await page.waitForTimeout(500);
     });
 
@@ -368,7 +379,7 @@ test.describe('AdminPortfolio', () => {
       await statusFilter.click();
       await page.waitForTimeout(300);
 
-      await page.click('text=비공개');
+      await page.getByText('비공개', { exact: true }).click();
       await page.waitForTimeout(500);
     });
 
@@ -379,7 +390,7 @@ test.describe('AdminPortfolio', () => {
       await statusFilter.click();
       await page.waitForTimeout(300);
 
-      await page.click('text=Featured');
+      await page.getByText('Featured', { exact: true }).click();
       await page.waitForTimeout(500);
     });
   });
@@ -440,7 +451,7 @@ test.describe('AdminPortfolio', () => {
         await page.waitForTimeout(2000);
 
         // Check for success toast
-        const toast = page.locator('[role="status"], [role="alert"], text=/포트폴리오 수정 완료|수정되었습니다/i');
+        const toast = page.locator('[role="status"], [role="alert"]').filter({ hasText: /포트폴리오 수정 완료|수정되었습니다/i });
         if (await toast.count() > 0) {
           await expect(toast.first()).toBeVisible({ timeout: 5000 });
         }
@@ -520,7 +531,7 @@ test.describe('AdminPortfolio', () => {
       const projectTypeSelect = page.locator('select, button').filter({ hasText: /MVP|Fullstack/ }).first();
       await projectTypeSelect.click();
       await page.waitForTimeout(300);
-      await page.click('text=MVP');
+      await page.getByText('MVP', { exact: true }).click();
 
       await page.click('button[type="submit"]:has-text("저장")');
       await page.waitForTimeout(2000);
@@ -539,7 +550,7 @@ test.describe('AdminPortfolio', () => {
         await page.waitForTimeout(1500);
 
         // Check for success toast
-        const toast = page.locator('[role="status"], [role="alert"], text=/포트폴리오 삭제 완료|삭제되었습니다/i');
+        const toast = page.locator('[role="status"], [role="alert"]').filter({ hasText: /포트폴리오 삭제 완료|삭제되었습니다/i });
         if (await toast.count() > 0) {
           await expect(toast.first()).toBeVisible({ timeout: 5000 });
         }
@@ -566,7 +577,7 @@ test.describe('AdminPortfolio', () => {
         await page.waitForTimeout(1000);
 
         // Check for toast notification
-        const toast = page.locator('[role="status"], [role="alert"], text=/Featured 상태 변경/i');
+        const toast = page.locator('[role="status"], [role="alert"]').filter({ hasText: /Featured 상태 변경/i });
         if (await toast.count() > 0) {
           await expect(toast.first()).toBeVisible({ timeout: 5000 });
         }
@@ -585,7 +596,7 @@ test.describe('AdminPortfolio', () => {
         await page.waitForTimeout(1000);
 
         // Check for toast notification
-        const toast = page.locator('[role="status"], [role="alert"], text=/공개 상태 변경/i');
+        const toast = page.locator('[role="status"], [role="alert"]').filter({ hasText: /공개 상태 변경/i });
         if (await toast.count() > 0) {
           await expect(toast.first()).toBeVisible({ timeout: 5000 });
         }

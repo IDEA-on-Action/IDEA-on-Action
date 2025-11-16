@@ -30,18 +30,18 @@ test.describe('Admin Blog Categories', () => {
 
       // Look for blog categories link in sidebar or menu
       const categoriesLink = page.locator(
-        'a[href="/admin/blog-categories"], a:has-text("카테고리"), a:has-text("Categories")'
+        'a[href="/admin/blog/categories"], a:has-text("카테고리"), a:has-text("Categories")'
       )
 
       if ((await categoriesLink.count()) > 0) {
         await categoriesLink.first().click()
-        await page.waitForURL('/admin/blog-categories', { timeout: 5000 })
-        expect(page.url()).toContain('/admin/blog-categories')
+        await page.waitForURL('/admin/blog/categories', { timeout: 5000 })
+        expect(page.url()).toContain('/admin/blog/categories')
       }
     })
 
     test('should load blog categories page directly', async ({ page }) => {
-      await page.goto('/admin/blog-categories')
+      await page.goto('/admin/blog/categories')
 
       // Check for page title
       await expect(
@@ -55,7 +55,7 @@ test.describe('Admin Blog Categories', () => {
     })
 
     test('should display table or empty state', async ({ page }) => {
-      await page.goto('/admin/blog-categories')
+      await page.goto('/admin/blog/categories')
 
       // Wait for loading to complete
       await page.waitForTimeout(1000)
@@ -70,44 +70,46 @@ test.describe('Admin Blog Categories', () => {
 
   test.describe('Create New Category', () => {
     test('should open create dialog when clicking "새 카테고리" button', async ({ page }) => {
-      await page.goto('/admin/blog-categories')
+      await page.goto('/admin/blog/categories')
 
       // Click create button
       await page.getByRole('button', { name: /새 카테고리|New Category|카테고리 추가/i }).click()
 
-      // Wait for dialog
-      await page.waitForTimeout(300)
+      // Wait for dialog to open by checking for dialog title
+      const dialogTitle = page.getByRole('heading', { name: /새 카테고리|카테고리 수정|New Category|Edit Category/i })
+      await dialogTitle.waitFor({ state: 'visible', timeout: 10000 })
 
       // Check for dialog
-      const dialog = page.locator('[role="dialog"]')
+      const dialog = page.getByRole('dialog')
       await expect(dialog).toBeVisible()
 
       // Check for form fields
-      await expect(dialog.locator('input[placeholder*="기술"], input[name="name"]')).toBeVisible()
-      await expect(dialog.locator('input[placeholder*="tech"], input[name="slug"]')).toBeVisible()
+      await expect(dialog.locator('input[placeholder*="기술"], input[name="name"]')).toBeVisible({ timeout: 5000 })
+      await expect(dialog.locator('input[placeholder*="tech"], input[name="slug"]')).toBeVisible({ timeout: 5000 })
     })
 
     test('should show validation errors for missing required fields', async ({ page }) => {
-      await page.goto('/admin/blog-categories')
+      await page.goto('/admin/blog/categories')
 
       // Open dialog
       await page.getByRole('button', { name: /새 카테고리|카테고리 추가/i }).click()
-      await page.waitForTimeout(300)
+
+      // Wait for dialog submit button (confirms dialog is open)
+      const dialog = page.getByRole('dialog')
+      const submitButton = dialog.getByRole('button', { name: /저장|Save/i })
+      await submitButton.waitFor({ state: 'visible', timeout: 10000 })
 
       // Submit empty form
-      const dialog = page.locator('[role="dialog"]')
-      await dialog.getByRole('button', { name: /저장|Save/i }).click()
+      await submitButton.click()
 
-      // Wait for validation
-      await page.waitForTimeout(500)
-
-      // Check for validation errors
+      // Wait for validation error to appear
       const errorMessages = dialog.locator('text=/카테고리 이름을 입력하세요|required/i')
+      await errorMessages.first().waitFor({ state: 'visible', timeout: 5000 })
       await expect(errorMessages.first()).toBeVisible()
     })
 
     test('should validate slug format (kebab-case)', async ({ page }) => {
-      await page.goto('/admin/blog-categories')
+      await page.goto('/admin/blog/categories')
 
       // Open dialog
       await page.getByRole('button', { name: /새 카테고리|카테고리 추가/i }).click()
@@ -129,7 +131,7 @@ test.describe('Admin Blog Categories', () => {
     })
 
     test('should validate hex color format', async ({ page }) => {
-      await page.goto('/admin/blog-categories')
+      await page.goto('/admin/blog/categories')
 
       // Open dialog
       await page.getByRole('button', { name: /새 카테고리|카테고리 추가/i }).click()
@@ -154,20 +156,22 @@ test.describe('Admin Blog Categories', () => {
     })
 
     test('should create category successfully with valid data', async ({ page }) => {
-      await page.goto('/admin/blog-categories')
+      await page.goto('/admin/blog/categories')
 
       // Open dialog
       await page.getByRole('button', { name: /새 카테고리|카테고리 추가/i }).click()
-      await page.waitForTimeout(300)
 
-      const dialog = page.locator('[role="dialog"]')
+      // Wait for dialog to open
+      const dialog = page.getByRole('dialog')
+      const nameInput = dialog.locator('input[placeholder*="기술"], input[name="name"]')
+      await nameInput.waitFor({ state: 'visible', timeout: 10000 })
 
       // Generate unique category name
       const uniqueName = `테스트-${Date.now()}`
       const uniqueSlug = `test-${Date.now()}`
 
       // Fill form with valid data
-      await dialog.locator('input[placeholder*="기술"], input[name="name"]').fill(uniqueName)
+      await nameInput.fill(uniqueName)
       await dialog.locator('input[placeholder*="tech"], input[name="slug"]').fill(uniqueSlug)
       await dialog
         .locator('textarea[placeholder*="카테고리 설명"], textarea[name="description"]')
@@ -178,43 +182,44 @@ test.describe('Admin Blog Categories', () => {
       // Submit
       await dialog.getByRole('button', { name: /저장|Save/i }).click()
 
-      // Wait for toast notification
-      await page.waitForTimeout(1500)
-
       // Check for success toast
-      const toast = page.locator('[role="status"], [role="alert"], text=/카테고리 생성 완료|created/i')
+      const toast = page.locator('[role="status"], [role="alert"]').filter({ hasText: /카테고리 생성 완료|created/i })
+      await toast.first().waitFor({ state: 'visible', timeout: 5000 })
       if ((await toast.count()) > 0) {
         await expect(toast.first()).toBeVisible()
       }
     })
 
     test('should verify new category appears in table', async ({ page }) => {
-      await page.goto('/admin/blog-categories')
+      await page.goto('/admin/blog/categories')
 
       // Create a category
       await page.getByRole('button', { name: /새 카테고리|카테고리 추가/i }).click()
-      await page.waitForTimeout(300)
 
-      const dialog = page.locator('[role="dialog"]')
+      // Wait for dialog to open
+      const dialog = page.getByRole('dialog')
+      const nameInput = dialog.locator('input[placeholder*="기술"], input[name="name"]')
+      await nameInput.waitFor({ state: 'visible', timeout: 10000 })
+
       const uniqueName = `분류-${Date.now()}`
       const uniqueSlug = `category-${Date.now()}`
 
-      await dialog.locator('input[placeholder*="기술"], input[name="name"]').fill(uniqueName)
+      await nameInput.fill(uniqueName)
       await dialog.locator('input[placeholder*="tech"], input[name="slug"]').fill(uniqueSlug)
       await dialog.locator('input[placeholder*="#3b82f6"], input[name="color"]').fill('#8b5cf6')
 
       await dialog.getByRole('button', { name: /저장|Save/i }).click()
-      await page.waitForTimeout(2000)
 
       // Verify it appears in the table
       const categoryInTable = page.locator(`text="${uniqueName}"`)
-      await expect(categoryInTable).toBeVisible({ timeout: 5000 })
+      await categoryInTable.waitFor({ state: 'visible', timeout: 10000 })
+      await expect(categoryInTable).toBeVisible()
     })
   })
 
   test.describe('Search Functionality', () => {
     test('should filter categories by name using search', async ({ page }) => {
-      await page.goto('/admin/blog-categories')
+      await page.goto('/admin/blog/categories')
 
       // Wait for page to load
       await page.waitForTimeout(1000)
@@ -237,7 +242,7 @@ test.describe('Admin Blog Categories', () => {
     })
 
     test('should clear search results when search is cleared', async ({ page }) => {
-      await page.goto('/admin/blog-categories')
+      await page.goto('/admin/blog/categories')
       await page.waitForTimeout(1000)
 
       const searchInput = page.locator(
@@ -261,7 +266,7 @@ test.describe('Admin Blog Categories', () => {
 
   test.describe('Color Picker', () => {
     test('should display color preview box', async ({ page }) => {
-      await page.goto('/admin/blog-categories')
+      await page.goto('/admin/blog/categories')
 
       // Open dialog
       await page.getByRole('button', { name: /새 카테고리|카테고리 추가/i }).click()
@@ -275,7 +280,7 @@ test.describe('Admin Blog Categories', () => {
     })
 
     test('should update color preview when hex code changes', async ({ page }) => {
-      await page.goto('/admin/blog-categories')
+      await page.goto('/admin/blog/categories')
 
       // Open dialog
       await page.getByRole('button', { name: /새 카테고리|카테고리 추가/i }).click()
@@ -299,7 +304,7 @@ test.describe('Admin Blog Categories', () => {
 
   test.describe('Icon Field', () => {
     test('should accept valid icon names', async ({ page }) => {
-      await page.goto('/admin/blog-categories')
+      await page.goto('/admin/blog/categories')
 
       // Open dialog
       await page.getByRole('button', { name: /새 카테고리|카테고리 추가/i }).click()
@@ -318,7 +323,7 @@ test.describe('Admin Blog Categories', () => {
 
   test.describe('Post Count Display', () => {
     test('should display post count in table', async ({ page }) => {
-      await page.goto('/admin/blog-categories')
+      await page.goto('/admin/blog/categories')
       await page.waitForTimeout(1000)
 
       // Check if table exists
@@ -340,7 +345,7 @@ test.describe('Admin Blog Categories', () => {
 
   test.describe('Edit Category', () => {
     test('should open edit dialog when clicking edit button', async ({ page }) => {
-      await page.goto('/admin/blog-categories')
+      await page.goto('/admin/blog/categories')
       await page.waitForTimeout(1000)
 
       // Find first edit button
@@ -362,7 +367,7 @@ test.describe('Admin Blog Categories', () => {
     })
 
     test('should load existing data in edit form', async ({ page }) => {
-      await page.goto('/admin/blog-categories')
+      await page.goto('/admin/blog/categories')
       await page.waitForTimeout(1000)
 
       const editButton = page
@@ -388,7 +393,7 @@ test.describe('Admin Blog Categories', () => {
     })
 
     test('should update category successfully', async ({ page }) => {
-      await page.goto('/admin/blog-categories')
+      await page.goto('/admin/blog/categories')
       await page.waitForTimeout(1000)
 
       const editButton = page
@@ -412,7 +417,7 @@ test.describe('Admin Blog Categories', () => {
         await page.waitForTimeout(1500)
 
         // Check for success toast
-        const toast = page.locator('[role="status"], [role="alert"], text=/카테고리 수정 완료|updated/i')
+        const toast = page.locator('[role="status"], [role="alert"]').filter({ hasText: /카테고리 수정 완료|updated/i })
         if ((await toast.count()) > 0) {
           await expect(toast.first()).toBeVisible()
         }
@@ -422,7 +427,7 @@ test.describe('Admin Blog Categories', () => {
 
   test.describe('Delete Category', () => {
     test('should show delete confirmation dialog', async ({ page }) => {
-      await page.goto('/admin/blog-categories')
+      await page.goto('/admin/blog/categories')
       await page.waitForTimeout(1000)
 
       // Find first delete button
@@ -444,11 +449,11 @@ test.describe('Admin Blog Categories', () => {
     })
 
     test('should show warning if category has posts', async ({ page }) => {
-      await page.goto('/admin/blog-categories')
+      await page.goto('/admin/blog/categories')
       await page.waitForTimeout(1000)
 
       // Find a category with posts (postCount > 0)
-      const categoryWithPosts = page.locator('tr:has-text(/[1-9]\\d*개|[1-9]\\d* posts/i)').first()
+      const categoryWithPosts = page.locator('tr').filter({ hasText: /[1-9]\d*개|[1-9]\d* posts/i }).first()
 
       if ((await categoryWithPosts.count()) > 0) {
         // Click delete button
@@ -467,7 +472,7 @@ test.describe('Admin Blog Categories', () => {
     })
 
     test('should cancel delete when clicking cancel button', async ({ page }) => {
-      await page.goto('/admin/blog-categories')
+      await page.goto('/admin/blog/categories')
       await page.waitForTimeout(1000)
 
       const deleteButton = page
@@ -492,7 +497,7 @@ test.describe('Admin Blog Categories', () => {
     })
 
     test('should delete category successfully (if no posts)', async ({ page }) => {
-      await page.goto('/admin/blog-categories')
+      await page.goto('/admin/blog/categories')
 
       // Create a test category to delete
       await page.getByRole('button', { name: /새 카테고리|카테고리 추가/i }).click()
@@ -524,7 +529,7 @@ test.describe('Admin Blog Categories', () => {
         await page.waitForTimeout(1500)
 
         // Check for success toast
-        const toast = page.locator('[role="status"], [role="alert"], text=/카테고리 삭제 완료|deleted/i')
+        const toast = page.locator('[role="status"], [role="alert"]').filter({ hasText: /카테고리 삭제 완료|deleted/i })
         if ((await toast.count()) > 0) {
           await expect(toast.first()).toBeVisible()
         }
@@ -539,7 +544,7 @@ test.describe('Admin Blog Categories', () => {
 
   test.describe('Color Badge Display', () => {
     test('should render color badge correctly in table', async ({ page }) => {
-      await page.goto('/admin/blog-categories')
+      await page.goto('/admin/blog/categories')
       await page.waitForTimeout(1000)
 
       // Check if table exists
@@ -557,13 +562,13 @@ test.describe('Admin Blog Categories', () => {
     })
 
     test('should display hex code next to color badge', async ({ page }) => {
-      await page.goto('/admin/blog-categories')
+      await page.goto('/admin/blog/categories')
       await page.waitForTimeout(1000)
 
       // Check if table exists
       if ((await page.locator('table').count()) > 0) {
         // Look for hex codes (e.g., #3b82f6)
-        const hexCodes = page.locator('code:has-text(/^#[0-9a-fA-F]{6}$/)')
+        const hexCodes = page.locator('code').filter({ hasText: /^#[0-9a-fA-F]{6}$/ })
         if ((await hexCodes.count()) > 0) {
           await expect(hexCodes.first()).toBeVisible()
         }

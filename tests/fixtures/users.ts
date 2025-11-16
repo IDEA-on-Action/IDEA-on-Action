@@ -7,10 +7,10 @@
 
 export const testUsers = {
   superAdmin: {
-    email: 'superadmin@ideaonaction.local',
-    password: 'SuperAdmin123!',
-    username: 'superadmin',
-    role: 'super_admin'
+    email: 'admin@ideaonaction.local',
+    password: 'demian00',
+    username: 'admin',
+    role: 'admin'
   },
   admin: {
     email: 'admin@ideaonaction.local',
