@@ -70,7 +70,14 @@ export function ServiceCard({ service }: ServiceCardProps) {
             {title}
           </CardTitle>
           <div className="line-clamp-3 text-sm text-muted-foreground prose prose-sm dark:prose-invert max-w-none">
-            <ReactMarkdown>{description}</ReactMarkdown>
+            <ReactMarkdown
+              components={{
+                // ServiceCard는 Link로 감싸져 있으므로 a 태그를 span으로 변환 (중첩 방지)
+                a: ({ children }) => <span className="text-primary">{children}</span>,
+              }}
+            >
+              {description}
+            </ReactMarkdown>
           </div>
         </CardHeader>
 
