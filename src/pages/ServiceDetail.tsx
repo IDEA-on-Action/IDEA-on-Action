@@ -38,6 +38,7 @@ import {
   Mail,
   ShoppingCart,
 } from 'lucide-react'
+import { MarkdownRenderer } from '@/components/blog/MarkdownRenderer'
 
 export default function ServiceDetail() {
   const { id } = useParams<{ id: string }>()
@@ -182,7 +183,9 @@ export default function ServiceDetail() {
               <div className="space-y-3">
                 {category && <Badge variant="secondary">{category.name}</Badge>}
                 <h1 className="text-4xl font-bold">{title}</h1>
-                <p className="text-lg text-muted-foreground">{description}</p>
+                <div className="text-muted-foreground">
+                  <MarkdownRenderer content={description || ''} />
+                </div>
               </div>
 
               {/* 메트릭 */}
@@ -263,11 +266,11 @@ export default function ServiceDetail() {
                     <CardHeader>
                       <div className="flex items-start gap-3">
                         <CheckCircle2 className="h-6 w-6 text-primary flex-shrink-0 mt-1" />
-                        <div>
+                        <div className="flex-1">
                           <CardTitle className="text-lg">{feature.title}</CardTitle>
-                          <CardDescription className="mt-2">
-                            {feature.description}
-                          </CardDescription>
+                          <div className="mt-2 text-sm text-muted-foreground">
+                            <MarkdownRenderer content={feature.description || ''} />
+                          </div>
                         </div>
                       </div>
                     </CardHeader>

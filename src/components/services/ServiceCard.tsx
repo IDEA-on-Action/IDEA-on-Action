@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { ArrowRight, Users, Star } from 'lucide-react'
 import type { ServiceWithCategory } from '@/types/database'
+import ReactMarkdown from 'react-markdown'
 
 interface ServiceCardProps {
   service: ServiceWithCategory
@@ -68,8 +69,8 @@ export function ServiceCard({ service }: ServiceCardProps) {
           <CardTitle className="line-clamp-2 group-hover:text-primary transition-colors">
             {title}
           </CardTitle>
-          <CardDescription className="line-clamp-3 text-sm">
-            {description}
+          <CardDescription className="line-clamp-3 text-sm prose prose-sm dark:prose-invert max-w-none">
+            <ReactMarkdown>{description}</ReactMarkdown>
           </CardDescription>
         </CardHeader>
 
