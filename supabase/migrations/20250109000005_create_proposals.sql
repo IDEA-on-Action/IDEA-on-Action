@@ -40,46 +40,25 @@ CREATE POLICY "Users can view their own proposals"
   USING (user_id = auth.uid());
 
 -- Admin: View all proposals
+-- Note: Using is_admin_user() function to avoid dependency on user_roles table
 CREATE POLICY "Admins can view all proposals"
   ON public.proposals
   FOR SELECT
-  USING (
-    EXISTS (
-      SELECT 1 FROM public.user_roles
-      WHERE user_id = auth.uid()
-      AND role_id IN (
-        SELECT id FROM public.roles WHERE name = 'admin'
-      )
-    )
-  );
+  USING (public.is_admin_user(auth.uid()));
 
 -- Admin: Update proposal status
+-- Note: Using is_admin_user() function to avoid dependency on user_roles table
 CREATE POLICY "Admins can update proposals"
   ON public.proposals
   FOR UPDATE
-  USING (
-    EXISTS (
-      SELECT 1 FROM public.user_roles
-      WHERE user_id = auth.uid()
-      AND role_id IN (
-        SELECT id FROM public.roles WHERE name = 'admin'
-      )
-    )
-  );
+  USING (public.is_admin_user(auth.uid()));
 
 -- Admin: Delete proposals
+-- Note: Using is_admin_user() function to avoid dependency on user_roles table
 CREATE POLICY "Admins can delete proposals"
   ON public.proposals
   FOR DELETE
-  USING (
-    EXISTS (
-      SELECT 1 FROM public.user_roles
-      WHERE user_id = auth.uid()
-      AND role_id IN (
-        SELECT id FROM public.roles WHERE name = 'admin'
-      )
-    )
-  );
+  USING (public.is_admin_user(auth.uid()));
 
 -- Update updated_at trigger
 CREATE OR REPLACE FUNCTION update_proposals_updated_at()

@@ -32,43 +32,26 @@ CREATE POLICY "Roadmap is viewable by everyone"
   USING (true);
 
 -- Admin: Full CRUD
+-- Note: Using is_admin_user() function to avoid dependency on user_roles table
 CREATE POLICY "Admins can insert roadmap"
   ON public.roadmap
   FOR INSERT
   WITH CHECK (
-    EXISTS (
-      SELECT 1 FROM public.user_roles
-      WHERE user_id = auth.uid()
-      AND role_id IN (
-        SELECT id FROM public.roles WHERE name = 'admin'
-      )
-    )
+    public.is_admin_user(auth.uid())
   );
 
 CREATE POLICY "Admins can update roadmap"
   ON public.roadmap
   FOR UPDATE
   USING (
-    EXISTS (
-      SELECT 1 FROM public.user_roles
-      WHERE user_id = auth.uid()
-      AND role_id IN (
-        SELECT id FROM public.roles WHERE name = 'admin'
-      )
-    )
+    public.is_admin_user(auth.uid())
   );
 
 CREATE POLICY "Admins can delete roadmap"
   ON public.roadmap
   FOR DELETE
   USING (
-    EXISTS (
-      SELECT 1 FROM public.user_roles
-      WHERE user_id = auth.uid()
-      AND role_id IN (
-        SELECT id FROM public.roles WHERE name = 'admin'
-      )
-    )
+    public.is_admin_user(auth.uid())
   );
 
 -- Update updated_at trigger

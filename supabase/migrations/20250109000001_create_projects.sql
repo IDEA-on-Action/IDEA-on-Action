@@ -34,44 +34,22 @@ CREATE POLICY "Projects are viewable by everyone"
   USING (true);
 
 -- Admin: Full CRUD
+-- Note: Using is_admin_user() function (created in 20251115170308_update_cms_rls_policies.sql)
+-- to avoid dependency on user_roles table which is created later
 CREATE POLICY "Admins can insert projects"
   ON public.projects
   FOR INSERT
-  WITH CHECK (
-    EXISTS (
-      SELECT 1 FROM public.user_roles
-      WHERE user_id = auth.uid()
-      AND role_id IN (
-        SELECT id FROM public.roles WHERE name = 'admin'
-      )
-    )
-  );
+  WITH CHECK (public.is_admin_user(auth.uid()));
 
 CREATE POLICY "Admins can update projects"
   ON public.projects
   FOR UPDATE
-  USING (
-    EXISTS (
-      SELECT 1 FROM public.user_roles
-      WHERE user_id = auth.uid()
-      AND role_id IN (
-        SELECT id FROM public.roles WHERE name = 'admin'
-      )
-    )
-  );
+  USING (public.is_admin_user(auth.uid()));
 
 CREATE POLICY "Admins can delete projects"
   ON public.projects
   FOR DELETE
-  USING (
-    EXISTS (
-      SELECT 1 FROM public.user_roles
-      WHERE user_id = auth.uid()
-      AND role_id IN (
-        SELECT id FROM public.roles WHERE name = 'admin'
-      )
-    )
-  );
+  USING (public.is_admin_user(auth.uid()));
 
 -- Update updated_at trigger
 CREATE OR REPLACE FUNCTION update_projects_updated_at()

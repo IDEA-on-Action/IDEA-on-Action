@@ -44,43 +44,26 @@ CREATE POLICY "Authenticated users can apply to bounties"
   WITH CHECK (auth.uid() IS NOT NULL);
 
 -- Admin: Full CRUD
+-- Note: Using is_admin_user() function to avoid dependency on user_roles table
 CREATE POLICY "Admins can insert bounties"
   ON public.bounties
   FOR INSERT
   WITH CHECK (
-    EXISTS (
-      SELECT 1 FROM public.user_roles
-      WHERE user_id = auth.uid()
-      AND role_id IN (
-        SELECT id FROM public.roles WHERE name = 'admin'
-      )
-    )
+    public.is_admin_user(auth.uid())
   );
 
 CREATE POLICY "Admins can update bounties"
   ON public.bounties
   FOR UPDATE
   USING (
-    EXISTS (
-      SELECT 1 FROM public.user_roles
-      WHERE user_id = auth.uid()
-      AND role_id IN (
-        SELECT id FROM public.roles WHERE name = 'admin'
-      )
-    )
+    public.is_admin_user(auth.uid())
   );
 
 CREATE POLICY "Admins can delete bounties"
   ON public.bounties
   FOR DELETE
   USING (
-    EXISTS (
-      SELECT 1 FROM public.user_roles
-      WHERE user_id = auth.uid()
-      AND role_id IN (
-        SELECT id FROM public.roles WHERE name = 'admin'
-      )
-    )
+    public.is_admin_user(auth.uid())
   );
 
 -- Update updated_at trigger

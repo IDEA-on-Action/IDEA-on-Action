@@ -21,17 +21,12 @@ CREATE INDEX idx_newsletter_subscribed_at ON public.newsletter_subscriptions(sub
 ALTER TABLE public.newsletter_subscriptions ENABLE ROW LEVEL SECURITY;
 
 -- 관리자만 모든 구독자 조회 가능
+-- Note: Using is_admin_user() function to avoid dependency on user_profiles table
 CREATE POLICY "newsletter_admin_read"
   ON public.newsletter_subscriptions
   FOR SELECT
   TO authenticated
-  USING (
-    EXISTS (
-      SELECT 1 FROM public.user_profiles
-      WHERE user_profiles.id = auth.uid()
-      AND user_profiles.role IN ('admin', 'super_admin')
-    )
-  );
+  USING (public.is_admin_user(auth.uid()));
 
 -- 누구나 구독 가능 (INSERT)
 CREATE POLICY "newsletter_public_insert"
