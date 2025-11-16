@@ -34,9 +34,9 @@ export function useServices(filters?: ServiceFilters) {
             .from('services')
             .select('*')
 
-          // 상태 필터 (임시 비활성화 - status 컬럼 확인 필요)
-          // const status = filters?.status || 'active'
-          // query = query.eq('status', status)
+          // 상태 필터 (기본값: active - 토스 페이먼츠 심사용)
+          const status = filters?.status || 'active'
+          query = query.eq('status', status)
 
           // 카테고리 필터 (임시 비활성화 - category_id 컬럼이 존재하지 않음)
           // if (filters?.categoryId) {
