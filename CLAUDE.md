@@ -9,6 +9,41 @@
 **개발 방법론**: SDD (Spec-Driven Development)
 
 **최신 업데이트**:
+- 2025-11-16: **🎉 Vercel 캐시 무효화 완료 & React createContext 에러 해결** ✅ - 토스 페이먼츠 심사 준비 완료
+  - **문제**: vendor-router-xSh1Q5ua.js, vendor-query-jH1EgEM8.js에서 "Cannot read properties of undefined (reading 'createContext')" 에러 지속
+  - **원인**: React 모듈 비동기 로딩 순서 문제 (vendor-query가 vendor-react-core보다 먼저 로드)
+  - **해결**: 모든 vendor 청크(11개)를 index.js로 병합하여 로딩 순서 보장
+  - **작업 내용**:
+    - vite.config.ts manualChunks 전체 비활성화 (vendor-react-core, router, query, ui, charts, markdown, forms, supabase, auth, sentry, payments)
+    - PWA globPatterns 업데이트 (12줄 → 5줄, vendor-* 패턴 제거)
+    - PWA globIgnores 정리 (vendor chunks 제거, admin pages만 유지)
+    - PWA runtimeCaching 업데이트 (6개 전략 → 5개 전략, vendor chunks 패턴 제거)
+    - vercel.json buildCommand 추가: `rm -rf node_modules/.vite .vite && npm run build`
+  - **결과**:
+    - ✅ vendor-router-xSh1Q5ua.js 완전 제거 (Network 검색 "No matches found")
+    - ✅ vendor-query-jH1EgEM8.js 완전 제거
+    - ✅ createContext 에러 완전 소멸
+    - ✅ 토스 페이먼츠 심사용 서비스 페이지 4개 정상 동작 확인
+  - **번들 크기 변화**:
+    - Before: 11개 vendor chunks (~995 kB total)
+    - After: index.js로 병합 (~500-600 kB gzip, 1개 chunk)
+    - PWA precache: 166 entries → 27 entries (-84%, 3614.12 KiB)
+  - **Trade-off**:
+    - ✅ 장점: 캐시 무효화 성공, 로딩 순서 보장, HTTP/2 요청 감소
+    - ⚠️ 단점: index.js 크기 증가 (하지만 gzip으로 최적화됨)
+  - **파일 변경**: 2개
+    - `vite.config.ts` - manualChunks 비활성화, PWA 설정 최적화
+    - `vercel.json` - buildCommand 추가 (캐시 클리어)
+  - **커밋**: 4f3a1e1
+  - **검증 완료**:
+    - https://www.ideaonaction.ai/services/mvp ✅
+    - https://www.ideaonaction.ai/services/fullstack ✅
+    - https://www.ideaonaction.ai/services/design ✅
+    - https://www.ideaonaction.ai/services/operations ✅
+  - **다음 단계** (선택적):
+    - vendor 청크 재활성화 시 React 모듈 로딩 순서 보장 필요
+    - modulePreload 설정 검토
+    - 또는 React 생태계를 하나의 청크로 유지
 - 2025-11-16: **🔐 Admin 권한 시스템 수정 & E2E 테스트 검증** ✅ - useIsAdmin 훅 안정화 & RLS 순환 참조 해결
   - **작업 1: useIsAdmin 훅 수정** (src/hooks/useIsAdmin.ts)
     - admins 테이블 직접 사용 (기존: user_roles 테이블)

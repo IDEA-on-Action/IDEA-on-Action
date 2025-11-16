@@ -9,6 +9,117 @@
 
 ---
 
+## [1.9.3] - 2025-11-16
+
+### Fixed - Vercel 캐시 무효화 & React createContext 에러 해결
+
+**문제**:
+- vendor-router-xSh1Q5ua.js, vendor-query-jH1EgEM8.js에서 "Cannot read properties of undefined (reading 'createContext')" 에러 지속
+- Vite 빌드 캐시 무효화 실패 (--force 플래그, 코드 변경, 버전 업 모두 실패)
+
+**원인**:
+- React 모듈 비동기 로딩 순서 문제 (vendor-query가 vendor-react-core보다 먼저 로드)
+- Vite content-based hashing으로 node_modules 코드 불변 시 동일 해시 생성
+
+**해결 방법**:
+- 모든 vendor 청크(11개)를 index.js로 병합하여 로딩 순서 보장
+- vercel.json buildCommand 추가: `rm -rf node_modules/.vite .vite && npm run build`
+
+### Changed
+
+**vite.config.ts manualChunks 전체 비활성화**:
+- vendor-react-core, router, query (React 생태계)
+- vendor-ui, charts, markdown (UI/시각화)
+- vendor-forms, supabase, auth (백엔드/인증)
+- vendor-sentry, payments (모니터링/결제)
+
+**PWA 설정 최적화**:
+- globPatterns: 12줄 → 5줄 (vendor-* 패턴 제거)
+- globIgnores: vendor chunks 제거 (admin pages만 유지)
+- runtimeCaching: 6개 전략 → 5개 전략 (vendor chunks 패턴 제거)
+
+### Verified
+
+**번들 크기 변화**:
+- Before: 11개 vendor chunks (~995 kB total)
+- After: index.js로 병합 (~500-600 kB gzip, 1개 chunk)
+- PWA precache: 166 entries → 27 entries (-84%, 3614.12 KiB)
+
+**검증 완료 (4개 서비스 페이지)**:
+- ✅ https://www.ideaonaction.ai/services/mvp
+- ✅ https://www.ideaonaction.ai/services/fullstack
+- ✅ https://www.ideaonaction.ai/services/design
+- ✅ https://www.ideaonaction.ai/services/operations
+
+**결과**:
+- ✅ vendor-router-xSh1Q5ua.js 완전 제거 (Network 검색 "No matches found")
+- ✅ vendor-query-jH1EgEM8.js 완전 제거
+- ✅ createContext 에러 완전 소멸
+- ✅ 토스 페이먼츠 심사 준비 완료
+
+**Trade-off**:
+- ✅ 장점: 캐시 무효화 성공, 로딩 순서 보장, HTTP/2 요청 감소
+- ⚠️ 단점: index.js 크기 증가 (하지만 gzip으로 최적화됨)
+
+### Files Changed (2)
+
+- `vite.config.ts` - manualChunks 비활성화, PWA 설정 최적화
+- `vercel.json` - buildCommand 추가 (캐시 클리어)
+
+### Commits
+
+- 4f3a1e1: fix: disable all vendor chunks to resolve React module loading order
+
+---
+
+## [1.9.2] - 2025-11-16
+
+### Fixed - Admin 권한 시스템 안정화
+
+**useIsAdmin Hook 수정**:
+- admins 테이블 직접 조회 (기존 user_roles 테이블 참조 제거)
+- React Query 캐시 무효화 (`staleTime: 0`, `gcTime: 0`, `refetchOnMount: 'always'`)
+- role 필드 체크 로직 개선 (admin | super_admin 지원)
+
+**AdminRoute 컴포넌트 개선**:
+- undefined 명시적 처리 추가 (즉시 리다이렉트 방지)
+- `if (isAdmin === undefined)` 체크로 로딩 상태 표시
+- `if (isAdmin === false)` 명시적 false 체크
+
+**auth.ts 로그인 헬퍼 안정화**:
+- 정확한 placeholder selector 사용 ("이메일 또는 아이디", "비밀번호")
+- 홈 페이지 먼저 방문 → localStorage 클리어 → 로그인 페이지 (auto-redirect 방지)
+- React Query 조회 시간 확보 (3초 대기)
+
+**Supabase RLS 정책 수정**:
+- admins 테이블 순환 참조 해결
+- 단일 정책으로 단순화: `auth.uid() = user_id`
+- 마이그레이션: `20251116000000_fix_admins_rls_policy.sql`
+
+### Verified
+
+**E2E 테스트 검증 (215개)**:
+- ✅ 130개 성공 (60.5%)
+- ❌ 85개 실패 (39.5% - Admin Users super_admin 권한, 일부 CRUD 다이얼로그 타임아웃)
+- 성공 페이지: AdminPortfolio, AdminLab, AdminTags, AdminTeam, Dashboard, Analytics, Realtime
+- Browser: chromium only
+
+### Changed
+
+**파일 수정 (4개)**:
+- src/hooks/useIsAdmin.ts
+- src/components/auth/AdminRoute.tsx
+- tests/e2e/helpers/auth.ts
+- supabase/migrations/20251116000000_fix_admins_rls_policy.sql
+
+### Developer Experience
+
+- 디버깅 로그 제거 (useIsAdmin.ts console.log 5개)
+- Toss Payments 마이그레이션 가이드 작성 (724줄, 4개 서비스)
+- CLAUDE.md 문서 업데이트 (2025-11-16 작업 내용)
+
+---
+
 ## [1.9.1] - 2025-11-15
 
 ### Added
