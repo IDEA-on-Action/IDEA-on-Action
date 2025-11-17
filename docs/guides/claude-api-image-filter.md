@@ -189,3 +189,4 @@ const compressed = await compressImage(file, {
 - 큰 이미지는 압축하거나 URL로 전달하는 것을 권장합니다
 
 
+
