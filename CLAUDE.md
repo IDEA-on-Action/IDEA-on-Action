@@ -9,6 +9,24 @@
 **개발 방법론**: SDD (Spec-Driven Development)
 
 **최신 업데이트**:
+- 2025-11-17: **🔧 코딩 표준 준수** ✅ - EOF newline 추가로 Git 상태 클린업
+  - **배경**: CMS Phase 4 작업 후 11개 파일이 미커밋 상태로 남아있음
+  - **작업 내용**:
+    - 모든 파일에 EOF (End of File) newline 추가
+    - 문서 4개: claude-api-image-filter, env-setup-quick, gpg-setup-windows, supabase-dashboard-cron-setup
+    - 스크립트 3개: cancel-non-deployment-workflows.js, create-env-local.ps1, filter-claude-images.js
+    - 마이그레이션 4개: blog RLS policy 파일들
+  - **결과**:
+    - ✅ Git 상태: working tree clean
+    - ✅ 커밋: e4344f8 (11 files, +11 insertions)
+    - ✅ 원격 푸시 완료
+    - ✅ POSIX 표준 준수 (모든 파일은 newline으로 종료)
+  - **커밋**: e4344f8
+  - **교훈**:
+    - 코딩 표준은 작은 것부터 시작 (EOF newline)
+    - Git 상태를 항상 clean하게 유지
+    - Conventional Commits 형식 준수 (`style:` prefix)
+
 - 2025-11-16: **🐛 React Key Prop 경고 해결** ✅ - Roadmap 컴포넌트 완전 수정
   - **배경**: Roadmap 페이지에서 "Each child in a list should have a unique key prop" 경고 발생
   - **문제 위치**: card.tsx:23, Roadmap.tsx:309
