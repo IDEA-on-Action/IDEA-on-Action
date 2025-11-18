@@ -13,6 +13,8 @@ import { BlogCard } from '@/components/blog/BlogCard'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import Header from '@/components/Header'
+import Footer from '@/components/Footer'
 import {
   Select,
   SelectContent,
@@ -60,23 +62,24 @@ export default function Blog() {
   return (
     <>
       <Helmet>
-        <title>Blog | VIBE WORKING</title>
+        <title>Blog | IDEA on Action</title>
         <meta
           name="description"
-          content="Explore insights on AI, productivity, and remote work. Stay updated with the latest from VIBE WORKING."
+          content="Explore insights on AI, productivity, and innovation. Stay updated with the latest from IDEA on Action."
         />
       </Helmet>
 
-      <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
+      <Header />
+      <div className="min-h-screen gradient-bg">{/* Changed to match Index page */}
         {/* Hero Section */}
         <section className="relative py-16 md:py-24">
           <div className="container mx-auto px-4">
             <div className="text-center max-w-3xl mx-auto">
               <h1 className="text-4xl md:text-5xl font-bold mb-4">
-                VIBE WORKING <span className="text-primary">Blog</span>
+                IDEA on Action <span className="text-primary">Blog</span>
               </h1>
               <p className="text-lg md:text-xl text-muted-foreground">
-                Insights on AI, productivity, and the future of work
+                Insights on AI, productivity, and innovation
               </p>
             </div>
           </div>
@@ -204,6 +207,7 @@ export default function Blog() {
           </div>
         </section>
       </div>
+      <Footer />
     </>
   )
 }
