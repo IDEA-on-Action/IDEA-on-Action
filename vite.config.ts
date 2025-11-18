@@ -73,13 +73,13 @@ export default defineConfig(({ mode }) => ({
         globPatterns: [
           "**/*.{css,html,ico,png,svg,woff,woff2}",
           "**/index-*.js",       // Main bundle (all vendors merged)
-          "**/pages-admin-*.js", // Admin pages chunk
           "**/workbox-*.js",     // PWA service worker
         ],
 
         // Exclude admin pages and lazy-loaded components from precache
         globIgnores: [
           // Admin pages (lazy load via runtime caching)
+          "**/pages-admin-*.js",        // Admin pages bundle (2.83 MB, exceeds 2 MB limit)
           "**/Admin*.js",               // All admin components
           "**/Dashboard-*.js",          // Admin dashboard
           "**/Analytics-*.js",          // Admin analytics
@@ -141,7 +141,7 @@ export default defineConfig(({ mode }) => ({
 
           // 3. Admin pages (on-demand)
           {
-            urlPattern: /\/assets\/(Admin|Dashboard|Analytics|Revenue|RealtimeDashboard|AuditLogs|AdminRoles)-.*\.js$/,
+            urlPattern: /\/assets\/(pages-admin|Admin|Dashboard|Analytics|Revenue|RealtimeDashboard|AuditLogs|AdminRoles)-.*\.js$/,
             handler: "CacheFirst",
             options: {
               cacheName: "admin-pages-cache",
