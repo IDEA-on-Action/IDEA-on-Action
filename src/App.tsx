@@ -47,12 +47,20 @@ const ErrorFallback = () => (
   </div>
 );
 
-// Analytics 페이지뷰 추적 컴포넌트
+// Analytics 페이지뷰 추적 & 스크롤 초기화 컴포넌트
 function AnalyticsTracker() {
   const location = useLocation();
 
   useEffect(() => {
+    // 페이지뷰 추적
     trackPageView(location.pathname + location.search);
+
+    // 페이지 상단으로 스크롤
+    window.scrollTo({
+      top: 0,
+      left: 0,
+      behavior: 'instant' // 즉시 이동 (smooth는 느릴 수 있음)
+    });
   }, [location]);
 
   return null;

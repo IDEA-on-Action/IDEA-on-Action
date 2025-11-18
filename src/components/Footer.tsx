@@ -57,11 +57,12 @@ const SOCIAL_LINKS: SocialLink[] = [
 
 const FOOTER_SECTIONS: FooterSection[] = [
   {
-    title: "솔루션",
+    title: "서비스",
     links: [
-      { label: "AI 컨설팅", href: "/services" },
-      { label: "워크플로우 자동화", href: "/services" },
-      { label: "데이터 분석", href: "/services" }
+      { label: "모든 서비스", href: "/services" },
+      { label: "MVP 개발", href: "/services/mvp" },
+      { label: "풀스택 개발", href: "/services/fullstack" },
+      { label: "디자인 시스템", href: "/services/design" }
     ]
   },
   {
@@ -69,6 +70,8 @@ const FOOTER_SECTIONS: FooterSection[] = [
     links: [
       { label: "회사소개", href: "/about" },
       { label: "로드맵", href: "/roadmap" },
+      { label: "포트폴리오", href: "/portfolio" },
+      { label: "실험실", href: "/lab" },
       { label: "협업하기", href: "/work-with-us" }
     ]
   },
@@ -77,12 +80,7 @@ const FOOTER_SECTIONS: FooterSection[] = [
     links: [
       {
         label: "GitHub",
-        href: "https://github.com/IDEA-on-Action/IdeaonAction-Homepage",
-        isExternal: true
-      },
-      {
-        label: "웹사이트",
-        href: "https://www.ideaonaction.ai",
+        href: "https://github.com/IDEA-on-Action",
         isExternal: true
       },
       { label: "블로그", href: "/blog" }
@@ -111,9 +109,10 @@ const Footer = ({ className = "" }: FooterProps) => {
   return (
     <footer className={`border-t border-border bg-card/30 backdrop-blur-sm ${className}`}>
       <div className="container mx-auto px-4 py-12">
-        <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-8 mb-8">
+        {/* Main Grid: Brand + 4 Sections */}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-8 mb-8">
           {/* Brand Section */}
-          <div className="lg:col-span-2">
+          <div className="col-span-2 md:col-span-1">
             <Link
               to="/"
               className="flex items-center gap-3 mb-4 hover:opacity-80 transition-opacity"
@@ -135,7 +134,7 @@ const Footer = ({ className = "" }: FooterProps) => {
               {BRAND_INFO.description}
             </p>
             <nav aria-label="소셜 미디어 링크">
-              <div className="flex items-center gap-3 mb-6">
+              <div className="flex items-center gap-3">
                 {SOCIAL_LINKS.map((social, index) => {
                   const Icon = social.icon;
                   return (
@@ -153,21 +152,12 @@ const Footer = ({ className = "" }: FooterProps) => {
                 })}
               </div>
             </nav>
-
-            {/* Newsletter Section */}
-            <div className="mt-6">
-              <h4 className="font-semibold mb-3 text-sm">뉴스레터 구독</h4>
-              <p className="text-xs text-muted-foreground mb-3">
-                최신 소식과 인사이트를 받아보세요
-              </p>
-              <NewsletterForm variant="stacked" showIcon={false} location="footer" />
-            </div>
           </div>
 
           {/* Footer Sections */}
           {FOOTER_SECTIONS.map((section, sectionIndex) => (
             <div key={sectionIndex}>
-              <h4 className="font-semibold mb-4">{section.title}</h4>
+              <h4 className="font-semibold mb-4 text-sm">{section.title}</h4>
               <ul className="space-y-2 text-sm text-muted-foreground" role="list">
                 {section.links.map((link, linkIndex) => {
                   const isActive = !link.isExternal && location.pathname === link.href;
@@ -200,10 +190,21 @@ const Footer = ({ className = "" }: FooterProps) => {
           ))}
         </div>
 
-        {/* Copyright Section */}
+        {/* Newsletter Section */}
+        <div className="pt-8 pb-8 border-t border-border">
+          <div className="max-w-md mx-auto text-center">
+            <h4 className="font-semibold mb-2">뉴스레터 구독</h4>
+            <p className="text-sm text-muted-foreground mb-4">
+              최신 소식과 인사이트를 받아보세요
+            </p>
+            <NewsletterForm variant="inline" showIcon={false} location="footer" />
+          </div>
+        </div>
+
+        {/* Business Information & Copyright */}
         <div className="pt-8 border-t border-border">
           {/* Business Information */}
-          <div className="text-center text-xs text-muted-foreground mb-6 space-y-1">
+          <div className="text-center text-xs text-muted-foreground mb-4 space-y-1">
             <p>
               <span className="font-semibold">생각과 행동 (IDEA on Action)</span> | 대표자: 서민원
             </p>

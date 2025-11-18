@@ -24,22 +24,24 @@ export default function ElectronicFinanceTerms() {
       >
 
         <div className="prose prose-slate dark:prose-invert max-w-4xl mx-auto">
-          <p className="text-sm text-muted-foreground">
-            <strong>시행일</strong>: 2025년 11월 14일
+          <div className="bg-primary/10 border-l-4 border-primary px-6 py-3 mb-8 rounded-r-lg">
+            <p className="text-sm font-semibold mb-0">
+              <span className="text-primary">시행일</span>: 2025년 11월 14일
+            </p>
+          </div>
+
+          <p className="leading-relaxed">
+            생각과 행동(이하 "회사")은 <strong className="text-primary">「전자금융거래법」</strong>, <strong className="text-primary">「전자상거래 등에서의 소비자보호에 관한 법률」</strong>,
+            <strong className="text-primary">「여신전문금융업법」</strong> 등 관련 법령을 준수하며, 전자금융거래 서비스 제공을 위하여 다음과 같이 약관을 제정합니다.
           </p>
 
-          <p>
-            생각과 행동(이하 "회사")은 「전자금융거래법」, 「전자상거래 등에서의 소비자보호에 관한 법률」,
-            「여신전문금융업법」 등 관련 법령을 준수하며, 전자금융거래 서비스 제공을 위하여 다음과 같이 약관을 제정합니다.
-          </p>
-
-          <h2>제1조 (목적)</h2>
+          <h2 className="text-2xl font-bold mt-12 mb-6 pb-3 border-b-2 border-primary/30">제1조 (목적)</h2>
           <p>
             이 약관은 회사가 제공하는 전자금융거래 서비스를 이용함에 있어 회사와 이용자 간의 권리·의무 및 책임사항,
             기타 필요한 사항을 정함을 목적으로 합니다.
           </p>
 
-          <h2>제2조 (용어의 정의)</h2>
+          <h2 className="text-2xl font-bold mt-12 mb-6 pb-3 border-b-2 border-primary/30">제2조 (용어의 정의)</h2>
           <ol>
             <li>
               <strong>"전자금융거래"</strong>란 회사가 전자적 장치를 통하여 제공하는 금융상품 및 서비스를 이용자가 전자적 장치를 통하여 이용하는 거래를 말합니다.
@@ -65,7 +67,7 @@ export default function ElectronicFinanceTerms() {
             </li>
           </ol>
 
-          <h2>제3조 (약관의 명시 및 변경)</h2>
+          <h2 className="text-2xl font-bold mt-12 mb-6 pb-3 border-b-2 border-primary/30">제3조 (약관의 명시 및 변경)</h2>
           <ol>
             <li>
               회사는 이용자가 전자금융거래 서비스를 이용하기 전에 이 약관을 게시하고 이용자가 이 약관의 중요한 내용을 확인할 수 있도록 합니다.
@@ -78,7 +80,7 @@ export default function ElectronicFinanceTerms() {
             </li>
           </ol>
 
-          <h2>제4조 (전자지급거래계약의 효력)</h2>
+          <h2 className="text-2xl font-bold mt-12 mb-6 pb-3 border-b-2 border-primary/30">제4조 (전자지급거래계약의 효력)</h2>
           <ol>
             <li>
               회사는 이용자의 거래지시가 전자금융거래에 관한 경우 그 거래지시에 따라 전자금융거래를 처리한 경우에는 그 거래지시가 이용자의 의사에 의한 것인지 여부를 확인할 필요가 없습니다.
@@ -93,7 +95,7 @@ export default function ElectronicFinanceTerms() {
             </li>
           </ol>
 
-          <h2>제5조 (접근매체의 선정과 사용 및 관리)</h2>
+          <h2 className="text-2xl font-bold mt-12 mb-6 pb-3 border-b-2 border-primary/30">제5조 (접근매체의 선정과 사용 및 관리)</h2>
           <ol>
             <li>
               회사는 전자금융거래 서비스 제공 시 접근매체를 선정하여 이용자의 신원, 권한 및 거래지시의 내용 등을 확인합니다.
@@ -109,7 +111,7 @@ export default function ElectronicFinanceTerms() {
             </li>
           </ol>
 
-          <h2>제6조 (거래내용의 확인)</h2>
+          <h2 className="text-2xl font-bold mt-12 mb-6 pb-3 border-b-2 border-primary/30">제6조 (거래내용의 확인)</h2>
           <ol>
             <li>
               회사는 이용자가 전자금융거래의 내용을 추적, 검색하거나 그 내용에 오류가 있는 경우 이의를 제기할 수 있도록 다음의 기록을 생성하여 보존합니다:
@@ -126,7 +128,7 @@ export default function ElectronicFinanceTerms() {
             </li>
           </ol>
 
-          <h2>제7조 (오류의 정정 등)</h2>
+          <h2 className="text-2xl font-bold mt-12 mb-6 pb-3 border-b-2 border-primary/30">제7조 (오류의 정정 등)</h2>
           <ol>
             <li>
               이용자는 전자금융거래 서비스를 이용함에 있어 오류가 있음을 안 때에는 회사에 대하여 그 정정을 요구할 수 있습니다.
@@ -136,7 +138,7 @@ export default function ElectronicFinanceTerms() {
             </li>
           </ol>
 
-          <h2>제8조 (전자금융거래 기록의 보존)</h2>
+          <h2 className="text-2xl font-bold mt-12 mb-6 pb-3 border-b-2 border-primary/30">제8조 (전자금융거래 기록의 보존)</h2>
           <ol>
             <li>
               회사는 이용자가 전자금융거래의 내용을 추적·검색하거나 그 내용에 오류가 있는 경우에 이의를 제기할 수 있도록
@@ -147,13 +149,13 @@ export default function ElectronicFinanceTerms() {
             </li>
           </ol>
 
-          <h2>제9조 (전자금융거래정보의 제공금지)</h2>
+          <h2 className="text-2xl font-bold mt-12 mb-6 pb-3 border-b-2 border-primary/30">제9조 (전자금융거래정보의 제공금지)</h2>
           <p>
             회사는 전자금융거래 서비스를 제공함에 있어서 취득한 이용자의 인적사항, 이용자의 계좌, 접근매체 및 전자금융거래의 내용과 실적에 관한 정보 또는 자료를
             이용자의 동의를 얻지 아니하고 제3자에게 제공, 누설하거나 업무상 목적 외에 사용하지 아니합니다.
           </p>
 
-          <h2>제10조 (분쟁처리 및 분쟁조정)</h2>
+          <h2 className="text-2xl font-bold mt-12 mb-6 pb-3 border-b-2 border-primary/30">제10조 (분쟁처리 및 분쟁조정)</h2>
           <ol>
             <li>
               이용자는 다음의 분쟁처리 책임자 및 담당자에 대하여 전자금융거래 서비스 이용과 관련한 의견 및 불만의 제기, 손해배상의 청구 등의 분쟁처리를 요구할 수 있습니다:
@@ -178,7 +180,7 @@ export default function ElectronicFinanceTerms() {
             </li>
           </ol>
 
-          <h2>제11조 (회사의 책임)</h2>
+          <h2 className="text-2xl font-bold mt-12 mb-6 pb-3 border-b-2 border-primary/30">제11조 (회사의 책임)</h2>
           <ol>
             <li>
               회사는 접근매체의 위조나 변조로 발생한 사고로 인하여 이용자에게 발생한 손해에 대하여 배상책임이 있습니다.
@@ -199,7 +201,7 @@ export default function ElectronicFinanceTerms() {
             </li>
           </ol>
 
-          <h2>제12조 (이용자의 책임)</h2>
+          <h2 className="text-2xl font-bold mt-12 mb-6 pb-3 border-b-2 border-primary/30">제12조 (이용자의 책임)</h2>
           <ol>
             <li>
               이용자는 접근매체를 사용함에 있어서 다음 각 호의 행위를 하여서는 안 됩니다:
@@ -214,7 +216,7 @@ export default function ElectronicFinanceTerms() {
             </li>
           </ol>
 
-          <h2>제13조 (결제대행 서비스)</h2>
+          <h2 className="text-2xl font-bold mt-12 mb-6 pb-3 border-b-2 border-primary/30">제13조 (결제대행 서비스)</h2>
           <ol>
             <li>
               회사는 전자금융거래의 처리를 위하여 다음의 결제대행사(PG사)를 이용합니다:
@@ -238,7 +240,7 @@ export default function ElectronicFinanceTerms() {
             </li>
           </ol>
 
-          <h2>제14조 (약관 외 준칙 및 관할)</h2>
+          <h2 className="text-2xl font-bold mt-12 mb-6 pb-3 border-b-2 border-primary/30">제14조 (약관 외 준칙 및 관할)</h2>
           <ol>
             <li>
               이 약관에서 정하지 아니한 사항에 대하여는 전자금융거래법, 전자상거래 등에서의 소비자보호에 관한 법률,

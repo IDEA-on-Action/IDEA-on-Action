@@ -23,16 +23,18 @@ export default function RefundPolicy() {
       >
 
         <div className="prose prose-slate dark:prose-invert max-w-4xl mx-auto">
-          <p className="text-sm text-muted-foreground">
-            <strong>시행일</strong>: 2025년 11월 14일
-          </p>
+          <div className="bg-primary/10 border-l-4 border-primary px-6 py-3 mb-8 rounded-r-lg">
+            <p className="text-sm font-semibold mb-0">
+              <span className="text-primary">시행일</span>: 2025년 11월 14일
+            </p>
+          </div>
 
-          <p>
-            생각과 행동(이하 "회사")은 「전자상거래 등에서의 소비자보호에 관한 법률」 및 「소비자기본법」을 준수하며,
+          <p className="leading-relaxed">
+            생각과 행동(이하 "회사")은 <strong className="text-primary">「전자상거래 등에서의 소비자보호에 관한 법률」</strong> 및 <strong className="text-primary">「소비자기본법」</strong>을 준수하며,
             고객의 청약철회 및 환불에 관한 사항을 다음과 같이 규정합니다.
           </p>
 
-          <h2>제1조 (청약철회)</h2>
+          <h2 className="text-2xl font-bold mt-12 mb-6 pb-3 border-b-2 border-primary/30">제1조 (청약철회)</h2>
           <ol>
             <li>
               고객은 서비스 이용 계약을 체결한 날로부터 <strong>7일 이내</strong>에 청약을 철회할 수 있습니다.
@@ -47,7 +49,7 @@ export default function RefundPolicy() {
             </li>
           </ol>
 
-          <h2>제2조 (청약철회 방법)</h2>
+          <h2 className="text-2xl font-bold mt-12 mb-6 pb-3 border-b-2 border-primary/30">제2조 (청약철회 방법)</h2>
           <ol>
             <li>
               청약철회는 다음의 방법으로 신청할 수 있습니다:
@@ -73,7 +75,7 @@ export default function RefundPolicy() {
             </li>
           </ol>
 
-          <h2>제3조 (비회원 구매 시 청약철회 및 본인확인)</h2>
+          <h2 className="text-2xl font-bold mt-12 mb-6 pb-3 border-b-2 border-primary/30">제3조 (비회원 구매 시 청약철회 및 본인확인)</h2>
           <ol>
             <li>
               비회원으로 서비스를 구매한 경우에도 제1조 및 제2조에 따라 청약철회를 신청할 수 있습니다.
@@ -94,7 +96,7 @@ export default function RefundPolicy() {
             </li>
           </ol>
 
-          <h2>제4조 (환불 절차 및 기간)</h2>
+          <h2 className="text-2xl font-bold mt-12 mb-6 pb-3 border-b-2 border-primary/30">제4조 (환불 절차 및 기간)</h2>
           <ol>
             <li>
               회사는 청약철회 신청을 접수한 날로부터 <strong>영업일 기준 3일 이내</strong>에 환불을 처리합니다.
@@ -122,9 +124,9 @@ export default function RefundPolicy() {
             </li>
           </ol>
 
-          <h2>제5조 (서비스별 환불 규정)</h2>
+          <h2 className="text-2xl font-bold mt-12 mb-6 pb-3 border-b-2 border-primary/30">제5조 (서비스별 환불 규정)</h2>
 
-          <h3>1. 개발 서비스 (MVP / 풀스택 / 디자인 시스템)</h3>
+          <h3 className="text-xl font-semibold mt-8 mb-4 text-primary">1. 개발 서비스 (MVP / 풀스택 / 디자인 시스템)</h3>
           <Alert className="my-4">
             <CheckCircle2 className="h-4 w-4" />
             <AlertTitle>환불 가능</AlertTitle>
@@ -141,7 +143,7 @@ export default function RefundPolicy() {
             </AlertDescription>
           </Alert>
 
-          <h3>2. 시스템 운영 관리 서비스</h3>
+          <h3 className="text-xl font-semibold mt-8 mb-4 text-primary">2. 시스템 운영 관리 서비스</h3>
           <Alert className="my-4">
             <CheckCircle2 className="h-4 w-4" />
             <AlertTitle>환불 가능</AlertTitle>
@@ -164,7 +166,7 @@ export default function RefundPolicy() {
             </AlertDescription>
           </Alert>
 
-          <h3>3. COMPASS Navigator (월 구독)</h3>
+          <h3 className="text-xl font-semibold mt-8 mb-4 text-primary">3. COMPASS Navigator (월 구독)</h3>
           <Alert className="my-4">
             <CheckCircle2 className="h-4 w-4" />
             <AlertTitle>환불 가능</AlertTitle>
@@ -177,7 +179,7 @@ export default function RefundPolicy() {
             </AlertDescription>
           </Alert>
 
-          <h3>4. COMPASS 플랫폼 (연간 구독)</h3>
+          <h3 className="text-xl font-semibold mt-8 mb-4 text-primary">4. COMPASS 플랫폼 (연간 구독)</h3>
           <Alert className="my-4">
             <CheckCircle2 className="h-4 w-4" />
             <AlertTitle>환불 가능</AlertTitle>
@@ -198,7 +200,7 @@ export default function RefundPolicy() {
             </AlertDescription>
           </Alert>
 
-          <h2>제6조 (환불 불가 사유)</h2>
+          <h2 className="text-2xl font-bold mt-12 mb-6 pb-3 border-b-2 border-primary/30">제6조 (환불 불가 사유)</h2>
           <p>다음의 경우에는 환불이 불가능합니다:</p>
           <ol>
             <li>고객의 책임 있는 사유로 서비스가 훼손된 경우</li>
@@ -208,7 +210,7 @@ export default function RefundPolicy() {
             <li>계약서에 명시된 환불 불가 조항에 해당하는 경우</li>
           </ol>
 
-          <h2>제7조 (부분 환불)</h2>
+          <h2 className="text-2xl font-bold mt-12 mb-6 pb-3 border-b-2 border-primary/30">제7조 (부분 환불)</h2>
           <ol>
             <li>
               서비스가 부분적으로 제공된 경우, 제공된 서비스에 대한 대가를 공제한 금액을 환불합니다.
@@ -223,7 +225,7 @@ export default function RefundPolicy() {
             </li>
           </ol>
 
-          <h2>제8조 (환불 지연 시 지연이자)</h2>
+          <h2 className="text-2xl font-bold mt-12 mb-6 pb-3 border-b-2 border-primary/30">제8조 (환불 지연 시 지연이자)</h2>
           <ol>
             <li>
               회사가 환불 기한 내에 환불하지 못한 경우, 지연된 기간에 대하여 연 15%의 지연이자를 지급합니다.
@@ -238,7 +240,7 @@ export default function RefundPolicy() {
             </li>
           </ol>
 
-          <h2>제9조 (분쟁 해결)</h2>
+          <h2 className="text-2xl font-bold mt-12 mb-6 pb-3 border-b-2 border-primary/30">제9조 (분쟁 해결)</h2>
           <ol>
             <li>
               환불과 관련하여 분쟁이 발생한 경우, 고객은 한국소비자원, 전자거래분쟁조정위원회 등에 분쟁조정을 신청할 수 있습니다.
@@ -251,7 +253,7 @@ export default function RefundPolicy() {
             </li>
           </ol>
 
-          <h2>제10조 (환불정책의 변경)</h2>
+          <h2 className="text-2xl font-bold mt-12 mb-6 pb-3 border-b-2 border-primary/30">제10조 (환불정책의 변경)</h2>
           <p>
             이 환불정책은 2025년 11월 14일부터 적용되며, 법령 및 정책에 따른 변경사항이 있는 경우에는
             변경사항의 시행 7일 전부터 공지사항을 통하여 고지할 것입니다.

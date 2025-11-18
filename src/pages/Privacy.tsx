@@ -24,101 +24,103 @@ export default function Privacy() {
       >
 
         <div className="prose prose-slate dark:prose-invert max-w-4xl mx-auto">
-          <p className="text-sm text-muted-foreground">
-            <strong>시행일</strong>: 2025년 11월 14일
-          </p>
+          <div className="bg-primary/10 border-l-4 border-primary px-6 py-3 mb-8 rounded-r-lg">
+            <p className="text-sm font-semibold mb-0">
+              <span className="text-primary">시행일</span>: 2025년 11월 14일
+            </p>
+          </div>
 
-          <p>
-            생각과 행동(이하 "회사")은 「개인정보 보호법」, 「정보통신망 이용촉진 및 정보보호 등에 관한 법률」,
-            「전자금융거래법」 등 관련 법령을 준수하며, 이용자의 개인정보를 보호하고 이와 관련한 고충을 신속하고 원활하게 처리할 수 있도록
+          <p className="leading-relaxed">
+            생각과 행동(이하 "회사")은 <strong className="text-primary">「개인정보 보호법」</strong>, <strong className="text-primary">「정보통신망 이용촉진 및 정보보호 등에 관한 법률」</strong>,
+            <strong className="text-primary">「전자금융거래법」</strong> 등 관련 법령을 준수하며, 이용자의 개인정보를 보호하고 이와 관련한 고충을 신속하고 원활하게 처리할 수 있도록
             다음과 같이 개인정보 처리방침을 수립·공개합니다.
           </p>
 
-          <h2>제1조 (개인정보의 수집 및 이용 목적)</h2>
-          <p>회사는 다음의 목적을 위하여 개인정보를 처리합니다:</p>
-          <ol>
+          <h2 className="text-2xl font-bold mt-12 mb-6 pb-3 border-b-2 border-primary/30">제1조 (개인정보의 수집 및 이용 목적)</h2>
+          <p className="leading-relaxed">회사는 다음의 목적을 위하여 개인정보를 처리합니다:</p>
+          <ol className="space-y-4">
             <li>
-              <strong>회원 가입 및 관리</strong>
-              <ul>
+              <strong className="text-primary">회원 가입 및 관리</strong>
+              <ul className="mt-2 space-y-1">
                 <li>회원 가입 의사 확인, 회원제 서비스 제공, 본인 식별 및 인증</li>
                 <li>회원자격 유지·관리, 서비스 부정이용 방지</li>
               </ul>
             </li>
             <li>
-              <strong>서비스 제공</strong>
-              <ul>
+              <strong className="text-primary">서비스 제공</strong>
+              <ul className="mt-2 space-y-1">
                 <li>소프트웨어 개발 서비스 (MVP 개발, 풀스택 개발, 디자인 시스템, 시스템 운영 관리) 제공</li>
                 <li>COMPASS 플랫폼 서비스 (Navigator, Cartographer, Captain, Harbor) 제공</li>
                 <li>맞춤형 서비스 제공, 본인인증</li>
               </ul>
             </li>
             <li>
-              <strong>결제 서비스 제공</strong>
-              <ul>
+              <strong className="text-primary">결제 서비스 제공</strong>
+              <ul className="mt-2 space-y-1">
                 <li>서비스 이용료 결제, 결제 대금 정산</li>
                 <li>전자금융거래 처리 및 기록 보관</li>
               </ul>
             </li>
             <li>
-              <strong>마케팅 및 광고 활용</strong>
-              <ul>
+              <strong className="text-primary">마케팅 및 광고 활용</strong>
+              <ul className="mt-2 space-y-1">
                 <li>신규 서비스 개발 및 맞춤 서비스 제공</li>
                 <li>이벤트 및 광고성 정보 제공 (뉴스레터 구독)</li>
               </ul>
             </li>
           </ol>
 
-          <h2>제2조 (수집하는 개인정보의 항목)</h2>
-          <p>회사는 다음과 같은 개인정보를 수집합니다:</p>
+          <h2 className="text-2xl font-bold mt-12 mb-6 pb-3 border-b-2 border-primary/30">제2조 (수집하는 개인정보의 항목)</h2>
+          <p className="leading-relaxed">회사는 다음과 같은 개인정보를 수집합니다:</p>
 
-          <h3>1. 필수 수집 항목</h3>
-          <ul>
+          <h3 className="text-xl font-semibold mt-8 mb-4 text-primary">1. 필수 수집 항목</h3>
+          <ul className="space-y-2">
             <li>
-              <strong>회원 가입 시</strong>: 이메일, 이름, 비밀번호
+              <strong className="text-primary">회원 가입 시</strong>: 이메일, 이름, 비밀번호
             </li>
             <li>
-              <strong>OAuth 로그인 시</strong>: 소셜 계정 정보 (Google, GitHub, Kakao 등)
+              <strong className="text-primary">OAuth 로그인 시</strong>: 소셜 계정 정보 (Google, GitHub, Kakao 등)
             </li>
             <li>
-              <strong>서비스 문의 시</strong>: 이름, 이메일, 회사명, 전화번호, 문의 내용
+              <strong className="text-primary">서비스 문의 시</strong>: 이름, 이메일, 회사명, 전화번호, 문의 내용
             </li>
           </ul>
 
-          <h3>2. 결제 시 수집 항목</h3>
-          <ul>
+          <h3 className="text-xl font-semibold mt-8 mb-4 text-primary">2. 결제 시 수집 항목</h3>
+          <ul className="space-y-2">
             <li>신용카드 정보 (카드번호 뒤 4자리, 승인번호)</li>
             <li>계좌 정보 (은행명, 계좌번호 일부)</li>
             <li>결제 거래 내역</li>
           </ul>
 
-          <h3>3. 자동 수집 항목</h3>
-          <ul>
+          <h3 className="text-xl font-semibold mt-8 mb-4 text-primary">3. 자동 수집 항목</h3>
+          <ul className="space-y-2">
             <li>IP 주소, 쿠키, 접속 기록, 서비스 이용 기록</li>
             <li>기기 정보 (OS, 브라우저 종류)</li>
           </ul>
 
-          <h2>제3조 (개인정보의 보유 및 이용 기간)</h2>
-          <ol>
+          <h2 className="text-2xl font-bold mt-12 mb-6 pb-3 border-b-2 border-primary/30">제3조 (개인정보의 보유 및 이용 기간)</h2>
+          <ol className="space-y-4">
             <li>
-              <strong>회원 정보</strong>: 회원 탈퇴 시까지 (단, 관계 법령 위반에 따른 수사·조사 등이 진행 중인 경우 해당 수사·조사 종료 시까지)
+              <strong className="text-primary">회원 정보</strong>: 회원 탈퇴 시까지 (단, 관계 법령 위반에 따른 수사·조사 등이 진행 중인 경우 해당 수사·조사 종료 시까지)
             </li>
             <li>
-              <strong>전자상거래 기록</strong>:
-              <ul>
-                <li>계약 또는 청약철회 등에 관한 기록: 5년 (전자상거래법)</li>
-                <li>대금결제 및 재화 등의 공급에 관한 기록: 5년 (전자상거래법)</li>
-                <li>소비자의 불만 또는 분쟁처리에 관한 기록: 3년 (전자상거래법)</li>
+              <strong className="text-primary">전자상거래 기록</strong>:
+              <ul className="mt-2 space-y-1">
+                <li>계약 또는 청약철회 등에 관한 기록: <strong className="text-primary">5년</strong> (전자상거래법)</li>
+                <li>대금결제 및 재화 등의 공급에 관한 기록: <strong className="text-primary">5년</strong> (전자상거래법)</li>
+                <li>소비자의 불만 또는 분쟁처리에 관한 기록: <strong className="text-primary">3년</strong> (전자상거래법)</li>
               </ul>
             </li>
             <li>
-              <strong>전자금융거래 기록</strong>: 5년 (전자금융거래법)
+              <strong className="text-primary">전자금융거래 기록</strong>: <strong className="text-primary">5년</strong> (전자금융거래법)
             </li>
             <li>
-              <strong>통신비밀보호법</strong>: 3개월 (로그 기록)
+              <strong className="text-primary">통신비밀보호법</strong>: <strong className="text-primary">3개월</strong> (로그 기록)
             </li>
           </ol>
 
-          <h2>제4조 (개인정보의 제3자 제공)</h2>
+          <h2 className="text-2xl font-bold mt-12 mb-6 pb-3 border-b-2 border-primary/30">제4조 (개인정보의 제3자 제공)</h2>
           <p>
             회사는 원칙적으로 이용자의 개인정보를 외부에 제공하지 않습니다. 다만, 다음의 경우에는 예외로 합니다:
           </p>
@@ -127,7 +129,7 @@ export default function Privacy() {
             <li>법령의 규정에 의거하거나 수사 목적으로 법령에 정해진 절차와 방법에 따라 수사기관의 요구가 있는 경우</li>
           </ol>
 
-          <h3>결제 대행사 (토스페이먼츠)</h3>
+          <h3 className="text-xl font-semibold mt-8 mb-4 text-primary">결제 대행사 (토스페이먼츠)</h3>
           <table className="min-w-full border-collapse border border-border">
             <thead>
               <tr className="bg-muted">
@@ -149,7 +151,7 @@ export default function Privacy() {
             </tbody>
           </table>
 
-          <h2>제5조 (개인정보의 파기 절차 및 방법)</h2>
+          <h2 className="text-2xl font-bold mt-12 mb-6 pb-3 border-b-2 border-primary/30">제5조 (개인정보의 파기 절차 및 방법)</h2>
           <ol>
             <li>
               <strong>파기 절차</strong>: 이용자가 입력한 정보는 목적이 달성된 후 별도의 DB로 옮겨져 내부 방침 및 관련 법령에 따라 일정 기간 저장된 후 파기됩니다.
@@ -163,7 +165,7 @@ export default function Privacy() {
             </li>
           </ol>
 
-          <h2>제6조 (개인정보 처리의 위탁)</h2>
+          <h2 className="text-2xl font-bold mt-12 mb-6 pb-3 border-b-2 border-primary/30">제6조 (개인정보 처리의 위탁)</h2>
           <p>회사는 원활한 서비스 제공을 위해 다음과 같이 개인정보 처리 업무를 위탁하고 있습니다:</p>
           <table className="min-w-full border-collapse border border-border">
             <thead>
@@ -188,7 +190,7 @@ export default function Privacy() {
             </tbody>
           </table>
 
-          <h2>제7조 (정보주체의 권리와 그 행사 방법)</h2>
+          <h2 className="text-2xl font-bold mt-12 mb-6 pb-3 border-b-2 border-primary/30">제7조 (정보주체의 권리와 그 행사 방법)</h2>
           <p>이용자는 언제든지 다음의 권리를 행사할 수 있습니다:</p>
           <ol>
             <li>개인정보 열람 요구</li>
@@ -200,7 +202,7 @@ export default function Privacy() {
             회사는 지체 없이 조치하겠습니다.
           </p>
 
-          <h2>제8조 (개인정보 보호책임자)</h2>
+          <h2 className="text-2xl font-bold mt-12 mb-6 pb-3 border-b-2 border-primary/30">제8조 (개인정보 보호책임자)</h2>
           <p>회사는 개인정보 처리에 관한 업무를 총괄해서 책임지고, 개인정보 처리와 관련한 정보주체의 불만 처리 및 피해구제를 위하여 아래와 같이 개인정보 보호책임자를 지정하고 있습니다:</p>
           <div className="bg-muted/50 p-6 rounded-lg">
             <p>
@@ -214,7 +216,7 @@ export default function Privacy() {
             </p>
           </div>
 
-          <h2>제9조 (개인정보의 안전성 확보 조치)</h2>
+          <h2 className="text-2xl font-bold mt-12 mb-6 pb-3 border-b-2 border-primary/30">제9조 (개인정보의 안전성 확보 조치)</h2>
           <p>회사는 개인정보의 안전성 확보를 위해 다음과 같은 조치를 취하고 있습니다:</p>
           <ol>
             <li>
@@ -228,7 +230,7 @@ export default function Privacy() {
             </li>
           </ol>
 
-          <h2>제10조 (개인정보 자동 수집 장치의 설치·운영 및 거부에 관한 사항)</h2>
+          <h2 className="text-2xl font-bold mt-12 mb-6 pb-3 border-b-2 border-primary/30">제10조 (개인정보 자동 수집 장치의 설치·운영 및 거부에 관한 사항)</h2>
           <ol>
             <li>
               회사는 이용자에게 개별적인 맞춤 서비스를 제공하기 위해 이용 정보를 저장하고 수시로 불러오는 '쿠키(Cookie)'를 사용합니다.
@@ -241,7 +243,7 @@ export default function Privacy() {
             </li>
           </ol>
 
-          <h2>제11조 (개인정보처리방침의 변경)</h2>
+          <h2 className="text-2xl font-bold mt-12 mb-6 pb-3 border-b-2 border-primary/30">제11조 (개인정보처리방침의 변경)</h2>
           <p>
             이 개인정보처리방침은 2025년 11월 14일부터 적용되며, 법령 및 방침에 따른 변경내용의 추가, 삭제 및 정정이 있는 경우에는
             변경사항의 시행 7일 전부터 공지사항을 통하여 고지할 것입니다.
