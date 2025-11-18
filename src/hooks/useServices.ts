@@ -120,14 +120,17 @@ export function useServiceDetail(serviceId: string) {
  * 단일 서비스 상세 조회 훅 (slug로 조회)
  */
 export function useServiceBySlug(slug: string) {
-  return useSupabaseQuery<Service>({
+  return useSupabaseQuery<ServiceWithCategory>({
     queryKey: ['service', 'slug', slug],
     queryFn: async () => {
       return await supabaseQuery(
         async () => {
           const result = await supabase
             .from('services')
-            .select('*')
+            .select(`
+              *,
+              category:service_categories(*)
+            `)
             .eq('slug', slug)
             .single()
           return { data: result.data, error: result.error }

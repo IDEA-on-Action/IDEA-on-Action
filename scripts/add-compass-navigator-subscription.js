@@ -5,8 +5,8 @@
 
 import { createClient } from '@supabase/supabase-js'
 
-// 로컬 Supabase 사용 (Docker Desktop) - 환경 변수 무시하고 로컬 키 사용
-const USE_LOCAL = true
+// 환경 선택: USE_LOCAL=true (로컬), USE_LOCAL=false (프로덕션)
+const USE_LOCAL = process.env.USE_LOCAL === 'false' ? false : true
 
 const supabaseUrl = USE_LOCAL
   ? 'http://127.0.0.1:54321'
@@ -14,7 +14,7 @@ const supabaseUrl = USE_LOCAL
 
 const supabaseKey = USE_LOCAL
   ? 'sb_secret_N7UND0UgjKTVK-Uodkm0Hg_xSvEMPvz'
-  : (process.env.VITE_SUPABASE_ANON_KEY || 'sb_secret_N7UND0UgjKTVK-Uodkm0Hg_xSvEMPvz')
+  : (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || 'sb_secret_N7UND0UgjKTVK-Uodkm0Hg_xSvEMPvz')
 
 console.log('🔧 Using:', USE_LOCAL ? 'Local Supabase' : 'Production Supabase')
 console.log('   URL:', supabaseUrl)

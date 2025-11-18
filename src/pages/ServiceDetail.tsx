@@ -13,7 +13,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
-import { useServiceDetail } from '@/hooks/useServices'
+import { useServiceBySlug } from '@/hooks/useServices'
 import { useAddToCart } from '@/hooks/useCart'
 import { useAuth } from '@/hooks/useAuth'
 import { Button } from '@/components/ui/button'
@@ -44,7 +44,7 @@ export default function ServiceDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { user } = useAuth()
-  const { data: service, isLoading, isError, error } = useServiceDetail(id!)
+  const { data: service, isLoading, isError, error } = useServiceBySlug(id!)
   const { mutate: addToCart, isPending: isAddingToCart } = useAddToCart()
 
   if (isLoading) {
