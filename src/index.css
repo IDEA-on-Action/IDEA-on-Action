@@ -250,3 +250,20 @@
     @apply transition-colors duration-200;
   }
 }
+
+/* Vercel Toolbar 숨기기 */
+[data-vercel-toolbar],
+.vercel-toolbar,
+#vercel-toolbar,
+iframe[src*="vercel.com/toolbar"],
+iframe[src*="vercel-insights"],
+iframe[src*="speed-insights"] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  position: absolute !important;
+  left: -9999px !important;
+  width: 0 !important;
+  height: 0 !important;
+}
