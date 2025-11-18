@@ -14,8 +14,8 @@
 - (1) 상호명: `생각과 행동 (IDEA on Action)`
 - (2) 사업자번호: `537-05-01511`
 - (3) URL: `https://www.ideaonaction.ai`
-- (4) 테스트 ID: `test.naver.com`
-- (5) 테스트 PW: `123456789`
+- (4) 테스트 ID: `toss-review@ideaonaction.ai`
+- (5) 테스트 PW: `TossReview2025!`
 
 **캡처 화면**: 가이드 Page 6 예시 참고
 - 화면 상단에 "예시" 워터마크 추가

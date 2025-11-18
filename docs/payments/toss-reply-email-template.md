@@ -62,17 +62,33 @@
 - **무료 체험**: 14일
 - **결제 방식**: 월 자동 결제 (빌링키 방식)
 - **해지**: 언제든 가능 (7일 이내 전액 환불)
-- **URL**: https://www.ideaonaction.ai/services (추가 예정)
+- **URL**: https://www.ideaonaction.ai/services/compass-navigator
 
 ---
 
-## 5. 첨부 파일
+## 5. 테스트 계정 정보
+
+심사를 위해 미리 생성한 테스트 계정 정보를 공유드립니다:
+
+- **로그인 URL**: https://www.ideaonaction.ai/login
+- **이메일**: `toss-review@ideaonaction.ai`
+- **비밀번호**: `TossReview2025!`
+- **테스트 플로우**:
+  1. 로그인 → 서비스 페이지 → COMPASS Navigator 선택
+  2. 구독하기 버튼 클릭
+  3. 고객 정보 입력 및 약관 동의 (5개 필수)
+  4. 토스페이먼츠 카드 등록 위젯에서 테스트 카드 정보 입력
+  5. 14일 무료 체험 시작 확인
+
+---
+
+## 6. 첨부 파일
 
 - `ideaonaction-billing-payment-flow.pptx` - 빌링 결제 경로 PPT
 
 ---
 
-## 6. 추가 문의사항
+## 7. 추가 문의사항
 
 혹시 추가로 필요한 자료나 수정사항이 있으시면 언제든 말씀해주시기 바랍니다.
 
