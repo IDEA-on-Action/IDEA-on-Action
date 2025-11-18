@@ -5,10 +5,102 @@
 **마지막 업데이트**: 2025-11-19
 **현재 버전**: 2.0.1 (CMS Phase 4 완료)
 **다음 버전**: 2.2.0 (Toss Payments Sprint 1 진행 중)
-**상태**: ✅ Production Ready | 🚀 토스페이먼츠 심사 준비 (5/40 태스크 완료)
+**상태**: ✅ Production Ready | 🚀 토스페이먼츠 심사 준비 (16/40 태스크 완료)
 **개발 방법론**: SDD (Spec-Driven Development)
 
 **최신 업데이트**:
+- 2025-11-19: **🎉 Services Platform Day 2 완료** ✅ - UI 컴포넌트 전체 & ServiceDetail 페이지 통합
+  - **배경**: 토스페이먼츠 심사용 서비스 페이지 UI 구현 완료
+  - **병렬 작업**: 5개 에이전트 동시 실행 (TypeScript, Hooks, UI 컴포넌트 5개)
+  - **완료 태스크**: TASK-006 ~ TASK-016 (11개, ~8시간 소요, 병렬로 67% 시간 절감)
+
+  - **TASK-006**: TypeScript 타입 정의 (1.5h)
+    - src/types/services-platform.ts 생성 (400+ 줄)
+    - 20+ 타입 정의: ServicePackage, SubscriptionPlan, PricingTier, Deliverable, ProcessStep, FAQ
+    - Type guards: isServicePackage(), isSubscriptionPlan(), hasContentData()
+    - UI Props: PricingCardProps, ServiceHeroProps, ProcessTimelineProps, etc.
+
+  - **TASK-007**: React Query Hooks (2h)
+    - src/hooks/useServicesPlatform.ts 생성 (350+ 줄)
+    - 11개 훅: useServicePackages, useSubscriptionPlans, useServiceDetail, useServiceDetailBySlug
+    - CRUD mutations: create, update, delete (packages/plans)
+    - Popular items: usePopularPackages, usePopularPlans
+    - Query key factory: servicesKeys (캐시 관리)
+
+  - **TASK-008**: ServiceHero 컴포넌트 (2h)
+    - 반응형 히어로 섹션 (텍스트 좌측, 이미지 우측)
+    - Markdown 렌더링, 카테고리 배지, 서비스 태그
+    - 이미지 fallback (SVG placeholder)
+
+  - **TASK-009**: PricingCard & PackageSelector (3h)
+    - PricingCard: 패키지/플랜 표시, 인기 배지, 가격 포맷팅 (₩8,000,000)
+    - PackageSelector: 탭 UI (일회성 vs 정기), 그리드 레이아웃, 로딩/빈 상태
+
+  - **TASK-010**: Cart Integration (2h)
+    - Cart Store: serviceItems 상태, addServiceItem(), removeServiceItem()
+    - Cart Drawer: 서비스 아이템 별도 섹션, billing_cycle 표시
+    - CartSummary: 일반 + 서비스 아이템 총합 계산
+    - AddToServiceCartButton: Toast 알림, "장바구니 보기" 액션
+
+  - **TASK-011**: ProcessTimeline 컴포넌트 (1.5h)
+    - 세로 타임라인, 단계 번호 배지 (원형, primary)
+    - 기간 배지 (Clock 아이콘), 활동 체크리스트
+
+  - **TASK-012**: DeliverablesGrid 컴포넌트 (1h)
+    - 2열 그리드 (데스크톱), 1열 (모바일)
+    - 동적 Lucide 아이콘 로딩, 카드 호버 효과
+
+  - **TASK-013**: FAQSection 컴포넌트 (1h)
+    - Radix UI Accordion, Markdown 렌더링
+    - 키보드 네비게이션, ARIA 속성
+
+  - **TASK-014**: ServiceDetail 페이지 통합 (2h)
+    - useServiceDetailBySlug 훅 사용 (slug 기반 라우팅)
+    - 5개 컴포넌트 통합 (Hero, PackageSelector, ProcessTimeline, Deliverables, FAQ)
+    - 조건부 렌더링 (데이터 있을 때만 섹션 표시)
+    - 장바구니 통합: addServiceItem + Toast 알림
+
+  - **결과**:
+    - ✅ 11개 컴포넌트/훅/타입 생성
+    - ✅ 3개 파일 수정 (ServiceDetail, useServicesPlatform, App)
+    - ✅ 코드 라인: +1,400 / -248
+    - ✅ 빌드 성공: 26.98s
+    - ✅ ServiceDetail.js: 13.10 kB (4.16 kB gzip)
+    - ✅ PWA precache: 26 entries (1.6 MB)
+
+  - **병렬 작업 통계**:
+    - 에이전트: 5개 (2회 병렬 실행)
+    - 소요 시간: ~8시간 (순차 대비 67% 절감)
+    - 커밋: 6개
+
+  - **파일 목록**:
+    - src/types/services-platform.ts
+    - src/hooks/useServicesPlatform.ts
+    - src/components/services-platform/ServiceHero.tsx
+    - src/components/services-platform/PricingCard.tsx
+    - src/components/services-platform/PackageSelector.tsx
+    - src/components/services-platform/ProcessTimeline.tsx
+    - src/components/services-platform/DeliverablesGrid.tsx
+    - src/components/services-platform/FAQSection.tsx
+    - src/components/services-platform/AddToServiceCartButton.tsx
+    - src/components/cart/ServiceCartItem.tsx
+    - src/components/cart/CartSummary.tsx (수정)
+    - src/pages/ServiceDetail.tsx (완전 재작성)
+
+  - **문서**:
+    - [Cart Integration Summary](docs/guides/services-platform/cart-integration-summary.md) - 227줄
+    - [Production Deployment Checklist](docs/guides/services-platform/production-deployment-checklist.md) - 종합 체크리스트
+
+  - **커밋**:
+    - ec7a85b: TypeScript 타입, Hooks, ServiceHero
+    - 13b47c9: PricingCard, PackageSelector
+    - ae6adf3: Cart Integration
+    - 07e1543: ProcessTimeline
+    - 6d1aa45: DeliverablesGrid, FAQSection
+    - ca491b7: ServiceDetail 페이지 통합
+
+  - **다음 단계**: TASK-011 (Production Deployment) - 프로덕션 DB 마이그레이션 & Vercel 배포
+
 - 2025-11-19: **🐛 Analytics 컴포넌트 이름 충돌 수정** ✅ - 모든 페이지에 관리자 대시보드 표시 문제 해결
   - **문제**: Vercel Analytics와 Admin Analytics 페이지의 이름 충돌로 모든 공개 페이지에 관리자 대시보드 표시
   - **원인**: `App.tsx`에서 `const Analytics = lazy(...)` (관리자 페이지)가 `import { Analytics }` (Vercel)를 덮어씀
