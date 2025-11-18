@@ -1,0 +1,35 @@
+{
+  "title": "COMPASS Navigator - 월 구독",
+  "description": "**AI 기반 워크플로우 자동화 플랫폼**\n\nCOMPASS Navigator는 업무 프로세스를 자동화하고 효율을 극대화하는 AI 에이전트 기반 플랫폼입니다.\n\n### 주요 특징\n- **지능형 작업 자동화**: 반복 작업을 AI가 자동으로 처리\n- **실시간 협업**: 팀원들과 실시간으로 워크플로우 공유\n- **통합 대시보드**: 모든 프로젝트를 한눈에 관리\n- **보안 강화**: 엔터프라이즈급 보안 및 권한 관리\n\n### 월 구독 혜택\n- ✅ 14일 무료 체험\n- ✅ 모든 기능 무제한 사용\n- ✅ 월 단위 언제든 해지 가능\n- ✅ 프리미엄 지원 포함",
+  "category_id": "개발 서비스 카테고리의 UUID (Supabase에서 service_categories 테이블 확인)",
+  "price": 99000,
+  "image_url": "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800",
+  "images": [
+    "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800",
+    "https://images.unsplash.com/photo-1504868584819-f8e8b4b6d7e3?w=800"
+  ],
+  "features": [
+    {
+      "title": "AI 에이전트 자동화",
+      "description": "반복적인 업무를 AI가 학습하여 자동으로 처리합니다."
+    },
+    {
+      "title": "실시간 협업",
+      "description": "팀원들과 실시간으로 워크플로우를 공유하고 협업합니다."
+    },
+    {
+      "title": "통합 대시보드",
+      "description": "모든 프로젝트와 작업을 한눈에 파악할 수 있는 직관적 UI를 제공합니다."
+    },
+    {
+      "title": "엔터프라이즈 보안",
+      "description": "금융권 수준의 보안과 세밀한 권한 관리를 지원합니다."
+    }
+  ],
+  "metrics": {
+    "users": 1200,
+    "satisfaction": 4.8,
+    "avg_roi_increase": 35
+  },
+  "status": "active"
+}
