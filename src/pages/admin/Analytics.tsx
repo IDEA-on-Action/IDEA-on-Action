@@ -12,7 +12,9 @@ import { FunnelChart } from '@/components/analytics/FunnelChart'
 import { BounceRateCard } from '@/components/analytics/BounceRateCard'
 import { EventTimeline } from '@/components/analytics/EventTimeline'
 import { Skeleton } from '@/components/ui/skeleton'
-import { BarChart3, TrendingDown, Activity, Clock } from 'lucide-react'
+import { BarChart3, TrendingDown, Activity, Clock, Users } from 'lucide-react'
+import { StatsCard, StatsCardGrid } from '@/components/analytics/StatsCard'
+import { formatNumber } from '@/types/analytics'
 
 export default function Analytics() {
   // 날짜 범위 (기본: 최근 30일)
@@ -77,52 +79,28 @@ export default function Analytics() {
 
         {/* 개요 탭 */}
         <TabsContent value="overview" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <StatsCardGrid columns={3}>
             {/* 이탈률 카드 */}
             <BounceRateCard data={bounceData} loading={bounceLoading} />
 
             {/* 총 이벤트 수 */}
-            <Card>
-              <CardHeader>
-                <CardTitle>총 이벤트</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {eventCountsLoading ? (
-                  <Skeleton className="h-24" />
-                ) : (
-                  <div className="text-center">
-                    <div className="text-5xl font-bold text-blue-600">
-                      {eventCounts?.reduce((sum, e) => sum + Number(e.event_count), 0).toLocaleString() || 0}
-                    </div>
-                    <div className="text-sm text-muted-foreground mt-2">
-                      선택한 기간 동안 발생한 이벤트
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+            <StatsCard
+              title="총 이벤트"
+              value={formatNumber(eventCounts?.reduce((sum, e) => sum + Number(e.event_count), 0) || 0)}
+              icon={<Activity className="h-5 w-5 text-blue-600" />}
+              description="선택한 기간 동안 발생한 이벤트"
+              loading={eventCountsLoading}
+            />
 
             {/* 고유 사용자 수 */}
-            <Card>
-              <CardHeader>
-                <CardTitle>고유 사용자</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {eventCountsLoading ? (
-                  <Skeleton className="h-24" />
-                ) : (
-                  <div className="text-center">
-                    <div className="text-5xl font-bold text-purple-600">
-                      {eventCounts?.reduce((sum, e) => sum + Number(e.unique_users), 0).toLocaleString() || 0}
-                    </div>
-                    <div className="text-sm text-muted-foreground mt-2">
-                      활동한 사용자 수
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
+            <StatsCard
+              title="고유 사용자"
+              value={formatNumber(eventCounts?.reduce((sum, e) => sum + Number(e.unique_users), 0) || 0)}
+              icon={<Users className="h-5 w-5 text-purple-600" />}
+              description="활동한 사용자 수"
+              loading={eventCountsLoading}
+            />
+          </StatsCardGrid>
 
           {/* 상위 이벤트 */}
           <Card>

@@ -17,6 +17,8 @@ import { Package, FileText, Users, TrendingUp, Plus, ArrowRight, DollarSign, Sho
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts'
 import { format, subDays, startOfDay } from 'date-fns'
 import { ko } from 'date-fns/locale'
+import { StatsCard, StatsCardGrid } from '@/components/analytics/StatsCard'
+import { formatKoreanCurrency } from '@/types/analytics'
 
 export default function Dashboard() {
   // 통계 데이터
@@ -116,36 +118,7 @@ export default function Dashboard() {
     },
   })
 
-  const statCards = [
-    {
-      title: '전체 서비스',
-      value: stats?.totalServices || 0,
-      icon: Package,
-      description: `활성: ${stats?.activeServices || 0}`,
-      color: 'text-blue-600',
-    },
-    {
-      title: '총 주문',
-      value: stats?.totalOrders || 0,
-      icon: ShoppingCart,
-      description: `완료: ${stats?.completedOrders || 0}`,
-      color: 'text-green-600',
-    },
-    {
-      title: '총 매출',
-      value: `₩${((stats?.totalRevenue || 0) / 10000).toFixed(0)}만`,
-      icon: DollarSign,
-      description: '누적 매출',
-      color: 'text-purple-600',
-    },
-    {
-      title: '평균 주문금액',
-      value: `₩${Math.floor((stats?.averageOrderValue || 0) / 1000)}천`,
-      icon: TrendingUp,
-      description: '주문당',
-      color: 'text-orange-600',
-    },
-  ]
+  const isLoading = !stats
 
   // 차트 색상
   const COLORS = ['#3b82f6', '#f59e0b', '#8b5cf6', '#10b981']
@@ -172,23 +145,36 @@ export default function Dashboard() {
         </div>
 
         {/* 통계 카드 */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {statCards.map((stat) => {
-            const Icon = stat.icon
-            return (
-              <Card key={stat.title}>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
-                  <Icon className={`h-5 w-5 ${stat.color}`} />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{stat.value}</div>
-                  <p className="text-xs text-muted-foreground">{stat.description}</p>
-                </CardContent>
-              </Card>
-            )
-          })}
-        </div>
+        <StatsCardGrid columns={4}>
+          <StatsCard
+            title="전체 서비스"
+            value={stats?.totalServices || 0}
+            icon={<Package className="h-5 w-5 text-blue-600" />}
+            description={`활성: ${stats?.activeServices || 0}`}
+            loading={isLoading}
+          />
+          <StatsCard
+            title="총 주문"
+            value={stats?.totalOrders || 0}
+            icon={<ShoppingCart className="h-5 w-5 text-green-600" />}
+            description={`완료: ${stats?.completedOrders || 0}`}
+            loading={isLoading}
+          />
+          <StatsCard
+            title="총 매출"
+            value={formatKoreanCurrency(stats?.totalRevenue || 0)}
+            icon={<DollarSign className="h-5 w-5 text-purple-600" />}
+            description="누적 매출"
+            loading={isLoading}
+          />
+          <StatsCard
+            title="평균 주문금액"
+            value={formatKoreanCurrency(stats?.averageOrderValue || 0)}
+            icon={<TrendingUp className="h-5 w-5 text-orange-600" />}
+            description="주문당"
+            loading={isLoading}
+          />
+        </StatsCardGrid>
 
         {/* 차트 섹션 */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

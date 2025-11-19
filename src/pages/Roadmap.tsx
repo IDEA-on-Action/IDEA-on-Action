@@ -1,7 +1,7 @@
 import { Helmet } from "react-helmet-async";
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Calendar, TrendingUp, Users, AlertCircle, FlaskConical, Briefcase, CheckCircle2, Target } from "lucide-react";
+import { Calendar, TrendingUp, Users, AlertCircle, FlaskConical, Briefcase, CheckCircle2, Target, Clock } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
@@ -13,6 +13,12 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import {
+  Timeline,
+  TimelineItem,
+  TimelineDot,
+  TimelineContent,
+} from "@/components/ui/timeline";
 import { useRoadmap } from "@/hooks/useRoadmap";
 import { PageLayout, HeroSection, Section } from "@/components/layouts";
 import { NextStepsCTA } from "@/components/common/NextStepsCTA";
@@ -299,43 +305,41 @@ const Roadmap = () => {
                     </div>
                   </Card>
 
-                  {/* Milestones */}
+                  {/* Milestones Timeline */}
                   <div className="space-y-4">
                     <h3 className="text-2xl font-bold flex items-center gap-2">
                       <TrendingUp className="w-6 h-6 text-primary" />
                       마일스톤
                     </h3>
 
-                    <div className="grid md:grid-cols-3 gap-6">
-                      {quarter.milestones && quarter.milestones.length > 0 ? (
-                        <>
+                    {quarter.milestones && quarter.milestones.length > 0 ? (
+                      <Card className="glass-card p-8">
+                        <Timeline>
                           {quarter.milestones.map((milestone, milestoneIndex) => (
-                            <Card
+                            <TimelineItem
                               key={milestone.id ?? `${quarter.id ?? `quarter-${quarterIndex}`}-milestone-${milestoneIndex}`}
-                              className="glass-card p-6 hover-lift"
+                              status={milestone.status}
+                              isLast={milestoneIndex === quarter.milestones!.length - 1}
                             >
-                              <div className="space-y-4">
-                                <div className="flex items-start justify-between">
-                                  <h4 className="text-lg font-bold">{milestone.title}</h4>
+                              <TimelineDot status={milestone.status}>
+                                {milestone.status === 'completed' && <CheckCircle2 className="w-4 h-4" />}
+                                {milestone.status === 'in-progress' && <Clock className="w-4 h-4 animate-pulse" />}
+                                {milestone.status === 'planned' && <Calendar className="w-4 h-4" />}
+                              </TimelineDot>
+                              <TimelineContent
+                                date={milestone.dueDate}
+                                title={milestone.title}
+                              >
+                                <div className="flex items-center gap-2 mb-3">
                                   <Badge variant={getStatusBadgeVariant(milestone.status)}>
                                     {getStatusLabel(milestone.status)}
                                   </Badge>
                                 </div>
-                                {milestone.dueDate && (
-                                  <div className="text-sm text-muted-foreground">
-                                    <Calendar className="w-4 h-4 inline mr-1" />
-                                    {new Date(milestone.dueDate).toLocaleDateString('ko-KR', {
-                                      year: 'numeric',
-                                      month: 'long',
-                                      day: 'numeric'
-                                    })}
-                                  </div>
-                                )}
                                 {milestone.tasks && milestone.tasks.length > 0 && (
                                   <ul className="space-y-2">
-                                    {milestone.tasks.map((task, index) => (
+                                    {milestone.tasks.map((task, taskIndex) => (
                                       <li
-                                        key={`${milestone.id ?? `${quarter.id ?? `quarter-${quarterIndex}`}-milestone-${milestoneIndex}`}-task-${index}`}
+                                        key={`${milestone.id ?? `${quarter.id ?? `quarter-${quarterIndex}`}-milestone-${milestoneIndex}`}-task-${taskIndex}`}
                                         className="text-sm text-foreground/70 flex items-start gap-2"
                                       >
                                         <span className="text-primary mt-1">•</span>
@@ -344,16 +348,16 @@ const Roadmap = () => {
                                     ))}
                                   </ul>
                                 )}
-                              </div>
-                            </Card>
+                              </TimelineContent>
+                            </TimelineItem>
                           ))}
-                        </>
-                      ) : (
-                        <div className="col-span-full text-center py-8 text-muted-foreground">
-                          등록된 마일스톤이 없습니다.
-                        </div>
-                      )}
-                    </div>
+                        </Timeline>
+                      </Card>
+                    ) : (
+                      <div className="text-center py-8 text-muted-foreground">
+                        등록된 마일스톤이 없습니다.
+                      </div>
+                    )}
                   </div>
                 </TabsContent>
               );

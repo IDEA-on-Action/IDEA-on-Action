@@ -70,6 +70,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import type { TeamMember } from '@/types/cms.types'
+import { FileUpload } from '@/components/ui/file-upload'
 
 // Zod Schema for Team Member Form
 const teamMemberSchema = z.object({
@@ -102,6 +103,8 @@ export default function AdminTeam() {
   const [editItem, setEditItem] = useState<TeamMember | null>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [avatarFiles, setAvatarFiles] = useState<File[]>([])
+  const [uploadProgress, setUploadProgress] = useState<number>(0)
 
   const form = useForm<TeamMemberFormData>({
     resolver: zodResolver(teamMemberSchema),
@@ -135,9 +138,41 @@ export default function AdminTeam() {
     return matchesSearch && matchesActive
   })
 
+  // Avatar upload handler
+  const handleAvatarUpload = async (files: File[]) => {
+    if (files.length === 0) return
+
+    setAvatarFiles(files)
+
+    // Simulate upload progress (실제로는 Supabase Storage API 사용)
+    // For demonstration purposes, we'll just create a local URL
+    const file = files[0]
+    const localUrl = URL.createObjectURL(file)
+
+    // Simulate async upload with progress
+    setUploadProgress(0)
+    const interval = setInterval(() => {
+      setUploadProgress((prev) => {
+        if (prev >= 100) {
+          clearInterval(interval)
+          // 업로드 완료 후 폼 값 업데이트
+          form.setValue('avatar', localUrl)
+          toast({
+            title: '아바타 업로드 완료',
+            description: `${file.name}을(를) 업로드했습니다.`,
+          })
+          return 100
+        }
+        return prev + 10
+      })
+    }, 100)
+  }
+
   // Open dialog for creating new item
   const handleCreate = () => {
     setEditItem(null)
+    setAvatarFiles([])
+    setUploadProgress(0)
     form.reset({
       name: '',
       role: '',
@@ -486,9 +521,24 @@ export default function AdminTeam() {
                   name="avatar"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>아바타 URL</FormLabel>
+                      <FormLabel>아바타 이미지</FormLabel>
                       <FormControl>
-                        <Input placeholder="https://..." {...field} />
+                        <div className="space-y-2">
+                          <FileUpload
+                            accept="image/*"
+                            maxSize={2 * 1024 * 1024} // 2MB
+                            maxFiles={1}
+                            onUpload={handleAvatarUpload}
+                            preview={true}
+                            value={avatarFiles}
+                            uploadProgress={uploadProgress}
+                          />
+                          {field.value && !avatarFiles.length && (
+                            <div className="text-xs text-muted-foreground">
+                              현재 URL: {field.value.substring(0, 50)}...
+                            </div>
+                          )}
+                        </div>
                       </FormControl>
                       <FormMessage />
                     </FormItem>
