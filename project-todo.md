@@ -2,15 +2,100 @@
 
 > 프로젝트 작업 목록 및 진행 상황 관리
 
-**마지막 업데이트**: 2025-11-19 14:30 UTC
+**마지막 업데이트**: 2025-11-19 16:00 UTC
 **현재 Phase**: 🚀 Version 2.2.0 진행 중 (Toss Payments Sprint 1)
-**완료된 항목**: 13개 UI 컴포넌트 추가 (Phase 1-2)
+**완료된 항목**: 구독 관리 시스템 Part 1/2 완료 (DB, 타입, 빌링키 저장)
 **프로젝트 버전**: 2.0.1 (Production Ready)
 **프로덕션**: https://www.ideaonaction.ai
 
 ---
 
 ## ✅ 최근 완료 (2025-11-19)
+
+### 💳 구독 관리 시스템 (Part 1/2) ✅ (43% 완료)
+
+**목표**: 토스페이먼츠 정기결제 완성을 위한 구독 관리 시스템 기반 구축
+**시작일**: 2025-11-19
+**완료일**: 2025-11-19 (Part 1)
+**현재 상태**: ✅ Part 1 완료 (3/7 작업, 43%)
+**소요 시간**: ~2시간
+
+#### 완료된 작업 (Part 1)
+
+- [x] **DB 스키마 마이그레이션** (~30분)
+  - [x] `billing_keys` 테이블 생성 (빌링키 저장)
+    - billing_key, customer_key, card_type, card_number, is_active
+    - 인덱스 3개, RLS 정책 3개
+  - [x] `subscriptions` 테이블 생성 (구독 정보)
+    - 상태: trial/active/cancelled/expired/suspended
+    - 날짜: trial_end_date, current_period_start/end, next_billing_date
+    - 인덱스 4개, RLS 정책 4개 (사용자/관리자)
+  - [x] `subscription_payments` 테이블 생성 (결제 히스토리)
+    - 상태: pending/success/failed/cancelled
+    - 인덱스 3개, RLS 정책 2개
+  - [x] Helper Functions:
+    - `has_active_subscription(user_id, service_id)`
+    - `expire_subscriptions()` (Cron용)
+  - [x] 트리거 2개 (updated_at 자동 업데이트)
+
+- [x] **TypeScript 타입 정의** (~20분)
+  - [x] `subscription.types.ts` 생성 (161줄)
+  - [x] DB 타입 (Row/Insert/Update)
+  - [x] Enum (SubscriptionStatus, PaymentStatus, BillingCycle)
+  - [x] Extended Types (SubscriptionWithPlan, etc.)
+  - [x] Form Types (Create/Cancel/Upgrade Request)
+  - [x] UI Helpers (한글 변환, 배지 색상)
+  - [x] Supabase 타입 재생성
+
+- [x] **빌링키 저장 및 구독 생성 로직** (~1시간)
+  - [x] SubscriptionSuccess.tsx 업데이트 (+123줄)
+  - [x] useEffect 훅으로 자동 처리:
+    - 1단계: billing_keys 테이블에 빌링키 저장
+    - 2단계: subscriptions 테이블에 구독 생성 (trial 상태)
+    - 3단계: sessionStorage 정리
+  - [x] 로딩/에러 상태 표시
+  - [x] import 경로 수정
+
+#### 📊 통계
+
+- **파일 변경**: 4개
+  - 신규: 2개 (마이그레이션 287줄, 타입 161줄)
+  - 수정: 2개 (SubscriptionSuccess +123줄, supabase.ts 재생성)
+- **DB 스키마**: 3개 테이블, 10개 인덱스, 9개 RLS 정책, 2개 트리거, 2개 함수
+- **빌드 시간**: 18.76s
+- **번들 크기 영향**: +3 kB gzip (SubscriptionSuccess)
+
+#### Git 커밋
+
+- 70151cb: feat(subscription): add subscription management system (Part 1/2)
+
+#### 다음 단계 (Part 2/2)
+
+- [ ] **React Query 훅 작성** (useSubscriptions.ts)
+  - [ ] useMySubscriptions() - 내 구독 목록
+  - [ ] useCancelSubscription() - 구독 취소
+  - [ ] useUpgradeSubscription() - 플랜 업그레이드
+  - [ ] useSubscriptionPayments() - 결제 히스토리
+
+- [ ] **구독 관리 페이지 UI** (Subscriptions.tsx)
+  - [ ] 구독 목록 표시 (상태, 다음 결제일, 금액)
+  - [ ] 구독 취소 버튼
+  - [ ] 플랜 업그레이드/다운그레이드
+  - [ ] 결제 수단 변경
+
+- [ ] **라우팅 추가** (App.tsx)
+  - [ ] /profile/subscriptions 경로 추가
+  - [ ] Header 네비게이션 업데이트
+
+- [ ] **자동 결제 Cron Job** (Edge Function)
+  - [ ] 매일 실행 스케줄
+  - [ ] next_billing_date 확인
+  - [ ] 토스페이먼츠 빌링키 결제 API 호출
+  - [ ] 성공 시 subscription_payments 저장
+  - [ ] 실패 시 사용자 알림
+
+---
+
 
 ### 🎨 디자인 시스템 확장: UI 컴포넌트 Phase 1-2 ✅ (100% 완료)
 

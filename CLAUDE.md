@@ -5,10 +5,82 @@
 **마지막 업데이트**: 2025-11-19
 **현재 버전**: 2.0.1 (CMS Phase 4 완료)
 **다음 버전**: 2.2.0 (Toss Payments Sprint 1 진행 중)
-**상태**: ✅ Production Ready | 🚀 토스페이먼츠 심사 준비 (16/40 태스크 완료)
+**상태**: ✅ Production Ready | 🚀 토스페이먼츠 심사 준비 (19/40 태스크 완료)
 **개발 방법론**: SDD (Spec-Driven Development)
 
 **최신 업데이트**:
+- 2025-11-19: **💳 구독 관리 시스템 구축 (Part 1/2)** ✅ - DB 스키마, 타입, 빌링키 저장
+  - **배경**: 토스페이먼츠 정기결제 완성을 위한 구독 관리 시스템 기반 구축
+  - **작업 시간**: ~2시간 (DB 설계, 타입 정의, 로직 구현)
+  - **완료 태스크**: 3/7 (43%)
+
+  - **TASK-1: DB 스키마 마이그레이션** (30분)
+    - `billing_keys` 테이블: 토스페이먼츠 빌링키 저장
+      - 컬럼: billing_key, customer_key, card_type, card_number (마스킹), is_active
+      - 인덱스 3개, RLS 정책 3개 (사용자 본인만 조회/생성/수정)
+    - `subscriptions` 테이블: 사용자별 구독 정보
+      - 상태: trial(체험), active(활성), cancelled(취소), expired(만료), suspended(정지)
+      - 날짜 필드: trial_end_date, current_period_start/end, next_billing_date
+      - 컬럼: service_id, plan_id, billing_key_id, cancel_at_period_end
+      - 인덱스 4개, RLS 정책 4개 (사용자/관리자)
+    - `subscription_payments` 테이블: 결제 히스토리
+      - 상태: pending, success, failed, cancelled
+      - 컬럼: subscription_id, amount, payment_key, order_id, error_code/message
+      - 인덱스 3개, RLS 정책 2개 (사용자 조회만, 생성은 service_role)
+    - Helper Functions:
+      - `has_active_subscription(user_id, service_id)`: 활성 구독 확인
+      - `expire_subscriptions()`: 만료된 구독 처리 (Cron 호출용)
+    - 트리거: updated_at 자동 업데이트 (billing_keys, subscriptions)
+
+  - **TASK-2: TypeScript 타입 정의** (20분)
+    - `src/types/subscription.types.ts` 생성 (161줄)
+    - DB 타입: BillingKey, Subscription, SubscriptionPayment (Row/Insert/Update)
+    - Enum: SubscriptionStatus, PaymentStatus, BillingCycle
+    - Extended Types: SubscriptionWithPlan, SubscriptionPaymentWithDetails
+    - Form Types: CreateSubscriptionRequest, CancelSubscriptionRequest, UpgradeSubscriptionRequest
+    - UI Helpers:
+      - SUBSCRIPTION_STATUS_KR/VARIANT: 한글 변환 & 배지 색상
+      - PAYMENT_STATUS_KR/VARIANT: 결제 상태 UI
+      - BILLING_CYCLE_KR: 월간/분기/연간
+    - Supabase 타입 재생성: `npx supabase gen types typescript --local`
+
+  - **TASK-3: 빌링키 저장 및 구독 생성 로직** (1시간)
+    - `SubscriptionSuccess.tsx` 업데이트 (123줄 추가)
+    - useEffect 훅으로 빌링키 자동 저장:
+      - 1단계: `billing_keys` 테이블에 authKey, customerKey 저장
+      - 2단계: `subscriptions` 테이블에 구독 생성
+        - status: 'trial' (14일 무료 체험)
+        - trial_end_date: 현재 + 14일
+        - current_period_end: trial_end_date + billing_cycle (월간/분기/연간)
+        - next_billing_date: trial_end_date (첫 결제일)
+      - 3단계: sessionStorage 정리 (subscription_plan_info 삭제)
+    - 로딩/에러 상태 표시:
+      - isProcessing 상태로 중복 실행 방지
+      - Alert 컴포넌트로 로딩/에러 메시지 표시
+    - import 경로 수정: `@/lib/supabase` → `@/integrations/supabase/client`
+
+  - **결과**:
+    - ✅ DB 스키마 3개 테이블 생성 (billing_keys, subscriptions, subscription_payments)
+    - ✅ RLS 정책 9개, 인덱스 10개, 트리거 2개, Helper 함수 2개
+    - ✅ TypeScript 타입 161줄 (DB, Enum, Extended, Form, UI Helpers)
+    - ✅ 빌링키 자동 저장 & 구독 자동 생성 (14일 무료 체험)
+    - ✅ 로딩/에러 상태 표시
+    - ✅ 빌드 성공: 18.76s
+
+  - **파일 변경**: 4개
+    - `supabase/migrations/20251119153000_create_subscription_management_tables.sql` (신규, 287줄)
+    - `src/types/subscription.types.ts` (신규, 161줄)
+    - `src/types/supabase.ts` (재생성)
+    - `src/pages/SubscriptionSuccess.tsx` (+123줄)
+
+  - **커밋**: 70151cb
+  - **다음 단계 (Part 2/2)**:
+    - React Query 훅 작성 (useSubscriptions.ts)
+    - 구독 관리 페이지 UI (Subscriptions.tsx)
+    - 라우팅 추가 (App.tsx)
+    - 자동 결제 Cron Job (Edge Function)
+
+
 - 2025-11-19: **🎨 UI 컴포넌트 확장 완료 (Phase 1-2)** ✅ - 13개 전문 컴포넌트 추가 & 디자인 시스템 개선
   - **배경**: 디자인 시스템 가독성 이슈 해결 및 프로젝트 UI 컴포넌트 전략적 확장
   - **병렬 작업**: 2회 실행 (Phase 1: 5개 에이전트, Phase 2: 4개 에이전트)

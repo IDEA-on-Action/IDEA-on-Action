@@ -9,6 +9,95 @@
 
 ---
 
+## [2.0.2-dev] - 2025-11-19 (진행 중)
+
+### Added - 구독 관리 시스템 (Part 1/2) 🚧
+
+#### 💳 Database Schema (3 tables)
+
+**Billing Keys** (`billing_keys` table):
+- 토스페이먼츠 빌링키 저장
+- Columns: `billing_key`, `customer_key`, `card_type`, `card_number` (masked), `is_active`
+- Indexes: 3 (user_id, customer_key, is_active)
+- RLS Policies: 3 (사용자 본인만 조회/생성/수정)
+
+**Subscriptions** (`subscriptions` table):
+- 사용자별 구독 정보
+- Status: `trial` (체험), `active` (활성), `cancelled` (취소), `expired` (만료), `suspended` (정지)
+- Columns: `service_id`, `plan_id`, `billing_key_id`, `status`, `trial_end_date`, `current_period_start`, `current_period_end`, `next_billing_date`, `cancel_at_period_end`
+- Indexes: 4 (user_id, status, next_billing_date, service_plan)
+- RLS Policies: 4 (사용자 조회/생성/수정, 관리자 조회)
+
+**Subscription Payments** (`subscription_payments` table):
+- 결제 히스토리
+- Status: `pending`, `success`, `failed`, `cancelled`
+- Columns: `subscription_id`, `amount`, `payment_key`, `order_id`, `error_code`, `error_message`, `paid_at`
+- Indexes: 3 (subscription_id, status, paid_at)
+- RLS Policies: 2 (사용자 조회, 관리자 조회)
+
+**Helper Functions**:
+- `has_active_subscription(user_id, service_id)`: 활성 구독 여부 확인
+- `expire_subscriptions()`: 만료된 구독 처리 (Cron 호출용)
+
+**Triggers**:
+- `update_billing_keys_updated_at()`: billing_keys.updated_at 자동 업데이트
+- `update_subscriptions_updated_at()`: subscriptions.updated_at 자동 업데이트
+
+#### 📝 TypeScript Types
+
+**New File**: `src/types/subscription.types.ts` (161 lines)
+- Database Types: `BillingKey`, `Subscription`, `SubscriptionPayment` (Row/Insert/Update)
+- Enums: `SubscriptionStatus`, `PaymentStatus`, `BillingCycle`
+- Extended Types: `SubscriptionWithPlan`, `SubscriptionPaymentWithDetails`
+- Form Types: `CreateSubscriptionRequest`, `CancelSubscriptionRequest`, `UpgradeSubscriptionRequest`
+- UI Helpers:
+  - `SUBSCRIPTION_STATUS_KR/VARIANT`: 구독 상태 한글 변환 & 배지 색상
+  - `PAYMENT_STATUS_KR/VARIANT`: 결제 상태 한글 변환 & 배지 색상
+  - `BILLING_CYCLE_KR`: 구독 주기 한글 변환 (월간/분기/연간)
+- Helper Types: `SubscriptionSummary`, `NextBillingInfo`
+
+**Updated File**: `src/types/supabase.ts` (regenerated)
+- Supabase 타입 재생성: `npx supabase gen types typescript --local`
+
+#### 🔧 Features
+
+**Billing Key Auto-Save** (`src/pages/SubscriptionSuccess.tsx`):
+- useEffect 훅으로 빌링키 발급 후 자동 저장
+- 3단계 프로세스:
+  1. `billing_keys` 테이블에 `authKey`, `customerKey` 저장
+  2. `subscriptions` 테이블에 구독 생성 (status: `trial`, 14일 무료 체험)
+  3. sessionStorage 정리 (`subscription_plan_info` 삭제)
+- 로딩/에러 상태 표시 (`isProcessing`, `error`)
+- Alert 컴포넌트로 사용자 피드백
+
+**Subscription Creation Logic**:
+- Trial End Date: 현재 시간 + 14일
+- Current Period End: trial_end_date + billing_cycle
+  - Monthly: +1 month
+  - Quarterly: +3 months
+  - Yearly: +1 year
+- Next Billing Date: trial_end_date (첫 자동 결제일)
+
+#### 📦 Files Changed
+
+- `supabase/migrations/20251119153000_create_subscription_management_tables.sql` (신규, 287 lines)
+- `src/types/subscription.types.ts` (신규, 161 lines)
+- `src/types/supabase.ts` (재생성)
+- `src/pages/SubscriptionSuccess.tsx` (+123 lines)
+
+#### Git Commit
+
+- 70151cb: `feat(subscription): add subscription management system (Part 1/2)`
+
+#### 🚧 Pending (Part 2/2)
+
+- [ ] React Query 훅 작성 (`useSubscriptions.ts`)
+- [ ] 구독 관리 페이지 UI (`Subscriptions.tsx`)
+- [ ] 라우팅 추가 (`App.tsx`)
+- [ ] 자동 결제 Cron Job (Edge Function)
+
+---
+
 ## [2.0.1] - 2025-11-16
 
 ### Added - CMS Phase 4: 문서화 & 배포 준비 ✅
