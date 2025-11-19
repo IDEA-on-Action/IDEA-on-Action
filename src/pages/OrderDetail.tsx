@@ -65,7 +65,7 @@ export default function OrderDetail() {
     return (
       <div className="min-h-screen flex flex-col bg-gradient-to-br from-background via-background to-primary/5">
         <Header />
-        <main className="flex-1 container mx-auto px-4 py-16">
+        <main className="flex-1 container mx-auto px-4 pt-24 pb-16">
           <Alert>
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>주문 내역을 보려면 로그인이 필요합니다.</AlertDescription>
@@ -84,7 +84,7 @@ export default function OrderDetail() {
     return (
       <div className="min-h-screen flex flex-col bg-gradient-to-br from-background via-background to-primary/5">
         <Header />
-        <main className="flex-1 container mx-auto px-4 py-8">
+        <main className="flex-1 container mx-auto px-4 pt-24 pb-8">
           <Skeleton className="h-12 w-32 mb-8" />
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 space-y-6">
@@ -104,7 +104,7 @@ export default function OrderDetail() {
     return (
       <div className="min-h-screen flex flex-col bg-gradient-to-br from-background via-background to-primary/5">
         <Header />
-        <main className="flex-1 container mx-auto px-4 py-16">
+        <main className="flex-1 container mx-auto px-4 pt-24 pb-16">
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>주문을 찾을 수 없습니다.</AlertDescription>
@@ -141,7 +141,7 @@ export default function OrderDetail() {
       <div className="min-h-screen flex flex-col bg-gradient-to-br from-background via-background to-primary/5">
         <Header />
 
-        <main className="flex-1 container mx-auto px-4 py-8">
+        <main className="flex-1 container mx-auto px-4 pt-24 pb-8">
           {/* 뒤로가기 */}
           <div className="mb-8">
             <Button variant="ghost" onClick={() => navigate('/orders')}>
