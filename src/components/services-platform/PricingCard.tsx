@@ -72,7 +72,7 @@ export function PricingCard({ item, isPackage, onSelect }: PricingCardProps) {
   return (
     <Card
       className={cn(
-        'relative flex flex-col transition-all duration-300 hover:shadow-lg hover:-translate-y-1',
+        'relative flex flex-col transition-all duration-300 hover:shadow-lg hover:-translate-y-1 bg-white dark:bg-card',
         item.is_popular &&
           'border-2 border-primary shadow-md dark:border-primary/50'
       )}
@@ -81,8 +81,7 @@ export function PricingCard({ item, isPackage, onSelect }: PricingCardProps) {
       {item.is_popular && (
         <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10">
           <Badge
-            variant="default"
-            className="flex items-center gap-1 px-3 py-1 shadow-md"
+            className="flex items-center gap-1 px-3 py-1 shadow-md bg-gradient-to-r from-orange-500 to-orange-600 text-white border-0"
           >
             <Crown className="h-3 w-3" />
             <span className="text-xs font-semibold">인기</span>
@@ -129,8 +128,12 @@ export function PricingCard({ item, isPackage, onSelect }: PricingCardProps) {
       <CardFooter className="px-6 pb-6">
         <Button
           onClick={() => onSelect(item)}
-          variant={item.is_popular ? 'default' : 'secondary'}
-          className="w-full font-semibold transition-all hover:scale-105"
+          className={cn(
+            "w-full font-semibold transition-all hover:scale-105",
+            item.is_popular
+              ? "bg-gradient-to-r from-orange-500 to-orange-600 text-white hover:from-orange-600 hover:to-orange-700 shadow-lg shadow-orange-500/50"
+              : "bg-slate-700 text-white hover:bg-slate-800"
+          )}
           size="lg"
           aria-label={`${displayName} 플랜 선택하기 - ${formatPrice(item.price)}`}
         >
