@@ -20,7 +20,7 @@ interface ServiceCardProps {
 }
 
 export function ServiceCard({ service }: ServiceCardProps) {
-  const { id, title, description, price, image_url, category, metrics } = service
+  const { id, slug, title, description, price, image_url, category, metrics } = service
 
   // 가격 포맷팅
   const formattedPrice = new Intl.NumberFormat('ko-KR', {
@@ -33,7 +33,7 @@ export function ServiceCard({ service }: ServiceCardProps) {
   const satisfaction = metrics?.satisfaction || 0
 
   return (
-    <Link to={`/services/${id}`} className="block group">
+    <Link to={`/services/${slug || id}`} className="block group">
       <Card className="glass-card hover-lift h-full overflow-hidden transition-all duration-300">
         {/* 이미지 섹션 */}
         <div className="relative h-48 overflow-hidden bg-gradient-to-br from-primary/10 to-accent/10">
