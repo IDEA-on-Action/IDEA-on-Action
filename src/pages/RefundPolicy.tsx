@@ -110,7 +110,7 @@ export default function RefundPolicy() {
             </li>
           </ol>
 
-          <h2 className="text-2xl font-bold mt-12 mb-6 pb-3 border-b-2 border-primary/30">제3조의2 (디지털 서비스 청약철회 제한 시 소비자 보호 조치)</h2>
+          <h2 id="digital-services" className="text-2xl font-bold mt-12 mb-6 pb-3 border-b-2 border-primary/30">제3조의2 (디지털 서비스 청약철회 제한 시 소비자 보호 조치)</h2>
           <ol>
             <li>
               청약철회가 제한되는 디지털 콘텐츠 및 무형 서비스의 경우, 회사는 다음 중 하나 이상의 방법으로 소비자의 권리를 보장합니다:

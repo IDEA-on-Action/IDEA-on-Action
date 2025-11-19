@@ -21,7 +21,7 @@ import { useCartStore } from '@/store/cartStore'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { ArrowLeft, AlertCircle } from 'lucide-react'
+import { ArrowLeft, AlertCircle, Info, ExternalLink } from 'lucide-react'
 
 // Services Platform Components
 import { ServiceHero } from '@/components/services-platform/ServiceHero'
@@ -173,6 +173,38 @@ export default function ServiceDetail() {
             category={category}
             tags={tags}
           />
+
+          {/* Digital Service Withdrawal Notice */}
+          <div className="container mx-auto px-4 py-8">
+            <Alert className="border-primary/50 bg-primary/5">
+              <Info className="h-4 w-4 text-primary" />
+              <AlertTitle className="text-primary font-semibold">디지털 서비스 청약철회 안내</AlertTitle>
+              <AlertDescription className="mt-2 text-sm text-muted-foreground">
+                본 서비스는 <strong>다운로드/실행/소스코드 전달 시점부터 청약철회가 제한</strong>됩니다.
+                {' '}
+                {service?.slug === 'compass-navigator' && (
+                  <span className="text-primary font-medium">
+                    무료 7일 체험판을 먼저 이용하시기 바랍니다.
+                  </span>
+                )}
+                {(service?.slug === 'mvp' || service?.slug === 'fullstack' || service?.slug === 'design') && (
+                  <span className="text-primary font-medium">
+                    무료 상담을 통해 상세 견적서를 먼저 받아보시기 바랍니다.
+                  </span>
+                )}
+                {' '}
+                <a
+                  href="/refund-policy#digital-services"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-primary hover:underline font-medium"
+                >
+                  환불정책 자세히 보기
+                  <ExternalLink className="h-3 w-3" />
+                </a>
+              </AlertDescription>
+            </Alert>
+          </div>
 
           {/* Package/Plan Selection */}
           {(packages.length > 0 || plans.length > 0) && (
