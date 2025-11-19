@@ -138,7 +138,10 @@ export default function Checkout() {
   }
 
   // 전체 동의 핸들러
-  const handleAllAgree = (checked: boolean) => {
+  const handleAllAgree = (checked: boolean | 'indeterminate') => {
+    // Ignore indeterminate state
+    if (checked === 'indeterminate') return
+
     form.setValue('termsAgreed', checked)
     form.setValue('privacyAgreed', checked)
     form.setValue('refundAgreed', checked)
