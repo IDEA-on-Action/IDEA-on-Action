@@ -12,10 +12,12 @@ import { useCartStore } from '@/store/cartStore'
 import { useCart } from '@/hooks/useCart'
 
 export function CartButton() {
-  const { openCart } = useCartStore()
+  const { openCart, serviceItems } = useCartStore()
   const { data: cart } = useCart()
 
-  const itemCount = cart?.items?.length || 0
+  const regularItemCount = cart?.items?.length || 0
+  const serviceItemCount = serviceItems.length
+  const itemCount = regularItemCount + serviceItemCount
 
   return (
     <Button
