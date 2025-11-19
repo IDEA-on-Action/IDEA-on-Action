@@ -1186,11 +1186,14 @@ npm run lint      # ESLint 검사
 - **Alias**: `@/` → `src/` (vite.config.ts에서 설정)
 - **예시**: `import { Button } from '@/components/ui/button'`
 
-### 문서 관리 원칙
-- **작업 전**: SDD 프로세스 따르기 (Specify → Plan → Tasks → Implement)
-- **작업 중**: 진행률 추적 (project-todo.md)
-- **작업 후**: 문서 업데이트 체크리스트 확인
-- **주기적**: 로드맵 진행률 업데이트 (주 1회)
+### 문서 및 SQL 관리 규칙
+- **통합 관리**: 모든 문서는 `docs/` 아래 통합, SQL은 `scripts/sql/` 또는 `supabase/migrations/`
+- **단일 진실 소스**: 정보 중복 금지, 참조 링크 사용
+- **명명 규칙**: kebab-case (문서), 타임스탬프 (공식 마이그레이션)
+- **문서 생명주기**: 생성 → 활성 → 완료 → 보관 (docs/archive/)
+- **필수 업데이트**: CLAUDE.md, project-todo.md, changelog.md
+
+**상세 가이드**: [문서 관리 규칙](docs/DOCUMENT_MANAGEMENT.md)
 
 ---
 

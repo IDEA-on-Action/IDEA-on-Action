@@ -240,6 +240,20 @@ import './styles.css'
   - 빌드 및 배포
   - 기여 가이드
 
+### 6. 문서 및 SQL 관리 규칙
+- **원칙**: 통합 관리 체계 준수
+- **실천**:
+  - 모든 문서는 `docs/` 아래 통합
+  - SQL 스크립트는 `scripts/sql/` 또는 `supabase/migrations/`
+  - 단일 진실 소스(SSoT): 정보 중복 금지, 참조 링크 사용
+  - 명명 규칙: kebab-case (문서), 타임스탬프 (공식 마이그레이션)
+  - 문서 생명주기: 생성 → 활성 → 완료 → 보관 (docs/archive/)
+- **필수 업데이트**:
+  - CLAUDE.md (프로젝트 현황)
+  - project-todo.md (할 일 목록)
+  - docs/project/changelog.md (변경 로그)
+- **상세 가이드**: [문서 관리 규칙](docs/DOCUMENT_MANAGEMENT.md)
+
 ---
 
 ## 🔒 보안 원칙 (Security Principles)
