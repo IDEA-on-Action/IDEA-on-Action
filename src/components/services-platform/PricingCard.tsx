@@ -128,11 +128,12 @@ export function PricingCard({ item, isPackage, onSelect }: PricingCardProps) {
       <CardFooter className="px-6 pb-6">
         <Button
           onClick={() => onSelect(item)}
+          variant="default"
           className={cn(
             "w-full font-semibold transition-all hover:scale-105",
             item.is_popular
-              ? "bg-gradient-to-r from-orange-500 to-orange-600 text-white hover:from-orange-600 hover:to-orange-700 shadow-lg shadow-orange-500/50"
-              : "bg-slate-700 text-white hover:bg-slate-800"
+              ? "!bg-gradient-to-r !from-orange-500 !to-orange-600 !text-white hover:!from-orange-600 hover:!to-orange-700 !shadow-lg !shadow-orange-500/50"
+              : "!bg-slate-700 !text-white hover:!bg-slate-800 !shadow-md"
           )}
           size="lg"
           aria-label={`${displayName} 플랜 선택하기 - ${formatPrice(item.price)}`}
