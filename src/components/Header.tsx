@@ -168,10 +168,10 @@ const Header = ({ className = "" }: HeaderProps) => {
 
           <LanguageSwitcher />
           <ThemeToggle />
+          <CartButton />
           {user && (
             <>
               <NotificationBell />
-              <CartButton />
             </>
           )}
 
