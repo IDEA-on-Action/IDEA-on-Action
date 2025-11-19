@@ -129,7 +129,7 @@ export function PricingCard({ item, isPackage, onSelect }: PricingCardProps) {
       <CardFooter className="px-6 pb-6">
         <Button
           onClick={() => onSelect(item)}
-          variant={item.is_popular ? 'default' : 'outline'}
+          variant="default"
           className="w-full font-semibold transition-all hover:scale-105"
           size="lg"
           aria-label={`${displayName} 플랜 선택하기 - ${formatPrice(item.price)}`}
