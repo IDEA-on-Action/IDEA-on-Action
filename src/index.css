@@ -47,7 +47,7 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
 
-    --primary: 217 91% 60%;                /* Blue #3b82f6 */
+    --primary: 217 91% 52%;                /* Blue #2563eb (darker for better contrast) */
     --primary-foreground: 210 40% 98%;
 
     --secondary: 210 40% 96.1%;
@@ -129,14 +129,14 @@
     --popover: 217.2 32.6% 17.5%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 217 91% 60%;                /* Blue #60a5fa */
+    --primary: 217 91% 52%;                /* Blue #2563eb (darker for better contrast) */
     --primary-foreground: 210 40% 98%;
 
     --secondary: 217.2 32.6% 17.5%;
     --secondary-foreground: 210 40% 98%;
 
     --accent: 43 96% 56%;                  /* Orange #fbbf24 */
-    --accent-foreground: 210 40% 98%;
+    --accent-foreground: 222.2 84% 4.9%;   /* Dark text for light accent bg */
 
     --muted: 217.2 32.6% 17.5%;
     --muted-foreground: 215 20.2% 70%; /* Improved contrast from 65.1% */
