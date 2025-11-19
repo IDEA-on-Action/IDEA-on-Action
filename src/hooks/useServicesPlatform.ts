@@ -350,7 +350,6 @@ export function useServiceDetailBySlug(slug: string) {
         .from('services')
         .select('*')
         .eq('slug', slug)
-        .eq('is_active', true)
         .single();
 
       if (serviceError) throw serviceError;
