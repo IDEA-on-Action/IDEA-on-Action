@@ -11,11 +11,15 @@ import Header from '@/components/Header'
 import Footer from '@/components/Footer'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { CheckCircle2, ArrowRight, Calendar } from 'lucide-react'
+import { CheckCircle2, ArrowRight, Calendar, Loader2, AlertCircle } from 'lucide-react'
+import { useAuth } from '@/hooks/useAuth'
+import { supabase } from '@/integrations/supabase/client'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 
 export default function SubscriptionSuccess() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
+  const { user } = useAuth()
 
   // URL 파라미터
   const serviceId = searchParams.get('service_id')
@@ -23,6 +27,8 @@ export default function SubscriptionSuccess() {
   const authKey = searchParams.get('authKey') // 빌링키
 
   const [planInfo, setPlanInfo] = useState<any>(null)
+  const [isProcessing, setIsProcessing] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     // sessionStorage에서 플랜 정보 가져오기
@@ -34,6 +40,87 @@ export default function SubscriptionSuccess() {
 
   // 빌링키 발급 성공 확인
   const isSuccess = authKey && authKey.startsWith('bln_')
+
+  // 빌링키 저장 및 구독 생성
+  useEffect(() => {
+    const saveBillingKeyAndCreateSubscription = async () => {
+      // 필수 조건 확인
+      if (!authKey || !customerKey || !serviceId || !user || !planInfo) {
+        return
+      }
+
+      // 이미 처리 중이거나 완료된 경우 스킵
+      if (isProcessing || error) {
+        return
+      }
+
+      setIsProcessing(true)
+      setError(null)
+
+      try {
+        // 1. 빌링키 저장
+        const { data: billingKey, error: billingKeyError } = await supabase
+          .from('billing_keys')
+          .insert({
+            user_id: user.id,
+            billing_key: authKey,
+            customer_key: customerKey,
+            is_active: true,
+          })
+          .select()
+          .single()
+
+        if (billingKeyError) {
+          throw new Error(`빌링키 저장 실패: ${billingKeyError.message}`)
+        }
+
+        // 2. 구독 생성 (14일 무료 체험)
+        const trialEndDate = new Date()
+        trialEndDate.setDate(trialEndDate.getDate() + 14) // 14일 후
+
+        const currentPeriodEnd = new Date(trialEndDate)
+        // 결제 주기에 따라 current_period_end 계산
+        if (planInfo.billing_cycle === 'monthly') {
+          currentPeriodEnd.setMonth(currentPeriodEnd.getMonth() + 1)
+        } else if (planInfo.billing_cycle === 'quarterly') {
+          currentPeriodEnd.setMonth(currentPeriodEnd.getMonth() + 3)
+        } else if (planInfo.billing_cycle === 'yearly') {
+          currentPeriodEnd.setFullYear(currentPeriodEnd.getFullYear() + 1)
+        }
+
+        const { error: subscriptionError } = await supabase
+          .from('subscriptions')
+          .insert({
+            user_id: user.id,
+            service_id: serviceId,
+            plan_id: planInfo.plan_id,
+            billing_key_id: billingKey.id,
+            status: 'trial',
+            trial_end_date: trialEndDate.toISOString(),
+            current_period_start: new Date().toISOString(),
+            current_period_end: currentPeriodEnd.toISOString(),
+            next_billing_date: trialEndDate.toISOString(), // 14일 후 첫 결제
+            cancel_at_period_end: false,
+          })
+
+        if (subscriptionError) {
+          throw new Error(`구독 생성 실패: ${subscriptionError.message}`)
+        }
+
+        // 3. sessionStorage 정리
+        sessionStorage.removeItem('subscription_plan_info')
+
+        console.log('✅ 빌링키 저장 및 구독 생성 완료')
+      } catch (err) {
+        console.error('구독 생성 중 에러:', err)
+        setError(err instanceof Error ? err.message : '구독 생성에 실패했습니다.')
+      } finally {
+        setIsProcessing(false)
+      }
+    }
+
+    saveBillingKeyAndCreateSubscription()
+  }, [authKey, customerKey, serviceId, user, planInfo, isProcessing, error])
 
   return (
     <>
@@ -59,6 +146,24 @@ export default function SubscriptionSuccess() {
             </CardHeader>
 
             <CardContent className="space-y-6">
+              {/* 로딩 상태 */}
+              {isProcessing && (
+                <Alert>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <AlertDescription>
+                    구독을 생성하는 중입니다. 잠시만 기다려주세요...
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {/* 에러 상태 */}
+              {error && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
+
               {/* 구독 정보 */}
               {planInfo && (
                 <div className="bg-muted/30 rounded-lg p-6 space-y-4">
