@@ -69,9 +69,19 @@ export default function SubscriptionCheckout() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const serviceId = searchParams.get('service_id')
+  const planId = searchParams.get('plan_id')
   const { user } = useAuth()
   const { data: service, isLoading: isServiceLoading } = useServiceDetail(serviceId!)
   const [isProcessing, setIsProcessing] = useState(false)
+
+  // sessionStorage에서 플랜 정보 가져오기
+  const [planInfo, setPlanInfo] = useState<any>(null)
+  useEffect(() => {
+    const savedPlanInfo = sessionStorage.getItem('subscription_plan_info')
+    if (savedPlanInfo) {
+      setPlanInfo(JSON.parse(savedPlanInfo))
+    }
+  }, [])
 
   const form = useForm<SubscriptionFormValues>({
     resolver: zodResolver(subscriptionSchema),
@@ -109,7 +119,7 @@ export default function SubscriptionCheckout() {
 
   // 구독 시작 핸들러 (토스페이먼츠 빌링키 발급)
   const onSubmit = async (data: SubscriptionFormValues) => {
-    if (!service) return
+    if (!service || !planInfo) return
 
     setIsProcessing(true)
 
@@ -124,8 +134,8 @@ export default function SubscriptionCheckout() {
         })
       )
 
-      // 토스페이먼츠 빌링키 발급 페이지로 이동
-      navigate(`/subscription/payment?service_id=${service.id}`)
+      // 토스페이먼츠 빌링키 발급 페이지로 이동 (plan_id 포함)
+      navigate(`/subscription/payment?service_id=${service.id}&plan_id=${planInfo.plan_id}`)
     } catch (error) {
       console.error('구독 시작 실패:', error)
       alert('구독 시작에 실패했습니다. 다시 시도해주세요.')
@@ -185,7 +195,7 @@ export default function SubscriptionCheckout() {
                     <CardTitle>정기결제 서비스</CardTitle>
                   </div>
                   <CardDescription>
-                    14일 무료 체험 후 월 ₩{service?.price.toLocaleString()}이 자동으로 결제됩니다
+                    14일 무료 체험 후 {planInfo?.billing_cycle === 'monthly' ? '월' : planInfo?.billing_cycle === 'quarterly' ? '분기' : '연'} ₩{planInfo?.price?.toLocaleString()}이 자동으로 결제됩니다
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3">
@@ -195,7 +205,7 @@ export default function SubscriptionCheckout() {
                   </div>
                   <div className="flex items-center gap-2 text-sm">
                     <Check className="h-4 w-4 text-green-500" />
-                    <span>월 단위 자동 결제</span>
+                    <span>{planInfo?.billing_cycle === 'monthly' ? '월' : planInfo?.billing_cycle === 'quarterly' ? '분기' : '연'} 단위 자동 결제</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm">
                     <Check className="h-4 w-4 text-green-500" />
@@ -480,6 +490,12 @@ export default function SubscriptionCheckout() {
                   {/* 서비스 정보 */}
                   <div className="space-y-2">
                     <div className="font-semibold">{service?.title}</div>
+                    <div className="text-sm text-muted-foreground">
+                      {planInfo?.plan_name}
+                      {planInfo?.is_popular && (
+                        <Badge variant="default" className="ml-2">인기</Badge>
+                      )}
+                    </div>
                     {service?.category && (
                       <Badge variant="secondary">{service.category.name}</Badge>
                     )}
@@ -491,15 +507,15 @@ export default function SubscriptionCheckout() {
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">무료 체험</span>
-                      <span className="line-through">₩{service?.price.toLocaleString()}</span>
+                      <span className="line-through">₩{planInfo?.price?.toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">체험 기간</span>
                       <span>14일</span>
                     </div>
                     <div className="flex justify-between font-bold text-lg pt-2 border-t">
-                      <span>이후 월 구독</span>
-                      <span className="text-primary">₩{service?.price.toLocaleString()}/월</span>
+                      <span>이후 {planInfo?.billing_cycle === 'monthly' ? '월' : planInfo?.billing_cycle === 'quarterly' ? '분기' : '연'} 구독</span>
+                      <span className="text-primary">₩{planInfo?.price?.toLocaleString()}/{planInfo?.billing_cycle === 'monthly' ? '월' : planInfo?.billing_cycle === 'quarterly' ? '분기' : '년'}</span>
                     </div>
                   </div>
 

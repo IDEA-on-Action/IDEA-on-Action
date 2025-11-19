@@ -78,30 +78,24 @@ export default function ServiceDetail() {
   const handleSelectPlan = (plan: SubscriptionPlan) => {
     if (!service) return
 
-    addServiceItem({
-      type: 'plan',
-      service_id: service.id,
-      service_title: service.title,
-      item_id: plan.id,
-      item_name: plan.plan_name,
-      price: plan.price,
-      quantity: 1,
-      billing_cycle: plan.billing_cycle,
-    })
+    // 정기결제 플랜은 즉시 체크아웃으로 이동 (장바구니 사용 안 함)
+    // 플랜 정보를 sessionStorage에 저장
+    sessionStorage.setItem(
+      'subscription_plan_info',
+      JSON.stringify({
+        service_id: service.id,
+        service_title: service.title,
+        plan_id: plan.id,
+        plan_name: plan.plan_name,
+        price: plan.price,
+        billing_cycle: plan.billing_cycle,
+        features: plan.features,
+        is_popular: plan.is_popular,
+      })
+    )
 
-    const billingCycleKorean = {
-      monthly: '월간',
-      quarterly: '분기',
-      yearly: '연간',
-    }
-
-    toast.success(`${plan.plan_name}을 장바구니에 추가했습니다`, {
-      description: `${service.title} - ${billingCycleKorean[plan.billing_cycle]} ${new Intl.NumberFormat('ko-KR', { style: 'currency', currency: 'KRW' }).format(plan.price)}`,
-      action: {
-        label: '장바구니 보기',
-        onClick: () => openCart(),
-      },
-    })
+    // 체크아웃 페이지로 이동
+    navigate(`/subscription/checkout?service_id=${service.id}&plan_id=${plan.id}`)
   }
 
   // Loading State

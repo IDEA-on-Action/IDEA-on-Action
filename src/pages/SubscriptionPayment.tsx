@@ -64,7 +64,7 @@ export default function SubscriptionPayment() {
 
   // 구독 시작 (빌링키 발급)
   const handleSubscribe = async () => {
-    if (!paymentWidgetRef.current || !service) return
+    if (!paymentWidgetRef.current || !service || !user) return
 
     try {
       // sessionStorage에서 고객 정보 가져오기
@@ -75,13 +75,12 @@ export default function SubscriptionPayment() {
       const customerEmail = customerInfo?.customerEmail || user?.email || ''
       const customerName = customerInfo?.customerName || user?.user_metadata?.full_name || '구독자'
 
-      // 토스페이먼츠 빌링키 발급
-      // 실제 구현 시: requestBillingAuth() API 사용
-      await paymentWidgetRef.current.requestPayment({
-        orderId: `SUB_${Date.now()}`,
-        orderName: service.title,
-        successUrl: `${window.location.origin}/subscription/success`,
-        failUrl: `${window.location.origin}/subscription/fail`,
+      // 토스페이먼츠 빌링키 발급 (정기결제용)
+      // requestBillingAuth(): 카드 정보만 등록하고 빌링키 발급 (첫 결제 X)
+      await paymentWidgetRef.current.requestBillingAuth({
+        customerKey: user.id, // 사용자 고유 ID (Supabase UID)
+        successUrl: `${window.location.origin}/subscription/success?service_id=${service.id}`,
+        failUrl: `${window.location.origin}/subscription/fail?service_id=${service.id}`,
         customerEmail,
         customerName,
       })
