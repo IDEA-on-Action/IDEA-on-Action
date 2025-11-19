@@ -4,12 +4,29 @@
  * 환불정책 페이지
  */
 
+import { useEffect } from 'react'
 import { Helmet } from 'react-helmet-async'
 import { PageLayout } from '@/components/layouts/PageLayout'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { CheckCircle2 } from 'lucide-react'
 
 export default function RefundPolicy() {
+  // 페이지 로드 시 URL 해시로 스크롤
+  useEffect(() => {
+    const hash = window.location.hash
+    if (hash) {
+      // 해시 제거 (#digital-services -> digital-services)
+      const id = hash.substring(1)
+      const element = document.getElementById(id)
+      if (element) {
+        // 약간의 딜레이를 주어 DOM 렌더링 완료 후 스크롤
+        setTimeout(() => {
+          element.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        }, 100)
+      }
+    }
+  }, [])
+
   return (
     <>
       <Helmet>
