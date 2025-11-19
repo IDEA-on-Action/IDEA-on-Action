@@ -160,6 +160,114 @@ node scripts/check-color-contrast.cjs
 
 ---
 
+## 🧩 접근성 컴포넌트 (2025-11-19 추가)
+
+### SkipToContent
+**목적**: WCAG 2.1 Guideline 2.4.1 - Bypass Blocks
+
+"본문으로 바로가기" 링크를 제공하여 키보드 사용자가 반복적인 네비게이션을 건너뛸 수 있습니다.
+
+**특징**:
+- Tab 키 포커스 시에만 표시
+- 화면 상단 좌측에 절대 위치
+- `main` 태그로 포커스 이동 및 스크롤
+
+**사용 예시**:
+```tsx
+import { SkipToContent } from "@/components/a11y";
+
+// App.tsx
+<SkipToContent targetId="main-content" />
+
+// Index.tsx
+<main id="main-content" tabIndex={-1}>
+  {/* Main content */}
+</main>
+```
+
+**위치**: `src/components/a11y/SkipToContent.tsx`
+
+---
+
+### ScreenReaderOnly
+**목적**: WCAG 2.1 Guideline 1.3.1 - Info and Relationships
+
+시각적으로 숨기되, 스크린 리더에는 노출되는 컨텐츠를 제공합니다.
+
+**특징**:
+- Tailwind CSS의 `sr-only` 유틸리티 사용
+- 커스텀 HTML 태그 지원 (`as` prop)
+- 시각적 레이아웃에 영향 없음
+
+**사용 예시**:
+```tsx
+import { ScreenReaderOnly } from "@/components/a11y";
+
+// 아이콘 버튼에 레이블 추가
+<button>
+  <SearchIcon />
+  <ScreenReaderOnly>검색</ScreenReaderOnly>
+</button>
+
+// 폼 레이블 (시각적으로는 placeholder로 표시)
+<ScreenReaderOnly as="label" htmlFor="search-input">
+  검색어 입력
+</ScreenReaderOnly>
+<input id="search-input" placeholder="검색..." />
+```
+
+**위치**: `src/components/a11y/ScreenReaderOnly.tsx`
+
+---
+
+### KeyboardShortcuts
+**목적**: WCAG 2.1 Guideline 2.1.1 - Keyboard Accessible
+
+키보드 단축키 목록을 다이얼로그로 표시합니다.
+
+**특징**:
+- `?` 키로 도움말 다이얼로그 열기
+- `Esc` 키로 닫기
+- 카테고리별 단축키 그룹핑 (Navigation, Search, General)
+- 접근 가능한 다이얼로그 (Radix UI Dialog)
+
+**단축키 목록**:
+- `⌘ K`: 검색 열기
+- `Esc`: 다이얼로그/메뉴 닫기
+- `Tab`: 다음 포커스
+- `Shift Tab`: 이전 포커스
+- `Enter`: 선택/실행
+- `Space`: 체크박스/버튼 토글
+- `?`: 키보드 단축키 도움말 열기
+
+**사용 예시**:
+```tsx
+import { KeyboardShortcuts } from "@/components/a11y";
+
+// App.tsx
+<KeyboardShortcuts />
+```
+
+**위치**: `src/components/a11y/KeyboardShortcuts.tsx`
+
+---
+
+### Kbd (UI Component)
+키보드 키를 시각적으로 표시하는 컴포넌트입니다.
+
+**사용 예시**:
+```tsx
+import { Kbd } from "@/components/ui/kbd";
+
+<div>
+  Press <Kbd>⌘</Kbd> <Kbd>K</Kbd> to search
+</div>
+```
+
+**위치**: `src/components/ui/kbd.tsx`
+
+---
+
 ## 📋 접근성 체크리스트
 
 ### 색상 대비
@@ -186,6 +294,20 @@ node scripts/check-color-contrast.cjs
 - [x] alt 속성 (이미지)
 - [x] 시맨틱 HTML (header, main, footer, nav)
 
+### 키보드 접근성 (2025-11-19 추가)
+- [x] Skip to content 링크 (Tab 키로 접근)
+- [x] 키보드 단축키 도움말 (? 키)
+- [x] 모든 페이지에 `id="main-content"` 추가
+- [x] `tabIndex={-1}` 로 프로그래밍 방식 포커스 지원
+
+### WCAG AAA 추가 요구사항
+- [x] 대비율 ≥ 7:1 (일반 텍스트) - 대부분 컴포넌트 달성
+- [x] 대비율 ≥ 4.5:1 (큰 텍스트) - 모든 컴포넌트 달성
+- [x] Bypass blocks (Skip to content)
+- [x] Keyboard shortcuts documentation
+- [ ] Focus order follows DOM order (검증 필요)
+- [ ] Focus visible on all interactive elements (일부 검증 필요)
+
 ---
 
 ## 🎓 추가 자료
@@ -208,7 +330,16 @@ node scripts/check-color-contrast.cjs
 
 ## 📝 변경 이력
 
-### 2025-11-19
+### 2025-11-19 (오후) - 접근성 컴포넌트 추가
+- ✅ SkipToContent 컴포넌트 생성 (WCAG 2.1 - Bypass Blocks)
+- ✅ ScreenReaderOnly 컴포넌트 생성 (WCAG 2.1 - Info and Relationships)
+- ✅ KeyboardShortcuts 컴포넌트 생성 (WCAG 2.1 - Keyboard Accessible)
+- ✅ Kbd UI 컴포넌트 생성 (키보드 키 표시)
+- ✅ App.tsx에 접근성 컴포넌트 통합
+- ✅ Index.tsx `main` 태그에 `id="main-content"` 추가
+- ✅ 접근성 문서 업데이트 (컴포넌트 설명, WCAG AAA 체크리스트)
+
+### 2025-11-19 (오전) - 색상 대비 개선
 - ✅ Primary 색상 명도 조정 (60% → 52%)
 - ✅ Dark mode accent foreground 수정
 - ✅ Outline 버튼 가시성 개선 (border 2px, primary/60)

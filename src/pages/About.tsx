@@ -1,11 +1,17 @@
 import { Helmet } from "react-helmet-async";
-import { Target, Eye, Heart, Users, Calendar, Briefcase } from "lucide-react";
+import { Target, Eye, Heart, Users, Calendar, Briefcase, Mail, Github } from "lucide-react";
 import { Card } from "@/components/ui/card";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { PageLayout, HeroSection, Section } from "@/components/layouts";
 import { NextStepsCTA } from "@/components/common/NextStepsCTA";
+import { TeamMemberHoverCard } from "@/components/team/TeamMemberHoverCard";
+import { useActiveTeamMembers } from "@/hooks/useTeamMembers";
 import { generatePersonSchema, injectJsonLd } from "@/lib/json-ld";
 
 const About = () => {
+  // Fetch active team members from database
+  const { data: teamMembers = [], isLoading: isLoadingTeam } = useActiveTeamMembers();
+
   const mission = {
     icon: Target,
     title: "Mission",
@@ -43,14 +49,14 @@ const About = () => {
     }
   ];
 
-  const team = {
-    founder: {
-      name: "서민원",
-      role: "Founder & Community Lead",
-      bio: "생각과 행동 사이의 간극을 줄이는 것이 목표입니다. 스타트업 창업자이자 풀스택 개발자로, 아이디어를 직접 구현하는 것을 즐기며, 함께 성장하는 커뮤니티를 만들어갑니다.",
-      email: "sinclair.seo@ideaonaction.ai",
-      github: "https://github.com/IDEA-on-Action"
-    }
+  // Helper to get initials from name
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map((part) => part[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
   };
 
   return (
@@ -157,37 +163,95 @@ const About = () => {
               <p className="text-lg text-muted-foreground">커뮤니티를 이끌어가는 사람들</p>
             </div>
 
-            <Card className="glass-card p-8 max-w-2xl mx-auto">
-              <div className="text-center space-y-4">
-                <div className="w-24 h-24 rounded-full bg-gradient-to-br from-primary to-secondary mx-auto flex items-center justify-center text-3xl font-bold text-white">
-                  서
-                </div>
-                <div>
-                  <h3 className="text-2xl font-bold">{team.founder.name}</h3>
-                  <p className="text-muted-foreground">{team.founder.role}</p>
-                </div>
-                <p className="text-foreground/80 leading-relaxed">
-                  {team.founder.bio}
-                </p>
-                <div className="flex items-center justify-center gap-4 pt-4">
-                  <a
-                    href={`mailto:${team.founder.email}`}
-                    className="text-sm text-primary hover:underline"
-                  >
-                    {team.founder.email}
-                  </a>
-                  <span className="text-muted-foreground">•</span>
-                  <a
-                    href={team.founder.github}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-sm text-primary hover:underline"
-                  >
-                    GitHub
-                  </a>
-                </div>
+            {isLoadingTeam ? (
+              <div className="text-center py-12">
+                <p className="text-muted-foreground">Loading team members...</p>
               </div>
-            </Card>
+            ) : teamMembers.length === 0 ? (
+              <div className="text-center py-12">
+                <p className="text-muted-foreground">No team members found.</p>
+              </div>
+            ) : (
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {teamMembers.map((member, index) => (
+                  <Card
+                    key={member.id}
+                    className="glass-card p-6 space-y-4 hover-lift"
+                    style={{ animationDelay: `${index * 0.1}s` }}
+                  >
+                    <div className="flex flex-col items-center text-center space-y-4">
+                      {/* Avatar */}
+                      <Avatar className="h-24 w-24">
+                        <AvatarImage src={member.avatar || undefined} alt={member.name} />
+                        <AvatarFallback className="bg-gradient-to-br from-primary to-secondary text-white text-2xl font-bold">
+                          {getInitials(member.name)}
+                        </AvatarFallback>
+                      </Avatar>
+
+                      {/* Name with HoverCard */}
+                      <div>
+                        <TeamMemberHoverCard member={member}>
+                          <h3 className="text-xl font-bold hover:underline cursor-help">
+                            {member.name}
+                          </h3>
+                        </TeamMemberHoverCard>
+                        <p className="text-sm text-muted-foreground mt-1">{member.role}</p>
+                      </div>
+
+                      {/* Bio (truncated) */}
+                      {member.bio && (
+                        <p className="text-sm text-foreground/70 line-clamp-3 leading-relaxed">
+                          {member.bio}
+                        </p>
+                      )}
+
+                      {/* Skills (first 3) */}
+                      {member.skills && member.skills.length > 0 && (
+                        <div className="flex flex-wrap gap-2 justify-center">
+                          {member.skills.slice(0, 3).map((skill, skillIndex) => (
+                            <span
+                              key={skillIndex}
+                              className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary"
+                            >
+                              {skill}
+                            </span>
+                          ))}
+                          {member.skills.length > 3 && (
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-muted text-muted-foreground">
+                              +{member.skills.length - 3}
+                            </span>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Contact Links */}
+                      <div className="flex items-center gap-3 pt-2">
+                        {member.email && (
+                          <a
+                            href={`mailto:${member.email}`}
+                            className="text-muted-foreground hover:text-primary transition-colors"
+                            aria-label={`Email ${member.name}`}
+                          >
+                            <Mail className="h-4 w-4" />
+                          </a>
+                        )}
+                        {member.socialLinks?.github && (
+                          <a
+                            href={member.socialLinks.github}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-muted-foreground hover:text-primary transition-colors"
+                            aria-label={`${member.name}'s GitHub`}
+                          >
+                            <Github className="h-4 w-4" />
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            )}
         </Section>
 
         <NextStepsCTA

@@ -11,6 +11,8 @@ import { AdminRoute } from "./components/auth/AdminRoute";
 import { CartDrawer } from "./components/cart";
 import { PWAInstallPrompt } from "./components/PWAInstallPrompt";
 import { PWAUpdatePrompt } from "./components/PWAUpdatePrompt";
+import { SkipToContent, KeyboardShortcuts } from "./components/a11y";
+import { CommandPalette } from "./components/CommandPalette";
 
 // Lazy load ChatWidget (contains react-markdown dependency)
 const ChatWidget = lazy(() => import("./components/chat").then(module => ({ default: module.ChatWidget })));
@@ -166,8 +168,15 @@ const App = () => (
             v7_relativeSplatPath: true,
           }}
         >
+          {/* Accessibility: Skip to main content link (WCAG 2.1 - Bypass Blocks) */}
+          <SkipToContent targetId="main-content" />
+
+          {/* Accessibility: Keyboard shortcuts help (WCAG 2.1 - Keyboard Accessible) */}
+          <KeyboardShortcuts />
+
           <AnalyticsTracker />
           <CartDrawer />
+          <CommandPalette />
           <Suspense fallback={null}>
             <ChatWidget />
           </Suspense>

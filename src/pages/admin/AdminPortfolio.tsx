@@ -69,6 +69,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import type { PortfolioItem } from '@/types/cms.types'
+import { FormSection } from '@/components/admin/FormSection'
 
 // Zod Schema for Portfolio Form
 const portfolioSchema = z.object({
@@ -548,149 +549,344 @@ export default function AdminPortfolio() {
           </DialogHeader>
 
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
-              {/* Slug & Title */}
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="slug"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Slug (필수)</FormLabel>
-                      <FormControl>
-                        <Input placeholder="project-name-2024" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="title"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>제목 (필수)</FormLabel>
-                      <FormControl>
-                        <Input placeholder="프로젝트 제목" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              {/* Summary */}
-              <FormField
-                control={form.control}
-                name="summary"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>요약 (필수)</FormLabel>
-                    <FormControl>
-                      <Textarea placeholder="프로젝트 요약" className="min-h-[60px]" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              {/* Description */}
-              <FormField
-                control={form.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>상세 설명</FormLabel>
-                    <FormControl>
-                      <Textarea placeholder="프로젝트 상세 설명" className="min-h-[100px]" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              {/* Client Name & Logo */}
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="client_name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>클라이언트명</FormLabel>
-                      <FormControl>
-                        <Input placeholder="ABC Corp" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="client_logo"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>클라이언트 로고 URL</FormLabel>
-                      <FormControl>
-                        <Input placeholder="https://..." {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              {/* Project Type & Thumbnail */}
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="project_type"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>프로젝트 타입 (필수)</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
+            <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+              {/* Section 1: Basic Information */}
+              <FormSection
+                title="기본 정보"
+                description="프로젝트명, 요약, 클라이언트 정보를 입력하세요"
+                defaultOpen
+              >
+                {/* Slug & Title */}
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="slug"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Slug (필수)</FormLabel>
                         <FormControl>
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
+                          <Input placeholder="project-name-2024" {...field} />
                         </FormControl>
-                        <SelectContent>
-                          <SelectItem value="mvp">MVP</SelectItem>
-                          <SelectItem value="fullstack">Fullstack</SelectItem>
-                          <SelectItem value="design">Design</SelectItem>
-                          <SelectItem value="operations">Operations</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="title"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>제목 (필수)</FormLabel>
+                        <FormControl>
+                          <Input placeholder="프로젝트 제목" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                {/* Summary */}
                 <FormField
                   control={form.control}
-                  name="thumbnail"
+                  name="summary"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>썸네일 URL</FormLabel>
+                      <FormLabel>요약 (필수)</FormLabel>
                       <FormControl>
-                        <Input placeholder="https://..." {...field} />
+                        <Textarea placeholder="프로젝트 요약" className="min-h-[60px]" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-              </div>
 
-              {/* Images & Tech Stack (JSON Arrays) */}
-              <div className="grid grid-cols-2 gap-4">
+                {/* Description */}
                 <FormField
                   control={form.control}
-                  name="images"
+                  name="description"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>이미지 URL (JSON 배열)</FormLabel>
+                      <FormLabel>상세 설명</FormLabel>
+                      <FormControl>
+                        <Textarea placeholder="프로젝트 상세 설명" className="min-h-[100px]" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {/* Client Name & Logo */}
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="client_name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>클라이언트명</FormLabel>
+                        <FormControl>
+                          <Input placeholder="ABC Corp" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="client_logo"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>클라이언트 로고 URL</FormLabel>
+                        <FormControl>
+                          <Input placeholder="https://..." {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                {/* Project Type & Thumbnail */}
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="project_type"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>프로젝트 타입 (필수)</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="mvp">MVP</SelectItem>
+                            <SelectItem value="fullstack">Fullstack</SelectItem>
+                            <SelectItem value="design">Design</SelectItem>
+                            <SelectItem value="operations">Operations</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="thumbnail"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>썸네일 URL</FormLabel>
+                        <FormControl>
+                          <Input placeholder="https://..." {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </FormSection>
+
+              {/* Section 2: Project Details */}
+              <FormSection
+                title="프로젝트 상세"
+                description="이미지, 기술 스택, URL, 기간 및 팀 정보를 입력하세요"
+                defaultOpen={false}
+              >
+                {/* Images & Tech Stack (JSON Arrays) */}
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="images"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>이미지 URL (JSON 배열)</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            placeholder='["https://...", "https://..."]'
+                            className="min-h-[80px] font-mono text-sm"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="tech_stack"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>기술 스택 (JSON 배열)</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            placeholder='["React", "TypeScript", "Supabase"]'
+                            className="min-h-[80px] font-mono text-sm"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                {/* Project URL & GitHub URL */}
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="project_url"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>프로젝트 URL</FormLabel>
+                        <FormControl>
+                          <Input placeholder="https://..." {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="github_url"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>GitHub URL</FormLabel>
+                        <FormControl>
+                          <Input placeholder="https://github.com/..." {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                {/* Duration & Team Size */}
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="duration"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>기간</FormLabel>
+                        <FormControl>
+                          <Input placeholder="3개월" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="team_size"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>팀 크기</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            placeholder="3"
+                            {...field}
+                            onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                {/* Start Date & End Date */}
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="start_date"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>시작일</FormLabel>
+                        <FormControl>
+                          <Input type="date" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="end_date"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>종료일</FormLabel>
+                        <FormControl>
+                          <Input type="date" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </FormSection>
+
+              {/* Section 3: Challenges & Outcomes */}
+              <FormSection
+                title="도전과제 및 성과"
+                description="프로젝트의 문제점, 해결책, 결과 및 추천사를 입력하세요"
+                defaultOpen={false}
+              >
+                {/* Challenges, Solutions, Outcomes */}
+                <FormField
+                  control={form.control}
+                  name="challenges"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>도전 과제</FormLabel>
+                      <FormControl>
+                        <Textarea placeholder="프로젝트의 주요 도전 과제" className="min-h-[80px]" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="solutions"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>해결 방법</FormLabel>
+                      <FormControl>
+                        <Textarea placeholder="도전 과제에 대한 해결 방법" className="min-h-[80px]" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="outcomes"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>성과</FormLabel>
+                      <FormControl>
+                        <Textarea placeholder="프로젝트 성과" className="min-h-[80px]" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {/* Testimonial (JSON) */}
+                <FormField
+                  control={form.control}
+                  name="testimonial"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>추천사 (JSON 객체)</FormLabel>
                       <FormControl>
                         <Textarea
-                          placeholder='["https://...", "https://..."]'
-                          className="min-h-[80px] font-mono text-sm"
+                          placeholder='{"author": "홍길동", "role": "CEO", "company": "ABC Corp", "content": "훌륭한 프로젝트였습니다.", "avatar": "https://..."}'
+                          className="min-h-[100px] font-mono text-sm"
                           {...field}
                         />
                       </FormControl>
@@ -698,219 +894,52 @@ export default function AdminPortfolio() {
                     </FormItem>
                   )}
                 />
-                <FormField
-                  control={form.control}
-                  name="tech_stack"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>기술 스택 (JSON 배열)</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          placeholder='["React", "TypeScript", "Supabase"]'
-                          className="min-h-[80px] font-mono text-sm"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
+              </FormSection>
 
-              {/* Project URL & GitHub URL */}
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="project_url"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>프로젝트 URL</FormLabel>
-                      <FormControl>
-                        <Input placeholder="https://..." {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="github_url"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>GitHub URL</FormLabel>
-                      <FormControl>
-                        <Input placeholder="https://github.com/..." {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              {/* Duration & Team Size */}
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="duration"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>기간</FormLabel>
-                      <FormControl>
-                        <Input placeholder="3개월" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="team_size"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>팀 크기</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          placeholder="3"
-                          {...field}
-                          onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              {/* Start Date & End Date */}
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="start_date"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>시작일</FormLabel>
-                      <FormControl>
-                        <Input type="date" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="end_date"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>종료일</FormLabel>
-                      <FormControl>
-                        <Input type="date" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              {/* Challenges, Solutions, Outcomes */}
-              <FormField
-                control={form.control}
-                name="challenges"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>도전 과제</FormLabel>
-                    <FormControl>
-                      <Textarea placeholder="프로젝트의 주요 도전 과제" className="min-h-[80px]" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="solutions"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>해결 방법</FormLabel>
-                    <FormControl>
-                      <Textarea placeholder="도전 과제에 대한 해결 방법" className="min-h-[80px]" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="outcomes"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>성과</FormLabel>
-                    <FormControl>
-                      <Textarea placeholder="프로젝트 성과" className="min-h-[80px]" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              {/* Testimonial (JSON) */}
-              <FormField
-                control={form.control}
-                name="testimonial"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>추천사 (JSON 객체)</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        placeholder='{"author": "홍길동", "role": "CEO", "company": "ABC Corp", "content": "훌륭한 프로젝트였습니다.", "avatar": "https://..."}'
-                        className="min-h-[100px] font-mono text-sm"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              {/* Featured & Published */}
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="featured"
-                  render={({ field }) => (
-                    <FormItem className="flex items-center justify-between rounded-lg border p-4">
-                      <div className="space-y-0.5">
-                        <FormLabel>Featured 여부</FormLabel>
-                        <div className="text-sm text-muted-foreground">
-                          Featured 시 상단에 표시됩니다
+              {/* Section 4: Publication Settings */}
+              <FormSection
+                title="공개 설정"
+                description="Featured 및 공개 여부를 설정하세요"
+                defaultOpen
+              >
+                {/* Featured & Published */}
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="featured"
+                    render={({ field }) => (
+                      <FormItem className="flex items-center justify-between rounded-lg border p-4">
+                        <div className="space-y-0.5">
+                          <FormLabel>Featured 여부</FormLabel>
+                          <div className="text-sm text-muted-foreground">
+                            Featured 시 상단에 표시됩니다
+                          </div>
                         </div>
-                      </div>
-                      <FormControl>
-                        <Switch checked={field.value} onCheckedChange={field.onChange} />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="published"
-                  render={({ field }) => (
-                    <FormItem className="flex items-center justify-between rounded-lg border p-4">
-                      <div className="space-y-0.5">
-                        <FormLabel>공개 여부</FormLabel>
-                        <div className="text-sm text-muted-foreground">
-                          공개 시 사용자에게 표시됩니다
+                        <FormControl>
+                          <Switch checked={field.value} onCheckedChange={field.onChange} />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="published"
+                    render={({ field }) => (
+                      <FormItem className="flex items-center justify-between rounded-lg border p-4">
+                        <div className="space-y-0.5">
+                          <FormLabel>공개 여부</FormLabel>
+                          <div className="text-sm text-muted-foreground">
+                            공개 시 사용자에게 표시됩니다
+                          </div>
                         </div>
-                      </div>
-                      <FormControl>
-                        <Switch checked={field.value} onCheckedChange={field.onChange} />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-              </div>
+                        <FormControl>
+                          <Switch checked={field.value} onCheckedChange={field.onChange} />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </FormSection>
 
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>

@@ -116,7 +116,7 @@ const Index = () => {
         </script>
       </Helmet>
       <Header />
-      <main>
+      <main id="main-content" tabIndex={-1}>
         <Hero />
 
         {/* Now Highlight - 최근 활동 */}
