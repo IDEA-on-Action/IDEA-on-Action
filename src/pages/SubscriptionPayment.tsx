@@ -55,6 +55,7 @@ export default function SubscriptionPayment() {
         setIsLoading(false)
       } catch (error) {
         console.error('Payment Widget 초기화 실패:', error)
+        alert('토스페이먼츠 위젯 로드 실패. 프로덕션 환경에서 다시 시도해주세요.')
         setIsLoading(false)
       }
     }
@@ -64,7 +65,10 @@ export default function SubscriptionPayment() {
 
   // 구독 시작 (빌링키 발급)
   const handleSubscribe = async () => {
-    if (!paymentWidgetRef.current || !service || !user) return
+    if (!paymentWidgetRef.current || !service || !user) {
+      alert('결제 위젯이 초기화되지 않았습니다. 페이지를 새로고침하거나 프로덕션 환경에서 시도해주세요.')
+      return
+    }
 
     try {
       // sessionStorage에서 고객 정보 가져오기
@@ -86,7 +90,7 @@ export default function SubscriptionPayment() {
       })
     } catch (error) {
       console.error('구독 시작 실패:', error)
-      alert('구독 시작에 실패했습니다. 다시 시도해주세요.')
+      alert('구독 시작에 실패했습니다. 프로덕션 환경에서 다시 시도해주세요.')
     }
   }
 
