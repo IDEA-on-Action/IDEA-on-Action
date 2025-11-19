@@ -9,6 +9,69 @@
 **개발 방법론**: SDD (Spec-Driven Development)
 
 **최신 업데이트**:
+- 2025-11-19: **🚀 COMPASS Navigator 정기구독 플랜 추가 완료** ✅ - 토스페이먼츠 심사 준비 완료
+  - **배경**: 토스페이먼츠 가맹점 심사를 위한 COMPASS Navigator 서비스 정기구독 플랜 구축
+  - **작업 시간**: ~2시간 (DB 확인, UI 테스트, 버그 수정 2건, 프로덕션 배포)
+  - **완료 태스크**: 전체 9개 (DB 마이그레이션, UI 검증, 장바구니 통합, 라우팅 수정)
+
+  - **TASK-1: DB 상태 확인** (5분)
+    - 로컬 DB: 플랜 3개 존재 (베이직 ₩50K, 프로 ₩150K ⭐, 엔터프라이즈 ₩500K)
+    - 프로덕션 DB: 플랜 3개 이미 존재 (마이그레이션 Skip)
+    - 서비스 slug: `compass-navigator` 확인
+
+  - **TASK-2: ServiceDetail 페이지 렌더링 검증** (3분)
+    - PackageSelector → "정기 구독" 탭에 3개 플랜 표시
+    - PricingCard → is_popular 플래그로 ⭐ 인기 배지 렌더링
+    - 프로 플랜: border-2 border-primary 스타일 (두꺼운 테두리)
+
+  - **TASK-3: 장바구니 통합 테스트** (2분)
+    - cartStore.addServiceItem() → serviceItems 배열에 플랜 추가
+    - CartDrawer → "서비스 패키지/플랜" 섹션 표시
+    - ServiceCartItem → billing_cycle 배지 ("월간") 렌더링
+    - Toast 알림: "프로을 장바구니에 추가했습니다" + "장바구니 보기" 액션
+
+  - **BUG-1: CartButton 배지 미표시** (5분)
+    - **문제**: 장바구니에 서비스 플랜 추가 후 Header 배지에 개수 표시 안 됨
+    - **원인**: CartButton이 cart.items만 카운트 (serviceItems 누락)
+    - **해결**: CartButton.tsx 수정
+      - Before: `const itemCount = cart?.items?.length || 0`
+      - After: `const itemCount = regularItemCount + serviceItemCount`
+    - **결과**: ✅ 배지에 "1" 정상 표시
+    - **커밋**: 4cac823 (이미 원격 푸시됨)
+
+  - **BUG-2: ServiceCard 라우팅 UUID 사용** (10분)
+    - **문제**: /services에서 COMPASS Navigator 클릭 시 UUID URL로 이동
+      - Before: `/services/fed76f94-b3a0-4c88-9540-cf3f98ef354c`
+      - After: `/services/compass-navigator` (slug 기반)
+    - **원인**: ServiceCard.tsx가 `<Link to={/services/${id}}>` 사용
+    - **해결**: ServiceCard.tsx 36번째 줄 수정
+      - Before: `<Link to={/services/${id}}>`
+      - After: `<Link to={/services/${slug || id}}>`
+    - **결과**: ✅ 깔끔한 slug URL, UUID fallback 유지
+    - **커밋**: 2c4ea71 (프로덕션 배포 완료)
+
+  - **TASK-4: 프로덕션 배포** (3분)
+    - Git 커밋 & 푸시: 2c4ea71
+    - Vercel 자동 배포: 12:40:37 (success)
+    - 프로덕션 URL 확인: https://www.ideaonaction.ai/services/compass-navigator
+
+  - **결과**:
+    - ✅ COMPASS Navigator 서비스 페이지 프로덕션 배포 완료
+    - ✅ 3개 정기구독 플랜 정상 표시 (베이직, 프로 ⭐, 엔터프라이즈)
+    - ✅ 장바구니 통합 완료 (Toast, CartDrawer, CartButton 배지)
+    - ✅ slug 기반 라우팅 적용 (SEO 친화적 URL)
+    - ✅ 토스페이먼츠 심사 준비 완료
+
+  - **파일 변경**: 2개
+    - src/components/cart/CartButton.tsx - serviceItems 카운트 추가
+    - src/components/services/ServiceCard.tsx - slug 우선 사용
+
+  - **커밋**: 2개
+    - 4cac823: fix(button): CartButton serviceItems count
+    - 2c4ea71: fix(services): use slug instead of UUID in routing
+
+  - **프로덕션 URL**: https://www.ideaonaction.ai/services/compass-navigator
+
 - 2025-11-19: **🎉 Services Platform Day 2 완료** ✅ - UI 컴포넌트 전체 & ServiceDetail 페이지 통합
   - **배경**: 토스페이먼츠 심사용 서비스 페이지 UI 구현 완료
   - **병렬 작업**: 5개 에이전트 동시 실행 (TypeScript, Hooks, UI 컴포넌트 5개)
