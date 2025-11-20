@@ -34,6 +34,7 @@ import {
   ChevronLeft,
   ChevronRight,
   User as UserIcon,
+  Mail,
 } from 'lucide-react';
 import logoSymbol from '@/assets/logo-symbol.png';
 import { cn } from '@/lib/utils';
@@ -76,6 +77,7 @@ const MENU_SECTIONS: { title: string; items: AdminMenuItem[] }[] = [
     title: 'System',
     items: [
       { label: 'Media Library', path: '/admin/media', icon: Image },
+      { label: 'Newsletter', path: '/admin/newsletter', icon: Mail },
       { label: 'Activity Logs', path: '/admin/audit-logs', icon: History },
       { label: 'Settings', path: '/admin/settings', icon: Settings },
     ],

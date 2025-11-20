@@ -145,6 +145,7 @@ const AdminTeam = lazy(() => import("./pages/admin/AdminTeam"));
 const AdminBlogCategories = lazy(() => import("./pages/admin/AdminBlogCategories"));
 const AdminTags = lazy(() => import("./pages/admin/AdminTags"));
 const AdminUsers = lazy(() => import("./pages/admin/AdminUsers"));
+const AdminNewsletter = lazy(() => import("./pages/admin/AdminNewsletter"));
 const Analytics = lazy(() => import("./pages/admin/Analytics"));
 const Revenue = lazy(() => import("./pages/admin/Revenue"));
 const RealtimeDashboard = lazy(() => import("./pages/admin/RealtimeDashboard"));
@@ -278,6 +279,7 @@ const App = () => (
                   <Route path="tags" element={<AdminTags />} />
                   <Route path="team" element={<AdminTeam />} />
                   <Route path="users" element={<AdminUsers />} />
+                  <Route path="newsletter" element={<AdminNewsletter />} />
                   <Route path="analytics" element={<Analytics />} />
                   <Route path="revenue" element={<Revenue />} />
                   <Route path="realtime" element={<RealtimeDashboard />} />
