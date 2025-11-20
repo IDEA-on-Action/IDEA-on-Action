@@ -52,8 +52,26 @@
     - ✅ Build: SUCCESS (42.72s)
     - ✅ PWA precache: 26 entries (1,544.82 KiB)
 
-  - **커밋**: (진행 중)
-  - **다음 단계**: 로컬/프로덕션 DB에 마이그레이션 적용 및 검증
+  - **커밋**: 3개 (보안 수정, 검증 스크립트, 마이그레이션 가이드)
+    - 45a028e: security(newsletter): fix auth.users exposure and SECURITY DEFINER issues
+    - ad466a1: chore(scripts): add newsletter validation and migration scripts
+    - 55c8cb1: docs(security): add newsletter security migration guide
+
+  - **후속 작업 상태**:
+    - ✅ Git 커밋 완료 (3개)
+    - ✅ 검증 스크립트 추가 (2개)
+    - ✅ 마이그레이션 가이드 작성 (완벽한 단계별 안내)
+    - ⏸️ 로컬 DB 적용: Supabase CLI 이슈로 건너뜀
+    - ⏳ 프로덕션 DB 적용: 가이드 준비 완료, 사용자 실행 대기
+
+  - **다음 단계**:
+    1. **프로덕션 마이그레이션 적용** (5-10분, 선택적)
+       - Supabase Dashboard → SQL Editor에서 실행
+       - 가이드: `docs/guides/security/apply-newsletter-security-migration.md`
+    2. **CMS Phase 3 문서화** (1-2시간, 병렬 에이전트)
+       - Admin 가이드 6개, API 문서 7개, 배포 체크리스트
+    3. **Services Platform Day 2-3** (4-6시간)
+       - TypeScript 타입, React hooks, UI 컴포넌트 5개
 
 - 2025-11-21: **🎉 CMS Phase 2 완료** ✅ - 4개 Admin 페이지 병렬 구현 (2시간)
   - **배경**: CMS 관리자 페이지 완전 구현 - 병렬 에이전트 7개로 2시간 내 완료
