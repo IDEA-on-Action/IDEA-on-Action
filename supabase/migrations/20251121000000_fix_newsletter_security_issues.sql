@@ -70,6 +70,9 @@ WITH CHECK (user_id = auth.uid());
 -- STEP 4: Update subscribe_to_newsletter function
 -- ============================================
 -- Remove SECURITY DEFINER and add proper auth checks
+-- Drop existing function first (parameter signature changed: removed DEFAULT NULL)
+DROP FUNCTION IF EXISTS subscribe_to_newsletter(TEXT);
+
 CREATE OR REPLACE FUNCTION subscribe_to_newsletter(p_email TEXT)
 RETURNS BOOLEAN AS $$
 DECLARE
@@ -138,6 +141,9 @@ SECURITY INVOKER;  -- Use SECURITY INVOKER instead of SECURITY DEFINER
 -- ============================================
 -- STEP 5: Update unsubscribe_from_newsletter function
 -- ============================================
+-- Drop existing function first (security mode changed)
+DROP FUNCTION IF EXISTS unsubscribe_from_newsletter();
+
 CREATE OR REPLACE FUNCTION unsubscribe_from_newsletter()
 RETURNS BOOLEAN AS $$
 DECLARE
@@ -176,6 +182,9 @@ SECURITY INVOKER;  -- Use SECURITY INVOKER instead of SECURITY DEFINER
 -- STEP 6: Add admin function to get newsletter subscribers
 -- ============================================
 -- This function is for admin use only
+-- Drop existing function first if exists
+DROP FUNCTION IF EXISTS get_newsletter_subscribers();
+
 CREATE OR REPLACE FUNCTION get_newsletter_subscribers()
 RETURNS TABLE (
   id UUID,
