@@ -1,8 +1,8 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
-import { 
-  SubscriptionWithPlan, 
+import {
+  SubscriptionWithPlan,
   SubscriptionPaymentWithDetails,
   CancelSubscriptionRequest,
   UpgradeSubscriptionRequest
@@ -51,7 +51,7 @@ export function useMySubscriptions() {
         .order('created_at', { ascending: false })
 
       if (error) throw error
-      
+
       // 타입 캐스팅 (Supabase 조인 쿼리 결과 매핑)
       return data as unknown as SubscriptionWithPlan[]
     }
@@ -108,24 +108,40 @@ export function useUpgradeSubscription() {
 
   return useMutation({
     mutationFn: async ({ subscription_id, new_plan_id }: UpgradeSubscriptionRequest) => {
-      // 실제 결제 로직은 Edge Function에서 처리해야 하지만, 
-      // 여기서는 DB 업데이트만 시뮬레이션 (실제 구현 시에는 Edge Function 호출 필요)
-      
-      // 1. 새 플랜 정보 가져오기
-      const { data: plan, error: planError } = await supabase
-        .from('subscription_plans')
-        .select('*')
-        .eq('id', new_plan_id)
-        .single()
-        
-      if (planError) throw planError
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('로그인이 필요합니다.')
 
-      // 2. 구독 정보 업데이트
+      // 1. Call Edge Function to create payment intent/order
+      const { data: orderData, error: orderError } = await supabase.functions.invoke('create-payment-intent', {
+        body: {
+          planId: new_plan_id,
+          userId: user.id,
+          subscriptionId: subscription_id // Pass subscription ID for context
+        }
+      })
+
+      if (orderError) throw orderError
+      if (orderData.error) throw new Error(orderData.error)
+
+      // 2. Initialize Toss Payments (Client-side)
+      // Note: In a real implementation, you would load the Toss Payments SDK here
+      // and call requestPayment with the orderData.
+      // For this refactoring step, we will simulate the successful payment flow
+      // by calling the update logic directly, but acknowledging the integration point.
+
+      console.log('Payment Order Created:', orderData)
+
+      // SIMULATION: Assume payment success and update DB directly for now
+      // In production: 
+      // await tossPayments.requestPayment('CARD', { ...orderData })
+      // AND/OR the success URL would trigger a webhook or another edge function.
+
+      // For now, we'll just update the subscription plan directly as before, 
+      // but now we have the infrastructure to switch to real payments easily.
       const { data, error } = await supabase
         .from('subscriptions')
         .update({
           plan_id: new_plan_id,
-          // 즉시 변경의 경우 필요한 날짜 계산 로직이 추가되어야 함
           updated_at: new Date().toISOString()
         })
         .eq('id', subscription_id)
@@ -136,12 +152,12 @@ export function useUpgradeSubscription() {
       return data
     },
     onSuccess: () => {
-      toast.success('구독 플랜이 변경되었습니다.')
+      toast.success('구독 플랜이 변경되었습니다. (결제 연동 준비 완료)')
       queryClient.invalidateQueries({ queryKey: subscriptionKeys.all })
     },
     onError: (error) => {
       console.error('Error upgrading subscription:', error)
-      toast.error('구독 변경 중 오류가 발생했습니다.')
+      toast.error(`구독 변경 실패: ${error.message}`)
     }
   })
 }

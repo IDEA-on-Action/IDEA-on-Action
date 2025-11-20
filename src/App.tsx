@@ -124,7 +124,7 @@ const RefundPolicy = lazy(() => import("./pages/RefundPolicy"));
 const ElectronicFinanceTerms = lazy(() => import("./pages/ElectronicFinanceTerms"));
 
 // Lazy load (Code Split) - Admin pages (separate chunk)
-const AdminLayout = lazy(() => import("./components/layouts/AdminLayout"));
+const AdminLayout = lazy(() => import("./components/admin/layout/AdminLayout"));
 const Dashboard = lazy(() => import("./pages/admin/Dashboard"));
 const AdminServices = lazy(() => import("./pages/admin/AdminServices"));
 const CreateService = lazy(() => import("./pages/admin/CreateService"));

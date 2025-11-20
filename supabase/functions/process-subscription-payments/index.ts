@@ -1,5 +1,5 @@
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3'
+import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3'
 import { corsHeaders } from '../_shared/cors.ts'
 
 // Toss Payments API Configuration
@@ -26,13 +26,25 @@ interface Subscription {
   }
 }
 
-Deno.serve(async (req) => {
+Deno.serve(async (req: Request) => {
   // CORS handling
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
   try {
+    // Security Check: Verify CRON_SECRET
+    const cronSecret = Deno.env.get('CRON_SECRET')
+    const authHeader = req.headers.get('Authorization')
+
+    if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+      console.error('Unauthorized attempt to execute cron job')
+      return new Response('Unauthorized', {
+        status: 401,
+        headers: corsHeaders
+      })
+    }
+
     // Initialize Supabase Client (Service Role for Admin Access)
     const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? ''
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
@@ -91,9 +103,9 @@ Deno.serve(async (req) => {
           results.push({ id: sub.id, status: 'failed', error: paymentResult.error })
         }
 
-      } catch (err) {
+      } catch (err: any) {
         console.error(`Error processing subscription ${sub.id}:`, err)
-        results.push({ id: sub.id, status: 'error', error: err.message })
+        results.push({ id: sub.id, status: 'error', error: err.message || 'Unknown error' })
       }
     }
 
@@ -112,10 +124,10 @@ Deno.serve(async (req) => {
       }
     )
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error:', error)
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: error.message || 'Unknown error' }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500
@@ -157,13 +169,13 @@ async function processPayment(sub: Subscription, orderId: string) {
 
     return { success: true, data }
 
-  } catch (error) {
-    return { success: false, error: { message: error.message } }
+  } catch (error: any) {
+    return { success: false, error: { message: error.message || 'Unknown error' } }
   }
 }
 
 // Helper: Handle Payment Success
-async function handlePaymentSuccess(supabase: any, sub: Subscription, paymentData: any, orderId: string) {
+async function handlePaymentSuccess(supabase: SupabaseClient, sub: Subscription, paymentData: any, orderId: string) {
   // 1. Record Payment
   await supabase.from('subscription_payments').insert({
     subscription_id: sub.id,
@@ -188,7 +200,7 @@ async function handlePaymentSuccess(supabase: any, sub: Subscription, paymentDat
 }
 
 // Helper: Handle Payment Failure
-async function handlePaymentFailure(supabase: any, sub: Subscription, errorData: any, orderId: string) {
+async function handlePaymentFailure(supabase: SupabaseClient, sub: Subscription, errorData: any, orderId: string) {
   // 1. Record Failed Payment
   await supabase.from('subscription_payments').insert({
     subscription_id: sub.id,
@@ -207,7 +219,7 @@ async function handlePaymentFailure(supabase: any, sub: Subscription, errorData:
 }
 
 // Helper: Extend Free Subscription
-async function extendSubscription(supabase: any, sub: Subscription) {
+async function extendSubscription(supabase: SupabaseClient, sub: Subscription) {
   const nextDates = calculateNextDates(sub.plan.billing_cycle)
 
   await supabase.from('subscriptions').update({
@@ -220,7 +232,7 @@ async function extendSubscription(supabase: any, sub: Subscription) {
 }
 
 // Helper: Handle Expired/Cancelled Subscriptions
-async function handleExpiredSubscriptions(supabase: any, today: string) {
+async function handleExpiredSubscriptions(supabase: SupabaseClient, today: string) {
   // Find subscriptions that are cancelled_at_period_end AND period has passed
   const { data: expiredSubs, error } = await supabase
     .from('subscriptions')

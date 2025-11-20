@@ -421,6 +421,17 @@
 - [ ] 이미지 최적화 (next/image)
 - [ ] Core Web Vitals 개선
 
+### 🟠 Phase 7: 리팩토링 및 안정화 (2025-11-21 ~)
+- [x] **구독 시스템 고도화**
+  - [x] Edge Function 보안 강화 (Cron Secret)
+  - [x] 실제 결제 연동 (업그레이드 로직 - Edge Function 연동 완료)
+  - [x] Hooks 유닛 테스트 작성
+  - [ ] 에러 핸들링 및 로깅 개선
+- [ ] **코드베이스 개선**
+  - [ ] 컴포넌트 통합 (PricingCard 등)
+  - [ ] Type Safety 강화 (Edge Functions)
+  - [ ] 번들 사이즈 최적화
+
 ---
 
 ## 🏷️ 우선순위

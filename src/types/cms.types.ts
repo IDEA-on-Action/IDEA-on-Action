@@ -54,6 +54,22 @@ export type LabStatus = 'exploring' | 'developing' | 'testing' | 'completed' | '
 export type BlogPostStatus = 'draft' | 'published' | 'archived';
 
 // =====================================================
+// UI TYPES - Admin Layout
+// =====================================================
+
+/**
+ * Admin menu item for navigation
+ * Used in AdminSidebar component
+ */
+export interface AdminMenuItem {
+  label: string;
+  path: string;
+  icon: any; // LucideIcon type (imported from lucide-react)
+  badge?: number;
+  children?: AdminMenuItem[];
+}
+
+// =====================================================
 // INTERFACES - Database Tables
 // =====================================================
 
@@ -418,4 +434,294 @@ export interface TeamMemberFilter {
 export interface TagFilter {
   minUsageCount?: number;
   search?: string; // search in name
+}
+
+// =====================================================
+// ADDITIONAL TYPES - Phase 2
+// =====================================================
+
+/**
+ * Risk level for roadmap items
+ */
+export type RoadmapRiskLevel = 'low' | 'medium' | 'high';
+
+/**
+ * Portfolio status types
+ */
+export type PortfolioStatus = 'planning' | 'active' | 'completed' | 'on_hold';
+
+/**
+ * Lab difficulty levels
+ */
+export type LabDifficulty = 'beginner' | 'intermediate' | 'advanced';
+
+/**
+ * Tag category types
+ */
+export type TagCategory = 'general' | 'technical' | 'business';
+
+/**
+ * Activity log action types
+ */
+export type ActivityAction = 'create' | 'update' | 'delete' | 'publish' | 'unpublish';
+
+// =====================================================
+// JSONB FIELD TYPES
+// =====================================================
+
+/**
+ * Roadmap milestone structure (used in roadmap.milestones JSONB)
+ */
+export interface RoadmapMilestone {
+  id: string;
+  title: string;
+  description: string;
+  due_date: string; // ISO 8601
+  completed: boolean;
+}
+
+/**
+ * Roadmap KPI structure (used in roadmap.kpis JSONB)
+ */
+export interface RoadmapKPI {
+  metric: string;
+  target: number;
+  current: number;
+  unit: string;
+}
+
+/**
+ * Portfolio metrics structure (used in portfolio_items JSONB)
+ */
+export interface PortfolioMetrics {
+  users?: number;
+  time_saved?: string;
+  satisfaction?: number;
+  revenue?: number;
+  [key: string]: number | string | undefined;
+}
+
+/**
+ * Portfolio links structure (used in portfolio_items JSONB)
+ */
+export interface PortfolioLinks {
+  live_url?: string;
+  github_url?: string;
+  documentation_url?: string;
+  case_study_url?: string;
+}
+
+/**
+ * Portfolio timeline structure (used in portfolio_items JSONB)
+ */
+export interface PortfolioTimeline {
+  start_date: string; // YYYY-MM-DD
+  end_date?: string; // YYYY-MM-DD
+  duration_months?: number;
+}
+
+/**
+ * Lab applicant structure (used in lab_items JSONB)
+ */
+export interface LabApplicant {
+  user_id: string;
+  applied_at: string; // ISO 8601
+  status: 'pending' | 'accepted' | 'rejected';
+  message?: string;
+}
+
+// =====================================================
+// ADDITIONAL DATABASE TABLES
+// =====================================================
+
+/**
+ * Media library for uploaded files (CMS-009)
+ * Table: public.media_library
+ */
+export interface CMSMediaFile {
+  id: string; // UUID
+  fileName: string;
+  fileSize: number; // bytes
+  mimeType: string;
+  url: string;
+  thumbnailUrl?: string;
+  alt?: string;
+  caption?: string;
+  uploadedBy: string; // UUID (FK to auth.users)
+  tags: string[];
+  metadata?: Record<string, unknown>; // JSONB (dimensions, duration, etc.)
+  createdAt: string; // ISO 8601
+  updatedAt: string; // ISO 8601
+}
+
+/**
+ * Activity log for audit trail (CMS-010)
+ * Table: public.activity_logs
+ */
+export interface CMSActivityLog {
+  id: string; // UUID
+  userId: string; // UUID (FK to auth.users)
+  action: ActivityAction;
+  resourceType: string; // 'roadmap' | 'portfolio' | 'lab' | 'blog' | 'team' | 'tag'
+  resourceId: string; // UUID
+  resourceTitle?: string;
+  details?: Record<string, unknown>; // JSONB (old/new values, etc.)
+  ipAddress?: string;
+  userAgent?: string;
+  createdAt: string; // ISO 8601
+}
+
+// =====================================================
+// INSERT & UPDATE TYPES - Phase 2
+// =====================================================
+
+/**
+ * Media file insert type
+ */
+export type CMSMediaFileInsert = Omit<CMSMediaFile, 'id' | 'createdAt' | 'updatedAt'>;
+
+/**
+ * Media file update type
+ */
+export type CMSMediaFileUpdate = Partial<Omit<CMSMediaFile, 'id' | 'createdAt' | 'updatedAt'>>;
+
+/**
+ * Activity log insert type
+ */
+export type CMSActivityLogInsert = Omit<CMSActivityLog, 'id' | 'createdAt'>;
+
+// =====================================================
+// FILTER TYPES - Extended
+// =====================================================
+
+/**
+ * Base CMS filter options (common across all resources)
+ */
+export interface CMSFilters {
+  search?: string;
+  is_published?: boolean;
+  created_by?: string;
+  date_from?: string; // ISO 8601
+  date_to?: string; // ISO 8601
+}
+
+/**
+ * Extended portfolio filters
+ */
+export interface PortfolioFilters extends CMSFilters {
+  status?: PortfolioStatus;
+  is_featured?: boolean;
+  tags?: string[];
+  projectType?: PortfolioProjectType;
+}
+
+/**
+ * Extended lab filters
+ */
+export interface LabFilters extends CMSFilters {
+  status?: LabStatus;
+  difficulty?: LabDifficulty;
+  tags?: string[];
+  category?: LabCategory;
+}
+
+/**
+ * Media file filters
+ */
+export interface MediaFilters {
+  mime_type?: string;
+  uploaded_by?: string;
+  tags?: string[];
+}
+
+// =====================================================
+// FORM TYPES (React Hook Form)
+// =====================================================
+
+/**
+ * Roadmap form values for React Hook Form
+ */
+export interface RoadmapFormValues {
+  quarter: string;
+  theme: string;
+  goal: string;
+  progress: number;
+  milestones: RoadmapMilestone[];
+  kpis: RoadmapKPI[];
+  risk_level: RoadmapRiskLevel;
+  owner: string;
+  start_date: string; // YYYY-MM-DD
+  end_date: string; // YYYY-MM-DD
+  is_published: boolean;
+}
+
+/**
+ * Portfolio form values for React Hook Form
+ */
+export interface PortfolioFormValues {
+  slug: string;
+  title: string;
+  summary: string;
+  description?: string;
+  clientName?: string;
+  projectType: PortfolioProjectType;
+  thumbnail?: string;
+  images: string[];
+  techStack: string[];
+  projectUrl?: string;
+  githubUrl?: string;
+  duration?: string;
+  teamSize?: number;
+  startDate?: string; // YYYY-MM-DD
+  endDate?: string; // YYYY-MM-DD
+  challenges?: string;
+  solutions?: string;
+  outcomes?: string;
+  testimonial: PortfolioTestimonial;
+  featured: boolean;
+  published: boolean;
+}
+
+/**
+ * Lab form values for React Hook Form
+ */
+export interface LabFormValues {
+  slug: string;
+  title: string;
+  subtitle?: string;
+  description: string;
+  content?: string;
+  category: LabCategory;
+  status: LabStatus;
+  techStack: string[];
+  githubUrl?: string;
+  demoUrl?: string;
+  contributors: string[];
+  startDate?: string; // YYYY-MM-DD
+  tags: string[];
+  published: boolean;
+}
+
+// =====================================================
+// API RESPONSE TYPES
+// =====================================================
+
+/**
+ * Paginated API response wrapper
+ */
+export interface CMSPaginatedResponse<T> {
+  data: T[];
+  count: number;
+  page: number;
+  per_page: number;
+  total_pages: number;
+}
+
+/**
+ * Mutation API response wrapper
+ */
+export interface CMSMutationResponse {
+  success: boolean;
+  data?: unknown;
+  error?: string;
 }

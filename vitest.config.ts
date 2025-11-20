@@ -20,7 +20,7 @@ export default defineConfig({
     globals: true,
 
     /* 테스트 파일 설정 */
-    include: ['tests/unit/**/*.test.ts', 'tests/unit/**/*.test.tsx'],
+    include: ['tests/unit/**/*.test.ts', 'tests/unit/**/*.test.tsx', 'src/**/*.test.ts', 'src/**/*.test.tsx'],
     exclude: ['tests/e2e/**', 'node_modules/**', 'dist/**'],
     setupFiles: ['./tests/setupTests.ts'],
 
