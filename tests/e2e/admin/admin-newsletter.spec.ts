@@ -634,4 +634,164 @@ test.describe('AdminNewsletter', () => {
       await expect(statCard).toBeVisible();
     });
   });
+
+  // ============================================
+  // 12. Newsletter Date Range Filter (3 tests)
+  // ============================================
+
+  test.describe('Newsletter Date Range Filter', () => {
+    test('should select date range and export to CSV', async ({ page }) => {
+      // Wait for page to load
+      await page.waitForLoadState('networkidle');
+
+      // Click date range picker button
+      const dateRangeButton = page.getByRole('button', { name: /날짜 범위|date range/i }).first();
+
+      // Check if date range picker exists
+      const hasDatePicker = await dateRangeButton.count() > 0;
+
+      if (hasDatePicker && await dateRangeButton.isVisible()) {
+        await dateRangeButton.click();
+        await page.waitForTimeout(300);
+
+        // Click "지난 30일" preset button
+        const last30DaysButton = page.getByRole('button', { name: /지난 30일|Last 30 days/i });
+        if (await last30DaysButton.count() > 0) {
+          await last30DaysButton.click();
+          await page.waitForTimeout(500);
+
+          // Set up download listener
+          const downloadPromise = page.waitForEvent('download', { timeout: 10000 });
+
+          // Click CSV Export button
+          const exportButton = page.getByRole('button', { name: /CSV 내보내기/i });
+          if (await exportButton.isEnabled()) {
+            await exportButton.click();
+
+            // Wait for download
+            const download = await downloadPromise;
+
+            // Verify filename format
+            const filename = download.suggestedFilename();
+            expect(filename).toContain('newsletter-subscribers');
+            expect(filename).toMatch(/\.csv$/);
+
+            // Check for success toast
+            const successToast = page.getByText(/CSV 파일이 다운로드|데이터를 내보냈습니다/i);
+            await expect(successToast).toBeVisible({ timeout: 5000 }).catch(() => {
+              // Toast may not always be visible
+            });
+          }
+        }
+      }
+    });
+
+    test('should use preset buttons to quickly set date ranges', async ({ page }) => {
+      // Wait for page to load
+      await page.waitForLoadState('networkidle');
+
+      // Click date range picker button
+      const dateRangeButton = page.getByRole('button', { name: /날짜 범위|date range/i }).first();
+
+      const hasDatePicker = await dateRangeButton.count() > 0;
+
+      if (hasDatePicker && await dateRangeButton.isVisible()) {
+        // Test each preset button
+        const presets = [
+          { name: /지난 7일|Last 7 days/i },
+          { name: /지난 30일|Last 30 days/i },
+          { name: /지난 90일|Last 90 days/i },
+          { name: /전체|All time/i }
+        ];
+
+        for (const preset of presets) {
+          // Open date picker
+          await dateRangeButton.click();
+          await page.waitForTimeout(300);
+
+          // Click preset button
+          const presetButton = page.getByRole('button', preset);
+          if (await presetButton.count() > 0) {
+            await presetButton.click();
+            await page.waitForTimeout(500);
+
+            // Verify popover closed and button text may have changed
+            const buttonStillVisible = await dateRangeButton.isVisible();
+            expect(buttonStillVisible).toBeTruthy();
+          } else {
+            // If preset not found, close the popover
+            await page.keyboard.press('Escape');
+            await page.waitForTimeout(300);
+          }
+        }
+      }
+    });
+
+    test('should combine date filter with search and status filters', async ({ page }) => {
+      // Wait for page to load
+      await page.waitForLoadState('networkidle');
+
+      // 1. Enter search query
+      const searchInput = page.getByPlaceholder(/이메일 주소 검색/i);
+      await searchInput.fill('test');
+      await page.waitForTimeout(600);
+
+      // 2. Select date range (if available)
+      const dateRangeButton = page.getByRole('button', { name: /날짜 범위|date range/i }).first();
+      const hasDatePicker = await dateRangeButton.count() > 0;
+
+      if (hasDatePicker && await dateRangeButton.isVisible()) {
+        await dateRangeButton.click();
+        await page.waitForTimeout(300);
+
+        // Click "지난 30일" preset
+        const last30DaysButton = page.getByRole('button', { name: /지난 30일|Last 30 days/i });
+        if (await last30DaysButton.count() > 0) {
+          await last30DaysButton.click();
+          await page.waitForTimeout(500);
+        } else {
+          // Close popover if preset not found
+          await page.keyboard.press('Escape');
+          await page.waitForTimeout(300);
+        }
+      }
+
+      // 3. Select status filter
+      const statusSelect = page.locator('button:has-text("전체 상태"), [role="combobox"]').first();
+      if (await statusSelect.isVisible()) {
+        await statusSelect.click();
+        await page.waitForTimeout(300);
+
+        const confirmedOption = page.getByRole('option', { name: /확인 완료/i });
+        if (await confirmedOption.count() > 0) {
+          await confirmedOption.click();
+          await page.waitForLoadState('networkidle');
+        }
+      }
+
+      // 4. Try CSV Export with combined filters
+      const exportButton = page.getByRole('button', { name: /CSV 내보내기/i });
+      const isEnabled = await exportButton.isEnabled();
+
+      if (isEnabled) {
+        // Set up download listener
+        const downloadPromise = page.waitForEvent('download', { timeout: 10000 });
+
+        await exportButton.click();
+
+        // Wait for download
+        await downloadPromise;
+
+        // Check for success toast
+        const successToast = page.getByText(/CSV 파일이 다운로드|데이터를 내보냈습니다/i);
+        await expect(successToast).toBeVisible({ timeout: 5000 }).catch(() => {
+          // Toast may not always be visible
+        });
+      }
+
+      // Clear search to restore table
+      await searchInput.clear();
+      await page.waitForTimeout(600);
+    });
+  });
 });

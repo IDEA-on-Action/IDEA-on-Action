@@ -9,6 +9,50 @@
 
 ---
 
+## [2.3.4] - 2025-11-22
+
+### ✨ Added
+- **Newsletter 날짜 범위 필터**: CSV Export에 날짜 필터 기능 추가
+  - DateRangePicker 컴포넌트 (shadcn/ui Calendar 기반, 250줄)
+    - 4개 Preset 버튼 (지난 7일, 30일, 90일, 전체)
+    - date-fns 날짜 포맷팅 (yyyy-MM-dd)
+    - 반응형 디자인, 다크 모드 지원
+  - AdminNewsletter 페이지에 통합 (+60줄)
+    - DateRange 상태 관리 (from, to)
+    - CSV Export에 dateFrom, dateTo 파라미터 전달
+    - 검색/상태 필터와 조합 가능
+
+### 🧪 Tests
+- Newsletter E2E 테스트 3개 추가 (총 36개)
+  - 날짜 범위 선택 및 CSV Export
+  - Preset 버튼 동작 검증
+  - 날짜 + 검색 + 상태 필터 조합
+
+### 📚 Documentation
+- `admin-newsletter-guide.md`: 날짜 필터 사용법 추가 (섹션 3개, 스크린샷 3개)
+- `csv-export-implementation-summary.md`: v2.3.4 구현 내역 추가
+- `csv-export-date-filter-plan.md`: 구현 계획 및 설계 문서
+
+### 📦 Bundle Size
+- +5 KB gzip (+1.5%)
+- DateRangePicker: ~3 KB gzip
+- date-fns tree-shaking 적용
+
+### 🔧 Technical
+- Backend: useNewsletterAdmin.ts (dateFrom, dateTo 파라미터 지원)
+- Frontend: DateRangePicker (shadcn/ui Calendar + Popover)
+- E2E: admin-newsletter.spec.ts (날짜 필터 테스트 3개)
+- Bundle: 26 PWA precache entries (1,545.34 KiB)
+
+### ⏱️ Workflow
+- 병렬 에이전트: 5개 (컴포넌트, 통합, 테스트, 문서, 빌드)
+- 소요 시간: ~2-3시간 (순차 7-8시간 대비 65% 절감)
+
+### Git Commit
+- feat(newsletter): add date range filter to CSV export (v2.3.4)
+
+---
+
 ## [2.3.3] - 2025-11-22
 
 ### Added

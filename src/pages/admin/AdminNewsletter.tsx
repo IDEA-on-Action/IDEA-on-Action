@@ -31,6 +31,8 @@ import {
   NEWSLETTER_STATUS_LABELS,
   SUBSCRIPTION_SOURCE_LABELS,
 } from '@/types/newsletter.types';
+import type { DateRange } from 'react-day-picker';
+import { format } from 'date-fns';
 
 // UI Components
 import { Button } from '@/components/ui/button';
@@ -42,6 +44,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { DateRangePicker } from '@/components/ui/date-range-picker';
 import {
   Table,
   TableBody,
@@ -106,6 +109,7 @@ export default function AdminNewsletter() {
   const [statusFilter, setStatusFilter] = useState<NewsletterStatus | 'all'>('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
 
   const itemsPerPage = 50;
 
@@ -194,7 +198,16 @@ export default function AdminNewsletter() {
         {/* Export Button */}
         <Button
           variant="outline"
-          onClick={() => exportCSV.mutateAsync({ status: statusFilter, search: search || undefined })}
+          onClick={() => {
+            const dateFrom = dateRange?.from ? format(dateRange.from, 'yyyy-MM-dd') : undefined;
+            const dateTo = dateRange?.to ? format(dateRange.to, 'yyyy-MM-dd') : undefined;
+            exportCSV.mutateAsync({
+              status: statusFilter,
+              search: search || undefined,
+              dateFrom,
+              dateTo
+            });
+          }}
           disabled={exportCSV.isPending || subscribers.length === 0}
         >
           {exportCSV.isPending ? (
@@ -297,39 +310,70 @@ export default function AdminNewsletter() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-col sm:flex-row gap-4 mb-6">
-            {/* Search */}
-            <div className="relative flex-1">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="이메일 주소 검색..."
-                value={search}
-                onChange={(e) => {
-                  setSearch(e.target.value);
+          <div className="flex flex-col gap-4 mb-6">
+            <div className="flex flex-col sm:flex-row gap-4">
+              {/* Search */}
+              <div className="relative flex-1">
+                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="이메일 주소 검색..."
+                  value={search}
+                  onChange={(e) => {
+                    setSearch(e.target.value);
+                    setCurrentPage(1); // Reset to first page
+                  }}
+                  className="pl-8"
+                />
+              </div>
+
+              {/* Status Filter */}
+              <Select
+                value={statusFilter}
+                onValueChange={(value) => {
+                  setStatusFilter(value as NewsletterStatus | 'all');
                   setCurrentPage(1); // Reset to first page
                 }}
-                className="pl-8"
+              >
+                <SelectTrigger className="w-full sm:w-[180px]">
+                  <SelectValue placeholder="상태 선택" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">전체 상태</SelectItem>
+                  <SelectItem value="pending">확인 대기</SelectItem>
+                  <SelectItem value="confirmed">확인 완료</SelectItem>
+                  <SelectItem value="unsubscribed">구독 취소</SelectItem>
+                </SelectContent>
+              </Select>
+
+              {/* Date Range Picker */}
+              <DateRangePicker
+                date={dateRange}
+                onDateChange={(range) => {
+                  setDateRange(range);
+                  setCurrentPage(1); // Reset to first page
+                }}
+                placeholder="날짜 범위 선택"
+                className="w-full sm:w-[280px]"
               />
             </div>
 
-            {/* Status Filter */}
-            <Select
-              value={statusFilter}
-              onValueChange={(value) => {
-                setStatusFilter(value as NewsletterStatus | 'all');
-                setCurrentPage(1); // Reset to first page
-              }}
-            >
-              <SelectTrigger className="w-full sm:w-[180px]">
-                <SelectValue placeholder="상태 선택" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">전체 상태</SelectItem>
-                <SelectItem value="pending">확인 대기</SelectItem>
-                <SelectItem value="confirmed">확인 완료</SelectItem>
-                <SelectItem value="unsubscribed">구독 취소</SelectItem>
-              </SelectContent>
-            </Select>
+            {/* Clear Filters Button */}
+            {(search || statusFilter !== 'all' || dateRange) && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setSearch('');
+                  setStatusFilter('all');
+                  setDateRange(undefined);
+                  setCurrentPage(1);
+                }}
+                className="w-fit"
+              >
+                <XCircle className="mr-2 h-4 w-4" />
+                필터 초기화
+              </Button>
+            )}
           </div>
 
           {/* Table */}
