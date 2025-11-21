@@ -5,7 +5,7 @@
 **마지막 업데이트**: 2025-11-22
 **현재 버전**: 2.3.4 (Newsletter 날짜 필터 완성)
 **상태**: ✅ Production Ready | 🔒 보안 점수 98/100 | 🎯 토스페이먼츠 심사 제출 완료
-**개발 방법론**: SDD (Spec-Driven Development)
+**개발 방법론**: SDD (Spec-Driven Development) + MCP (Model Context Protocol) Integration
 
 **오늘의 작업 요약** (2025-11-22 최종):
 - ✅ Newsletter 고도화 완료 (3개 에이전트, 1-2시간)
@@ -18,6 +18,26 @@
 - ⏱️ 작업 시간: 총 3-4시간 (순차 10-12시간 대비 70% 절감)
 
 **최신 업데이트**:
+- 2025-11-22: **🧭 Compass Navigator 통합 준비 완료** ✅ - MCP 서버 스펙 및 DB 뷰 생성
+  - **배경**: 신규 서비스 "Compass Navigator"와 "생각과 행동" 간의 사용자/구독 데이터 연동 필요
+  - **작업 시간**: ~1시간 (스펙 정의, DB 마이그레이션, 검증)
+  - **완료 태스크**: MCP 스펙 문서, DB 뷰, 검증 스크립트
+
+  - **Task 1: MCP 서버 스펙 정의**
+    - `docs/specs/mcp-server-spec.md` 생성
+    - 리소스: `user://current`, `subscription://current`
+    - 도구: `verify_token`, `check_permission`
+
+  - **Task 2: DB 연동 뷰 생성**
+    - `compass_integration_view` 생성 (users + profiles + subscriptions + plans)
+    - `public.subscription_plans` 테이블 조인 수정 완료
+    - 보안: `authenticated`, `service_role` 권한 부여
+
+  - **결과**:
+    - ✅ Compass Navigator 연동을 위한 데이터 파이프라인 구축
+    - ✅ MCP 아키텍처 기반의 안전한 데이터 접근 설계
+    - ✅ 뷰 검증 완료 (정상 데이터 반환 확인)
+
 - 2025-11-22: **📅 Newsletter CSV Export 날짜 필터 완성** ✅ - 병렬 5개 에이전트로 2-3시간 완료
   - **배경**: Newsletter 관리자가 특정 기간 구독자만 내보내기 원함
   - **작업 시간**: ~2-3시간 (병렬 에이전트 5개, 순차 대비 65% 절감)
