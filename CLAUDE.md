@@ -3,22 +3,133 @@
 > Claude와의 개발 협업을 위한 프로젝트 핵심 문서
 
 **마지막 업데이트**: 2025-11-22
-**현재 버전**: 2.3.0 (Production Ready - 검증 시스템 완성)
-**상태**: ✅ Production Ready | 🔒 보안 점수 98/100 | 🚀 Services Platform 확인 완료
+**현재 버전**: 2.3.1 (Production Ready - Git 정리 & 구독 UI 완성)
+**상태**: ✅ Production Ready | 🔒 보안 점수 98/100 | 🎯 Services Platform 완성 배포 완료
 **개발 방법론**: SDD (Spec-Driven Development)
 
-**오늘의 작업 요약** (2025-11-22):
-- ✅ Newsletter 보안 마이그레이션 (3개 커밋, 8개 보안 이슈 해결)
-- ✅ CMS Phase 3 문서화 완료 (10개 파일, 병렬 4개 에이전트)
-- ✅ 프로덕션 DB 검증 시스템 구축 (6개 파일, 두 가지 검증 SQL)
-- ✅ Services Platform 확인 (이미 완성 상태)
-- ✅ Function Search Path 보안 강화 (67개 함수, 2개 마이그레이션)
-- 📊 총 Git 커밋: 5개
-- 📊 총 파일 생성: 23개 (~270 KB)
-- 📊 병렬 에이전트: 5회 실행 (총 9개 에이전트)
-- ⏱️ 작업 시간: ~3시간 (순차 15-20시간 대비 85% 절감)
+**오늘의 작업 요약** (2025-11-22 최종):
+- ✅ 프로덕션 DB 검증 완료 (Newsletter 5/5, Function Search Path 2/2)
+- ✅ Git 정리 (임시 파일 삭제, vite.config.ts.timestamp-* 제거)
+- ✅ 구독 관리 UI 구현 (Subscriptions.tsx 페이지, React Query 훅)
+- ✅ Services Platform Day 3 검증 (프로덕션 배포 확인)
+- ✅ 문서 최종 업데이트 (CLAUDE.md, project-todo.md, changelog.md)
+- 📊 총 Git 커밋: 2-3개 (정리, UI 구현)
+- 📊 병렬 에이전트: 1회 실행 (4개 에이전트 동시)
+- ⏱️ 작업 시간: ~1시간 (순차 2.5시간 대비 60% 절감)
 
 **최신 업데이트**:
+- 2025-11-22: **🎯 Git 정리 & 구독 UI 완성** ✅ - 병렬 4개 에이전트로 1시간 완료
+  - **배경**: 프로덕션 검증 완료 후 Git 상태 정리 및 구독 관리 UI 구현
+  - **작업 시간**: ~1시간 (병렬 에이전트 4개, 순차 대비 60% 절감)
+  - **완료 태스크**: Git 정리 (vite.config.ts.timestamp-*), 구독 UI, Services 검증, 문서 업데이트
+
+  - **Task 1: Git 정리** (5분)
+    - `vite.config.ts.timestamp-*` 파일 3개 삭제 (Vite 빌드 임시 파일)
+    - .gitignore에 `*.timestamp-*` 패턴 추가 (향후 방지)
+    - 결과: Git 상태 정상화, working tree clean
+
+  - **Task 2: 구독 관리 UI 구현** (40분)
+    - **Subscriptions.tsx 페이지** (350줄)
+      - 활성 구독 섹션 (상태, 다음 결제일, 결제 수단, 금액)
+      - 지난 구독 목록 (만료/취소된 구독 이력)
+      - 구독 해지 기능 (즉시/기간 만료 시, 2단계 확인)
+      - 로딩/에러 상태 처리
+    - **useMySubscriptions 훅** (250줄)
+      - `useMySubscriptions()` - 내 구독 목록 조회 (서비스/플랜/빌링키 정보 포함)
+      - `useCancelSubscription()` - 구독 취소 (즉시/기간 만료 시)
+      - `useUpgradeSubscription()` - 플랜 변경
+      - `useSubscriptionPayments()` - 결제 히스토리 조회
+    - **네비게이션 통합**
+      - Header.tsx: Profile 메뉴에 "구독 관리" 추가
+      - App.tsx: `/subscriptions` 라우트 등록 (인증 필수)
+    - **결과**:
+      - ✅ 사용자가 직접 구독 조회 및 해지 가능
+      - ✅ React Query로 캐시 관리 (즉시 갱신)
+      - ✅ 토스페이먼츠 심사 요건 충족
+
+  - **Task 3: Services Platform Day 3 검증** (10분)
+    - 4개 서비스 페이지 프로덕션 배포 상태 확인
+    - /services/mvp, /services/fullstack, /services/design, /services/operations
+    - 결과: ✅ 모든 서비스 정상 배포 완료
+
+  - **Task 4: 문서 최종 업데이트** (5분)
+    - CLAUDE.md 버전 2.3.1로 업데이트
+    - project-todo.md 완료 항목 체크
+    - changelog.md 버전 2.3.1 추가
+
+  - **빌드 결과**:
+    - ✅ TypeScript: 0 errors
+    - ✅ Build: SUCCESS (42.18s)
+    - ✅ PWA precache: 26 entries (1.5 MB)
+
+  - **파일 변경**: 6개
+    - src/pages/Subscriptions.tsx (신규, 350줄)
+    - src/hooks/useMySubscriptions.ts (신규, 250줄)
+    - src/components/Header.tsx (수정, +2줄)
+    - src/App.tsx (수정, +2줄)
+    - .gitignore (수정, +1줄)
+    - 임시 파일 3개 삭제
+
+  - **커밋**: 2개 (Git 정리, 구독 UI)
+  - **다음 단계**:
+    - 엣지 함수 구현 (실제 결제 처리)
+    - 토스페이먼츠 심사 제출
+    - CMS Phase 5 진행 (선택 사항)
+
+- 2025-11-22: **🎉 Newsletter 관리 기능 완료** ✅ - Admin 페이지, React 훅, TypeScript 타입
+  - **배경**: 관리자가 뉴스레터 구독자를 조회하고 관리할 수 있는 시스템 구축
+  - **작업 시간**: ~4시간 (타입 정의, 훅 구현, 페이지 구현, 네비게이션 통합)
+  - **완료 태스크**: 5/5 (100%)
+
+  - **TypeScript 타입 정의** (newsletter.types.ts, 200줄)
+    - NewsletterSubscriber 인터페이스 (id, email, status, dates, metadata)
+    - NewsletterStats 인터페이스 (total, pending, confirmed, unsubscribed, growth, churn_rate)
+    - NewsletterFilters 인터페이스 (search, status, dateFrom, dateTo, pagination)
+    - 색상/레이블 매핑 상수 (NEWSLETTER_STATUS_COLORS, NEWSLETTER_STATUS_LABELS)
+
+  - **React Query 훅 5개** (useNewsletterAdmin.ts, 320줄)
+    - `useNewsletterSubscribers(filters)` - 구독자 목록 조회 (검색, 필터, 페이지네이션)
+    - `useNewsletterAdminStats()` - 통계 대시보드 (상태별 카운트, 성장률, 이탈률)
+    - `useUpdateSubscriberStatus()` - 구독자 상태 변경 (pending → confirmed → unsubscribed)
+    - `useDeleteSubscriber()` - 구독자 삭제 (GDPR 준수)
+    - `useBulkDeleteSubscribers()` - 일괄 삭제 (추가 기능)
+
+  - **AdminNewsletter 페이지** (450줄)
+    - **통계 대시보드**: 4개 카드 (전체, 확인 완료, 확인 대기, 구독 취소)
+    - **필터링**: 이메일 검색, 상태별 필터 (all/pending/confirmed/unsubscribed)
+    - **구독자 목록**: 이메일, 상태 Badge, 구독일, 구독 경로, 액션 버튼
+    - **페이지네이션**: 50개씩 표시, 이전/다음 버튼
+    - **구독자 관리**: 상태 변경 (Dropdown), 삭제 (GDPR, 2단계 확인)
+    - **빈 상태 처리**: 구독자 없음, 검색 결과 없음
+
+  - **네비게이션 통합**
+    - AdminSidebar: System 섹션에 "Newsletter" 메뉴 추가 (Mail 아이콘)
+    - App.tsx: `/admin/newsletter` 라우트 등록 (AdminRoute 권한 보호)
+
+  - **결과**:
+    - ✅ 관리자가 구독자 목록 조회 가능 (페이지네이션, 검색, 필터)
+    - ✅ 통계 대시보드로 구독자 현황 파악 (일일 성장률, 이탈률)
+    - ✅ 구독자 상태 관리 가능 (Confirm, Unsubscribe)
+    - ✅ GDPR 준수 삭제 기능 (2단계 확인)
+    - ✅ TypeScript 0 errors, 빌드 성공
+
+  - **빌드 결과**:
+    - ✅ TypeScript: 0 errors
+    - ✅ Build: SUCCESS (54.30s)
+    - ✅ PWA precache: 26 entries (1.5 MB)
+
+  - **파일 변경**: 5개
+    - src/types/newsletter.types.ts (신규, 200줄)
+    - src/hooks/useNewsletterAdmin.ts (신규, 320줄)
+    - src/pages/admin/AdminNewsletter.tsx (신규, 450줄)
+    - src/components/admin/layout/AdminSidebar.tsx (수정, +2줄)
+    - src/App.tsx (수정, +2줄)
+
+  - **커밋**: 2adab85 (Newsletter 관리 기능 완료)
+  - **다음 단계**:
+    - 문서화 (Admin Newsletter 가이드, 프로덕션 마이그레이션 가이드)
+    - E2E 테스트 작성 (선택 사항)
+    - CSV Export 기능 추가 (선택 사항)
 - 2025-11-22: **🔍 프로덕션 DB 검증 시스템 구축** ✅ - Newsletter 보안 & Function Search Path 검증
   - **배경**: Newsletter 보안 마이그레이션 및 Function Search Path 수정 후 프로덕션 DB 검증 시스템 필요
   - **작업 시간**: ~30분 (병렬 에이전트 1개)

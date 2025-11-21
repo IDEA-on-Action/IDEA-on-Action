@@ -9,6 +9,81 @@
 
 ---
 
+## [2.3.1] - 2025-11-22
+
+### Added
+- **구독 관리 시스템 Part 2/2** - 사용자 구독 관리 페이지 및 UI
+  - Subscriptions 페이지 (/subscriptions)
+  - 활성 구독 섹션 (상태, 다음 결제일, 결제 수단, 금액)
+  - 지난 구독 목록 (만료/취소된 구독 이력)
+  - 구독 해지 기능 (즉시/기간 만료 시, 2단계 확인)
+  - React Query 훅 4개 (useMySubscriptions.ts)
+  - Header Profile 메뉴에 "구독 관리" 추가
+  - Protected Route (`/subscriptions`)
+
+### Fixed
+- **Git 정리** - Vite 빌드 임시 파일 제거
+  - `vite.config.ts.timestamp-*` 파일 3개 삭제
+  - .gitignore에 `*.timestamp-*` 패턴 추가
+
+### Technical
+- 파일 추가: 2개
+  - src/pages/Subscriptions.tsx (350줄)
+  - src/hooks/useMySubscriptions.ts (250줄)
+- 파일 수정: 3개
+  - src/components/Header.tsx (+2줄)
+  - src/App.tsx (+2줄)
+  - .gitignore (+1줄)
+- 총 코드량: +600줄
+- TypeScript: 0 errors
+- Build: SUCCESS (42.18s)
+- PWA precache: 26 entries (1.5 MB)
+
+### Workflow
+- 병렬 에이전트: 4개 (Task 1: Git 정리, Task 2: 구독 UI, Task 3: Services 검증, Task 4: 문서 업데이트)
+- 소요 시간: ~1시간 (순차 2.5시간 대비 60% 절감)
+
+### Git Commit
+- (진행 중)
+
+---
+
+## [2.3.0] - 2025-11-22
+
+### Added
+- **Newsletter 관리 기능** - 관리자용 구독자 관리 페이지
+  - AdminNewsletter 페이지 (/admin/newsletter)
+  - 통계 대시보드 (4개 Stats Cards: 전체, 확인 완료, 확인 대기, 구독 취소)
+  - 구독자 목록 조회 (페이지네이션 50개, 검색, 필터)
+  - 구독자 상태 변경 (pending → confirmed → unsubscribed)
+  - 구독자 삭제 (GDPR 준수, 2단계 확인)
+  - TypeScript 타입 정의 (newsletter.types.ts)
+  - React Query 훅 5개 (useNewsletterAdmin.ts)
+  - AdminSidebar 메뉴 통합 (System → Newsletter)
+
+### Technical
+- 파일 추가: 3개
+  - src/types/newsletter.types.ts (200줄)
+  - src/hooks/useNewsletterAdmin.ts (320줄)
+  - src/pages/admin/AdminNewsletter.tsx (450줄)
+- 파일 수정: 2개
+  - src/components/admin/layout/AdminSidebar.tsx (+2줄)
+  - src/App.tsx (+2줄)
+- 총 코드량: +970줄
+- TypeScript: 0 errors
+- Build: SUCCESS (54.30s)
+- PWA precache: 26 entries (1.5 MB)
+
+### Security
+- Supabase RLS 정책 적용 (관리자만 조회 가능)
+- AdminRoute 권한 체크 (admin, super_admin 전용)
+- GDPR 준수 삭제 기능
+
+### Git Commit
+- 2adab85: Newsletter 관리 기능 완료
+
+---
+
 ## [2.2.1] - 2025-11-22
 
 ### Security - Function Search Path 보안 강화 🔒

@@ -33,6 +33,14 @@ dist-ssr
 *.sln
 *.sw?
 
+# Vite temporary files
+vite.config.ts.timestamp-*.mjs
+*.timestamp-*
+
+# Alternative/backup migration files (not to be applied)
+*alternative*.sql
+*_backup_*.sql
+
 # Test results
 test-results/
 playwright-report/

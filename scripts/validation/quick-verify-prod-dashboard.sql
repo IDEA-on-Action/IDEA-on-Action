@@ -7,7 +7,7 @@
 -- ================================================================
 
 -- Newsletter Security (5 critical checks)
-SELECT '📧 Newsletter Security Checks' as section, '' as status
+SELECT '📧 Newsletter Security Checks' as section, '' as status, 1 as sort_order
 UNION ALL
 SELECT
   '1. View exists',
@@ -19,7 +19,8 @@ SELECT
     )
     THEN '✅ PASS'
     ELSE '❌ FAIL: View missing'
-  END
+  END,
+  1
 UNION ALL
 SELECT
   '2. No auth.users exposure',
@@ -32,7 +33,8 @@ SELECT
     )
     THEN '✅ PASS'
     ELSE '❌ FAIL: auth.users still exposed'
-  END
+  END,
+  1
 UNION ALL
 SELECT
   '3. RLS policies (user_profiles)',
@@ -40,7 +42,8 @@ SELECT
     WHEN (SELECT COUNT(*) FROM pg_policies WHERE schemaname = 'public' AND tablename = 'user_profiles' AND policyname LIKE '%newsletter%') >= 3
     THEN '✅ PASS (' || (SELECT COUNT(*)::text FROM pg_policies WHERE schemaname = 'public' AND tablename = 'user_profiles' AND policyname LIKE '%newsletter%') || ' policies)'
     ELSE '❌ FAIL: Found ' || (SELECT COUNT(*)::text FROM pg_policies WHERE schemaname = 'public' AND tablename = 'user_profiles' AND policyname LIKE '%newsletter%') || ' policies (expected 3+)'
-  END
+  END,
+  1
 UNION ALL
 SELECT
   '4. No SECURITY DEFINER functions',
@@ -48,7 +51,8 @@ SELECT
     WHEN (SELECT COUNT(*) FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid WHERE n.nspname = 'public' AND p.prosecdef = true AND p.proname IN ('subscribe_to_newsletter', 'unsubscribe_from_newsletter', 'get_newsletter_subscribers')) = 0
     THEN '✅ PASS (All SECURITY INVOKER)'
     ELSE '❌ FAIL: ' || (SELECT COUNT(*)::text FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid WHERE n.nspname = 'public' AND p.prosecdef = true AND p.proname IN ('subscribe_to_newsletter', 'unsubscribe_from_newsletter', 'get_newsletter_subscribers')) || ' DEFINER functions found'
-  END
+  END,
+  1
 UNION ALL
 SELECT
   '5. Anonymous access revoked',
@@ -62,11 +66,12 @@ SELECT
     )
     THEN '✅ PASS'
     ELSE '❌ FAIL: Anonymous still has SELECT access'
-  END
+  END,
+  1
 UNION ALL
-SELECT '', '' -- Spacer
+SELECT '', '', 1 -- Spacer
 UNION ALL
-SELECT '🔧 Function Search Path Checks' as section, '' as status
+SELECT '🔧 Function Search Path Checks' as section, '' as status, 2 as sort_order
 UNION ALL
 SELECT
   '6. Critical functions with search_path',
@@ -85,7 +90,8 @@ SELECT
     ) >= 8
     THEN '✅ PASS (' || (SELECT COUNT(*)::text FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid WHERE n.nspname = 'public' AND 'search_path=public, pg_temp' = ANY(p.proconfig) AND p.proname IN ('subscribe_to_newsletter', 'unsubscribe_from_newsletter', 'get_newsletter_subscribers', 'generate_password_reset_token', 'verify_password_reset_token', 'get_revenue_by_date', 'get_revenue_by_service', 'get_kpis')) || '/8+ critical)'
     ELSE '⚠️ PARTIAL: ' || (SELECT COUNT(*)::text FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid WHERE n.nspname = 'public' AND 'search_path=public, pg_temp' = ANY(p.proconfig) AND p.proname IN ('subscribe_to_newsletter', 'unsubscribe_from_newsletter', 'get_newsletter_subscribers', 'generate_password_reset_token', 'verify_password_reset_token', 'get_revenue_by_date', 'get_revenue_by_service', 'get_kpis')) || '/8'
-  END
+  END,
+  2
 UNION ALL
 SELECT
   '7. Trigger functions with search_path',
@@ -100,11 +106,12 @@ SELECT
     ) >= 20
     THEN '✅ PASS (' || (SELECT COUNT(*)::text FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid WHERE n.nspname = 'public' AND 'search_path=public, pg_temp' = ANY(p.proconfig) AND (p.proname LIKE 'update_%_updated_at' OR p.proname LIKE 'set_cms_%')) || '/44+ triggers)'
     ELSE '⚠️ PARTIAL: ' || (SELECT COUNT(*)::text FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid WHERE n.nspname = 'public' AND 'search_path=public, pg_temp' = ANY(p.proconfig) AND (p.proname LIKE 'update_%_updated_at' OR p.proname LIKE 'set_cms_%')) || '/44'
-  END
+  END,
+  2
 UNION ALL
-SELECT '', '' -- Spacer
+SELECT '', '', 2 -- Spacer
 UNION ALL
-SELECT '📊 Overall Status' as section, '' as status
+SELECT '📊 Overall Status' as section, '' as status, 3 as sort_order
 UNION ALL
 SELECT
   'FINAL VERIFICATION',
@@ -122,12 +129,6 @@ SELECT
     )
     THEN '✅ ALL MIGRATIONS VERIFIED'
     ELSE '❌ SOME CHECKS FAILED - Review above results'
-  END
-ORDER BY
-  CASE
-    WHEN section LIKE '📧%' THEN 1
-    WHEN section LIKE '🔧%' THEN 2
-    WHEN section LIKE '📊%' THEN 3
-    ELSE 4
   END,
-  section;
+  3
+ORDER BY sort_order, section;

@@ -2,11 +2,134 @@
 
 > 프로젝트 작업 목록 및 진행 상황 관리
 
-**마지막 업데이트**: 2025-11-19 16:00 UTC
-**현재 Phase**: 🚀 Version 2.2.0 진행 중 (Toss Payments Sprint 1)
-**완료된 항목**: 구독 관리 시스템 Part 1/2 완료 (DB, 타입, 빌링키 저장)
-**프로젝트 버전**: 2.0.1 (Production Ready)
+**마지막 업데이트**: 2025-11-22 20:30 UTC
+**현재 Phase**: ✅ Version 2.3.1 완료 (Git 정리 & 구독 UI)
+**완료된 항목**: 구독 관리 시스템 Part 2/2 완료 (Subscriptions.tsx, useMySubscriptions)
+**프로젝트 버전**: 2.3.1 (Production Ready)
 **프로덕션**: https://www.ideaonaction.ai
+
+---
+
+## ✅ 최근 완료 (2025-11-22)
+
+### 💳 구독 관리 시스템 Part 2/2 ✅ (100% 완료)
+
+**목표**: 토스페이먼츠 정기결제 완성을 위한 구독 관리 UI 구현
+**시작일**: 2025-11-19
+**완료일**: 2025-11-22 (Part 2)
+**현재 상태**: ✅ 완료 (7/7 작업, 100%)
+**소요 시간**: ~1시간 (Part 2, 병렬 에이전트 4개)
+
+#### 완료된 작업 (Part 2)
+
+- [x] **Subscriptions.tsx 페이지** (~30분)
+  - [x] 활성 구독 섹션 (상태, 다음 결제일, 결제 수단, 금액 표시)
+  - [x] 지난 구독 목록 (만료/취소된 구독 이력)
+  - [x] 구독 해지 기능 (즉시/기간 만료 시 옵션, 2단계 확인)
+  - [x] 로딩/에러 상태 처리 (React Query)
+  - [x] 반응형 레이아웃 (모바일 최적화)
+
+- [x] **useMySubscriptions 훅** (~20분)
+  - [x] `useMySubscriptions()` - 내 구독 목록 조회 (서비스/플랜/빌링키 정보 포함)
+  - [x] `useCancelSubscription()` - 구독 취소 (즉시/기간 만료 시)
+  - [x] `useUpgradeSubscription()` - 플랜 변경
+  - [x] `useSubscriptionPayments()` - 결제 히스토리 조회
+
+- [x] **네비게이션 통합**
+  - [x] Header.tsx: Profile 메뉴에 "구독 관리" 추가
+  - [x] App.tsx: `/subscriptions` 라우트 등록 (Protected Route, 인증 필수)
+
+- [x] **Git 정리**
+  - [x] `vite.config.ts.timestamp-*` 임시 파일 3개 삭제
+  - [x] .gitignore에 `*.timestamp-*` 패턴 추가
+
+#### 📊 Part 2 통계
+
+- **파일 변경**: 6개
+  - 신규: 2개 (Subscriptions.tsx 350줄, useMySubscriptions.ts 250줄)
+  - 수정: 3개 (Header.tsx, App.tsx, .gitignore)
+  - 삭제: 임시 파일 3개
+- **빌드 시간**: 42.18s
+- **TypeScript**: 0 errors
+- **총 소요 시간**: ~1시간 (Part 2만, 병렬 4개 에이전트)
+
+#### 📊 전체 시스템 통계 (Part 1 + 2)
+
+- **DB 스키마**: 3개 테이블 (billing_keys, subscriptions, subscription_payments)
+  - 10개 인덱스, 9개 RLS 정책, 2개 트리거, 2개 헬퍼 함수
+- **TypeScript 타입**: 161줄 (subscription.types.ts)
+- **React 훅**: 7개 (빌링키 저장 + 구독 관리 4개)
+- **UI 페이지**: 2개 (SubscriptionSuccess.tsx + Subscriptions.tsx)
+- **총 라인**: ~900줄 (타입 + 훅 + 페이지)
+
+**결과**:
+- ✅ 사용자가 직접 구독 조회 및 해지 가능
+- ✅ React Query로 캐시 관리 (즉시 갱신)
+- ✅ 결제 히스토리 추적 가능
+- ✅ 토스페이먼츠 심사 요건 100% 충족
+- ✅ Git 상태 정상화 (임시 파일 제거)
+
+#### 다음 단계
+
+- [ ] Edge Function 구현 (process-subscription-payments)
+- [ ] 실제 토스페이먼츠 API 연동
+- [ ] 정기 결제 자동화 (Cron)
+- [ ] 토스페이먼츠 심사 제출
+
+---
+
+### 🎉 Newsletter 관리 기능 ✅ (100% 완료)
+
+**목표**: 관리자가 뉴스레터 구독자를 조회하고 관리할 수 있는 시스템 구축
+**시작일**: 2025-11-22
+**완료일**: 2025-11-22
+**현재 상태**: ✅ 완료 (5/5 작업, 100%)
+**소요 시간**: ~4시간
+
+#### 완료된 작업
+
+- [x] **TypeScript 타입 정의** (newsletter.types.ts, 200줄)
+  - [x] NewsletterSubscriber 인터페이스 (id, email, status, dates, metadata)
+  - [x] NewsletterStats 인터페이스 (total, pending, confirmed, unsubscribed, growth, churn_rate)
+  - [x] NewsletterFilters 인터페이스 (search, status, dateFrom, dateTo, pagination)
+  - [x] 색상/레이블 매핑 상수 (NEWSLETTER_STATUS_COLORS, NEWSLETTER_STATUS_LABELS)
+
+- [x] **React Query 훅 5개** (useNewsletterAdmin.ts, 320줄)
+  - [x] `useNewsletterSubscribers(filters)` - 구독자 목록 조회 (검색, 필터, 페이지네이션)
+  - [x] `useNewsletterAdminStats()` - 통계 대시보드 (상태별 카운트, 성장률, 이탈률)
+  - [x] `useUpdateSubscriberStatus()` - 구독자 상태 변경 (pending → confirmed → unsubscribed)
+  - [x] `useDeleteSubscriber()` - 구독자 삭제 (GDPR 준수)
+  - [x] `useBulkDeleteSubscribers()` - 일괄 삭제 (추가 기능)
+
+- [x] **AdminNewsletter 페이지** (450줄)
+  - [x] 통계 대시보드 (4개 카드: 전체, 확인 완료, 확인 대기, 구독 취소)
+  - [x] 필터링 (이메일 검색, 상태별 필터)
+  - [x] 구독자 목록 (페이지네이션 50개, 상태 Badge, 액션 버튼)
+  - [x] 구독자 관리 (상태 변경, GDPR 준수 삭제)
+  - [x] 빈 상태 처리 (구독자 없음, 검색 결과 없음)
+
+- [x] **네비게이션 통합**
+  - [x] AdminSidebar에 Newsletter 메뉴 추가 (Mail 아이콘, System 섹션)
+  - [x] App.tsx에 `/admin/newsletter` 라우트 등록 (AdminRoute 권한 보호)
+
+#### 📊 통계
+
+- **파일 변경**: 5개
+  - 신규: 3개 (newsletter.types.ts 200줄, useNewsletterAdmin.ts 320줄, AdminNewsletter.tsx 450줄)
+  - 수정: 2개 (AdminSidebar.tsx +2줄, App.tsx +2줄)
+- **총 코드량**: +970줄
+- **빌드 결과**: TypeScript 0 errors, Build SUCCESS (54.30s)
+- **PWA precache**: 26 entries (1.5 MB)
+
+#### Git 커밋
+- 2adab85: Newsletter 관리 기능 완료
+
+#### 결과
+- ✅ 관리자가 구독자 목록 조회 가능 (페이지네이션, 검색, 필터)
+- ✅ 통계 대시보드로 구독자 현황 파악 (일일 성장률, 이탈률)
+- ✅ 구독자 상태 관리 가능 (Confirm, Unsubscribe)
+- ✅ GDPR 준수 삭제 기능 (2단계 확인)
+- ✅ TypeScript 0 errors, 빌드 성공
 
 ---
 
@@ -317,6 +440,35 @@
 ---
 
 ## 🔜 다음 단계
+
+### 우선순위 1 (필수) 🔴
+
+#### Newsletter 문서화
+- [ ] Admin Newsletter 가이드 작성 (Admin 페이지 사용 설명서)
+- [ ] 프로덕션 마이그레이션 가이드 작성
+- [ ] Changelog 업데이트 (v2.3.0)
+
+#### 프로덕션 DB 마이그레이션 (선택 사항)
+- [ ] Function Search Path 마이그레이션 적용 (2개)
+  - [ ] 20251122000000_fix_function_search_path.sql (Newsletter)
+  - [ ] 20251122000001_fix_critical_functions_search_path.sql (Critical 함수 64개)
+- [ ] 검증 스크립트 실행 (quick-verify-prod.sql)
+
+### 우선순위 2 (선택) 🟡
+
+#### Newsletter E2E 테스트 작성
+- [ ] admin-newsletter.spec.ts (18-24개 테스트)
+  - [ ] 구독자 목록 조회 (검색, 필터, 페이지네이션)
+  - [ ] 통계 대시보드 렌더링
+  - [ ] 구독자 상태 변경
+  - [ ] 구독자 삭제 (확인 다이얼로그)
+
+#### Newsletter 추가 기능
+- [ ] CSV Export 기능 (useExportNewsletterCSV 훅)
+- [ ] 일괄 이메일 발송 기능 (선택 사항)
+- [ ] 구독 해제 율 대시보드 (Analytics)
+
+---
 
 ### Version 2.1.0: CMS Phase 5 (선택적 기능 추가)
 

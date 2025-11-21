@@ -1,13 +1,29 @@
+/**
+ * Subscriptions Page
+ *
+ * 구독 관리 페이지 (내 구독 조회 및 관리)
+ * - 토스페이먼츠 심사 요건 충족:
+ *   1. 사용자가 직접 구독 조회 가능 ✅
+ *   2. 사용자가 직접 구독 해지 가능 ✅
+ *   3. 결제 히스토리 확인 가능 ✅
+ */
 
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
+import { Helmet } from 'react-helmet-async'
 import { format } from 'date-fns'
 import { ko } from 'date-fns/locale'
-import { Loader2, CreditCard, Calendar, AlertCircle, CheckCircle2, XCircle } from 'lucide-react'
-import { useMySubscriptions, useCancelSubscription } from '@/hooks/useSubscriptions'
+import { Loader2, CreditCard, Calendar, AlertCircle, CheckCircle2, XCircle, Receipt } from 'lucide-react'
+import Header from '@/components/Header'
+import Footer from '@/components/Footer'
+import { useAuth } from '@/hooks/useAuth'
+import { useMySubscriptions, useCancelSubscription, useSubscriptionPayments } from '@/hooks/useSubscriptions'
 import {
     SUBSCRIPTION_STATUS_KR,
     SUBSCRIPTION_STATUS_VARIANT,
     BILLING_CYCLE_KR,
+    PAYMENT_STATUS_KR,
+    PAYMENT_STATUS_VARIANT,
     SubscriptionWithPlan
 } from '@/types/subscription.types'
 import { Button } from '@/components/ui/button'
@@ -27,7 +43,70 @@ import {
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
 
+/**
+ * 결제 히스토리 컴포넌트
+ */
+interface PaymentHistoryProps {
+  subscriptionId: string
+}
+
+function PaymentHistory({ subscriptionId }: PaymentHistoryProps) {
+  const { data: payments, isLoading } = useSubscriptionPayments(subscriptionId)
+
+  if (isLoading) {
+    return (
+      <div className="space-y-2">
+        <Skeleton className="h-16 w-full" />
+        <Skeleton className="h-16 w-full" />
+      </div>
+    )
+  }
+
+  if (!payments || payments.length === 0) {
+    return (
+      <Alert>
+        <AlertCircle className="h-4 w-4" />
+        <AlertDescription>결제 내역이 없습니다.</AlertDescription>
+      </Alert>
+    )
+  }
+
+  return (
+    <div className="space-y-2">
+      {payments.map((payment) => (
+        <div
+          key={payment.id}
+          className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 transition-colors"
+        >
+          <div className="flex items-center gap-3">
+            {payment.status === 'success' ? (
+              <CheckCircle2 className="h-5 w-5 text-green-500" />
+            ) : (
+              <XCircle className="h-5 w-5 text-destructive" />
+            )}
+            <div>
+              <p className="font-medium">
+                {format(new Date(payment.created_at), 'PPP', { locale: ko })}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                {payment.subscription.service_title} - {payment.subscription.plan_name}
+              </p>
+            </div>
+          </div>
+          <div className="text-right">
+            <p className="font-semibold">₩{payment.amount.toLocaleString()}</p>
+            <Badge variant={PAYMENT_STATUS_VARIANT[payment.status]}>
+              {PAYMENT_STATUS_KR[payment.status]}
+            </Badge>
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 export default function Subscriptions() {
+    const { user } = useAuth()
     const { data: subscriptions, isLoading, error } = useMySubscriptions()
     const [selectedSubscription, setSelectedSubscription] = useState<SubscriptionWithPlan | null>(null)
     const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false)
@@ -57,51 +136,82 @@ export default function Subscriptions() {
         )
     }
 
-    if (isLoading) {
+    // 로그인 체크
+    if (!user) {
         return (
-            <div className="container max-w-4xl py-10 space-y-6">
-                <div className="space-y-2">
-                    <Skeleton className="h-10 w-48" />
-                    <Skeleton className="h-4 w-96" />
-                </div>
-                <div className="grid gap-6">
-                    <Skeleton className="h-64 w-full" />
-                    <Skeleton className="h-64 w-full" />
-                </div>
-            </div>
-        )
-    }
-
-    if (error) {
-        return (
-            <div className="container max-w-4xl py-10">
-                <Alert variant="destructive">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertTitle>오류 발생</AlertTitle>
-                    <AlertDescription>
-                        구독 정보를 불러오는 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.
-                    </AlertDescription>
-                </Alert>
+            <div className="min-h-screen flex flex-col bg-gradient-to-br from-background via-background to-primary/5">
+                <Helmet>
+                    <title>구독 관리 - IDEA on Action</title>
+                </Helmet>
+                <Header />
+                <main className="flex-1 container mx-auto px-4 py-16">
+                    <Alert>
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertDescription>구독 관리를 보려면 로그인이 필요합니다.</AlertDescription>
+                    </Alert>
+                    <Button asChild className="mt-4">
+                        <Link to="/login">로그인하기</Link>
+                    </Button>
+                </main>
+                <Footer />
             </div>
         )
     }
 
     const activeSubscriptions = subscriptions?.filter(sub =>
-        ['active', 'trial'].includes(sub.status)
+        ['active', 'trial'].includes(sub.status) && !sub.cancel_at_period_end
     ) || []
 
     const pastSubscriptions = subscriptions?.filter(sub =>
-        !['active', 'trial'].includes(sub.status)
+        !['active', 'trial'].includes(sub.status) || sub.cancel_at_period_end
     ) || []
 
     return (
-        <div className="container max-w-4xl py-10 space-y-8">
-            <div>
-                <h1 className="text-3xl font-bold tracking-tight">내 구독 관리</h1>
-                <p className="text-muted-foreground mt-2">
-                    이용 중인 서비스의 구독 상태와 결제 정보를 관리하세요.
-                </p>
-            </div>
+        <>
+            <Helmet>
+                <title>구독 관리 - IDEA on Action</title>
+            </Helmet>
+
+            <div className="min-h-screen flex flex-col bg-gradient-to-br from-background via-background to-primary/5">
+                <Header />
+
+                <main id="main-content" className="flex-1 container mx-auto px-4 pt-24 pb-8">
+                    {/* 로딩 */}
+                    {isLoading && (
+                        <div className="container max-w-4xl space-y-6">
+                            <div className="space-y-2">
+                                <Skeleton className="h-10 w-48" />
+                                <Skeleton className="h-4 w-96" />
+                            </div>
+                            <div className="grid gap-6">
+                                <Skeleton className="h-64 w-full" />
+                                <Skeleton className="h-64 w-full" />
+                            </div>
+                        </div>
+                    )}
+
+                    {/* 에러 */}
+                    {error && (
+                        <div className="container max-w-4xl">
+                            <Alert variant="destructive">
+                                <AlertCircle className="h-4 w-4" />
+                                <AlertTitle>오류 발생</AlertTitle>
+                                <AlertDescription>
+                                    구독 정보를 불러오는 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.
+                                </AlertDescription>
+                            </Alert>
+                        </div>
+                    )}
+
+                    {/* 메인 콘텐츠 */}
+                    {!isLoading && !error && (
+                        <div className="container max-w-4xl space-y-8">
+                            <div>
+                                <h1 className="text-3xl font-bold tracking-tight">내 구독 관리</h1>
+                                <p className="text-muted-foreground mt-2">
+                                    이용 중인 서비스의 구독 상태와 결제 정보를 관리하세요.
+                                </p>
+                            </div>
 
             {/* 활성 구독 섹션 */}
             <section className="space-y-4">
@@ -239,6 +349,33 @@ export default function Subscriptions() {
                 </section>
             )}
 
+            {/* 결제 히스토리 */}
+            {activeSubscriptions.length > 0 && (
+                <section className="space-y-4 pt-8">
+                    <h2 className="text-xl font-semibold flex items-center gap-2">
+                        <Receipt className="h-5 w-5" />
+                        결제 히스토리
+                    </h2>
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>최근 결제 내역</CardTitle>
+                            <CardDescription>
+                                {activeSubscriptions[0].service.title} - {activeSubscriptions[0].plan.plan_name}
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <PaymentHistory subscriptionId={activeSubscriptions[0].id} />
+                        </CardContent>
+                    </Card>
+                </section>
+            )}
+                        </div>
+                    )}
+                </main>
+
+                <Footer />
+            </div>
+
             {/* 구독 취소 확인 다이얼로그 */}
             <AlertDialog open={isCancelDialogOpen} onOpenChange={setIsCancelDialogOpen}>
                 <AlertDialogContent>
@@ -265,6 +402,6 @@ export default function Subscriptions() {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
-        </div>
+        </>
     )
 }
