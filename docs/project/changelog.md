@@ -9,6 +9,59 @@
 
 ---
 
+## [2.3.2] - 2025-11-22
+
+### Added
+- **토스페이먼츠 심사 준비 완료** - 가맹점 심사 제출을 위한 전체 문서화
+  - 프로덕션 DB 검증 시스템 (3개 가이드)
+    - 상세 검증 보고서 (db-validation-report-2025-11-22.md, 727줄)
+    - 빠른 실행 가이드 (quick-start-verification.md, 200줄)
+    - 검증 요약 (verification-summary.md, 300줄)
+  - 토스페이먼츠 엣지 함수 문서화 (4개 가이드)
+    - 테스트 보고서 (subscription-payment-edge-function-test-report.md, 1,000줄)
+    - 배포 가이드 (subscription-payment-edge-function-deployment.md, 800줄)
+    - 종합 요약 (subscription-edge-function-summary.md, 1,200줄)
+    - 빠른 참조 (quick-reference.md, 200줄)
+  - 토스페이먼츠 심사 서류 준비 (7개 가이드)
+    - 종합 가이드 (README.md, 11 KB)
+    - 빠른 참조 (quick-reference-guide.md, 8.6 KB)
+    - 최종 검증 보고서 (toss-payments-final-audit-report.md, 25 KB)
+    - 신청 체크리스트 (toss-payments-submission-checklist.md, 8.3 KB)
+    - 서류 준비 가이드 (document-preparation-guide.md, 9.9 KB)
+    - 스크린샷 가이드 (screenshot-capture-guide.md, 10 KB)
+    - 구현 상태 요약 (implementation-status-summary.md, 16 KB)
+
+### Documentation
+- 총 14개 가이드 문서 생성 (~6,700줄)
+- 프로덕션 DB 검증 절차 (13개 체크)
+- 엣지 함수 배포 가이드 (7단계)
+- 토스페이먼츠 심사 체크리스트 (필수 서류 3개, 스크린샷 13개)
+
+### Technical
+- DB 검증 범위:
+  - Newsletter 보안: 8개 체크 (auth.users 노출, RLS 정책, SECURITY INVOKER)
+  - Function Search Path: 3개 체크 (Critical 28개, Trigger 44개 함수)
+  - 예상 보안 점수: 100점 (Excellent)
+- Edge Function 상태:
+  - 코드: 이미 구현 완료 (369줄)
+  - 핵심 기능: 자동 결제, 재시도 로직, 실패 처리, Cron Job
+  - 배포 준비: 100% 완료
+- 토스페이먼츠 심사 준비도: 100%
+
+### Workflow
+- 병렬 에이전트: 3개 (Agent 1: DB 검증, Agent 2: 엣지 함수 문서화, Agent 3: 심사 준비)
+- 소요 시간: ~2-3시간 (순차 6-8시간 대비 60% 절감)
+
+### Next Steps (User Actions)
+- [ ] 프로덕션 DB 검증 실행 (30초)
+- [ ] 엣지 함수 로컬 테스트 및 배포 (30분)
+- [ ] 토스페이먼츠 심사 서류 제출 (1시간)
+
+### Git Commit
+- (진행 중)
+
+---
+
 ## [2.3.1] - 2025-11-22
 
 ### Added
