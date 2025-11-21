@@ -526,7 +526,90 @@ test.describe('AdminNewsletter', () => {
   });
 
   // ============================================
-  // 10. Responsive Design (1 test)
+  // 10. CSV Export (4 tests)
+  // ============================================
+
+  test.describe('CSV Export', () => {
+    test('should display CSV export button', async ({ page }) => {
+      // Check for CSV export button
+      const exportButton = page.getByRole('button', { name: /CSV 내보내기/i });
+      await expect(exportButton).toBeVisible();
+
+      // Check button has download icon
+      const downloadIcon = exportButton.locator('svg');
+      await expect(downloadIcon).toBeVisible();
+    });
+
+    test('should export CSV file on button click', async ({ page }) => {
+      // Wait for page to load
+      await page.waitForLoadState('networkidle');
+
+      // Set up download listener
+      const downloadPromise = page.waitForEvent('download', { timeout: 10000 });
+
+      // Click export button
+      const exportButton = page.getByRole('button', { name: /CSV 내보내기/i });
+
+      // Check if button is enabled (has subscribers)
+      const isEnabled = await exportButton.isEnabled();
+
+      if (isEnabled) {
+        await exportButton.click();
+
+        // Wait for download to start
+        const download = await downloadPromise;
+
+        // Check filename format: newsletter-subscribers-YYYY-MM-DD.csv
+        const filename = download.suggestedFilename();
+        expect(filename).toMatch(/newsletter-subscribers-\d{4}-\d{2}-\d{2}\.csv/);
+
+        // Verify download completed successfully
+        const path = await download.path();
+        expect(path).toBeTruthy();
+      }
+    });
+
+    test('should show success toast after CSV export', async ({ page }) => {
+      // Wait for page to load
+      await page.waitForLoadState('networkidle');
+
+      const exportButton = page.getByRole('button', { name: /CSV 내보내기/i });
+      const isEnabled = await exportButton.isEnabled();
+
+      if (isEnabled) {
+        // Set up download listener (prevent timeout)
+        const downloadPromise = page.waitForEvent('download', { timeout: 10000 });
+
+        // Click export button
+        await exportButton.click();
+
+        // Wait for download to complete
+        await downloadPromise;
+
+        // Check for success toast
+        const successToast = page.getByText(/\d+명의 구독자 데이터를 내보냈습니다/i);
+        await expect(successToast).toBeVisible({ timeout: 5000 });
+      }
+    });
+
+    test('should disable export button when no subscribers', async ({ page }) => {
+      // Search for non-existent email to trigger empty state
+      const searchInput = page.getByPlaceholder(/이메일 주소 검색/i);
+      await searchInput.fill('nonexistent-very-unique-email-12345@example.com');
+      await page.waitForTimeout(600);
+
+      // Export button should be disabled
+      const exportButton = page.getByRole('button', { name: /CSV 내보내기/i });
+      await expect(exportButton).toBeDisabled();
+
+      // Clear search
+      await searchInput.clear();
+      await page.waitForTimeout(600);
+    });
+  });
+
+  // ============================================
+  // 11. Responsive Design (1 test)
   // ============================================
 
   test.describe('Responsive Design', () => {

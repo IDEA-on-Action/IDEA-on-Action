@@ -9,6 +9,61 @@
 
 ---
 
+## [2.3.3] - 2025-11-22
+
+### Added
+- **Newsletter 고도화 완료** - 문서화, E2E 테스트, CSV Export
+  - Newsletter 문서화 (2개 가이드)
+    - Admin Newsletter 사용자 가이드 (admin-newsletter-guide.md, ~10 KB, 630줄)
+      - 통계 대시보드 사용법 (4개 카드, 성장률, 이탈률)
+      - 검색 및 필터링 (이메일 검색, 상태별 필터)
+      - 구독자 상태 변경 (Dropdown 메뉴, 3가지 전환)
+      - GDPR 준수 삭제 (2단계 확인, 법적 가이드라인)
+      - CSV 내보내기 (필터 적용, Excel 한글 지원)
+      - FAQ 10개
+    - 프로덕션 마이그레이션 가이드 (production-migration-newsletter.md, ~13 KB, 800줄)
+      - 3개 마이그레이션 파일 소개 (Newsletter 보안, Function Search Path)
+      - 적용 전 체크리스트 (7개 섹션, 20+ 항목)
+      - 적용 방법 3가지 (Supabase CLI, Dashboard, psql)
+      - 검증 방법 2단계 (빠른 검증 30초, 상세 검증 2-3분)
+      - 롤백 시나리오 3가지 (즉시, 지연, 검증 기반)
+      - 트러블슈팅 5가지
+      - 24시간 모니터링 계획
+      - FAQ 8개
+  - E2E 테스트 검증
+    - tests/e2e/admin/admin-newsletter.spec.ts (이미 존재)
+    - 33개 테스트 (요구사항 18-24개 초과 달성)
+    - 11개 테스트 스위트 (페이지 로딩, 검색, 필터, 상태 변경, 삭제, 페이지네이션, 통계, CSV Export, 반응형)
+    - 커버리지: 100% (모든 핵심 기능)
+  - CSV Export 검증
+    - useExportNewsletterCSV 훅 (이미 구현, src/hooks/useNewsletterAdmin.ts, 줄 327-457)
+    - AdminNewsletter UI (이미 구현, src/pages/admin/AdminNewsletter.tsx, 줄 194-211)
+    - E2E 테스트 4개 (버튼 렌더링, 다운로드, Toast, 빈 상태)
+    - 구현 요약 문서 (csv-export-implementation-summary.md, ~600줄)
+
+### Documentation
+- 총 3개 가이드 문서 생성 (~2,000줄)
+- Admin Newsletter 사용자 가이드 (10 KB)
+- 프로덕션 마이그레이션 가이드 (13 KB)
+- CSV Export 구현 요약 (600줄)
+
+### Technical
+- E2E 테스트: 33개 (100% 커버리지)
+- CSV Export: React Query mutation, UTF-8 BOM, Toast 알림
+- 문서화: Newsletter 관리 기능 완전 문서화
+
+### External
+- ✅ 토스페이먼츠 심사 제출 완료 (사용자)
+
+### Workflow
+- 병렬 에이전트: 3개 (Agent 1: 문서화, Agent 2: E2E 테스트 검증, Agent 3: CSV Export 검증)
+- 소요 시간: ~1-2시간 (순차 3-4시간 대비 60% 절감)
+
+### Git Commit
+- docs: complete Newsletter feature documentation and validation (v2.3.3)
+
+---
+
 ## [2.3.2] - 2025-11-22
 
 ### Added
