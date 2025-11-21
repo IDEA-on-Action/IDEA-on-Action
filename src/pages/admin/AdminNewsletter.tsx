@@ -20,6 +20,7 @@ import {
   useNewsletterAdminStats,
   useUpdateSubscriberStatus,
   useDeleteSubscriber,
+  useExportNewsletterCSV,
 } from '@/hooks/useNewsletterAdmin';
 import type {
   NewsletterSubscriber,
@@ -90,6 +91,7 @@ import {
   AlertTriangle,
   ChevronLeft,
   ChevronRight,
+  Download,
 } from 'lucide-react';
 
 /**
@@ -133,6 +135,7 @@ export default function AdminNewsletter() {
 
   const updateStatus = useUpdateSubscriberStatus();
   const deleteSubscriber = useDeleteSubscriber();
+  const exportCSV = useExportNewsletterCSV();
 
   // ============================================
   // Handlers
@@ -187,6 +190,25 @@ export default function AdminNewsletter() {
             뉴스레터 구독자를 관리하고 통계를 확인하세요
           </p>
         </div>
+        
+        {/* Export Button */}
+        <Button
+          variant="outline"
+          onClick={() => exportCSV.mutateAsync({ status: statusFilter, search: search || undefined })}
+          disabled={exportCSV.isPending || subscribers.length === 0}
+        >
+          {exportCSV.isPending ? (
+            <>
+              <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+              내보내는 중...
+            </>
+          ) : (
+            <>
+              <Download className="mr-2 h-4 w-4" />
+              CSV 내보내기
+            </>
+          )}
+        </Button>
       </div>
 
       {/* Stats Cards */}
