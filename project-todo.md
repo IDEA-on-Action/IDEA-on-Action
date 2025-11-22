@@ -2,15 +2,41 @@
 
 > 프로젝트 작업 목록 및 진행 상황 관리
 
-**마지막 업데이트**: 2025-11-22 24:00 UTC
-**현재 Phase**: ✅ Version 2.3.4 완료 (Newsletter 날짜 필터)
-**완료된 항목**: DateRangePicker 컴포넌트, AdminNewsletter 통합, E2E 테스트, 문서화, 빌드 검증
-**프로젝트 버전**: 2.3.4 (Newsletter 날짜 필터 완성)
+**마지막 업데이트**: 2025-11-22
+**현재 Phase**: ✅ Version 2.4.0 완료 (Minu 브랜드 전환)
+**완료된 항목**: COMPASS → Minu 리브랜딩, MCP 서버 연동 준비, DB 마이그레이션
+**프로젝트 버전**: 2.4.0 (Minu 브랜드 전환)
 **프로덕션**: https://www.ideaonaction.ai
 
 ---
 
 ## ✅ 최근 완료 (2025-11-22)
+
+### 🎨 Minu 브랜드 전환 ✅ (100% 완료)
+
+**목표**: COMPASS → Minu 시리즈 리브랜딩
+**시작일**: 2025-11-22
+**완료일**: 2025-11-22
+**현재 상태**: ✅ 완료
+
+#### 완료된 작업
+- [x] **브랜드 리네이밍**
+  - Compass Navigator → **Minu Find** (사업기회 탐색)
+  - Compass Cartographer → **Minu Frame** (문제정의 & RFP)
+  - Compass Captain → **Minu Build** (프로젝트 진행)
+  - Compass Harbor → **Minu Keep** (운영/유지보수)
+- [x] **파일 리네이밍** (compass-* → minu-*)
+- [x] **새 페이지 생성** (MinuPlatformPage, MinuFindPage)
+- [x] **MCP 서버 연동 준비**
+- [x] **DB 마이그레이션 파일 추가**
+- [x] **E2E 테스트 추가**
+- [x] **브랜드 가이드 문서 작성**
+
+#### 통계
+- 파일 변경: 21개 (+2,004 / -2,934 라인)
+- Git 커밋: d566958
+
+---
 
 ### 📅 Newsletter CSV Export 날짜 필터 ✅ (100% 완료)
 

@@ -9,6 +9,41 @@
 
 ---
 
+## [2.4.0] - 2025-11-22
+
+### 🎨 Branding
+- **COMPASS → Minu 브랜드 전환** 완료
+  - Compass Navigator → **Minu Find** (사업기회 탐색)
+  - Compass Cartographer → **Minu Frame** (문제정의 & RFP)
+  - Compass Captain → **Minu Build** (프로젝트 진행)
+  - Compass Harbor → **Minu Keep** (운영/유지보수)
+
+### ✨ Added
+- `MinuPlatformPage.tsx`: Minu 플랫폼 메인 페이지
+- `MinuFindPage.tsx`: Minu Find 서비스 페이지
+- `docs/brand/minu-brand-guide.md`: 브랜드 가이드 문서
+- `tests/e2e/services/minu-platform.spec.ts`: E2E 테스트
+
+### 🔄 Changed
+- 서비스 데이터 파일 리네임 (compass-* → minu-*)
+  - `minu-find.ts`, `minu-frame.ts`, `minu-build.ts`, `minu-keep.ts`
+- MCP 서버 연동 준비 (`mcp-server/src/index.ts`)
+- App.tsx 라우트 업데이트
+
+### 🗃️ Database
+- `20251122000001_rename_compass_to_minu.sql`: DB 마이그레이션 추가
+
+### 📦 Stats
+- 파일 변경: 21개 (+2,004 / -2,934 라인)
+- 신규 생성: 6개
+- 리네임: 4개
+- 수정: 11개
+
+### Git Commit
+- d566958: feat(minu): COMPASS → Minu 브랜드 전환
+
+---
+
 ## [2.3.4] - 2025-11-22
 
 ### ✨ Added
