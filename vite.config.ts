@@ -265,14 +265,17 @@ export default defineConfig(({ mode }) => ({
             return 'vendor-markdown';
           }
 
-          // 3. TipTap Editor - Only used in admin content creation
-          if (
-            id.includes('node_modules/@tiptap') ||
-            id.includes('node_modules/prosemirror') ||
-            id.includes('node_modules/lowlight')
-          ) {
-            return 'vendor-editor';
-          }
+          // 3. TipTap Editor - DISABLED due to React dependency issues
+          // TipTap/Prosemirror uses React's useSyncExternalStore internally
+          // which causes "Cannot read properties of undefined" errors
+          // when separated into their own chunk.
+          // if (
+          //   id.includes('node_modules/@tiptap') ||
+          //   id.includes('node_modules/prosemirror') ||
+          //   id.includes('node_modules/lowlight')
+          // ) {
+          //   return 'vendor-editor';
+          // }
 
           // 4. Sentry - Error tracking (can load after initial paint)
           if (id.includes('node_modules/@sentry')) {
@@ -295,11 +298,10 @@ export default defineConfig(({ mode }) => ({
           //
           // Expected Results:
           // - vendor-markdown: ~50 kB gzip (lazy loaded)
-          // - vendor-editor:   ~80 kB gzip (lazy loaded)
           // - vendor-sentry:   ~30 kB gzip (lazy loaded)
           // - vendor-auth:     ~20 kB gzip (lazy loaded)
           // - pages-admin:     ~800 kB gzip (lazy loaded)
-          // - index.js:        ~400 kB gzip (initial load, includes recharts)
+          // - index.js:        ~500 kB gzip (initial, includes recharts+tiptap)
           // ============================================================
 
           // Admin Routes (23 pages + 4 components)
