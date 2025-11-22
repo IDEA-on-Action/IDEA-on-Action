@@ -11,13 +11,13 @@ const ANIMATION_DELAYS = {
 } as const;
 
 const HERO_CONTENT = {
-  BADGE_TEXT: "AI 기반 워킹 솔루션",
-  MAIN_TITLE: "생각과 행동으로",
-  GRADIENT_TITLE: "미래를 설계하다",
+  BADGE_TEXT: "아이디어 실험실 & 프로덕트 스튜디오",
+  MAIN_TITLE: "생각을 멈추지 않고,",
+  GRADIENT_TITLE: "행동으로 옮깁니다",
   SLOGAN: "KEEP AWAKE, LIVE PASSIONATE",
-  DESCRIPTION: "IDEA on Action은 AI 기반의 혁신적인 워킹 솔루션으로\n비즈니스의 생산성과 효율성을 극대화합니다",
-  CTA_PRIMARY: "무료로 시작하기",
-  CTA_SECONDARY: "더 알아보기"
+  DESCRIPTION: "아이디어 실험실이자 커뮤니티형 프로덕트 스튜디오로,\n투명한 개발 과정과 함께 혁신적인 프로젝트를 만들어갑니다",
+  CTA_PRIMARY: "서비스 살펴보기",
+  CTA_SECONDARY: "프로젝트 보기"
 } as const;
 
 interface HeroProps {
@@ -31,14 +31,8 @@ const Hero = ({ className = "" }: HeroProps) => {
     navigate('/services');
   };
 
-  const handleLearnMore = () => {
-    // TODO(stagewise): Replace with actual scroll to features section
-    const featuresSection = document.getElementById('features');
-    if (featuresSection) {
-      featuresSection.scrollIntoView({ behavior: 'smooth' });
-    } else {
-      navigate('/services');
-    }
+  const handleViewProjects = () => {
+    navigate('/portfolio');
   };
   return (
     <section className={`relative min-h-screen flex items-center justify-center overflow-hidden pt-16 ${className}`}>
@@ -103,19 +97,21 @@ const Hero = ({ className = "" }: HeroProps) => {
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Button 
-              size="lg" 
+            <Button
+              size="lg"
               className="bg-gradient-primary hover:opacity-90 text-lg px-8 shadow-glow group"
-              aria-label="무료로 시작하기"
+              aria-label="서비스 살펴보기"
+              onClick={handleStartFree}
             >
               {HERO_CONTENT.CTA_PRIMARY}
               <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" aria-hidden="true" />
             </Button>
-            <Button 
-              size="lg" 
-              variant="outline" 
+            <Button
+              size="lg"
+              variant="outline"
               className="text-lg px-8 border-primary/30 hover:bg-primary/10"
-              aria-label="더 알아보기"
+              aria-label="프로젝트 보기"
+              onClick={handleViewProjects}
             >
               {HERO_CONTENT.CTA_SECONDARY}
             </Button>

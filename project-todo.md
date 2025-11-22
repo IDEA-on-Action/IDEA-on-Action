@@ -1,12 +1,41 @@
-# VIBE WORKING 프로젝트 TODO
+# IDEA on Action 프로젝트 TODO
 
 > 프로젝트 작업 목록 및 진행 상황 관리
 
 **마지막 업데이트**: 2025-11-23
-**현재 Phase**: ✅ Version 2.5.0 완료 (CMS Phase 5 - 리치 텍스트 에디터 & 미디어 고도화)
-**완료된 항목**: CMS Phase 5 완료, Tiptap 에디터 통합, 미디어 라이브러리 고도화
-**프로젝트 버전**: 2.5.0 (CMS Phase 5)
+**현재 Phase**: 📋 Version 2.6.0 기획 (사이트 재구조화)
+**다음 단계**: Sprint 1 - 메뉴 재구성 (예정: 2025-11-24~30)
+**프로젝트 버전**: 2.6.0 (사이트 재구조화)
 **프로덕션**: https://www.ideaonaction.ai
+
+---
+
+## 🚀 진행 예정: 사이트 재구조화 (Version 2.6.0)
+
+**목표**: 7개 메뉴 → 5개 메뉴 단순화, 회사 정체성 명확화, 실시간 동기화
+**총 기간**: 5주 (4 Phase)
+**SDD 문서**: [spec/site-restructure/](spec/site-restructure/) | [plan/site-restructure/](plan/site-restructure/) | [tasks/site-restructure/](tasks/site-restructure/)
+
+### 새로운 메뉴 구조
+| 메뉴 | 역할 | URL |
+|------|------|-----|
+| 홈 | 첫인상 + 핵심 가치 전달 | `/` |
+| 서비스 | 우리가 파는 것 (가격 포함) | `/services` |
+| 프로젝트 | 우리가 만드는 것 (실시간 현황) | `/projects` |
+| 이야기 | 우리가 나누는 것 (블로그/뉴스레터) | `/stories` |
+| 함께하기 | 연결 창구 (문의/채용) | `/connect` |
+
+### Sprint 계획
+- [ ] **Sprint 1** (1주): 메뉴 재구성, 리디렉션, 홈 페이지 재구성
+- [ ] **Sprint 2** (1주): 프로젝트 페이지 통합 (포트폴리오+로드맵+실험실)
+- [ ] **Sprint 3** (1주): 이야기 섹션 (블로그/뉴스레터/Changelog) + 함께하기
+- [ ] **Sprint 4** (2주): GitHub 연동, 진척률 자동화, 릴리즈 알림
+
+### 핵심 기능
+1. **프로젝트 진척률 실시간 표시**: GitHub 연동, 마일스톤 기반
+2. **Changelog 페이지**: 릴리즈 노트 자동/수동 등록
+3. **뉴스레터 아카이브**: 발송된 뉴스레터 웹 공개
+4. **GitHub 릴리즈 감지**: 자동 Changelog 업데이트
 
 ---
 

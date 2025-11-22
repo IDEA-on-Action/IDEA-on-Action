@@ -39,13 +39,10 @@ const BRAND_INFO = {
 
 const NAVIGATION_ITEMS: NavigationItem[] = [
   { label: "홈", href: "/" },
-  { label: "회사소개", href: "/about" },
   { label: "서비스", href: "/services" },
-  { label: "로드맵", href: "/roadmap" },
-  { label: "포트폴리오", href: "/portfolio" },
-  { label: "실험실", href: "/lab" },
-  // { label: "블로그", href: "/blog" }, // 임시 숨김 처리 - 수정 완료 시 주석 해제
-  { label: "협업하기", href: "/work-with-us" }
+  { label: "프로젝트", href: "/projects" },
+  { label: "이야기", href: "/stories" },
+  { label: "함께하기", href: "/connect" }
 ];
 
 const Header = ({ className = "" }: HeaderProps) => {

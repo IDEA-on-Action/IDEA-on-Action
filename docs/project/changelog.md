@@ -1,11 +1,81 @@
 # Changelog
 
-> VIBE WORKING 프로젝트 변경 로그
+> IDEA on Action 프로젝트 변경 로그
 
 모든 주요 변경 사항이 이 파일에 문서화됩니다.
 
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.0.0/)를 기반으로 하며,
 버전 관리는 [Semantic Versioning](https://semver.org/lang/ko/)을 따릅니다.
+
+---
+
+## [2.6.0] - 2025-11-23 (기획 완료)
+
+### 📋 사이트 재구조화 기획
+
+#### 문제 정의
+- 7개 메뉴 역할 불명확 (홈, 회사소개, 서비스, 로드맵, 포트폴리오, 실험실, 협업하기)
+- 방문자가 3초 안에 회사 정체성 파악 어려움
+- 프로젝트 진행상황 실시간 반영 안됨
+- 블로그 숨김 처리로 소통 채널 부재
+
+#### 해결 방안
+- **5개 메뉴로 단순화**:
+  - 홈 (`/`) - 첫인상 + 핵심 가치 전달
+  - 서비스 (`/services`) - 우리가 파는 것 (가격 포함)
+  - 프로젝트 (`/projects`) - 우리가 만드는 것 (실시간 현황)
+  - 이야기 (`/stories`) - 우리가 나누는 것 (블로그/뉴스레터)
+  - 함께하기 (`/connect`) - 연결 창구
+
+#### SDD 문서 작성 완료
+- **Spec**: `spec/site-restructure/` (requirements, acceptance-criteria, constraints)
+- **Plan**: `plan/site-restructure/` (architecture, implementation-strategy)
+- **Tasks**: `tasks/site-restructure/` (sprint-1 ~ sprint-4)
+
+#### Sprint 계획 (5주)
+- Sprint 1: 메뉴 재구성, 리디렉션, 홈 페이지 재구성 (1주)
+- Sprint 2: 프로젝트 페이지 통합 (1주)
+- Sprint 3: 이야기 & 함께하기 섹션 (1주)
+- Sprint 4: GitHub 연동, 실시간 동기화 (2주)
+
+#### 핵심 신규 기능 (예정)
+- 프로젝트 진척률 실시간 표시 (GitHub 연동)
+- Changelog 페이지 (릴리즈 노트)
+- 뉴스레터 아카이브 (발송된 뉴스레터 웹 공개)
+- GitHub 릴리즈 자동 감지
+
+### 📦 Stats
+- 신규 문서: 9개 (spec 3, plan 2, tasks 4)
+- 예상 신규 페이지: 8개 (허브 4, 상세 4)
+- 예상 신규 테이블: 2개 (changelog_entries, newsletter_archive)
+
+---
+
+## [2.5.0] - 2025-11-23
+
+### 🎨 CMS Phase 5: 리치 텍스트 에디터 & 미디어 고도화
+
+#### Tiptap 에디터 통합
+- 고급 Extensions 4개 구현
+  - `ImageExtension` (리사이즈, 정렬, alt text)
+  - `CodeBlockExtension` (9개 언어, 줄 번호, 복사)
+  - `MarkdownExtension` (단축키, 자동 변환)
+  - `LinkExtension` (URL 검증, XSS 방지)
+- `ImageInsertDialog`, `CodeBlockDialog` 다이얼로그
+- `FormRichTextEditor` React Hook Form 래퍼
+- Admin 페이지 통합 (Portfolio, Lab, Blog)
+
+#### 미디어 라이브러리 고도화
+- Storage bucket 마이그레이션
+- `useMediaUpload` 훅 (단일/다중 업로드, 진행률)
+- `useMediaList` 훅 (페이지네이션, 무한 스크롤)
+- `MediaFilter` 컴포넌트 (검색, 타입, 날짜, 정렬)
+- WCAG 2.1 AA 접근성 개선
+
+### 📦 Stats
+- 신규 파일: 12개
+- 수정 파일: 9개
+- 마이그레이션: 1개
 
 ---
 

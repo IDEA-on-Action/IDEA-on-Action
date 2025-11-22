@@ -78,20 +78,20 @@ interface Project {
 async function generateSitemap() {
   console.log('🔄 Generating sitemap.xml...')
 
-  // Static pages (Version 2.0 updated)
+  // Static pages (Version 2.5 - Site Restructure)
+  // 7개 메뉴 → 5개 메뉴로 재구성 (홈, 서비스, 프로젝트, 이야기, 함께하기)
   const staticPages = [
     { url: '', changefreq: 'daily', priority: '1.0' },
-    { url: '/about', changefreq: 'weekly', priority: '0.9' },
-    { url: '/roadmap', changefreq: 'weekly', priority: '0.9' },
-    { url: '/portfolio', changefreq: 'weekly', priority: '0.9' },
-    { url: '/now', changefreq: 'daily', priority: '0.9' },
-    { url: '/lab', changefreq: 'weekly', priority: '0.8' },
-    { url: '/community', changefreq: 'daily', priority: '0.8' },
-    { url: '/work-with-us', changefreq: 'monthly', priority: '0.8' },
-    { url: '/status', changefreq: 'daily', priority: '0.7' },
     { url: '/services', changefreq: 'daily', priority: '0.9' },
-    { url: '/blog', changefreq: 'daily', priority: '0.9' },
-    { url: '/notices', changefreq: 'daily', priority: '0.8' },
+    { url: '/projects', changefreq: 'weekly', priority: '0.9' },
+    { url: '/stories', changefreq: 'weekly', priority: '0.9' },
+    { url: '/connect', changefreq: 'weekly', priority: '0.8' },
+    { url: '/stories/blog', changefreq: 'daily', priority: '0.9' },
+    { url: '/stories/notices', changefreq: 'daily', priority: '0.8' },
+    { url: '/connect/inquiry', changefreq: 'monthly', priority: '0.8' },
+    { url: '/connect/community', changefreq: 'daily', priority: '0.8' },
+    { url: '/now', changefreq: 'daily', priority: '0.9' },
+    { url: '/status', changefreq: 'daily', priority: '0.7' },
   ]
 
   // Fetch blog posts
@@ -134,11 +134,11 @@ async function generateSitemap() {
     xml += '  </url>\n'
   })
 
-  // Blog posts
+  // Blog posts (새 경로: /stories/blog/:slug)
   if (blogPosts) {
     blogPosts.forEach((post: BlogPost) => {
       xml += '  <url>\n'
-      xml += `    <loc>${SITE_URL}/blog/${post.slug}</loc>\n`
+      xml += `    <loc>${SITE_URL}/stories/blog/${post.slug}</loc>\n`
       xml += `    <lastmod>${new Date(post.updated_at).toISOString().split('T')[0]}</lastmod>\n`
       xml += '    <changefreq>weekly</changefreq>\n'
       xml += '    <priority>0.7</priority>\n'
@@ -160,11 +160,11 @@ async function generateSitemap() {
       })
   }
 
-  // Projects (Portfolio)
+  // Projects (새 경로: /projects/:id)
   if (projects) {
     projects.forEach((project: Project) => {
       xml += '  <url>\n'
-      xml += `    <loc>${SITE_URL}/portfolio/${project.id}</loc>\n`
+      xml += `    <loc>${SITE_URL}/projects/${project.id}</loc>\n`
       xml += `    <lastmod>${new Date(project.updated_at).toISOString().split('T')[0]}</lastmod>\n`
       xml += '    <changefreq>weekly</changefreq>\n'
       xml += '    <priority>0.7</priority>\n'

@@ -3,7 +3,7 @@
 > Claude와의 개발 협업을 위한 프로젝트 핵심 문서
 
 **마지막 업데이트**: 2025-11-23
-**현재 버전**: 2.5.0 (CMS Phase 5 - 리치 텍스트 에디터 & 미디어 고도화)
+**현재 버전**: 2.6.0 (사이트 재구조화 기획)
 **상태**: ✅ Production Ready | 🔒 보안 점수 98/100 | 🎯 토스페이먼츠 심사 제출 완료
 **개발 방법론**: SDD (Spec-Driven Development) + MCP (Model Context Protocol) Integration
 
@@ -12,6 +12,14 @@
 ## 📋 최신 업데이트
 
 ### 2025-11-23 (오늘)
+- 📋 **사이트 재구조화 기획 완료** - SDD 방법론 적용
+  - **문제**: 7개 메뉴 역할 불명확, 회사 정체성 전달 실패, 실시간 동기화 부재
+  - **해결**: 5개 메뉴로 단순화 (홈/서비스/프로젝트/이야기/함께하기)
+  - **스펙**: [spec/site-restructure/](spec/site-restructure/)
+  - **플랜**: [plan/site-restructure/](plan/site-restructure/)
+  - **태스크**: [tasks/site-restructure/](tasks/site-restructure/) (Sprint 1-4)
+  - **예상 기간**: 5주 (Phase 1-4)
+
 - ✅ **CMS Phase 5 완료** - 리치 텍스트 에디터 & 미디어 라이브러리 고도화 (병렬 6개 에이전트)
   - **Sprint 1: 미디어 라이브러리 고도화**
     - Storage bucket 마이그레이션 (`20251123000100_create_media_storage_bucket.sql`)
@@ -217,6 +225,12 @@ SDD 접근: 명세 중심 → 코드는 명세의 구현체
 - **모든 출력은 한글로 작성**: 코드 주석, 커밋 메시지, 문서, 대화 응답 모두 한글 사용
 - **예외**: 코드 변수명, 함수명, 기술 용어는 영문 유지
 - **번역 불필요**: 영문 에러 메시지나 로그는 그대로 인용 가능
+
+### 날짜/시간 원칙
+- **기준 시간대**: KST (Korea Standard Time, UTC+9)
+- **날짜 표기**: YYYY-MM-DD 형식 (예: 2025-11-23)
+- **문서 업데이트 시 현지 날짜 확인 필수**
+- **마이그레이션 파일명**: YYYYMMDDHHMMSS 형식 (UTC 기준)
 
 ### SOT (Skeleton of Thought) + SDD 통합
 

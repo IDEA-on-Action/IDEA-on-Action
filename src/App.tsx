@@ -5,7 +5,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 // Force vendor-router chunk regeneration - 2025-11-16
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import { AdminRoute } from "./components/auth/AdminRoute";
 import { CartDrawer } from "./components/cart";
@@ -129,6 +129,11 @@ const CaptainPage = lazy(() => import("./pages/services-platform/CaptainPage"));
 const HarborPage = lazy(() => import("./pages/services-platform/HarborPage"));
 const PricingPage = lazy(() => import("./pages/services-platform/PricingPage"));
 
+// Lazy load (Code Split) - Hub pages (신규 IA 구조)
+const ProjectsHub = lazy(() => import("./pages/projects/ProjectsHub"));
+const StoriesHub = lazy(() => import("./pages/stories/StoriesHub"));
+const ConnectHub = lazy(() => import("./pages/connect/ConnectHub"));
+
 // Lazy load (Code Split) - Legal pages
 const Terms = lazy(() => import("./pages/Terms"));
 const Privacy = lazy(() => import("./pages/Privacy"));
@@ -210,9 +215,7 @@ const App = () => (
                 <Route path="/services" element={<Services />} />
                 <Route path="/services/:id" element={<ServiceDetail />} /> {/* :id is treated as slug */}
                 <Route path="/search" element={<Search />} />
-                <Route path="/blog" element={<Blog />} />
-                <Route path="/blog/:slug" element={<BlogPost />} />
-                <Route path="/notices" element={<Notices />} />
+                {/* /blog, /blog/:slug, /notices는 리디렉션 섹션에서 처리 */}
                 <Route path="/checkout" element={<Checkout />} />
                 <Route path="/checkout/payment" element={<Payment />} />
                 <Route path="/checkout/payment/kakao/success" element={<PaymentSuccess />} />
@@ -235,15 +238,33 @@ const App = () => (
                 <Route path="/2fa/verify" element={<TwoFactorVerify />} />
                 <Route path="/forbidden" element={<Forbidden />} />
 
-                {/* Version 2.0 Routes */}
-                <Route path="/about" element={<About />} />
-                <Route path="/roadmap" element={<Roadmap />} />
-                <Route path="/portfolio" element={<Portfolio />} />
-                <Route path="/portfolio/:slug" element={<PortfolioDetail />} />
+                {/* Redirects - 기존 URL 호환성 (신규 IA 구조로 리디렉션) */}
+                <Route path="/about" element={<Navigate to="/" replace />} />
+                <Route path="/roadmap" element={<Navigate to="/projects?tab=roadmap" replace />} />
+                <Route path="/portfolio" element={<Navigate to="/projects" replace />} />
+                <Route path="/lab" element={<Navigate to="/projects?tab=lab" replace />} />
+                <Route path="/work-with-us" element={<Navigate to="/connect/inquiry" replace />} />
+                <Route path="/blog" element={<Navigate to="/stories/blog" replace />} />
+                <Route path="/notices" element={<Navigate to="/stories/notices" replace />} />
+                <Route path="/community" element={<Navigate to="/connect/community" replace />} />
+
+                {/* Projects Hub - 신규 IA */}
+                <Route path="/projects" element={<ProjectsHub />} />
+                <Route path="/projects/:slug" element={<PortfolioDetail />} />
+
+                {/* Stories Hub - 신규 IA */}
+                <Route path="/stories" element={<StoriesHub />} />
+                <Route path="/stories/blog" element={<Blog />} />
+                <Route path="/stories/blog/:slug" element={<BlogPost />} />
+                <Route path="/stories/notices" element={<Notices />} />
+
+                {/* Connect Hub - 신규 IA */}
+                <Route path="/connect" element={<ConnectHub />} />
+                <Route path="/connect/inquiry" element={<WorkWithUs />} />
+                <Route path="/connect/community" element={<Community />} />
+
+                {/* Version 2.0 Routes - 유지되는 라우트 */}
                 <Route path="/now" element={<Now />} />
-                <Route path="/lab" element={<Lab />} />
-                <Route path="/community" element={<Community />} />
-                <Route path="/work-with-us" element={<WorkWithUs />} />
                 <Route path="/status" element={<Status />} />
 
                 {/* Services Platform Routes */}
