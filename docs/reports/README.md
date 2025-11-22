@@ -39,6 +39,7 @@
 ## 최근 보고서
 
 ### Performance
+- `chunk-splitting-issues-2025-11-23.md` - Vite 청크 분리 시 React 의존성 문제 해결 ⭐ 신규
 - `admin-chunk-separation-report.md` - Admin 코드 분리 (번들 38% 감소)
 
 ### Refactoring
