@@ -8,10 +8,64 @@
  * - 에러 핸들링 통합
  */
 
-import { useQuery, useMutation, UseQueryOptions, UseMutationOptions, QueryKey } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient, UseQueryOptions, UseMutationOptions, QueryKey, QueryClient } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
 import { handleSupabaseError, handleApiError } from './errors'
 import type { PostgrestError } from '@supabase/supabase-js'
+
+// ===================================================================
+// Optimized Cache Times (TASK-078)
+// ===================================================================
+
+/**
+ * 최적화된 캐시 시간 설정
+ *
+ * staleTime: 데이터가 "신선한" 상태로 유지되는 시간
+ * gcTime: 캐시에서 데이터가 제거되기까지의 시간 (이전 cacheTime)
+ *
+ * 권장 설정:
+ * - 자주 변경되는 데이터: short (30초-1분)
+ * - 일반 데이터: default (5분)
+ * - 거의 변경되지 않는 데이터: long (10분-30분)
+ */
+export const cacheConfig = {
+  // 짧은 캐시 (실시간성 필요: 알림, 채팅)
+  short: {
+    staleTime: 30 * 1000, // 30초
+    gcTime: 2 * 60 * 1000, // 2분
+  },
+  // 기본 캐시 (일반 데이터: 목록, 상세)
+  default: {
+    staleTime: 5 * 60 * 1000, // 5분
+    gcTime: 10 * 60 * 1000, // 10분
+  },
+  // 긴 캐시 (거의 변경되지 않음: 서비스 정보, 카테고리)
+  long: {
+    staleTime: 10 * 60 * 1000, // 10분
+    gcTime: 30 * 60 * 1000, // 30분
+  },
+  // 정적 데이터 (메타 정보, 설정)
+  static: {
+    staleTime: 30 * 60 * 1000, // 30분
+    gcTime: 60 * 60 * 1000, // 1시간
+  },
+}
+
+/**
+ * 도메인별 캐시 설정
+ */
+export const domainCacheConfig = {
+  services: cacheConfig.long, // 서비스 정보는 자주 변경되지 않음
+  servicePackages: cacheConfig.long,
+  serviceCategories: cacheConfig.static,
+  subscriptionPlans: cacheConfig.long,
+  blogPosts: cacheConfig.default,
+  notices: cacheConfig.default,
+  notifications: cacheConfig.short, // 알림은 실시간성 필요
+  orders: cacheConfig.default,
+  cart: cacheConfig.short,
+  profile: cacheConfig.default,
+}
 
 // ===================================================================
 // Query Key Factories
@@ -239,3 +293,128 @@ export function createPaginatedQueryKey(
   return [baseKey, page, limit].filter(Boolean) as QueryKey
 }
 
+// ===================================================================
+// Prefetching Utilities (TASK-078)
+// ===================================================================
+
+/**
+ * 서비스 상세 데이터 프리페치
+ *
+ * 서비스 목록 페이지에서 상세 페이지 데이터를 미리 로드
+ *
+ * @example
+ * ```tsx
+ * const queryClient = useQueryClient();
+ *
+ * // 마우스 호버 시 프리페치
+ * <ServiceCard
+ *   onMouseEnter={() => prefetchServiceDetail(queryClient, service.slug)}
+ * />
+ * ```
+ */
+export async function prefetchServiceDetail(
+  queryClient: QueryClient,
+  slug: string
+) {
+  await queryClient.prefetchQuery({
+    queryKey: ['services-platform', 'detail-slug', slug],
+    queryFn: async () => {
+      const { data: service, error: serviceError } = await supabase
+        .from('services')
+        .select('*')
+        .eq('slug', slug)
+        .maybeSingle()
+
+      if (serviceError) throw serviceError
+      if (!service) return null
+
+      // 패키지와 플랜도 함께 로드
+      const [packagesResult, plansResult] = await Promise.all([
+        supabase
+          .from('service_packages')
+          .select('*')
+          .eq('service_id', service.id)
+          .order('display_order', { ascending: true }),
+        supabase
+          .from('subscription_plans')
+          .select('*')
+          .eq('service_id', service.id)
+          .order('display_order', { ascending: true }),
+      ])
+
+      return {
+        ...service,
+        packages: packagesResult.data || [],
+        plans: plansResult.data || [],
+      }
+    },
+    ...domainCacheConfig.services,
+  })
+}
+
+/**
+ * 블로그 게시물 상세 데이터 프리페치
+ */
+export async function prefetchBlogPost(
+  queryClient: QueryClient,
+  slug: string
+) {
+  await queryClient.prefetchQuery({
+    queryKey: ['blogPosts', 'slug', slug],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('blog_posts')
+        .select('*, author:profiles(full_name, avatar_url)')
+        .eq('slug', slug)
+        .eq('status', 'published')
+        .maybeSingle()
+
+      if (error) throw error
+      return data
+    },
+    ...domainCacheConfig.blogPosts,
+  })
+}
+
+/**
+ * 프리페치 훅 - 컴포넌트에서 사용
+ */
+export function usePrefetch() {
+  const queryClient = useQueryClient()
+
+  return {
+    prefetchServiceDetail: (slug: string) =>
+      prefetchServiceDetail(queryClient, slug),
+    prefetchBlogPost: (slug: string) =>
+      prefetchBlogPost(queryClient, slug),
+  }
+}
+
+// ===================================================================
+// Query Client 기본 설정 (TASK-078)
+// ===================================================================
+
+/**
+ * React Query 기본 옵션
+ * App.tsx 또는 main.tsx에서 QueryClient 생성 시 사용
+ *
+ * @example
+ * ```tsx
+ * const queryClient = new QueryClient({
+ *   defaultOptions: defaultQueryClientOptions,
+ * });
+ * ```
+ */
+export const defaultQueryClientOptions = {
+  queries: {
+    staleTime: cacheConfig.default.staleTime,
+    gcTime: cacheConfig.default.gcTime,
+    retry: 1,
+    refetchOnWindowFocus: false, // 성능 최적화: 창 포커스 시 자동 refetch 비활성화
+    refetchOnReconnect: true,
+    refetchOnMount: true,
+  },
+  mutations: {
+    retry: 0,
+  },
+}
