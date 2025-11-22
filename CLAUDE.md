@@ -3,7 +3,7 @@
 > Claude와의 개발 협업을 위한 프로젝트 핵심 문서
 
 **마지막 업데이트**: 2025-11-23
-**현재 버전**: 2.6.0 (사이트 재구조화 기획)
+**현재 버전**: 2.6.0 (사이트 재구조화 Sprint 1 완료)
 **상태**: ✅ Production Ready | 🔒 보안 점수 98/100 | 🎯 토스페이먼츠 심사 제출 완료
 **개발 방법론**: SDD (Spec-Driven Development) + MCP (Model Context Protocol) Integration
 
@@ -12,13 +12,13 @@
 ## 📋 최신 업데이트
 
 ### 2025-11-23 (오늘)
-- 📋 **사이트 재구조화 기획 완료** - SDD 방법론 적용
-  - **문제**: 7개 메뉴 역할 불명확, 회사 정체성 전달 실패, 실시간 동기화 부재
-  - **해결**: 5개 메뉴로 단순화 (홈/서비스/프로젝트/이야기/함께하기)
-  - **스펙**: [spec/site-restructure/](spec/site-restructure/)
-  - **플랜**: [plan/site-restructure/](plan/site-restructure/)
-  - **태스크**: [tasks/site-restructure/](tasks/site-restructure/) (Sprint 1-4)
-  - **예상 기간**: 5주 (Phase 1-4)
+- ✅ **사이트 재구조화 Sprint 1 완료** - 메뉴 재구성 및 허브 페이지
+  - **메뉴**: 7개 → 5개 (홈/서비스/프로젝트/이야기/함께하기)
+  - **허브 페이지**: ProjectsHub, StoriesHub, ConnectHub 신규 생성
+  - **리디렉션**: /about→/, /roadmap→/projects?tab=roadmap 등 8개 설정
+  - **E2E 테스트**: navigation.spec.ts, redirects.spec.ts 신규 작성
+  - **SDD 문서**: spec/, plan/, tasks/ 디렉토리 구조화
+  - **빌드**: 17.45s 성공 (PWA precache 27 entries)
 
 - ✅ **CMS Phase 5 완료** - 리치 텍스트 에디터 & 미디어 라이브러리 고도화 (병렬 6개 에이전트)
   - **Sprint 1: 미디어 라이브러리 고도화**
