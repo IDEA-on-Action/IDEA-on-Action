@@ -11,13 +11,14 @@ import { AdminRoute } from "./components/auth/AdminRoute";
 import { CartDrawer } from "./components/cart";
 import { PWAInstallPrompt } from "./components/PWAInstallPrompt";
 import { PWAUpdatePrompt } from "./components/PWAUpdatePrompt";
-import { SkipToContent, KeyboardShortcuts } from "./components/a11y";
+import { SkipToContent, KeyboardShortcuts, AnnouncerProvider } from "./components/a11y";
 import { CommandPalette } from "./components/CommandPalette";
 
 // Lazy load ChatWidget (contains react-markdown dependency)
 const ChatWidget = lazy(() => import("./components/chat").then(module => ({ default: module.ChatWidget })));
 import { initSentry } from "./lib/sentry";
 import { trackPageView } from "./lib/analytics";
+import { initWebVitals } from "./lib/web-vitals";
 import * as Sentry from "@sentry/react";
 import { Analytics as VercelAnalytics } from "@vercel/analytics/react";
 
@@ -115,6 +116,10 @@ const FullstackPage = lazy(() => import("./pages/services-platform/FullstackPage
 const DesignPage = lazy(() => import("./pages/services-platform/DesignPage"));
 const OperationsPage = lazy(() => import("./pages/services-platform/OperationsPage"));
 const NavigatorPage = lazy(() => import("./pages/services-platform/NavigatorPage"));
+const COMPASSPlatformPage = lazy(() => import("./pages/services-platform/COMPASSPlatformPage"));
+const CartographerPage = lazy(() => import("./pages/services-platform/CartographerPage"));
+const CaptainPage = lazy(() => import("./pages/services-platform/CaptainPage"));
+const HarborPage = lazy(() => import("./pages/services-platform/HarborPage"));
 const PricingPage = lazy(() => import("./pages/services-platform/PricingPage"));
 
 // Lazy load (Code Split) - Legal pages
@@ -149,9 +154,14 @@ const AdminNewsletter = lazy(() => import("./pages/admin/AdminNewsletter"));
 const Analytics = lazy(() => import("./pages/admin/Analytics"));
 const Revenue = lazy(() => import("./pages/admin/Revenue"));
 const RealtimeDashboard = lazy(() => import("./pages/admin/RealtimeDashboard"));
+const AdminMedia = lazy(() => import("./pages/admin/AdminMedia"));
+const AdminIntegrations = lazy(() => import("./pages/admin/AdminIntegrations"));
 
 // Sentry 초기화
 initSentry();
+
+// Web Vitals 측정 초기화 (TASK-075)
+initWebVitals();
 
 // Google Tag Manager는 index.html에 직접 포함되어 있음
 // GTM이 자동으로 dataLayer를 초기화하고 GA4를 관리합니다
@@ -163,30 +173,31 @@ const App = () => (
     <QueryClientProvider client={queryClient}>
       <HelmetProvider>
         <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter
-            future={{
-              v7_startTransition: true,
-              v7_relativeSplatPath: true,
-            }}
-          >
-            {/* Accessibility: Skip to main content link (WCAG 2.1 - Bypass Blocks) */}
-            <SkipToContent targetId="main-content" />
+          <AnnouncerProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter
+              future={{
+                v7_startTransition: true,
+                v7_relativeSplatPath: true,
+              }}
+            >
+              {/* Accessibility: Skip to main content link (WCAG 2.1 - Bypass Blocks) */}
+              <SkipToContent targetId="main-content" />
 
-            {/* Accessibility: Keyboard shortcuts help (WCAG 2.1 - Keyboard Accessible) */}
-            <KeyboardShortcuts />
+              {/* Accessibility: Keyboard shortcuts help (WCAG 2.1 - Keyboard Accessible) */}
+              <KeyboardShortcuts />
 
-            <AnalyticsTracker />
-            <CartDrawer />
-            <CommandPalette />
-            <Suspense fallback={null}>
-              <ChatWidget />
-            </Suspense>
-            <PWAInstallPrompt />
-            <PWAUpdatePrompt />
-            <Suspense fallback={<LoadingFallback />}>
-              <Routes>
+              <AnalyticsTracker />
+              <CartDrawer />
+              <CommandPalette />
+              <Suspense fallback={null}>
+                <ChatWidget />
+              </Suspense>
+              <PWAInstallPrompt />
+              <PWAUpdatePrompt />
+              <Suspense fallback={<LoadingFallback />}>
+                <Routes>
                 {/* Public Routes */}
                 <Route path="/" element={<Index />} />
                 <Route path="/services" element={<Services />} />
@@ -234,7 +245,11 @@ const App = () => (
                 <Route path="/services/development/fullstack" element={<FullstackPage />} />
                 <Route path="/services/development/design" element={<DesignPage />} />
                 <Route path="/services/development/operations" element={<OperationsPage />} />
+                <Route path="/services/compass" element={<COMPASSPlatformPage />} />
                 <Route path="/services/compass/navigator" element={<NavigatorPage />} />
+                <Route path="/services/compass/cartographer" element={<CartographerPage />} />
+                <Route path="/services/compass/captain" element={<CaptainPage />} />
+                <Route path="/services/compass/harbor" element={<HarborPage />} />
 
                 {/* Toss Payments Review URLs - Short aliases */}
                 <Route path="/services/mvp" element={<MVPServicePage />} />
@@ -283,13 +298,16 @@ const App = () => (
                   <Route path="analytics" element={<Analytics />} />
                   <Route path="revenue" element={<Revenue />} />
                   <Route path="realtime" element={<RealtimeDashboard />} />
+                  <Route path="media" element={<AdminMedia />} />
+                  <Route path="integrations" element={<AdminIntegrations />} />
                 </Route>
 
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
-              </Routes>
-            </Suspense>
-          </BrowserRouter>
+                </Routes>
+              </Suspense>
+            </BrowserRouter>
+          </AnnouncerProvider>
         </TooltipProvider>
       </HelmetProvider>
       <VercelAnalytics />
