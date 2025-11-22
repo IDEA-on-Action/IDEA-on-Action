@@ -1,0 +1,65 @@
+# =============================================================================
+# Docker Ignore File for MCP Server
+# =============================================================================
+
+# Dependencies
+node_modules
+
+# Build output (we rebuild in Docker)
+dist
+
+# Environment files (secrets!)
+.env
+.env.local
+.env.*.local
+
+# IDE and editor files
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Git
+.git
+.gitignore
+
+# Documentation (not needed in production)
+*.md
+docs
+
+# Test files
+tests
+*.test.ts
+*.spec.ts
+coverage
+.nyc_output
+
+# Debug and logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.log
+
+# TypeScript config (not needed at runtime)
+tsconfig.json
+
+# Docker files (prevent recursion)
+Dockerfile*
+docker-compose*
+.dockerignore
+
+# CI/CD
+.github
+.gitlab-ci.yml
+.travis.yml
+
+# Editor configs
+.editorconfig
+.prettierrc*
+.eslintrc*
+eslint.config.*

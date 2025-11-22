@@ -1,10 +1,10 @@
-import { Helmet } from "react-helmet-async";
 import { useNavigate } from "react-router-dom";
 import PageLayout from "@/components/layouts/PageLayout";
 import Section from "@/components/layouts/Section";
 import PricingPackage from "@/components/services-platform/PricingPackage";
 import FAQSection from "@/components/services-platform/FAQSection";
 import CTASection from "@/components/services-platform/CTASection";
+import { SEO } from "@/components/shared/SEO";
 import { Badge } from "@/components/ui/badge";
 import { designSystemService } from "@/data/services/design-system";
 import { useAuth } from "@/hooks/useAuth";
@@ -48,12 +48,30 @@ export default function DesignPage() {
     });
   };
 
+  // 최저 가격 계산
+  const lowestPrice = service.pricing.packages?.[0]?.price || 0;
+
   return (
     <PageLayout>
-      <Helmet>
-        <title>{service.title} | IDEA on Action</title>
-        <meta name="description" content={service.description} />
-      </Helmet>
+      <SEO
+        title={service.title}
+        description={service.description}
+        keywords={['UI/UX 디자인', '디자인 시스템', 'Figma', 'React 컴포넌트', '브랜드 디자인', '웹 디자인', '앱 디자인']}
+        canonical="/services/design"
+        ogType="service"
+        service={{
+          name: service.title,
+          description: service.description,
+          price: lowestPrice,
+          priceCurrency: 'KRW',
+          category: '디자인 서비스'
+        }}
+        breadcrumbs={[
+          { name: '홈', url: '/' },
+          { name: '서비스', url: '/services' },
+          { name: service.title, url: '/services/design' }
+        ]}
+      />
 
       {/* Hero */}
       <section className="text-center py-12 space-y-4">

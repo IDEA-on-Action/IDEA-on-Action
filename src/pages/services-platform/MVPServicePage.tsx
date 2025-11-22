@@ -1,10 +1,10 @@
-import { Helmet } from "react-helmet-async";
 import { useNavigate } from "react-router-dom";
 import PageLayout from "@/components/layouts/PageLayout";
 import Section from "@/components/layouts/Section";
 import PricingPackage from "@/components/services-platform/PricingPackage";
 import FAQSection from "@/components/services-platform/FAQSection";
 import CTASection from "@/components/services-platform/CTASection";
+import { SEO } from "@/components/shared/SEO";
 import { Badge } from "@/components/ui/badge";
 import { mvpDevelopmentService } from "@/data/services/mvp-development";
 import { useAuth } from "@/hooks/useAuth";
@@ -48,12 +48,30 @@ export default function MVPServicePage() {
     });
   };
 
+  // 최저 가격 계산
+  const lowestPrice = service.pricing.packages?.[0]?.price || 0;
+
   return (
     <PageLayout>
-      <Helmet>
-        <title>{service.title} | IDEA on Action</title>
-        <meta name="description" content={service.description} />
-      </Helmet>
+      <SEO
+        title={service.title}
+        description={service.description}
+        keywords={['MVP 개발', '스타트업', '프로토타입', '빠른 개발', '아이디어 검증', 'Lean Startup', '제품 개발']}
+        canonical="/services/mvp"
+        ogType="service"
+        service={{
+          name: service.title,
+          description: service.description,
+          price: lowestPrice,
+          priceCurrency: 'KRW',
+          category: 'MVP 개발'
+        }}
+        breadcrumbs={[
+          { name: '홈', url: '/' },
+          { name: '서비스', url: '/services' },
+          { name: service.title, url: '/services/mvp' }
+        ]}
+      />
 
       {/* Hero */}
       <section className="text-center py-12 space-y-4">

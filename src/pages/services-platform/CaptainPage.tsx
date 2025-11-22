@@ -8,22 +8,31 @@ import { SEO } from "@/components/shared/SEO";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { compassNavigatorService } from "@/data/services/compass-navigator";
-import { CheckCircle2, AlertCircle } from "lucide-react";
+import { compassCaptainService } from "@/data/services/compass-captain";
 import { useAuth } from "@/hooks/useAuth";
 import { useMySubscriptions } from "@/hooks/useSubscriptions";
-import { useCompassSubscription } from "@/hooks/useMCPClient";
 import { cn } from "@/lib/utils";
 import type { MonthlyPlan } from "@/types/services";
 import type { SubscriptionWithPlan } from "@/types/subscription.types";
+import {
+  CheckCircle2,
+  AlertCircle,
+  Ship,
+  Kanban,
+  GanttChart,
+  Users,
+  MessageSquare,
+  BarChart3,
+  Clock,
+} from "lucide-react";
 
 // =====================================================
-// MCP 클라이언트 타입 및 폴백 훅
+// MCP 클라이언트 타입 및 훅 (폴백 지원)
 // =====================================================
 
 /**
- * MCP 구독 정보 타입 (폴백 호환)
- * MCP 서버 또는 Supabase 폴백에서 반환하는 구독 데이터의 통일된 형태
+ * MCP 구독 정보 타입
+ * MCP 서버에서 반환하는 구독 데이터 형태
  */
 interface MCPSubscriptionInfo {
   planName: string;         // 현재 구독 중인 플랜 이름 (예: "Basic", "Pro", "Enterprise")
@@ -33,24 +42,30 @@ interface MCPSubscriptionInfo {
 }
 
 /**
- * Supabase 구독 데이터를 MCP 형태로 변환하는 폴백 훅
+ * useMCPClient 훅 폴백 구현
  *
- * MCP 서버 연결 실패 시 Supabase useMySubscriptions 훅의 데이터를
- * MCPSubscriptionInfo 형태로 변환하여 일관된 인터페이스를 제공합니다.
+ * 실제 MCP 클라이언트 훅이 구현되기 전까지 사용하는 폴백 함수
+ * Supabase useMySubscriptions 훅의 데이터를 MCP 형태로 변환
  */
-function useFallbackSubscription(
-  subscriptions: SubscriptionWithPlan[] | undefined
-): MCPSubscriptionInfo | null {
-  return useMemo(() => {
+function useMCPSubscriptionFallback(
+  subscriptions: SubscriptionWithPlan[] | undefined,
+  isLoading: boolean,
+  error: Error | null
+): {
+  data: MCPSubscriptionInfo | null;
+  isLoading: boolean;
+  error: Error | null;
+} {
+  // COMPASS Captain 서비스에 대한 구독만 필터링
+  const captainSubscription = useMemo(() => {
     if (!subscriptions) return null;
 
-    // COMPASS Navigator 서비스에 대한 구독만 필터링
-    // compass-navigator 서비스 ID 또는 slug로 필터링
+    // compass-captain 서비스 ID 또는 slug로 필터링
     const found = subscriptions.find(
       (sub) =>
-        sub.service?.slug === "navigator" ||
-        sub.service?.id === "compass-navigator" ||
-        sub.service?.title?.includes("Navigator")
+        sub.service?.slug === "captain" ||
+        sub.service?.id === "compass-captain" ||
+        sub.service?.title?.includes("Captain")
     );
 
     if (!found) return null;
@@ -63,8 +78,14 @@ function useFallbackSubscription(
       features: found.plan?.features
         ? Object.keys(found.plan.features)
         : undefined,
-    };
+    } as MCPSubscriptionInfo;
   }, [subscriptions]);
+
+  return {
+    data: captainSubscription,
+    isLoading,
+    error,
+  };
 }
 
 /**
@@ -94,8 +115,8 @@ function getPlanStatus(planName: string, currentPlan: string | null): PlanStatus
   return targetIndex > currentIndex ? "upgrade" : "downgrade";
 }
 
-export default function NavigatorPage() {
-  const service = compassNavigatorService;
+export default function CaptainPage() {
+  const service = compassCaptainService;
 
   // =====================================================
   // 인증 상태 확인
@@ -103,64 +124,39 @@ export default function NavigatorPage() {
   const { user, loading: authLoading } = useAuth();
 
   // =====================================================
-  // MCP 클라이언트 연동 (실제 MCP 훅 사용)
-  // MCP 서버의 subscription://current 리소스를 조회합니다.
+  // 구독 정보 조회 (로그인한 경우에만)
   // =====================================================
   const {
-    subscription: mcpData,
-    isLoading: mcpLoading,
-    error: mcpError
-  } = useCompassSubscription();
-
-  // MCP 서버 연결 실패 여부 (에러가 있거나 인증된 사용자인데 데이터가 없을 때)
-  const mcpFailed = !!mcpError;
-
-  // 개발 모드에서만 MCP 연결 실패 로그 출력
-  if (mcpFailed && import.meta.env.DEV) {
-    console.warn('[NavigatorPage] MCP 서버 연결 실패, 폴백 사용:', mcpError);
-  }
-
-  // =====================================================
-  // 폴백: MCP 실패 시 Supabase 직접 조회
-  // =====================================================
-  const {
-    data: fallbackSubscriptions,
-    isLoading: fallbackLoading,
+    data: subscriptions,
+    isLoading: subscriptionsLoading,
+    error: subscriptionsError
   } = useMySubscriptions();
 
-  // Supabase 데이터를 MCP 형태로 변환
-  const fallbackData = useFallbackSubscription(fallbackSubscriptions);
-
   // =====================================================
-  // 최종 구독 데이터 결정
-  // MCP 성공 시 MCP 데이터 사용, 실패 시 폴백 데이터 사용
+  // MCP 클라이언트 연동 (폴백 사용)
+  //
+  // TODO: 실제 useMCPClient 훅이 구현되면 아래 코드로 교체
+  // const { data: mcpSubscription, isLoading: mcpLoading, error: mcpError } = useMCPClient({
+  //   endpoint: 'compass/captain/subscription',
+  //   userId: user?.id,
+  //   enabled: !!user,
+  // });
   // =====================================================
-  const mcpSubscription = useMemo((): MCPSubscriptionInfo | null => {
-    // MCP 연결 성공하고 데이터가 있으면 MCP 데이터 사용
-    if (!mcpFailed && mcpData) {
-      return {
-        planName: mcpData.planName,
-        status: mcpData.status,
-        expiresAt: mcpData.validUntil,
-        features: mcpData.planFeatures
-          ? Object.keys(mcpData.planFeatures)
-          : undefined,
-      };
-    }
-
-    // MCP 실패 시 폴백 데이터 사용
-    return fallbackData;
-  }, [mcpFailed, mcpData, fallbackData]);
+  const {
+    data: mcpSubscription,
+    isLoading: mcpLoading,
+    error: mcpError
+  } = useMCPSubscriptionFallback(
+    subscriptions,
+    subscriptionsLoading,
+    subscriptionsError as Error | null
+  );
 
   // =====================================================
   // 로딩 및 에러 상태 계산
   // =====================================================
-  // MCP 로딩 중이거나 (MCP 실패 시) 폴백 로딩 중일 때
-  const isLoading = authLoading || (!!user && (mcpLoading || (mcpFailed && fallbackLoading)));
-
-  // 사용자에게 에러를 노출하지 않음 (폴백이 있으므로)
-  // MCP와 폴백 모두 실패한 경우에만 에러 표시
-  const hasError = false; // 폴백이 있으므로 에러 상태를 숨김
+  const isLoading = authLoading || (!!user && mcpLoading);
+  const hasError = !!mcpError;
 
   // 현재 플랜 이름 (구독이 없거나 비로그인이면 null)
   const currentPlanName = user && mcpSubscription?.status === "active"
@@ -169,31 +165,54 @@ export default function NavigatorPage() {
 
   // 최저 월 가격 계산
   const lowestPrice = service.pricing.monthly?.[0]?.price || 0;
+  const isComingSoon = service.status === "coming-soon";
 
   return (
     <PageLayout>
       <SEO
         title={service.title}
         description={service.description}
-        keywords={['COMPASS Navigator', 'AI 프로젝트 매칭', '위시켓 자동화', '크몽 자동화', '프리랜서 프로젝트', 'SaaS', '프로젝트 관리']}
-        canonical="/services/compass-navigator"
+        keywords={[
+          "COMPASS Captain",
+          "프로젝트 관리",
+          "칸반 보드",
+          "간트 차트",
+          "프리랜서",
+          "에이전시",
+          "SaaS",
+          "팀 협업",
+        ]}
+        canonical="/services/compass/captain"
         ogType="service"
         service={{
           name: service.title,
           description: service.description,
           price: lowestPrice,
-          priceCurrency: 'KRW',
-          category: 'SaaS 플랫폼'
+          priceCurrency: "KRW",
+          category: "SaaS 플랫폼",
         }}
         breadcrumbs={[
-          { name: '홈', url: '/' },
-          { name: '서비스', url: '/services' },
-          { name: service.title, url: '/services/compass-navigator' }
+          { name: "홈", url: "/" },
+          { name: "서비스", url: "/services" },
+          { name: "COMPASS", url: "/services/compass" },
+          { name: service.title, url: "/services/compass/captain" },
         ]}
       />
 
       {/* Hero */}
       <section className="text-center py-12 space-y-4">
+        {isComingSoon && (
+          <Badge variant="secondary" className="mb-2">
+            {service.launchDate
+              ? `${new Date(service.launchDate).toLocaleDateString("ko-KR", { year: "numeric", month: "long" })} 출시 예정`
+              : "출시 예정"}
+          </Badge>
+        )}
+        <div className="flex items-center justify-center gap-3 mb-4">
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center">
+            <Ship className="h-8 w-8 text-white" />
+          </div>
+        </div>
         <Badge>SaaS 플랫폼</Badge>
         <h1 className="text-4xl font-bold">{service.title}</h1>
         <p className="text-xl text-muted-foreground">{service.subtitle}</p>
@@ -208,45 +227,115 @@ export default function NavigatorPage() {
 
       {/* Key Features */}
       <Section title="주요 기능">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
           <div className="glass-card p-6 rounded-lg">
-            <div className="text-xl font-semibold mb-3">🌐 통합 수집</div>
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 rounded-lg bg-orange-500/10 flex items-center justify-center">
+                <Kanban className="h-5 w-5 text-orange-500" />
+              </div>
+              <span className="text-lg font-semibold">칸반 보드</span>
+            </div>
             <p className="text-muted-foreground">
-              위시켓, 크몽, 원티드긱스, 나라장터 등 주요 플랫폼 자동 크롤링 및
-              중복 제거
+              드래그앤드롭으로 태스크 상태를 관리하고 워크플로우를 시각화합니다.
             </p>
           </div>
           <div className="glass-card p-6 rounded-lg">
-            <div className="text-xl font-semibold mb-3">🤖 AI 분석</div>
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 rounded-lg bg-orange-500/10 flex items-center justify-center">
+                <GanttChart className="h-5 w-5 text-orange-500" />
+              </div>
+              <span className="text-lg font-semibold">간트 차트</span>
+            </div>
             <p className="text-muted-foreground">
-              프로젝트 난이도 평가, 경쟁률 예측, 클라이언트 신뢰도 분석
+              프로젝트 일정과 의존성을 타임라인으로 관리하고 병목을 파악합니다.
             </p>
           </div>
           <div className="glass-card p-6 rounded-lg">
-            <div className="text-xl font-semibold mb-3">⚙️ 맞춤형 필터</div>
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 rounded-lg bg-orange-500/10 flex items-center justify-center">
+                <BarChart3 className="h-5 w-5 text-orange-500" />
+              </div>
+              <span className="text-lg font-semibold">진행률 대시보드</span>
+            </div>
             <p className="text-muted-foreground">
-              JavaScript 기반 평가 규칙 작성 및 가중치 설정
+              실시간 프로젝트 진행 상황과 팀 워크로드를 한눈에 파악합니다.
             </p>
           </div>
           <div className="glass-card p-6 rounded-lg">
-            <div className="text-xl font-semibold mb-3">🔔 실시간 알림</div>
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 rounded-lg bg-orange-500/10 flex items-center justify-center">
+                <Users className="h-5 w-5 text-orange-500" />
+              </div>
+              <span className="text-lg font-semibold">팀 협업</span>
+            </div>
             <p className="text-muted-foreground">
-              Slack, 이메일, SMS를 통한 조건별 실시간 알림
+              팀원 배정, 워크로드 밸런싱, 실시간 알림으로 효율적인 협업을 지원합니다.
+            </p>
+          </div>
+          <div className="glass-card p-6 rounded-lg">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 rounded-lg bg-orange-500/10 flex items-center justify-center">
+                <MessageSquare className="h-5 w-5 text-orange-500" />
+              </div>
+              <span className="text-lg font-semibold">클라이언트 포털</span>
+            </div>
+            <p className="text-muted-foreground">
+              고객에게 진행 상황을 공유하고 피드백을 실시간으로 수집합니다.
+            </p>
+          </div>
+          <div className="glass-card p-6 rounded-lg">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 rounded-lg bg-orange-500/10 flex items-center justify-center">
+                <Clock className="h-5 w-5 text-orange-500" />
+              </div>
+              <span className="text-lg font-semibold">시간 추적</span>
+            </div>
+            <p className="text-muted-foreground">
+              태스크별 작업 시간을 기록하고 청구서 생성에 활용합니다.
             </p>
           </div>
         </div>
       </Section>
 
+      {/* Process */}
+      {service.process && (
+        <Section title="프로젝트 관리 프로세스">
+          <div className="max-w-4xl mx-auto">
+            <div className="space-y-6">
+              {service.process.map((step) => (
+                <div
+                  key={step.step}
+                  className="flex gap-4 items-start glass-card p-6 rounded-lg"
+                >
+                  <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-br from-orange-500 to-amber-500 text-white flex items-center justify-center font-bold">
+                    {step.step}
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-lg mb-1">{step.title}</h3>
+                    <p className="text-muted-foreground">{step.description}</p>
+                    {step.duration && (
+                      <p className="text-sm text-muted-foreground mt-2">
+                        주기: {step.duration}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </Section>
+      )}
+
       {/* Plan Comparison */}
       <Section title="플랜 비교">
         {/* 구독 상태 안내 (로그인한 사용자) */}
         {user && !isLoading && mcpSubscription && (
-          <div className="mb-6 p-4 bg-primary/5 border border-primary/20 rounded-lg max-w-2xl mx-auto">
+          <div className="mb-6 p-4 bg-orange-500/5 border border-orange-500/20 rounded-lg max-w-2xl mx-auto">
             <div className="flex items-center gap-3">
-              <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0" />
+              <CheckCircle2 className="h-5 w-5 text-orange-500 flex-shrink-0" />
               <div>
                 <p className="font-medium">
-                  현재 <span className="text-primary">{mcpSubscription.planName}</span> 플랜을 이용 중입니다
+                  현재 <span className="text-orange-500">{mcpSubscription.planName}</span> 플랜을 이용 중입니다
                 </p>
                 {mcpSubscription.expiresAt && (
                   <p className="text-sm text-muted-foreground">
@@ -280,6 +369,7 @@ export default function NavigatorPage() {
               plans={service.pricing.monthly || []}
               currentPlanName={currentPlanName}
               isLoggedIn={!!user}
+              isComingSoon={isComingSoon}
             />
 
             {/* 기존 상세 비교 테이블 */}
@@ -297,24 +387,62 @@ export default function NavigatorPage() {
       <Section title="가격 정책">
         <div className="max-w-2xl mx-auto glass-card p-6 rounded-lg space-y-3">
           <ul className="space-y-2">
-            <li>• 월 단위 구독 (자동 결제)</li>
             <li>
-              • 연간 구독 시{" "}
-              {service.pricing.monthly?.[0].annualDiscount || 0}% 할인
+              * 월 단위 구독 (자동 결제)
             </li>
-            <li>• 30일 무료 체험 (신규 가입자)</li>
+            <li>
+              * 연간 구독 시 {service.pricing.monthly?.[0].annualDiscount || 0}%
+              할인
+            </li>
+            <li>* 14일 무료 체험 (신규 가입자)</li>
           </ul>
         </div>
       </Section>
 
-      {/* Payment Method */}
-      <Section title="결제 방식">
-        <div className="max-w-2xl mx-auto glass-card p-6 rounded-lg space-y-3">
-          <ul className="space-y-2">
-            <li>• 신용카드 자동 결제</li>
-            <li>• 매월 가입일에 자동 청구</li>
-            <li>• 언제든지 취소 가능 (즉시 효력)</li>
-          </ul>
+      {/* Deliverables */}
+      {service.deliverables && (
+        <Section title="제공 기능">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl mx-auto">
+            {service.deliverables.map((item, index) => (
+              <div key={index} className="flex items-start gap-3">
+                <CheckCircle2 className="h-5 w-5 text-orange-500 flex-shrink-0 mt-0.5" />
+                <span>{item}</span>
+              </div>
+            ))}
+          </div>
+        </Section>
+      )}
+
+      {/* Integration Benefits */}
+      <Section title="COMPASS 통합 연동">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+          <div className="glass-card p-6 rounded-lg text-center">
+            <div className="w-12 h-12 rounded-full bg-blue-500/10 flex items-center justify-center mx-auto mb-4">
+              <Ship className="h-6 w-6 text-blue-500" />
+            </div>
+            <h3 className="font-semibold mb-2">Navigator 연동</h3>
+            <p className="text-sm text-muted-foreground">
+              수주한 프로젝트를 바로 Captain으로 가져와 관리를 시작합니다.
+            </p>
+          </div>
+          <div className="glass-card p-6 rounded-lg text-center">
+            <div className="w-12 h-12 rounded-full bg-purple-500/10 flex items-center justify-center mx-auto mb-4">
+              <Ship className="h-6 w-6 text-purple-500" />
+            </div>
+            <h3 className="font-semibold mb-2">Cartographer 연동</h3>
+            <p className="text-sm text-muted-foreground">
+              제안서 내용을 기반으로 프로젝트 구조와 마일스톤을 자동 생성합니다.
+            </p>
+          </div>
+          <div className="glass-card p-6 rounded-lg text-center">
+            <div className="w-12 h-12 rounded-full bg-green-500/10 flex items-center justify-center mx-auto mb-4">
+              <Ship className="h-6 w-6 text-green-500" />
+            </div>
+            <h3 className="font-semibold mb-2">Harbor 연동</h3>
+            <p className="text-sm text-muted-foreground">
+              완료된 프로젝트를 Harbor로 이관하여 운영 관리를 시작합니다.
+            </p>
+          </div>
         </div>
       </Section>
 
@@ -322,12 +450,12 @@ export default function NavigatorPage() {
       {service.refundPolicy && (
         <Section title="환불 정책">
           <div className="max-w-2xl mx-auto glass-card p-6 rounded-lg space-y-3">
-            <p>• {service.refundPolicy.beforeStart}</p>
-            <p>• {service.refundPolicy.inProgress}</p>
-            <p>• {service.refundPolicy.afterCompletion}</p>
+            <p>* {service.refundPolicy.beforeStart}</p>
+            <p>* {service.refundPolicy.inProgress}</p>
+            <p>* {service.refundPolicy.afterCompletion}</p>
             <p className="text-sm text-muted-foreground pt-3 border-t">
               ※ 자세한 내용은{" "}
-              <a href="/refund" className="text-primary hover:underline">
+              <a href="/refund-policy" className="text-primary hover:underline">
                 환불 정책
               </a>{" "}
               페이지를 참조해주세요.
@@ -336,58 +464,45 @@ export default function NavigatorPage() {
         </Section>
       )}
 
-      {/* Service Terms */}
-      <Section title="서비스 이용약관">
-        <div className="max-w-2xl mx-auto glass-card p-6 rounded-lg space-y-3">
-          <ul className="space-y-2">
-            <li>• 14세 이상 이용 가능</li>
-            <li>• 사업자 정보 등록 필요 (Enterprise 플랜)</li>
-            <li>• 수집 데이터의 재판매 금지</li>
-            <li>• 플랫폼 이용약관 준수 의무</li>
-          </ul>
-          <p className="text-sm text-muted-foreground pt-3 border-t">
-            ※ 전체 이용약관은{" "}
-            <a href="/terms" className="text-primary hover:underline">
-              이용약관
-            </a>{" "}
-            페이지를 참조해주세요.
-          </p>
-        </div>
-      </Section>
-
-      {/* Beta Tester */}
-      <Section title="베타 테스터 모집">
-        <div className="max-w-2xl mx-auto glass-card p-6 rounded-lg">
-          <p className="mb-4">
-            현재 COMPASS Navigator는 베타 서비스 중입니다. 베타 테스터로
-            참여하시면:
-          </p>
-          <ul className="space-y-2 mb-6">
-            <li className="flex items-start gap-2">
-              <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-              <span>6개월간 Pro 플랜 무료 이용</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-              <span>신규 기능 우선 체험</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-              <span>피드백 제공 시 리워드</span>
-            </li>
-          </ul>
-        </div>
-      </Section>
+      {/* Coming Soon Notice */}
+      {isComingSoon && (
+        <Section title="출시 알림 신청">
+          <div className="max-w-2xl mx-auto glass-card p-6 rounded-lg">
+            <p className="mb-4 text-center">
+              COMPASS Captain은 현재 개발 중입니다. 출시 알림을 신청하시면 가장
+              먼저 소식을 받아보실 수 있습니다.
+            </p>
+            <ul className="space-y-2 mb-6">
+              <li className="flex items-start gap-2">
+                <CheckCircle2 className="h-5 w-5 text-orange-500 flex-shrink-0 mt-0.5" />
+                <span>출시 시 30% 얼리버드 할인</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <CheckCircle2 className="h-5 w-5 text-orange-500 flex-shrink-0 mt-0.5" />
+                <span>베타 테스터 우선 초대</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <CheckCircle2 className="h-5 w-5 text-orange-500 flex-shrink-0 mt-0.5" />
+                <span>기존 도구 마이그레이션 지원</span>
+              </li>
+            </ul>
+          </div>
+        </Section>
+      )}
 
       {/* FAQ */}
       {service.faq && <FAQSection faqs={service.faq} />}
 
       {/* CTA */}
       <CTASection
-        primary={{ label: "무료 체험 시작하기", href: "/signup?plan=trial" }}
+        primary={
+          isComingSoon
+            ? { label: "출시 알림 신청하기", href: "/work-with-us?service=captain" }
+            : { label: "무료 체험 시작하기", href: "/signup?plan=captain-trial" }
+        }
         secondary={{
-          label: "플랜 비교 자세히 보기",
-          href: "#plan-comparison",
+          label: "Navigator 먼저 사용해보기",
+          href: "/services/compass/navigator",
         }}
       />
     </PageLayout>
@@ -450,12 +565,14 @@ interface PlanCardsWithStatusProps {
   plans: MonthlyPlan[];
   currentPlanName: string | null;
   isLoggedIn: boolean;
+  isComingSoon: boolean;
 }
 
 /**
  * PlanCardsWithStatus
  *
  * 사용자의 구독 상태에 따라 다른 UI를 표시하는 플랜 카드 컴포넌트
+ * - 출시 예정(Coming Soon): 모든 플랜에 "출시 알림" 버튼
  * - 비로그인: 모든 플랜에 "시작하기" 버튼
  * - 로그인 + 구독 없음: 모든 플랜에 "시작하기" 버튼
  * - 로그인 + 구독 있음: 현재 플랜에 "현재 이용 중" 배지, 업그레이드 가능 플랜에 "업그레이드" 버튼
@@ -464,6 +581,7 @@ function PlanCardsWithStatus({
   plans,
   currentPlanName,
   isLoggedIn,
+  isComingSoon,
 }: PlanCardsWithStatusProps) {
   /**
    * 가격 포맷팅 함수
@@ -481,6 +599,17 @@ function PlanCardsWithStatus({
   const renderPlanButton = (plan: MonthlyPlan, status: PlanStatus) => {
     const baseClasses = "w-full mt-4";
 
+    // 출시 예정인 경우 모든 플랜에 알림 신청 버튼
+    if (isComingSoon) {
+      return (
+        <Button variant="secondary" className={baseClasses} asChild>
+          <a href={`/work-with-us?service=captain&plan=${plan.name.toLowerCase()}`}>
+            출시 알림 신청
+          </a>
+        </Button>
+      );
+    }
+
     switch (status) {
       case "current":
         // 현재 이용 중인 플랜
@@ -495,10 +624,10 @@ function PlanCardsWithStatus({
         // 업그레이드 가능한 플랜
         return (
           <Button
-            className={baseClasses}
+            className={cn(baseClasses, "bg-orange-500 hover:bg-orange-600")}
             asChild
           >
-            <a href={`/subscriptions/upgrade?plan=${plan.name.toLowerCase()}`}>
+            <a href={`/subscriptions/upgrade?service=compass-captain&plan=${plan.name.toLowerCase()}`}>
               업그레이드
             </a>
           </Button>
@@ -512,7 +641,7 @@ function PlanCardsWithStatus({
             className={baseClasses}
             asChild
           >
-            <a href={`/subscriptions/change?plan=${plan.name.toLowerCase()}`}>
+            <a href={`/subscriptions/change?service=compass-captain&plan=${plan.name.toLowerCase()}`}>
               플랜 변경
             </a>
           </Button>
@@ -523,12 +652,12 @@ function PlanCardsWithStatus({
         // 비로그인 또는 구독이 없는 경우
         return (
           <Button
-            className={baseClasses}
+            className={cn(baseClasses, "bg-orange-500 hover:bg-orange-600")}
             asChild
           >
             <a href={isLoggedIn
-              ? `/subscriptions/checkout?service=compass-navigator&plan=${plan.name.toLowerCase()}`
-              : `/signup?redirect=/subscriptions/checkout?service=compass-navigator&plan=${plan.name.toLowerCase()}`
+              ? `/subscriptions/checkout?service=compass-captain&plan=${plan.name.toLowerCase()}`
+              : `/signup?redirect=/subscriptions/checkout?service=compass-captain&plan=${plan.name.toLowerCase()}`
             }>
               시작하기
             </a>
@@ -550,7 +679,7 @@ function PlanCardsWithStatus({
     }
 
     if (isRecommended) {
-      return <Badge variant="default">추천</Badge>;
+      return <Badge className="bg-orange-500">추천</Badge>;
     }
 
     return null;
@@ -570,7 +699,7 @@ function PlanCardsWithStatus({
               // 현재 이용 중인 플랜 강조
               isCurrentPlan && "ring-2 ring-green-500 ring-offset-2",
               // 추천 플랜 강조 (현재 플랜이 아닌 경우)
-              plan.recommended && !isCurrentPlan && "ring-2 ring-primary ring-offset-2"
+              plan.recommended && !isCurrentPlan && "ring-2 ring-orange-500 ring-offset-2"
             )}
           >
             {/* 플랜 헤더 */}
@@ -581,7 +710,7 @@ function PlanCardsWithStatus({
 
             {/* 가격 정보 */}
             <div className="mb-4">
-              <div className="text-2xl font-bold text-primary">
+              <div className="text-2xl font-bold text-orange-500">
                 {formatPrice(plan.price, plan.currency)}
                 <span className="text-sm font-normal text-muted-foreground">
                   /월
@@ -598,18 +727,16 @@ function PlanCardsWithStatus({
             <ul className="space-y-2 pt-4 border-t text-sm">
               <li className="flex items-center gap-2">
                 <CheckCircle2 className="h-4 w-4 text-green-500 flex-shrink-0" />
-                <span>플랫폼 {plan.features.platforms}</span>
+                <span>프로젝트 {plan.features.activeProjects}</span>
               </li>
               <li className="flex items-center gap-2">
                 <CheckCircle2 className="h-4 w-4 text-green-500 flex-shrink-0" />
-                <span>월 {plan.features.monthlyAnalysis} 분석</span>
+                <span>팀원 {plan.features.teamMembers}</span>
               </li>
-              {plan.features.aiAnalysis && (
-                <li className="flex items-center gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-green-500 flex-shrink-0" />
-                  <span>AI 분석 {typeof plan.features.aiAnalysis === 'string' ? plan.features.aiAnalysis : '포함'}</span>
-                </li>
-              )}
+              <li className="flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4 text-green-500 flex-shrink-0" />
+                <span>저장공간 {plan.features.storage}</span>
+              </li>
               <li className="flex items-center gap-2">
                 <CheckCircle2 className="h-4 w-4 text-green-500 flex-shrink-0" />
                 <span>{plan.features.support} 지원</span>

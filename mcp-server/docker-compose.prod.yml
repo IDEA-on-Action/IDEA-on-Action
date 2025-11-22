@@ -1,0 +1,88 @@
+# =============================================================================
+# Compass Navigator MCP Server - 프로덕션 Docker Compose 오버라이드
+# =============================================================================
+# 프로덕션 환경 전용 설정
+# 사용법: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+# =============================================================================
+
+version: "3.9"
+
+# -----------------------------------------------------------------------------
+# 프로덕션 서비스 오버라이드
+# -----------------------------------------------------------------------------
+services:
+  mcp-server:
+    # 이미지 태그 지정 (빌드 대신 이미지 사용 시)
+    # image: ghcr.io/idea-on-action/compass-mcp-server:latest
+
+    # 재시작 정책: 항상 재시작 (수동 중지 제외)
+    restart: always
+
+    # 프로덕션 환경 변수 오버라이드
+    environment:
+      - NODE_ENV=production
+      - LOG_LEVEL=info
+      - LOG_REQUESTS=true
+
+    # 리소스 제한 설정
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"          # CPU 최대 1코어
+          memory: 512M         # 메모리 최대 512MB
+        reservations:
+          cpus: "0.25"         # CPU 최소 보장 0.25코어
+          memory: 128M         # 메모리 최소 보장 128MB
+
+      # 배포 설정 (Docker Swarm 모드용)
+      # replicas: 2            # 복제본 수 (스케일링)
+      # update_config:
+      #   parallelism: 1       # 동시 업데이트 수
+      #   delay: 10s           # 업데이트 간 지연
+      #   failure_action: rollback
+      #   order: start-first   # 새 컨테이너 먼저 시작
+
+    # 프로덕션 로깅 설정 (로그 로테이션)
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"        # 로그 파일 최대 크기 (프로덕션)
+        max-file: "5"          # 유지할 로그 파일 수
+        tag: "{{.Name}}/{{.ID}}"  # 컨테이너 이름 + ID
+        compress: "true"       # 로테이션된 로그 압축
+
+    # 프로덕션 헬스체크 (더 엄격한 설정)
+    healthcheck:
+      test: ["CMD", "node", "-e", "const http = require('http'); http.get('http://localhost:3001/health', (res) => process.exit(res.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"]
+      interval: 15s            # 더 짧은 간격
+      timeout: 5s              # 더 짧은 타임아웃
+      start_period: 10s        # 더 긴 시작 대기
+      retries: 5               # 더 많은 재시도
+
+    # 보안 설정
+    security_opt:
+      - no-new-privileges:true   # 권한 상승 방지
+
+    # 읽기 전용 루트 파일시스템 (보안 강화)
+    # read_only: true
+    # tmpfs:
+    #   - /tmp:size=64M
+
+    # ulimit 설정
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+      nproc:
+        soft: 4096
+        hard: 4096
+
+# -----------------------------------------------------------------------------
+# 프로덕션 네트워크 설정
+# -----------------------------------------------------------------------------
+networks:
+  mcp-network:
+    name: compass-mcp-network-prod
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.enable_ip_masquerade: "true"

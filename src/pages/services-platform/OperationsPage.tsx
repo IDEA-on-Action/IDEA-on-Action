@@ -1,10 +1,10 @@
-import { Helmet } from "react-helmet-async";
 import { useNavigate } from "react-router-dom";
 import PageLayout from "@/components/layouts/PageLayout";
 import Section from "@/components/layouts/Section";
 import PlanComparisonTable from "@/components/services-platform/PlanComparisonTable";
 import FAQSection from "@/components/services-platform/FAQSection";
 import CTASection from "@/components/services-platform/CTASection";
+import { SEO } from "@/components/shared/SEO";
 import { Badge } from "@/components/ui/badge";
 import { operationsManagementService } from "@/data/services/operations-management";
 import { useAuth } from "@/hooks/useAuth";
@@ -48,12 +48,30 @@ export default function OperationsPage() {
     });
   };
 
+  // 최저 가격 계산
+  const lowestMonthlyPrice = service.pricing.monthly?.[0]?.price || 0;
+
   return (
     <PageLayout>
-      <Helmet>
-        <title>{service.title} | IDEA on Action</title>
-        <meta name="description" content={service.description} />
-      </Helmet>
+      <SEO
+        title={service.title}
+        description={service.description}
+        keywords={['운영 관리', '서버 관리', '모니터링', 'DevOps', '인프라 관리', 'SLA', '24/7 지원']}
+        canonical="/services/operations"
+        ogType="service"
+        service={{
+          name: service.title,
+          description: service.description,
+          price: lowestMonthlyPrice,
+          priceCurrency: 'KRW',
+          category: '운영 서비스'
+        }}
+        breadcrumbs={[
+          { name: '홈', url: '/' },
+          { name: '서비스', url: '/services' },
+          { name: service.title, url: '/services/operations' }
+        ]}
+      />
 
       {/* Hero */}
       <section className="text-center py-12 space-y-4">

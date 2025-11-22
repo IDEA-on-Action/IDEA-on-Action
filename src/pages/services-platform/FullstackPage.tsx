@@ -1,10 +1,10 @@
-import { Helmet } from "react-helmet-async";
 import { useNavigate } from "react-router-dom";
 import PageLayout from "@/components/layouts/PageLayout";
 import Section from "@/components/layouts/Section";
 import PlanComparisonTable from "@/components/services-platform/PlanComparisonTable";
 import FAQSection from "@/components/services-platform/FAQSection";
 import CTASection from "@/components/services-platform/CTASection";
+import { SEO } from "@/components/shared/SEO";
 import { Badge } from "@/components/ui/badge";
 import { fullstackDevelopmentService } from "@/data/services/fullstack-development";
 import { useAuth } from "@/hooks/useAuth";
@@ -48,12 +48,30 @@ export default function FullstackPage() {
     });
   };
 
+  // 최저 가격 계산
+  const lowestMonthlyPrice = service.pricing.monthly?.[0]?.price || 0;
+
   return (
     <PageLayout>
-      <Helmet>
-        <title>{service.title} | IDEA on Action</title>
-        <meta name="description" content={service.description} />
-      </Helmet>
+      <SEO
+        title={service.title}
+        description={service.description}
+        keywords={['풀스택 개발', 'React', 'Node.js', 'TypeScript', '웹 개발', '앱 개발', 'API 개발', '시스템 개발']}
+        canonical="/services/fullstack"
+        ogType="service"
+        service={{
+          name: service.title,
+          description: service.description,
+          price: lowestMonthlyPrice,
+          priceCurrency: 'KRW',
+          category: '개발 서비스'
+        }}
+        breadcrumbs={[
+          { name: '홈', url: '/' },
+          { name: '서비스', url: '/services' },
+          { name: service.title, url: '/services/fullstack' }
+        ]}
+      />
 
       {/* Hero */}
       <section className="text-center py-12 space-y-4">

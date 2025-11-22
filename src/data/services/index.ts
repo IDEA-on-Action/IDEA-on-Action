@@ -6,6 +6,9 @@
 import { Service, ServicePricingSummary } from "@/types/services";
 import { mvpDevelopmentService } from "./mvp-development";
 import { compassNavigatorService } from "./compass-navigator";
+import { compassCartographerService } from "./compass-cartographer";
+import { compassCaptainService } from "./compass-captain";
+import { compassHarborService } from "./compass-harbor";
 import { fullstackDevelopmentService } from "./fullstack-development";
 import { designSystemService } from "./design-system";
 import { operationsManagementService } from "./operations-management";
@@ -19,10 +22,9 @@ export const allServices: Service[] = [
   operationsManagementService,
   // COMPASS Platform
   compassNavigatorService,
-  // TODO: Phase 3에서 추가
-  // compassCartographerService,
-  // compassCaptainService,
-  // compassHarborService,
+  compassCartographerService,
+  compassCaptainService,
+  compassHarborService,
 ];
 
 // 카테고리별 서비스
@@ -102,7 +104,7 @@ export const servicePricingSummary: ServicePricingSummary[] = [
     slug: "cartographer",
     pricing: {
       type: "월 구독",
-      range: "₩49,000~",
+      range: "₩39,000 ~ ₩349,000",
       unit: "월",
     },
     href: "/services/compass/cartographer",
@@ -113,7 +115,7 @@ export const servicePricingSummary: ServicePricingSummary[] = [
     slug: "captain",
     pricing: {
       type: "월 구독",
-      range: "₩79,000~",
+      range: "₩49,000 ~ ₩399,000",
       unit: "월",
     },
     href: "/services/compass/captain",
@@ -124,7 +126,7 @@ export const servicePricingSummary: ServicePricingSummary[] = [
     slug: "harbor",
     pricing: {
       type: "월 구독",
-      range: "₩39,000~",
+      range: "₩59,000 ~ ₩499,000",
       unit: "월",
     },
     href: "/services/compass/harbor",

@@ -1,0 +1,45 @@
+{
+  "name": "@idea-on-action/compass-mcp-server",
+  "version": "1.0.0",
+  "description": "MCP Server for Compass Navigator integration with IDEA on Action",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsx src/index.ts",
+    "dev:stdio": "tsx src/index.ts --stdio",
+    "dev:http": "tsx src/index.ts --http",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint src --ext .ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "compass-navigator",
+    "idea-on-action",
+    "supabase"
+  ],
+  "author": "IDEA on Action",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.0",
+    "@supabase/supabase-js": "^2.45.0",
+    "express": "^5.1.0",
+    "jose": "^6.0.11",
+    "zod": "^3.25.67"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.1",
+    "@types/node": "^22.15.21",
+    "tsx": "^4.19.4",
+    "typescript": "^5.8.3",
+    "vitest": "^3.1.4"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

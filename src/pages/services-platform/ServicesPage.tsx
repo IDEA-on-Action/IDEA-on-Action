@@ -91,31 +91,52 @@ export default function ServicesPage() {
       </Section>
 
       {/* COMPASS Platform Section */}
-      <Section id="compass" title="🧭 COMPASS 플랫폼 서비스">
+      <Section id="compass" title="COMPASS 플랫폼 서비스">
         <p className="text-muted-foreground text-center mb-8">
           프로젝트 수주부터 운영까지 통합 관리 SaaS
         </p>
 
         <RoadmapTimeline items={roadmapItems} />
 
-        <div className="mt-12 max-w-2xl mx-auto">
-          <div className="glass-card p-6 rounded-lg">
-            <div className="flex items-start justify-between mb-4">
-              <div>
-                <Badge className="mb-2">현재 이용 가능</Badge>
-                <h3 className="text-2xl font-bold">COMPASS Navigator</h3>
-                <p className="text-muted-foreground mt-2">
-                  프로젝트 수주 기회 탐색 플랫폼
-                </p>
+        <div className="mt-12 grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+          {compassServices.map((service) => {
+            const isAvailable = service.status === "available";
+            const lowestPrice = service.pricing.monthly?.[0]?.price || 0;
+
+            return (
+              <div key={service.id} className="glass-card p-6 rounded-lg">
+                <div className="flex items-start justify-between mb-4">
+                  <div>
+                    <Badge className="mb-2" variant={isAvailable ? "default" : "secondary"}>
+                      {isAvailable ? "현재 이용 가능" : "2026 Q1 출시 예정"}
+                    </Badge>
+                    <h3 className="text-xl font-bold">{service.name}</h3>
+                    <p className="text-muted-foreground mt-2">
+                      {service.subtitle}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between mt-6">
+                  <div className="text-xl font-bold text-primary">
+                    {isAvailable
+                      ? `₩${(lowestPrice / 1000).toFixed(0)}K~/월`
+                      : "가격 미정"}
+                  </div>
+                  <Button asChild variant={isAvailable ? "default" : "outline"} size="sm">
+                    <a href={`/services/compass/${service.slug}`}>
+                      {isAvailable ? "자세히 보기" : "알아보기"}
+                    </a>
+                  </Button>
+                </div>
               </div>
-            </div>
-            <div className="flex items-center justify-between mt-6">
-              <div className="text-2xl font-bold text-primary">₩29,000~/월</div>
-              <Button asChild>
-                <a href="/services/compass/navigator">자세히 보기</a>
-              </Button>
-            </div>
-          </div>
+            );
+          })}
+        </div>
+
+        <div className="text-center mt-8">
+          <Button asChild variant="outline" size="lg">
+            <a href="/services/compass">COMPASS 플랫폼 전체 보기</a>
+          </Button>
         </div>
       </Section>
 
