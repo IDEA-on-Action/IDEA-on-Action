@@ -12,7 +12,12 @@
 ## 📋 최신 업데이트
 
 ### 2025-11-22 (오늘)
-- ✅ **Compass Navigator 통합 준비 완료** - MCP 서버 스펙 & DB 연동 뷰 생성
+- ✅ **Minu 브랜드 전환** - COMPASS → Minu 시리즈 리브랜딩
+  - Compass Navigator → **Minu Find** (사업기회 탐색)
+  - Compass Cartographer → **Minu Frame** (문제정의 & RFP)
+  - Compass Captain → **Minu Build** (프로젝트 진행)
+  - Compass Harbor → **Minu Keep** (운영/유지보수)
+- ✅ **MCP 서버 연동 준비 완료** - Minu MCP 서버 스펙 & DB 연동 뷰 생성
 - ✅ **Newsletter CSV Export 날짜 필터 완성** - DateRangePicker 컴포넌트, E2E 테스트 3개 추가
 - ✅ **Newsletter 고도화 완료** - 문서화 2개, E2E 테스트 33개, CSV Export 검증
 - ✅ **토스페이먼츠 심사 준비 완료** - DB 검증 시스템, 엣지 함수 문서화, 심사 서류 7개

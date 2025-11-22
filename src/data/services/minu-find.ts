@@ -1,18 +1,20 @@
 import { Service } from "@/types/services";
 
-export const compassNavigatorService: Service = {
-  id: "compass-navigator",
-  category: "compass",
-  name: "COMPASS Navigator",
-  slug: "navigator",
-  title: "COMPASS Navigator",
-  subtitle: "사업 기회 탐색 플랫폼",
+export const minuFindService: Service = {
+  id: "minu-find",
+  category: "minu",
+  name: "Minu Find",
+  slug: "find",
+  title: "Minu Find",
+  subtitle: "사업기회 탐색 서비스",
   description:
-    "프리랜서와 에이전시를 위한 지능형 프로젝트 수주 기회 탐색 플랫폼입니다. 여러 플랫폼에 흩어진 프로젝트 정보를 한 곳에서 확인하고, AI 기반 분석을 통해 가장 적합한 기회를 찾으세요.",
+    "작은 신호에서 사업기회를 발견합니다. 시장·기술·정책·경쟁사 정보를 자동으로 모아 '할 만한 기회'만 깔끔하게 보여줍니다. 프로젝트의 가장 앞단을 가볍게 열어주는 도구입니다.",
   features: [
+    "산업·기술 시그널 수집",
+    "경쟁사 모니터링",
+    "사업기회 자동 스코어링",
+    "원페이저 기회 분석 생성",
     "위시켓, 크몽, 원티드긱스, 나라장터 등 주요 플랫폼 통합 수집",
-    "AI 기반 프로젝트 난이도 평가 및 경쟁률 예측",
-    "JavaScript 기반 맞춤형 필터 및 가중치 설정",
     "Slack, 이메일, SMS 실시간 알림",
   ],
   pricing: {

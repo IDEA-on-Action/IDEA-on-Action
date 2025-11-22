@@ -1,20 +1,22 @@
 import { Service } from "@/types/services";
 
-export const compassCartographerService: Service = {
-  id: "compass-cartographer",
-  category: "compass",
-  name: "COMPASS Cartographer",
-  slug: "cartographer",
-  title: "COMPASS Cartographer",
-  subtitle: "제안서 작성 자동화 도구",
+export const minuFrameService: Service = {
+  id: "minu-frame",
+  category: "minu",
+  name: "Minu Frame",
+  slug: "frame",
+  title: "Minu Frame",
+  subtitle: "문제정의 & RFP 설계 서비스",
   description:
-    "프로젝트 제안서 작성을 자동화하는 AI 기반 플랫폼입니다. 과거 제안서 데이터를 분석하여 최적의 제안서를 생성하고, 템플릿 관리부터 협업까지 한 곳에서 관리하세요.",
+    "올바른 문제 정의는 좋은 프로젝트의 절반입니다. Minu Frame은 생각을 구조화하고, 요구사항을 정리해 기획 초기 단계의 혼탁함을 단숨에 정리합니다.",
   features: [
-    "AI 기반 제안서 자동 생성 및 최적화",
+    "문제 정의 Wizard",
+    "요구사항 후보 자동 생성",
+    "기능/비기능 자동 구분",
+    "RFP 1.0 자동 생성",
     "과거 성공 제안서 분석 및 학습",
     "다양한 산업별/규모별 템플릿 제공",
     "팀 협업 및 버전 관리",
-    "제안서 성공률 분석 대시보드",
     "PDF/Word/HWP 다양한 포맷 내보내기",
   ],
   techStack: {
@@ -149,9 +151,9 @@ export const compassCartographerService: Service = {
         "네, PDF, Word(DOCX), 한글(HWP) 형식으로 내보내기가 가능합니다.",
     },
     {
-      question: "Navigator와 연동되나요?",
+      question: "Minu Find와 연동되나요?",
       answer:
-        "Navigator에서 발굴한 프로젝트 정보를 Cartographer로 자동 연동하여 제안서 작성을 시작할 수 있습니다.",
+        "Find에서 발굴한 프로젝트 정보를 Frame으로 자동 연동하여 제안서 작성을 시작할 수 있습니다.",
     },
   ],
   status: "coming-soon",

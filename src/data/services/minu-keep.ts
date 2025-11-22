@@ -1,21 +1,23 @@
 import { Service } from "@/types/services";
 
-export const compassHarborService: Service = {
-  id: "compass-harbor",
-  category: "compass",
-  name: "COMPASS Harbor",
-  slug: "harbor",
-  title: "COMPASS Harbor",
-  subtitle: "시스템 운영 관리 도구",
+export const minuKeepService: Service = {
+  id: "minu-keep",
+  category: "minu",
+  name: "Minu Keep",
+  slug: "keep",
+  title: "Minu Keep",
+  subtitle: "운영/유지보수 서비스",
   description:
-    "프로젝트 납품 후 시스템 운영과 유지보수를 효율적으로 관리하는 플랫폼입니다. 모니터링, 장애 대응, 고객 지원 티켓 관리까지 운영의 모든 것을 한 곳에서 관리하세요.",
+    "운영은 '묵직하게'가 아니라 '가볍고 지속 가능한 방식'이어야 합니다. Minu Keep은 버그, 업데이트, 리소스, 운영 기록을 단정하면서도 가벼운 방식으로 정리합니다.",
   features: [
+    "버그/작업 자동 분류",
+    "운영 보고서 생성",
+    "배포/업데이트 관리",
+    "운영 리소스 추적",
     "실시간 시스템 모니터링 대시보드",
     "장애 감지 및 자동 알림",
     "고객 지원 티켓 관리 시스템",
     "SLA 추적 및 보고서",
-    "자동화된 유지보수 스케줄링",
-    "비용 분석 및 최적화 제안",
   ],
   techStack: {
     frontend: ["React", "TypeScript", "D3.js"],
@@ -149,9 +151,9 @@ export const compassHarborService: Service = {
         "기본적인 자동 복구 스크립트를 설정할 수 있으며, Enterprise 플랜은 AI 기반 예측 유지보수와 자동 대응을 지원합니다.",
     },
     {
-      question: "Captain 프로젝트에서 Harbor로 자동 연동되나요?",
+      question: "Minu Build 프로젝트에서 Keep으로 자동 연동되나요?",
       answer:
-        "네, Captain에서 완료된 프로젝트는 Harbor로 자동 이관하여 운영 관리를 시작할 수 있습니다. 모든 COMPASS 서비스는 통합 연동됩니다.",
+        "네, Build에서 완료된 프로젝트는 Keep으로 자동 이관하여 운영 관리를 시작할 수 있습니다. 모든 Minu 서비스는 통합 연동됩니다.",
     },
   ],
   status: "coming-soon",

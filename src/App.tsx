@@ -115,6 +115,10 @@ const MVPServicePage = lazy(() => import("./pages/services-platform/MVPServicePa
 const FullstackPage = lazy(() => import("./pages/services-platform/FullstackPage"));
 const DesignPage = lazy(() => import("./pages/services-platform/DesignPage"));
 const OperationsPage = lazy(() => import("./pages/services-platform/OperationsPage"));
+// Minu Platform pages (구 COMPASS)
+const MinuFindPage = lazy(() => import("./pages/services-platform/MinuFindPage"));
+const MinuPlatformPage = lazy(() => import("./pages/services-platform/MinuPlatformPage"));
+// Legacy COMPASS pages (하위 호환성)
 const NavigatorPage = lazy(() => import("./pages/services-platform/NavigatorPage"));
 const COMPASSPlatformPage = lazy(() => import("./pages/services-platform/COMPASSPlatformPage"));
 const CartographerPage = lazy(() => import("./pages/services-platform/CartographerPage"));
@@ -245,6 +249,15 @@ const App = () => (
                 <Route path="/services/development/fullstack" element={<FullstackPage />} />
                 <Route path="/services/development/design" element={<DesignPage />} />
                 <Route path="/services/development/operations" element={<OperationsPage />} />
+                {/* Minu Platform Routes (신규) */}
+                <Route path="/services/minu" element={<MinuPlatformPage />} />
+                <Route path="/services/minu/find" element={<MinuFindPage />} />
+                {/* Minu Frame, Build, Keep은 coming-soon이므로 플랫폼 페이지로 리다이렉트 */}
+                <Route path="/services/minu/frame" element={<MinuPlatformPage />} />
+                <Route path="/services/minu/build" element={<MinuPlatformPage />} />
+                <Route path="/services/minu/keep" element={<MinuPlatformPage />} />
+
+                {/* Legacy COMPASS Routes (하위 호환성) */}
                 <Route path="/services/compass" element={<COMPASSPlatformPage />} />
                 <Route path="/services/compass/navigator" element={<NavigatorPage />} />
                 <Route path="/services/compass/cartographer" element={<CartographerPage />} />

@@ -18,10 +18,10 @@ import { cacheConfig, createQueryKeys } from '@/lib/react-query'
 // ===================================================================
 
 /**
- * Compass 구독 정보
+ * Minu 구독 정보 (구 Compass)
  * MCP 서버의 subscription://current 리소스 응답 형식
  */
-export interface CompassSubscription {
+export interface MinuSubscription {
   /** 사용자 UUID */
   userId: string
   /** 사용자 이메일 */
@@ -39,6 +39,12 @@ export interface CompassSubscription {
   /** 구독 유효 기간 (ISO 8601 형식) */
   validUntil: string
 }
+
+/**
+ * @deprecated Use MinuSubscription instead
+ * 하위 호환성을 위한 별칭
+ */
+export type CompassSubscription = MinuSubscription
 
 /**
  * 권한 확인 결과
@@ -521,7 +527,13 @@ export function useCompassSubscription() {
 }
 
 /**
- * Compass 권한 확인 훅
+ * Minu 구독 정보 훅 (신규)
+ * useCompassSubscription의 새 이름
+ */
+export const useMinuSubscription = useCompassSubscription
+
+/**
+ * Minu 권한 확인 훅 (구 Compass)
  *
  * 현재 사용자가 특정 권한을 가지고 있는지 확인합니다.
  * MCP 서버의 check_permission 도구를 사용합니다.

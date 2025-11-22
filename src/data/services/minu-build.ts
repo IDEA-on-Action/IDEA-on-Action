@@ -1,21 +1,23 @@
 import { Service } from "@/types/services";
 
-export const compassCaptainService: Service = {
-  id: "compass-captain",
-  category: "compass",
-  name: "COMPASS Captain",
-  slug: "captain",
-  title: "COMPASS Captain",
-  subtitle: "프로젝트 관리 플랫폼",
+export const minuBuildService: Service = {
+  id: "minu-build",
+  category: "minu",
+  name: "Minu Build",
+  slug: "build",
+  title: "Minu Build",
+  subtitle: "개발 & 프로젝트 진행 서비스",
   description:
-    "프로젝트 진행 상황을 실시간으로 관리하고 팀원들과 효율적으로 협업하는 플랫폼입니다. 칸반 보드, 간트 차트, 팀 성과 대시보드로 프로젝트를 성공적으로 이끌어 가세요.",
+    "프로젝트는 복잡하기 쉽지만, 진행 상황을 이해하는 일까지 복잡할 필요는 없습니다. Minu Build는 일정·이슈·진척을 부드럽게 요약해 PM/PL이 관리 대신 본질에 집중할 수 있게 만듭니다.",
   features: [
+    "일정/이슈/리스크 요약",
+    "Sprint/모듈 진척 자동 분석",
+    "주간보고 자동 생성",
+    "Git/Jira 경량 연동",
     "칸반 보드 및 간트 차트 지원",
     "실시간 프로젝트 진행률 대시보드",
     "팀 리소스 및 워크로드 관리",
-    "자동화된 일정 알림 및 리마인더",
     "고객과의 협업 포털",
-    "상세 프로젝트 리포트 자동 생성",
   ],
   techStack: {
     frontend: ["React", "TypeScript", "Tailwind CSS"],
@@ -152,9 +154,9 @@ export const compassCaptainService: Service = {
         "네, 태스크별 시간 추적이 가능하며, 이를 기반으로 청구서를 자동 생성할 수 있습니다.",
     },
     {
-      question: "Navigator, Cartographer와 연동되나요?",
+      question: "Minu Find, Frame과 연동되나요?",
       answer:
-        "COMPASS 플랫폼의 모든 서비스는 통합 연동됩니다. Navigator에서 수주한 프로젝트를 Captain에서 관리하고, Cartographer로 제안서를 작성할 수 있습니다.",
+        "Minu 플랫폼의 모든 서비스는 통합 연동됩니다. Find에서 수주한 프로젝트를 Build에서 관리하고, Frame으로 제안서를 작성할 수 있습니다.",
     },
   ],
   status: "coming-soon",

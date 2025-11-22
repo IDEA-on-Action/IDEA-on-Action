@@ -5,10 +5,10 @@
 
 import { Service, ServicePricingSummary } from "@/types/services";
 import { mvpDevelopmentService } from "./mvp-development";
-import { compassNavigatorService } from "./compass-navigator";
-import { compassCartographerService } from "./compass-cartographer";
-import { compassCaptainService } from "./compass-captain";
-import { compassHarborService } from "./compass-harbor";
+import { minuFindService } from "./minu-find";
+import { minuFrameService } from "./minu-frame";
+import { minuBuildService } from "./minu-build";
+import { minuKeepService } from "./minu-keep";
 import { fullstackDevelopmentService } from "./fullstack-development";
 import { designSystemService } from "./design-system";
 import { operationsManagementService } from "./operations-management";
@@ -20,11 +20,11 @@ export const allServices: Service[] = [
   fullstackDevelopmentService,
   designSystemService,
   operationsManagementService,
-  // COMPASS Platform
-  compassNavigatorService,
-  compassCartographerService,
-  compassCaptainService,
-  compassHarborService,
+  // Minu Platform (구 COMPASS)
+  minuFindService,
+  minuFrameService,
+  minuBuildService,
+  minuKeepService,
 ];
 
 // 카테고리별 서비스
@@ -32,9 +32,13 @@ export const developmentServices = allServices.filter(
   (s) => s.category === "development"
 );
 
-export const compassServices = allServices.filter(
-  (s) => s.category === "compass"
+export const minuServices = allServices.filter(
+  (s) => s.category === "minu"
 );
+
+// 하위 호환성을 위한 별칭 (deprecated)
+/** @deprecated Use minuServices instead */
+export const compassServices = minuServices;
 
 // 슬러그로 서비스 찾기
 export function getServiceBySlug(slug: string): Service | undefined {
@@ -88,47 +92,47 @@ export const servicePricingSummary: ServicePricingSummary[] = [
     href: "/services/development/operations",
   },
   {
-    category: "compass",
-    name: "COMPASS Navigator",
-    slug: "navigator",
+    category: "minu",
+    name: "Minu Find",
+    slug: "find",
     pricing: {
       type: "월 구독",
       range: "₩29,000 ~ ₩299,000",
       unit: "월",
     },
-    href: "/services/compass/navigator",
+    href: "/services/minu/find",
   },
   {
-    category: "compass",
-    name: "COMPASS Cartographer",
-    slug: "cartographer",
+    category: "minu",
+    name: "Minu Frame",
+    slug: "frame",
     pricing: {
       type: "월 구독",
       range: "₩39,000 ~ ₩349,000",
       unit: "월",
     },
-    href: "/services/compass/cartographer",
+    href: "/services/minu/frame",
   },
   {
-    category: "compass",
-    name: "COMPASS Captain",
-    slug: "captain",
+    category: "minu",
+    name: "Minu Build",
+    slug: "build",
     pricing: {
       type: "월 구독",
       range: "₩49,000 ~ ₩399,000",
       unit: "월",
     },
-    href: "/services/compass/captain",
+    href: "/services/minu/build",
   },
   {
-    category: "compass",
-    name: "COMPASS Harbor",
-    slug: "harbor",
+    category: "minu",
+    name: "Minu Keep",
+    slug: "keep",
     pricing: {
       type: "월 구독",
       range: "₩59,000 ~ ₩499,000",
       unit: "월",
     },
-    href: "/services/compass/harbor",
+    href: "/services/minu/keep",
   },
 ];

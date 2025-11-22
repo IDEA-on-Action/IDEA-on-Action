@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Compass Navigator MCP Server Entry Point
+ * Minu MCP Server Entry Point (구 Compass Navigator)
  *
  * Starts the MCP server with the appropriate transport
  * based on command line arguments or environment variables.
@@ -160,8 +160,8 @@ async function startHttpServer(): Promise<void> {
   app.get('/health', (_req: Request, res: Response) => {
     res.json({
       status: 'ok',
-      service: 'compass-navigator-mcp',
-      version: '1.0.0',
+      service: 'minu-mcp',
+      version: '1.1.0',
       environment: NODE_ENV,
       timestamp: new Date().toISOString(),
     });
@@ -170,10 +170,10 @@ async function startHttpServer(): Promise<void> {
   // Info endpoint
   app.get('/info', (_req: Request, res: Response) => {
     res.json({
-      name: 'Compass Navigator MCP Server',
-      version: '1.0.0',
+      name: 'Minu MCP Server',
+      version: '1.1.0',
       description:
-        'MCP Server for Compass Navigator integration with IDEA on Action',
+        'MCP Server for Minu Platform integration with IDEA on Action',
       resources: ['user://current', 'subscription://current'],
       tools: [
         'verify_token',
@@ -247,7 +247,7 @@ async function startHttpServer(): Promise<void> {
     console.log(`  - POST http://${HOST}:${PORT}/mcp (MCP protocol)`);
     console.log(`  - GET  http://${HOST}:${PORT}/health (Health check)`);
     console.log(`  - GET  http://${HOST}:${PORT}/info (Server info)`);
-    console.log(`  - POST http://${HOST}:${PORT}/api/webhooks/compass (Webhook)`);
+    console.log(`  - POST http://${HOST}:${PORT}/api/webhooks/minu (Webhook)`);
   });
 }
 
@@ -255,7 +255,7 @@ async function startHttpServer(): Promise<void> {
  * Main entry point
  */
 async function main(): Promise<void> {
-  console.error('[MCP Server] Compass Navigator MCP Server v1.0.0');
+  console.error('[MCP Server] Minu MCP Server v1.1.0');
 
   // Validate environment on startup
   try {
