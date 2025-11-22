@@ -10,6 +10,9 @@
  *   npm run dev:http   - Run with HTTP transport (for web clients)
  */
 
+// Load environment variables from .env file
+import 'dotenv/config';
+
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import express, { Request, Response, NextFunction } from 'express';
