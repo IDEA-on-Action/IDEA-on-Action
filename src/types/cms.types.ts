@@ -57,6 +57,8 @@ export type BlogPostStatus = 'draft' | 'published' | 'archived';
 // UI TYPES - Admin Layout
 // =====================================================
 
+import { type LucideIcon } from 'lucide-react';
+
 /**
  * Admin menu item for navigation
  * Used in AdminSidebar component
@@ -64,7 +66,7 @@ export type BlogPostStatus = 'draft' | 'published' | 'archived';
 export interface AdminMenuItem {
   label: string;
   path: string;
-  icon: any; // LucideIcon type (imported from lucide-react)
+  icon: LucideIcon;
   badge?: number;
   children?: AdminMenuItem[];
 }
@@ -668,6 +670,66 @@ export type CMSMediaFileUpdate = Partial<Omit<CMSMediaFile, 'id' | 'createdAt' |
  * Activity log insert type
  */
 export type CMSActivityLogInsert = Omit<CMSActivityLog, 'id' | 'createdAt'>;
+
+// =====================================================
+// MEDIA LIBRARY TYPES - Phase 5
+// =====================================================
+
+/**
+ * Media library item for uploaded files (CMS Phase 5)
+ * Table: public.media_library
+ */
+export interface MediaItem {
+  id: string;
+  filename: string;
+  original_filename: string;
+  file_size: number; // bytes
+  mime_type: string;
+  storage_path: string;
+  thumbnail_path?: string | null;
+  alt_text?: string | null;
+  width?: number | null;
+  height?: number | null;
+  uploaded_by: string;
+  created_at: string;
+  updated_at: string;
+  deleted_at?: string | null;
+}
+
+/**
+ * Media item insert type
+ */
+export type MediaItemInsert = Omit<MediaItem, 'id' | 'created_at' | 'updated_at' | 'deleted_at'>;
+
+/**
+ * Media item update type
+ */
+export type MediaItemUpdate = Partial<Pick<MediaItem, 'alt_text' | 'filename'>>;
+
+/**
+ * Media search/filter parameters
+ */
+export interface MediaSearchParams {
+  search?: string;
+  mime_type?: string | null;
+  date_from?: string | null;
+  date_to?: string | null;
+  sort_by?: 'created_at' | 'filename' | 'file_size';
+  sort_order?: 'asc' | 'desc';
+  page?: number;
+  per_page?: number;
+}
+
+/**
+ * Media upload progress tracking
+ */
+export interface MediaUploadProgress {
+  file: File;
+  progress: number;
+  status: 'pending' | 'uploading' | 'processing' | 'completed' | 'error';
+  error?: string;
+  result?: MediaItem;
+}
 
 // =====================================================
 // FILTER TYPES - Extended
