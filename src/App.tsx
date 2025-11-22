@@ -117,6 +117,9 @@ const DesignPage = lazy(() => import("./pages/services-platform/DesignPage"));
 const OperationsPage = lazy(() => import("./pages/services-platform/OperationsPage"));
 // Minu Platform pages (구 COMPASS)
 const MinuFindPage = lazy(() => import("./pages/services-platform/MinuFindPage"));
+const MinuFramePage = lazy(() => import("./pages/services-platform/MinuFramePage"));
+const MinuBuildPage = lazy(() => import("./pages/services-platform/MinuBuildPage"));
+const MinuKeepPage = lazy(() => import("./pages/services-platform/MinuKeepPage"));
 const MinuPlatformPage = lazy(() => import("./pages/services-platform/MinuPlatformPage"));
 // Legacy COMPASS pages (하위 호환성)
 const NavigatorPage = lazy(() => import("./pages/services-platform/NavigatorPage"));
@@ -252,10 +255,9 @@ const App = () => (
                 {/* Minu Platform Routes (신규) */}
                 <Route path="/services/minu" element={<MinuPlatformPage />} />
                 <Route path="/services/minu/find" element={<MinuFindPage />} />
-                {/* Minu Frame, Build, Keep은 coming-soon이므로 플랫폼 페이지로 리다이렉트 */}
-                <Route path="/services/minu/frame" element={<MinuPlatformPage />} />
-                <Route path="/services/minu/build" element={<MinuPlatformPage />} />
-                <Route path="/services/minu/keep" element={<MinuPlatformPage />} />
+                <Route path="/services/minu/frame" element={<MinuFramePage />} />
+                <Route path="/services/minu/build" element={<MinuBuildPage />} />
+                <Route path="/services/minu/keep" element={<MinuKeepPage />} />
 
                 {/* Legacy COMPASS Routes (하위 호환성) */}
                 <Route path="/services/compass" element={<COMPASSPlatformPage />} />
