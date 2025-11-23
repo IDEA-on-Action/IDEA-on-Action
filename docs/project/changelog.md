@@ -9,6 +9,36 @@
 
 ---
 
+## [2.8.1] - 2025-11-23 (Hotfix)
+
+### 🐛 프로덕션 빌드 크래시 수정
+
+프로덕션 사이트가 검은 화면만 표시되는 치명적 버그 수정.
+
+#### 문제 1: Octokit 모듈 초기화 에러
+- **증상**: 사이트 로딩 시 검은 화면
+- **원인**: `github-api.ts`에서 모듈 최상위 레벨에 Octokit 인스턴스 즉시 생성
+- **해결**: Lazy Initialization 패턴 적용 (`getOctokit()` 함수)
+- **커밋**: `237b80a`
+
+#### 문제 2: Admin 컴포넌트 순환 의존성
+- **증상**: `Cannot access 'pn' before initialization` 에러
+- **원인**: `pages-admin-components` 청크 분리로 인한 순환 의존성
+- **해결**: `/components/admin/` 청크 분리 비활성화
+- **커밋**: `f968dda`
+
+#### 문서화
+- `docs/guides/deployment/build-troubleshooting.md` 생성
+  - 모듈 초기화 에러 해결 가이드
+  - 순환 의존성 에러 해결 가이드
+  - 청크 분리 전략 가이드
+
+### 📦 Stats
+- 빌드: 21.88s (PWA precache 27 entries)
+- 수정 파일: 2개 (`github-api.ts`, `vite.config.ts`)
+
+---
+
 ## [2.8.0] - 2025-11-23 (Sprint 4 완료)
 
 ### 🚀 사이트 재구조화 Sprint 4: GitHub 연동 & 진척률 자동화
