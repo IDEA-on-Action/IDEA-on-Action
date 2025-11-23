@@ -9,6 +9,75 @@
 
 ---
 
+## [2.8.0] - 2025-11-23 (Sprint 4 완료)
+
+### 🚀 사이트 재구조화 Sprint 4: GitHub 연동 & 진척률 자동화
+
+#### GitHub API 연동
+- `src/lib/github-api.ts`: GitHub API 서비스 생성 (@octokit/rest)
+- `useGitHubStats` 훅: React Query 캐싱 (stars, forks, contributors)
+- `github_stats_cache` 테이블: API Rate Limit 최적화
+- ProjectCard에 GitHub 통계 연동
+
+#### 진척률 자동 계산
+- 마일스톤 기반 트리거
+- `projects.milestones` 컬럼 추가
+- 자동 진척률 업데이트 함수
+
+#### Release 감지 & 알림
+- `sync-github-releases` Edge Function (Supabase 배포)
+- 관리자 알림 연동 (앱 내 + Slack)
+- Supabase Secrets 설정 (GITHUB_TOKEN, SLACK_WEBHOOK_URL)
+
+#### 테스트
+- E2E 테스트 15개 신규 작성
+
+### 📦 Stats
+- 신규 파일: 6개
+- 패키지: `@octokit/rest` 추가
+- 빌드: 20.85s (PWA precache 27 entries)
+
+---
+
+## [2.7.0] - 2025-11-23 (Sprint 2+3 완료)
+
+### 🏗️ 사이트 재구조화 Sprint 2: 프로젝트 페이지 통합
+
+#### ProjectsHub 완성
+- `src/pages/projects/ProjectsHub.tsx`: 4개 탭 (프로젝트/로드맵/실험실/상태)
+- 탭 컴포넌트 4개 추출
+  - `ProjectsTab.tsx`, `RoadmapTab.tsx`, `LabTab.tsx`, `StatusTab.tsx`
+- `ProjectCard.tsx` 확장 (진척률 표시)
+
+### 🏗️ 사이트 재구조화 Sprint 3: 이야기 & 함께하기
+
+#### StoriesHub 완성
+- `src/pages/stories/StoriesHub.tsx`: 블로그/뉴스레터/Changelog 탭
+- `Changelog.tsx`: 릴리즈 노트 페이지
+- `NewsletterArchive.tsx`, `NewsletterDetail.tsx`: 뉴스레터 아카이브
+
+#### ConnectHub 완성
+- `src/pages/connect/ConnectHub.tsx`: 문의/커뮤니티/채용 탭
+
+#### DB 마이그레이션
+- `changelog_entries` 테이블 생성
+- `newsletter_archive` 테이블 생성
+
+#### React 훅
+- `useChangelog`: Changelog CRUD
+- `useNewsletterArchive`: 뉴스레터 아카이브 조회
+
+#### 테스트
+- E2E 테스트 68개 신규 (projects-hub 22, stories-hub 23, connect-hub 23)
+
+### 📦 Stats
+- 병렬 에이전트: 5~6개 동시
+- 시간 절감: 74% (순차 34시간 → 병렬 9시간)
+- 신규 파일: 20+개
+- 빌드: 29.14s (PWA precache 27 entries)
+
+---
+
 ## [2.6.0] - 2025-11-23 (Sprint 1 완료)
 
 ### 🏗️ 사이트 재구조화 Sprint 1

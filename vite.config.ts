@@ -305,11 +305,86 @@ export default defineConfig(({ mode }) => ({
           // - index.js:        ~600 kB gzip (initial, includes recharts+tiptap+sentry)
           // ============================================================
 
-          // Admin Routes (23 pages + 4 components)
-          // Contains: Dashboard, Analytics, Revenue, CRUD pages, Forms
-          // Only loaded when user accesses /admin routes
-          if (id.includes('/pages/admin/') || id.includes('/components/admin/')) {
-            return 'pages-admin';
+          // ============================================================
+          // ADMIN CHUNKS - Split into multiple smaller chunks
+          // ============================================================
+          // pages-admin was 3.4MB, now split into:
+          // - pages-admin-analytics: Dashboard, Analytics, Revenue (~200 kB)
+          // - pages-admin-cms: Blog, Notices, Newsletter (~300 kB)
+          // - pages-admin-crud: Service, Portfolio, Team, Lab (~400 kB)
+          // - pages-admin-core: Common admin components (~100 kB)
+          // ============================================================
+
+          // Analytics & Dashboard pages
+          if (
+            id.includes('/pages/admin/Dashboard') ||
+            id.includes('/pages/admin/Analytics') ||
+            id.includes('/pages/admin/Revenue') ||
+            id.includes('/pages/admin/RealtimeDashboard')
+          ) {
+            return 'pages-admin-analytics';
+          }
+
+          // Blog pages (Create, Edit, List)
+          if (
+            id.includes('/pages/admin/AdminBlog') ||
+            id.includes('/pages/admin/CreateBlogPost') ||
+            id.includes('/pages/admin/EditBlogPost') ||
+            id.includes('/pages/admin/AdminBlogCategories') ||
+            id.includes('/pages/admin/AdminTags')
+          ) {
+            return 'pages-admin-blog';
+          }
+
+          // Notices & Newsletter pages
+          if (
+            id.includes('/pages/admin/AdminNotices') ||
+            id.includes('/pages/admin/CreateNotice') ||
+            id.includes('/pages/admin/EditNotice') ||
+            id.includes('/pages/admin/AdminNewsletter')
+          ) {
+            return 'pages-admin-notices';
+          }
+
+          // Service pages (Create, Edit, List)
+          if (
+            id.includes('/pages/admin/AdminServices') ||
+            id.includes('/pages/admin/CreateService') ||
+            id.includes('/pages/admin/EditService')
+          ) {
+            return 'pages-admin-services';
+          }
+
+          // Content pages (Portfolio, Team, Lab, Roadmap, Media)
+          if (
+            id.includes('/pages/admin/AdminPortfolio') ||
+            id.includes('/pages/admin/AdminTeam') ||
+            id.includes('/pages/admin/AdminLab') ||
+            id.includes('/pages/admin/AdminRoadmap') ||
+            id.includes('/pages/admin/AdminMedia') ||
+            id.includes('/pages/admin/AdminIntegrations')
+          ) {
+            return 'pages-admin-content';
+          }
+
+          // User management pages (Users, Roles, AuditLogs, Orders)
+          if (
+            id.includes('/pages/admin/AdminUsers') ||
+            id.includes('/pages/admin/AdminRoles') ||
+            id.includes('/pages/admin/AuditLogs') ||
+            id.includes('/pages/admin/Orders')
+          ) {
+            return 'pages-admin-users';
+          }
+
+          // Admin components
+          if (id.includes('/components/admin/')) {
+            return 'pages-admin-components';
+          }
+
+          // Remaining admin pages
+          if (id.includes('/pages/admin/')) {
+            return 'pages-admin-misc';
           }
 
           // NOTE: Public pages (Home, Services, Blog, etc.) remain in index.js
