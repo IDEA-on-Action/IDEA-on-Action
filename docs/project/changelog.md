@@ -9,6 +9,38 @@
 
 ---
 
+## [2.10.0] - 2025-11-23 (Central Hub 대시보드)
+
+### 🎯 Claude Skills Sprint 2: Central Hub 대시보드 UI
+
+IDEA on Action Hub의 Central Hub 대시보드 UI 컴포넌트 구현 완료.
+
+#### 신규 컴포넌트 (4개)
+- `ServiceHealthCard`: 서비스 상태 카드 (healthy/degraded/unhealthy/unknown)
+- `EventTimeline`: 이벤트 타임라인 (서비스별 필터링, 실시간 업데이트)
+- `IssueList`: 이슈 목록 (심각도순 정렬, 상태 변경 기능)
+- `StatisticsChart`: KPI 카드 + 서비스별 분포 차트
+
+#### 대시보드 페이지
+- `CentralHubDashboard.tsx`: 탭 UI (Overview/Events/Issues)
+- 라우트: `/admin/central-hub`
+- Excel 내보내기 버튼 (xlsx Skill 연동)
+
+#### 반응형 레이아웃
+- 모바일: 1열 레이아웃
+- 태블릿: 2열 레이아웃
+- 데스크톱: 4열 레이아웃
+
+#### E2E 테스트
+- `central-hub-dashboard.spec.ts`: 5개 테스트 케이스
+
+### 📦 Stats
+- 신규 파일: 6개 (컴포넌트 4, 페이지 1, 테스트 1)
+- 빌드: ~30s (PWA precache 27 entries)
+- 병렬 에이전트: 4개 동시 작업
+
+---
+
 ## [2.9.1] - 2025-11-23 (Claude Skills SDD)
 
 ### 📋 Claude Skills SDD 문서 체계 완성

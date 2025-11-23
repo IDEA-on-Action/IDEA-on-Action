@@ -171,6 +171,7 @@ const Revenue = lazy(() => import("./pages/admin/Revenue"));
 const RealtimeDashboard = lazy(() => import("./pages/admin/RealtimeDashboard"));
 const AdminMedia = lazy(() => import("./pages/admin/AdminMedia"));
 const AdminIntegrations = lazy(() => import("./pages/admin/AdminIntegrations"));
+const CentralHubDashboard = lazy(() => import("./pages/admin/CentralHubDashboard"));
 
 // Sentry 초기화
 initSentry();
@@ -342,6 +343,7 @@ const App = () => (
                   <Route path="realtime" element={<RealtimeDashboard />} />
                   <Route path="media" element={<AdminMedia />} />
                   <Route path="integrations" element={<AdminIntegrations />} />
+                  <Route path="central-hub" element={<CentralHubDashboard />} />
                 </Route>
 
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

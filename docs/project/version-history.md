@@ -3,7 +3,7 @@
 > Major.Minor.Patch 버전 관리 체계에 따른 버전별 중요 작업 정리
 
 **작성일**: 2025-11-23
-**현재 버전**: 2.9.0
+**현재 버전**: 2.10.0
 **버전 관리**: [Semantic Versioning](https://semver.org/lang/ko/)
 
 ---
@@ -22,6 +22,7 @@
 
 | 버전 | 날짜 | 핵심 변경 | 카테고리 |
 |------|------|-----------|----------|
+| 2.10.0 | 2025-11-23 | Claude Skills Sprint 2 (Central Hub 대시보드) | Feature |
 | 2.9.0 | 2025-11-23 | Central Hub 인프라 (Minu 서비스 중심 시스템) | Feature |
 | 2.8.1 | 2025-11-23 | 프로덕션 빌드 크래시 수정 | Hotfix |
 | 2.8.0 | 2025-11-23 | GitHub 연동 & 진척률 자동화 | Feature |

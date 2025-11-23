@@ -3,7 +3,7 @@
 > Claude와의 개발 협업을 위한 프로젝트 핵심 문서
 
 **마지막 업데이트**: 2025-11-23
-**현재 버전**: 2.9.0 (Central Hub 인프라 - Minu 서비스 중심 시스템)
+**현재 버전**: 2.10.0 (Claude Skills Sprint 2 - Central Hub 대시보드)
 **상태**: ✅ Production Ready | 🔒 보안 점수 98/100 | 🎯 토스페이먼츠 심사 제출 완료
 **개발 방법론**: SDD (Spec-Driven Development) + MCP (Model Context Protocol) Integration
 
@@ -12,6 +12,16 @@
 ## 📋 최신 업데이트
 
 ### 2025-11-23 (오늘)
+- ✅ **Claude Skills Sprint 2 완료** - Central Hub 대시보드 UI
+  - **컴포넌트 4개**: `ServiceHealthCard`, `EventTimeline`, `IssueList`, `StatisticsChart`
+  - **대시보드 페이지**: `CentralHubDashboard.tsx` (탭 UI: Overview/Events/Issues)
+  - **라우트**: `/admin/central-hub` 추가
+  - **반응형**: 모바일/태블릿/데스크톱 레이아웃
+  - **Realtime**: Supabase Realtime 구독 (이미 구현됨)
+  - **E2E 테스트**: 5개 신규 작성 (`central-hub-dashboard.spec.ts`)
+  - **빌드**: ~30s 성공 (PWA precache 27 entries)
+  - **병렬 에이전트**: 4개 동시 작업 (Phase 1)
+
 - ✅ **Claude Skills Sprint 1 완료** - xlsx Skill 구현
   - **패키지**: `xlsx` (SheetJS) 설치, vite.config.ts 청크 최적화
   - **타입**: `skills.types.ts` (20+ 타입 정의)
@@ -393,6 +403,7 @@ SDD 접근: 명세 중심 → 코드는 명세의 구현체
 
 | 버전 | 날짜 | 핵심 변경 |
 |------|------|-----------|
+| 2.10.0 | 2025-11-23 | Claude Skills Sprint 2 (Central Hub 대시보드) |
 | 2.9.0 | 2025-11-23 | Central Hub 인프라 (Minu 서비스 중심 시스템) |
 | 2.8.1 | 2025-11-23 | 프로덕션 빌드 크래시 Hotfix |
 | 2.8.0 | 2025-11-23 | GitHub 연동 & 진척률 자동화 |
