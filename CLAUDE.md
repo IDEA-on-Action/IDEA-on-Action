@@ -12,6 +12,14 @@
 ## 📋 최신 업데이트
 
 ### 2025-11-23 (오늘)
+- ✅ **Claude Skills SDD 문서 체계 완성** - 허브 + Minu 시리즈 Skills 통합 계획
+  - **SDD 문서**: `spec/claude-skills/`, `plan/claude-skills/`, `tasks/claude-skills/`
+  - **요구사항**: 8개 사용자 스토리, 12개 기능 요구사항, 50+ 인수 조건
+  - **아키텍처**: Skills Integration Layer, MCP Orchestrator 설계
+  - **기술 스택**: xlsx (SheetJS), docx, pptxgenjs
+  - **구현 전략**: 5 Phase, 38개 TASK, 60시간 계획
+  - **백로그**: 27개 항목 (P0~P3)
+
 - ✅ **Central Hub 인프라 구축** - Minu 서비스 중심 시스템 Phase 1
   - **SDD 문서**: `spec/central-hub/`, `plan/central-hub/`, `tasks/central-hub/`
   - **DB 마이그레이션**: `service_events`, `service_issues`, `service_health` 테이블

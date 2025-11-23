@@ -3,14 +3,57 @@
 > 프로젝트 작업 목록 및 진행 상황 관리
 
 **마지막 업데이트**: 2025-11-23
-**현재 Phase**: Central Hub Phase 1 완료
-**다음 단계**: Central Hub Phase 2 (MCP 통합 확대)
+**현재 Phase**: Claude Skills SDD 문서 체계 완성
+**다음 단계**: Central Hub Phase 2 → Claude Skills Sprint 1
 **프로젝트 버전**: 2.9.0 (Central Hub 인프라 - Minu 서비스 중심 시스템)
 **프로덕션**: https://www.ideaonaction.ai
 
 ---
 
-## 🚀 진행 중: Central Hub (Minu 서비스 중심 시스템)
+## 🚀 진행 중: Claude Skills 통합 (허브 + Minu 시리즈)
+
+**목표**: Claude Skills를 IDEA on Action 허브 및 Minu 서비스에 통합하여 문서 자동화 기능 제공
+**SDD 문서**: [spec/claude-skills/](spec/claude-skills/) | [plan/claude-skills/](plan/claude-skills/) | [tasks/claude-skills/](tasks/claude-skills/)
+
+### 아키텍처
+```
+Claude Skills Integration
+├── xlsx Skill: Excel 생성 (이벤트/이슈 리포트)
+├── docx Skill: Word 생성 (RFP, 보고서)
+├── pptx Skill: PowerPoint 생성 (발표자료)
+└── MCP Orchestrator: 서비스 간 인증/동기화
+         │
+         ▼
+┌────────┬────────┬────────┬────────┬────────┐
+│  Hub   │  Minu  │  Minu  │  Minu  │  Minu  │
+│Dashboard│ Find │  Frame │  Build │  Keep  │
+└────────┴────────┴────────┴────────┴────────┘
+```
+
+### Sprint 계획 (Claude Skills)
+- [x] **SDD 문서 체계 완성** - 요구사항, 인수조건, 아키텍처, 구현 전략 ✅ 2025-11-23
+- [ ] **선행 조건**: Central Hub Phase 2 완료 (MCPProtected HOC)
+- [ ] **Sprint 1**: xlsx Skill 통합 (8h) - TASK-CS-001~008
+- [ ] **Sprint 2**: 대시보드 UI (14h) - TASK-CS-009~016
+- [ ] **Sprint 3**: docx Skill + RFP (16h) - TASK-CS-017~025
+- [ ] **Sprint 4**: MCP Orchestrator (14h) - TASK-CS-026~033
+- [ ] **Sprint 5**: 서비스별 특화 (16h) - TASK-CS-034~038
+
+### SDD 문서 완성 내역 (2025-11-23)
+| 카테고리 | 파일 | 설명 |
+|---------|------|------|
+| Spec | `spec/claude-skills/requirements.md` | 8개 사용자 스토리, 12개 기능 요구사항 |
+| Spec | `spec/claude-skills/acceptance-criteria.md` | 50+ 인수 조건, 7개 섹션 |
+| Spec | `spec/claude-skills/constraints.md` | 기술/비즈니스/보안/성능 제약 |
+| Plan | `plan/claude-skills/architecture.md` | Skills Integration Layer, MCP Orchestrator |
+| Plan | `plan/claude-skills/tech-stack.md` | xlsx, docx, pptxgenjs, React Query |
+| Plan | `plan/claude-skills/implementation-strategy.md` | 5 Phase, 60시간 계획 |
+| Tasks | `tasks/claude-skills/sprint-1~5.md` | 38개 TASK 정의 |
+| Tasks | `tasks/claude-skills/backlog.md` | 27개 백로그 항목 (P0~P3) |
+
+---
+
+## 🔄 대기 중: Central Hub Phase 2
 
 **목표**: IDEA on Action을 Minu 서비스들의 인증 허브 + 이벤트 수신 센터로 구축
 **SDD 문서**: [spec/central-hub/](spec/central-hub/) | [plan/central-hub/](plan/central-hub/) | [tasks/central-hub/](tasks/central-hub/)

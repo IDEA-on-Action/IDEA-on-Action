@@ -9,6 +9,45 @@
 
 ---
 
+## [2.9.1] - 2025-11-23 (Claude Skills SDD)
+
+### 📋 Claude Skills SDD 문서 체계 완성
+
+IDEA on Action Hub + Minu 시리즈를 위한 Claude Skills 연동 명세 완료.
+
+#### SDD 문서 (12개)
+
+**Spec (명세)**
+- `spec/claude-skills/requirements.md`: 8개 사용자 스토리, 12개 기능 요구사항
+- `spec/claude-skills/acceptance-criteria.md`: 50+ 수용 기준 (xlsx, docx, pptx, MCP)
+- `spec/claude-skills/constraints.md`: 기술/비즈니스/성능/보안 제약사항
+
+**Plan (계획)**
+- `plan/claude-skills/architecture.md`: 시스템 아키텍처, DB 스키마, API 설계
+- `plan/claude-skills/tech-stack.md`: 패키지 선정 (SheetJS, docx, pptxgenjs)
+- `plan/claude-skills/implementation-strategy.md`: 5 Phase 구현 전략
+
+**Tasks (작업)**
+- `tasks/claude-skills/sprint-1.md`: xlsx Skill (8시간, 8 태스크)
+- `tasks/claude-skills/sprint-2.md`: Dashboard UI (14시간, 8 태스크)
+- `tasks/claude-skills/sprint-3.md`: docx Skill (16시간, 9 태스크)
+- `tasks/claude-skills/sprint-4.md`: MCP Orchestrator (14시간, 8 태스크)
+- `tasks/claude-skills/sprint-5.md`: 서비스별 Skills (16시간, 5 태스크)
+- `tasks/claude-skills/backlog.md`: 27개 백로그 항목 (P0~P3)
+
+#### 주요 기능 정의
+- **xlsx**: 이벤트/이슈/헬스 Excel 내보내기
+- **docx**: RFP 문서 자동 생성 (정부 SI, 스타트업, 엔터프라이즈 템플릿)
+- **pptx**: 제안서 슬라이드 생성
+- **MCP Orchestrator**: 서비스간 인증 + 데이터 동기화
+
+### 📦 Stats
+- 신규 파일: 12개 (spec 3, plan 3, tasks 6)
+- 태스크 정의: 38개 (TASK-CS-001 ~ TASK-CS-038)
+- 총 예상 시간: 68시간 (5 스프린트)
+
+---
+
 ## [2.9.0] - 2025-11-23 (Central Hub 인프라)
 
 ### 🚀 Central Hub: Minu 서비스 중심 시스템 Phase 1
