@@ -52,12 +52,10 @@ export function useNotices(options: UseNoticesOptions = {}) {
     queryKey: QUERY_KEYS.list({ ...filters, sortBy, sortOrder } as NoticeFilters),
     staleTime: 1000 * 60 * 5, // 5분간 캐시 유지 (CMS Phase 4 최적화)
     queryFn: async () => {
+      // Note: auth.users 테이블은 FK 조인이 불가능하므로 author 정보는 별도 조회 필요
       let query = supabase
         .from('notices')
-        .select(`
-          *,
-          author:author_id(id, email, raw_user_meta_data)
-        `)
+        .select('*')
 
       // Apply filters
       if (filters.status) {
@@ -112,12 +110,10 @@ export function useNotice(id: string | undefined) {
     queryFn: async () => {
       if (!id) throw new Error('Notice ID is required')
 
+      // Note: auth.users 테이블은 FK 조인이 불가능하므로 author 정보는 별도 조회 필요
       const { data, error } = await supabase
         .from('notices')
-        .select(`
-          *,
-          author:author_id(id, email, raw_user_meta_data)
-        `)
+        .select('*')
         .eq('id', id)
         .single()
 

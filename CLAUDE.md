@@ -3,7 +3,7 @@
 > Claude와의 개발 협업을 위한 프로젝트 핵심 문서
 
 **마지막 업데이트**: 2025-11-23
-**현재 버전**: 2.8.0 (사이트 재구조화 Sprint 4 완료 - GitHub 연동)
+**현재 버전**: 2.8.1 (Hotfix - 프로덕션 빌드 크래시 수정)
 **상태**: ✅ Production Ready | 🔒 보안 점수 98/100 | 🎯 토스페이먼츠 심사 제출 완료
 **개발 방법론**: SDD (Spec-Driven Development) + MCP (Model Context Protocol) Integration
 
@@ -305,13 +305,31 @@ SDD 접근: 명세 중심 → 코드는 명세의 구현체
 
 ## 🔢 버전 관리
 
-**현재 버전**: 2.0.0
-**형식**: Major.Minor.Patch
+**현재 버전**: 2.8.1
+**형식**: Major.Minor.Patch ([Semantic Versioning](https://semver.org/lang/ko/))
 
 ### 버전 업 기준
-- **Major**: Phase 완료, Breaking Changes
-- **Minor**: 주요 기능 추가
-- **Patch**: 버그 수정, 문서 업데이트
+
+| 버전 | 변경 기준 | 승인 |
+|------|-----------|------|
+| **Major (X.0.0)** | Breaking Changes, 대규모 아키텍처 변경 | ⚠️ 사용자 승인 필수 |
+| **Minor (0.X.0)** | 새로운 기능 추가 (하위 호환) | 자동 |
+| **Patch (0.0.X)** | 버그 수정, 문서 업데이트, Hotfix | 자동 |
+
+### 최근 버전 히스토리
+
+| 버전 | 날짜 | 핵심 변경 |
+|------|------|-----------|
+| 2.8.1 | 2025-11-23 | 프로덕션 빌드 크래시 Hotfix |
+| 2.8.0 | 2025-11-23 | GitHub 연동 & 진척률 자동화 |
+| 2.7.0 | 2025-11-23 | 프로젝트/이야기/함께하기 허브 |
+| 2.6.0 | 2025-11-23 | 사이트 재구조화 (7→5 메뉴) |
+| 2.5.0 | 2025-11-23 | Tiptap 에디터 & 미디어 고도화 |
+| 2.4.0 | 2025-11-22 | Minu 브랜드 전환 |
+| 2.3.0 | 2025-11-22 | Newsletter 관리 기능 |
+| 2.0.0 | 2025-11-16 | Version 2.0 리팩토링 |
+
+**전체 히스토리**: [docs/project/version-history.md](docs/project/version-history.md)
 
 ### 릴리스
 ```bash
