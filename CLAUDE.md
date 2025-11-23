@@ -12,6 +12,22 @@
 ## 📋 최신 업데이트
 
 ### 2025-11-23 (오늘)
+- ✅ **Claude Skills Sprint 1 완료** - xlsx Skill 구현
+  - **패키지**: `xlsx` (SheetJS) 설치, vite.config.ts 청크 최적화
+  - **타입**: `skills.types.ts` (20+ 타입 정의)
+  - **훅**: `useXlsxExport` (진행률, 에러 핸들링 포함)
+  - **컴포넌트**: `ExportButton` (Excel 내보내기 버튼)
+  - **시트 생성**: 이벤트/이슈/헬스/KPI 4개 시트
+  - **E2E 테스트**: 5개 신규 작성 (`xlsx-export.spec.ts`)
+
+- ✅ **Central Hub Phase 2 완료** - MCP 컴포넌트 인프라
+  - **HOC**: `MCPProtected`, `withMCPProtection`
+  - **훅**: `useMCPServicePermission` (권한 확인 + 캐싱)
+  - **Context**: `MCPPermissionProvider` (전역 권한 캐시)
+  - **UI**: `MCPLoading`, `MCPFallback` 컴포넌트
+  - **E2E 테스트**: 40개 신규 작성 (`mcp-permission.spec.ts`)
+  - **빌드**: 30.64s 성공 (PWA precache 27 entries)
+
 - ✅ **Claude Skills SDD 문서 체계 완성** - 허브 + Minu 시리즈 Skills 통합 계획
   - **SDD 문서**: `spec/claude-skills/`, `plan/claude-skills/`, `tasks/claude-skills/`
   - **요구사항**: 8개 사용자 스토리, 12개 기능 요구사항, 50+ 인수 조건

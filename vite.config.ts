@@ -265,6 +265,11 @@ export default defineConfig(({ mode }) => ({
             return 'vendor-markdown';
           }
 
+          // 3. xlsx Skill - Excel export functionality (lazy loaded)
+          if (id.includes('node_modules/xlsx')) {
+            return 'xlsx-skill';
+          }
+
           // 3. TipTap Editor - DISABLED due to React dependency issues
           // TipTap/Prosemirror uses React's useSyncExternalStore internally
           // which causes "Cannot read properties of undefined" errors

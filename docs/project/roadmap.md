@@ -1,4 +1,4 @@
-# VIBE WORKING 프로젝트 로드맵
+# IDEA on Action 프로젝트 로드맵
 
 > 2025-2026 장기 개발 계획 및 마일스톤
 
@@ -35,13 +35,18 @@ Sprint 4     ████████████████████ 100% �
 
 Central Hub:
 Phase 1      ████████████████████ 100% ✅ (완료 - 2025-11-23) 🎯
+Phase 2      ░░░░░░░░░░░░░░░░░░░░   0% 📋 (계획 중)
+
+Claude Skills:
+SDD 문서     ████████████████████ 100% ✅ (완료 - 2025-11-23) 📚
+Phase 1      ░░░░░░░░░░░░░░░░░░░░   0% 📋 (계획 중)
 ```
 
-**총 진행률**: Central Hub 인프라 Phase 1 완료 (Minu 서비스 중심 시스템)
+**총 진행률**: Central Hub Phase 1 완료, Claude Skills SDD 문서 완성
 **최신 버전**: v2.9.0
 **총 테스트**: 375+ 테스트 케이스 (E2E 257+, Unit 92, Visual 28)
 **Bundle 크기**: ~1555 KiB (27 entries precached)
-**다음 단계**: 프로덕션 모니터링 및 최적화
+**다음 단계**: Central Hub Phase 2, Claude Skills 통합
 
 ---
 
@@ -1061,6 +1066,100 @@ Phase 1      ████████████████████ 100% �
 
 ---
 
+### ✅ Central Hub Phase 1 (완료 - 2025-11-23) 🎯
+
+**우선순위**: ⭐ 최고
+**실제 기간**: 1일
+**시작일**: 2025-11-23
+**완료일**: 2025-11-23
+**목표**: Minu 서비스 중심 시스템 - 웹훅 수신 인프라 구축
+
+#### 완료된 작업 항목
+
+**데이터베이스** ✅
+- [x] `service_events` 테이블 생성 (이벤트 수신 저장)
+- [x] `service_issues` 테이블 생성 (이슈 추적)
+- [x] `service_health` 테이블 생성 (헬스 체크)
+- [x] RLS 정책 설정
+
+**Edge Function** ✅
+- [x] `receive-service-event` 함수 생성
+- [x] HMAC 서명 검증
+- [x] 이벤트 타입별 라우팅
+
+**React 훅** ✅
+- [x] `useServiceEvents` - 이벤트 조회
+- [x] `useServiceIssues` - 이슈 관리
+- [x] `useServiceHealth` - 헬스 상태
+
+**TypeScript** ✅
+- [x] `central-hub.types.ts` - 20+ 타입 정의
+
+#### 상세 문서
+- **명세**: [spec/central-hub/requirements.md](../../spec/central-hub/requirements.md)
+- **계획**: [plan/central-hub/architecture.md](../../plan/central-hub/architecture.md)
+- **작업**: [tasks/central-hub/sprint-1.md](../../tasks/central-hub/sprint-1.md)
+
+---
+
+### 📋 Central Hub Phase 2 (계획 중)
+
+**우선순위**: ⭐ 높음
+**예상 기간**: 1주
+**목표**: 대시보드 UI 및 알림 시스템
+
+#### 계획된 작업 항목
+
+**대시보드 UI**
+- [ ] Central Hub 메인 대시보드
+- [ ] 이벤트 타임라인 뷰
+- [ ] 이슈 관리 인터페이스
+- [ ] 헬스 상태 모니터링
+
+**알림 시스템**
+- [ ] 실시간 알림 (Supabase Realtime)
+- [ ] Slack 연동
+- [ ] 이메일 알림
+
+#### 상세 문서
+- **작업**: [tasks/central-hub/sprint-2.md](../../tasks/central-hub/sprint-2.md)
+
+---
+
+### 📋 Claude Skills 통합 (계획 중 - v2.10.0)
+
+**우선순위**: ⭐ 높음
+**예상 기간**: 60시간 (5 Phase)
+**목표**: 허브 + Minu 시리즈 Skills 통합
+
+#### SDD 문서 현황 ✅
+
+**요구사항 분석** (완료)
+- 8개 사용자 스토리 (US-CS-01~US-CS-08)
+- 12개 기능 요구사항
+- 50+ 인수 조건
+
+**아키텍처 설계** (완료)
+- Skills Integration Layer
+- MCP Orchestrator 설계
+- Frontend/API/Data Layer
+
+**기술 스택**
+- xlsx (SheetJS) - 엑셀 처리
+- docx - Word 문서 생성
+- pptxgenjs - PowerPoint 생성
+
+**작업 분해** (완료)
+- 5 Phase, 38개 TASK
+- 27개 백로그 항목 (P0~P3)
+
+#### 상세 문서
+- **명세**: [spec/claude-skills/requirements.md](../../spec/claude-skills/requirements.md)
+- **계획**: [plan/claude-skills/architecture.md](../../plan/claude-skills/architecture.md)
+- **작업**: [tasks/claude-skills/](../../tasks/claude-skills/)
+
+---
+
 ### ✅ Version 2.0 Sprint 3: Automation & Open Metrics (완료 - 2025-11-09) 🎨
 
 **우선순위**: ⭐ 최고
@@ -1155,6 +1254,19 @@ Phase 1      ████████████████████ 100% �
 ---
 
 ## 📝 변경 이력
+
+### 2025-11-23
+- **Central Hub 인프라 Phase 1 완료** 🎯
+  - DB 마이그레이션: service_events, service_issues, service_health
+  - Edge Function: receive-service-event (HMAC 검증)
+  - React 훅: useServiceEvents, useServiceIssues, useServiceHealth
+  - TypeScript 타입: central-hub.types.ts (20+ 타입)
+- **Claude Skills SDD 문서 체계 완성** 📚
+  - spec/claude-skills/, plan/claude-skills/, tasks/claude-skills/
+  - 8개 사용자 스토리, 12개 기능 요구사항
+  - 5 Phase, 38개 TASK, 60시간 계획
+  - 27개 백로그 항목 (P0~P3)
+- 버전 v2.9.0 릴리스
 
 ### 2025-11-22
 - **CMS Phase 4 완료** ⚡

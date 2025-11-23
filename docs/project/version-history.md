@@ -3,7 +3,7 @@
 > Major.Minor.Patch 버전 관리 체계에 따른 버전별 중요 작업 정리
 
 **작성일**: 2025-11-23
-**현재 버전**: 2.8.1
+**현재 버전**: 2.9.0
 **버전 관리**: [Semantic Versioning](https://semver.org/lang/ko/)
 
 ---
@@ -22,6 +22,7 @@
 
 | 버전 | 날짜 | 핵심 변경 | 카테고리 |
 |------|------|-----------|----------|
+| 2.9.0 | 2025-11-23 | Central Hub 인프라 (Minu 서비스 중심 시스템) | Feature |
 | 2.8.1 | 2025-11-23 | 프로덕션 빌드 크래시 수정 | Hotfix |
 | 2.8.0 | 2025-11-23 | GitHub 연동 & 진척률 자동화 | Feature |
 | 2.7.0 | 2025-11-23 | 프로젝트/이야기/함께하기 허브 | Feature |
@@ -62,6 +63,17 @@
 ---
 
 ## Minor Versions (v2.x.0)
+
+### v2.9.0 - Central Hub 인프라 (2025-11-23)
+
+**Minu 서비스 중심 시스템 Phase 1**:
+- `service_events`, `service_issues`, `service_health` DB 테이블
+- `receive-service-event` Edge Function (웹훅 수신 + HMAC 검증)
+- React 훅: `useServiceEvents`, `useServiceIssues`, `useServiceHealth`
+- TypeScript 타입: `central-hub.types.ts` (20+ 타입 정의)
+- SDD 문서: `spec/central-hub/`, `plan/central-hub/`, `tasks/central-hub/`
+- Claude Skills SDD 문서 체계 완성 (38개 TASK, 27개 백로그)
+- 빌드 성공: 34.37s (PWA precache 27 entries)
 
 ### v2.8.0 - GitHub 연동 (2025-11-23)
 
@@ -161,10 +173,10 @@
 
 ## 다음 버전 계획
 
-### v2.9.0 - 안정화 (진행 중)
-- SDD 문서 작성 완료
-- 빌드 최적화 (chunkSizeWarningLimit)
-- 문서 정리
+### v2.10.0 - Claude Skills 통합 (진행 예정)
+- 허브 + Minu 시리즈 Skills 통합
+- xlsx (SheetJS), docx, pptxgenjs 기술 스택
+- 5 Phase, 38개 TASK, 60시간 계획
 
 ### v3.0.0 (예정 - 사용자 승인 필요)
 **후보 기능**:
