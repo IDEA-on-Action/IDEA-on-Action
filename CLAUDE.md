@@ -3,7 +3,7 @@
 > Claude와의 개발 협업을 위한 프로젝트 핵심 문서
 
 **마지막 업데이트**: 2025-11-23
-**현재 버전**: 2.8.1 (Hotfix - 프로덕션 빌드 크래시 수정)
+**현재 버전**: 2.9.0 (Central Hub 인프라 - Minu 서비스 중심 시스템)
 **상태**: ✅ Production Ready | 🔒 보안 점수 98/100 | 🎯 토스페이먼츠 심사 제출 완료
 **개발 방법론**: SDD (Spec-Driven Development) + MCP (Model Context Protocol) Integration
 
@@ -12,6 +12,14 @@
 ## 📋 최신 업데이트
 
 ### 2025-11-23 (오늘)
+- ✅ **Central Hub 인프라 구축** - Minu 서비스 중심 시스템 Phase 1
+  - **SDD 문서**: `spec/central-hub/`, `plan/central-hub/`, `tasks/central-hub/`
+  - **DB 마이그레이션**: `service_events`, `service_issues`, `service_health` 테이블
+  - **Edge Function**: `receive-service-event` (웹훅 수신 + HMAC 검증)
+  - **React 훅**: `useServiceEvents`, `useServiceIssues`, `useServiceHealth`
+  - **TypeScript 타입**: `central-hub.types.ts` (20+ 타입 정의)
+  - **빌드**: 34.37s 성공 (PWA precache 27 entries)
+
 - ✅ **StoriesHub 데이터 연동 완료** - 4개 섹션 모두 자동 업데이트
   - **블로그**: WordPress API 연동 (`useWordPressPosts`)
   - **뉴스레터**: Supabase `newsletter_archive` 연동 (`useNewsletterArchive`)
