@@ -21,7 +21,7 @@
 
 ### TASK-CH-001: service_events 테이블 생성
 **예상 시간**: 20분
-**상태**: 대기
+**상태**: ✅ 완료
 
 **작업 내용**:
 ```sql
@@ -57,15 +57,15 @@ USING (is_admin(auth.uid()));
 ```
 
 **완료 조건**:
-- [ ] 마이그레이션 파일 생성
-- [ ] 로컬 DB에 적용 테스트
-- [ ] RLS 정책 작동 확인
+- [x] 마이그레이션 파일 생성
+- [x] 로컬 DB에 적용 테스트
+- [x] RLS 정책 작동 확인
 
 ---
 
 ### TASK-CH-002: service_issues 테이블 생성
 **예상 시간**: 20분
-**상태**: 대기
+**상태**: ✅ 완료
 
 **작업 내용**:
 ```sql
@@ -118,15 +118,15 @@ USING (is_admin(auth.uid()));
 ```
 
 **완료 조건**:
-- [ ] 마이그레이션 파일 생성
-- [ ] 로컬 DB에 적용 테스트
-- [ ] RLS 정책 작동 확인
+- [x] 마이그레이션 파일 생성
+- [x] 로컬 DB에 적용 테스트
+- [x] RLS 정책 작동 확인
 
 ---
 
 ### TASK-CH-003: service_health 테이블 생성
 **예상 시간**: 15분
-**상태**: 대기
+**상태**: ✅ 완료
 
 **작업 내용**:
 ```sql
@@ -163,15 +163,15 @@ USING (true);
 ```
 
 **완료 조건**:
-- [ ] 마이그레이션 파일 생성
-- [ ] 초기 데이터 삽입 확인
-- [ ] RLS 정책 작동 확인
+- [x] 마이그레이션 파일 생성
+- [x] 초기 데이터 삽입 확인
+- [x] RLS 정책 작동 확인
 
 ---
 
 ### TASK-CH-004: receive-service-event Edge Function 생성
 **예상 시간**: 45분
-**상태**: 대기
+**상태**: ✅ 완료
 
 **작업 내용**:
 ```typescript
@@ -327,16 +327,16 @@ serve(async (req) => {
 ```
 
 **완료 조건**:
-- [ ] Edge Function 파일 생성
-- [ ] HMAC 서명 검증 로직 구현
-- [ ] 이벤트 유형별 분기 처리
-- [ ] 에러 핸들링
+- [x] Edge Function 파일 생성
+- [x] HMAC 서명 검증 로직 구현
+- [x] 이벤트 유형별 분기 처리
+- [x] 에러 핸들링
 
 ---
 
 ### TASK-CH-005: TypeScript 타입 정의
 **예상 시간**: 15분
-**상태**: 대기
+**상태**: ✅ 완료
 
 **작업 내용**:
 ```typescript
@@ -398,15 +398,15 @@ export interface WebhookPayload {
 ```
 
 **완료 조건**:
-- [ ] 타입 파일 생성
-- [ ] 모든 엔티티 타입 정의
-- [ ] 웹훅 페이로드 타입 정의
+- [x] 타입 파일 생성
+- [x] 모든 엔티티 타입 정의
+- [x] 웹훅 페이로드 타입 정의
 
 ---
 
 ### TASK-CH-006: React 훅 생성
 **예상 시간**: 30분
-**상태**: 대기
+**상태**: ✅ 완료
 
 **작업 내용**:
 ```typescript
@@ -416,10 +416,10 @@ export interface WebhookPayload {
 ```
 
 **완료 조건**:
-- [ ] useServiceEvents 훅 생성
-- [ ] useServiceIssues 훅 생성
-- [ ] useServiceHealth 훅 생성
-- [ ] Realtime 구독 기능 포함
+- [x] useServiceEvents 훅 생성
+- [x] useServiceIssues 훅 생성
+- [x] useServiceHealth 훅 생성
+- [x] Realtime 구독 기능 포함
 
 ---
 
@@ -443,11 +443,11 @@ export interface WebhookPayload {
 
 ## 완료 조건
 
-- [ ] 3개 테이블 마이그레이션 완료
-- [ ] Edge Function 배포 완료
-- [ ] TypeScript 타입 정의 완료
-- [ ] React 훅 생성 완료
-- [ ] 기본 테스트 통과
+- [x] 3개 테이블 마이그레이션 완료
+- [x] Edge Function 배포 완료
+- [x] TypeScript 타입 정의 완료
+- [x] React 훅 생성 완료
+- [x] 기본 테스트 통과
 
 ---
 

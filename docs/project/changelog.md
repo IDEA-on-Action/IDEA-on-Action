@@ -9,6 +9,40 @@
 
 ---
 
+## [2.9.0] - 2025-11-23 (Central Hub 인프라)
+
+### 🚀 Central Hub: Minu 서비스 중심 시스템 Phase 1
+
+IDEA on Action을 Minu 서비스들(Find, Frame, Build, Keep)의 중심 허브로 구축.
+
+#### 웹훅 수신 인프라
+- `receive-service-event` Edge Function: 외부 서비스 이벤트 수신
+- HMAC-SHA256 서명 검증
+- 타임스탬프 검증 (5분 이내)
+
+#### 데이터베이스
+- `service_events` 테이블: 이벤트 로그 (모든 서비스 이벤트 기록)
+- `service_issues` 테이블: 이슈 트래커 (심각도, 상태 관리)
+- `service_health` 테이블: 서비스 헬스 모니터링
+
+#### TypeScript & React
+- `central-hub.types.ts`: 20+ 타입 정의 (ServiceId, EventType, IssueSeverity 등)
+- `useServiceEvents`: 이벤트 조회 + Realtime 구독
+- `useServiceIssues`: 이슈 CRUD + 상태 관리
+- `useServiceHealth`: 헬스 모니터링
+
+#### SDD 문서
+- `spec/central-hub/requirements.md`: 5개 사용자 스토리, 기능/비기능 요구사항
+- `plan/central-hub/architecture.md`: 시스템 아키텍처, DB 스키마, API 설계
+- `tasks/central-hub/sprint-1.md`: 6개 태스크 정의 및 완료
+
+### 📦 Stats
+- 빌드: 34.37s (PWA precache 27 entries)
+- 신규 파일: 12개
+- 마이그레이션: 3개
+
+---
+
 ## [2.8.1] - 2025-11-23 (Hotfix)
 
 ### 🐛 프로덕션 빌드 크래시 수정

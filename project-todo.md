@@ -1138,10 +1138,11 @@ IDEA on Action (Central Hub)
 ---
 
 **최종 업데이트**: 2025-11-23 KST
-**정리 버전**: v2.8.0 (사이트 재구조화 Sprint 4 완료)
+**정리 버전**: v2.9.0 (Central Hub 인프라 - Minu 서비스 중심 시스템)
 **완료된 항목**:
+- ✅ Central Hub Phase 1 완료 (웹훅 수신 인프라)
 - ✅ 사이트 재구조화 Sprint 1-4 완료 (GitHub 연동)
 - ✅ CMS Phase 5 완료 (리치 텍스트 에디터 & 미디어 고도화)
 - ✅ Minu 브랜드 전환 완료
 **아카이브 파일**: docs/archive/completed-todos-v1.8.0-v2.0.0.md
-**다음 단계**: 프로덕션 모니터링 및 최적화
+**다음 단계**: Central Hub Phase 2 (MCP 통합 확대)
