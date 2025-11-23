@@ -377,10 +377,14 @@ export default defineConfig(({ mode }) => ({
             return 'pages-admin-users';
           }
 
-          // Admin components
-          if (id.includes('/components/admin/')) {
-            return 'pages-admin-components';
-          }
+          // Admin components - DISABLED due to circular dependency issues
+          // Admin components have complex internal dependencies between
+          // form components, editors, and UI primitives that cause
+          // "Cannot access 'X' before initialization" errors when separated.
+          // Keeping them in the main bundle or with their respective pages.
+          // if (id.includes('/components/admin/')) {
+          //   return 'pages-admin-components';
+          // }
 
           // Remaining admin pages
           if (id.includes('/pages/admin/')) {
