@@ -9,10 +9,22 @@
 
 import { Octokit } from '@octokit/rest';
 
-// GitHub API 클라이언트 인스턴스
-const octokit = new Octokit({
-  auth: import.meta.env.VITE_GITHUB_TOKEN,
-});
+// GitHub API 클라이언트 인스턴스 (Lazy Initialization)
+// 모듈 로딩 시점이 아닌 실제 사용 시점에 초기화하여 앱 크래시 방지
+let octokitInstance: Octokit | null = null;
+
+/**
+ * Octokit 인스턴스를 반환합니다 (Lazy Initialization)
+ * 첫 호출 시에만 인스턴스를 생성하고, 이후에는 캐시된 인스턴스를 반환합니다.
+ */
+function getOctokit(): Octokit {
+  if (!octokitInstance) {
+    octokitInstance = new Octokit({
+      auth: import.meta.env.VITE_GITHUB_TOKEN || undefined,
+    });
+  }
+  return octokitInstance;
+}
 
 /**
  * GitHub 저장소 통계 타입
@@ -62,6 +74,7 @@ export function parseGitHubUrl(url: string): { owner: string; repo: string } | n
  */
 export async function getRepoStats(owner: string, repo: string): Promise<GitHubRepoStats> {
   try {
+    const octokit = getOctokit();
     const [repoData, contributors] = await Promise.all([
       octokit.repos.get({ owner, repo }),
       octokit.repos.listContributors({ owner, repo, per_page: 100 }),
@@ -108,6 +121,7 @@ export async function getRepoStats(owner: string, repo: string): Promise<GitHubR
  */
 export async function getLatestRelease(owner: string, repo: string): Promise<GitHubRelease | null> {
   try {
+    const octokit = getOctokit();
     const { data } = await octokit.repos.getLatestRelease({ owner, repo });
 
     return {
@@ -143,6 +157,7 @@ export async function getReleases(
   limit = 10
 ): Promise<GitHubRelease[]> {
   try {
+    const octokit = getOctokit();
     const { data } = await octokit.repos.listReleases({
       owner,
       repo,
@@ -174,6 +189,7 @@ export async function getRateLimit(): Promise<{
   remaining: number;
   reset: Date;
 }> {
+  const octokit = getOctokit();
   const { data } = await octokit.rateLimit.get();
 
   return {
