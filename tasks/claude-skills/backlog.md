@@ -23,13 +23,15 @@
 
 ### 🔴 P0: 필수 (핵심 기능)
 
-| ID | 기능 | 설명 | 예상 시간 | 관련 Sprint |
-|----|------|------|----------|-------------|
-| BL-001 | Central Hub Phase 2 완료 | MCPProtected HOC, 권한 훅 | 8h | 선행 조건 |
-| BL-002 | xlsx 기본 Export | 이벤트/이슈/헬스 Excel 내보내기 | 8h | Sprint 1 |
-| BL-003 | 대시보드 UI | ServiceHealthCard, Timeline, IssueList | 14h | Sprint 2 |
-| BL-004 | docx RFP 템플릿 | 정부 SI, 스타트업, 엔터프라이즈 | 16h | Sprint 3 |
-| BL-005 | MCP 토큰 발급/검증 | JWT 인증 시스템 | 14h | Sprint 4 |
+| ID | 기능 | 설명 | 예상 시간 | 관련 Sprint | 상태 |
+|----|------|------|----------|-------------|------|
+| BL-001 | Central Hub Phase 2 완료 | MCPProtected HOC, 권한 훅 | 8h | 선행 조건 | ✅ 완료 |
+| BL-002 | xlsx 기본 Export | 이벤트/이슈/헬스 Excel 내보내기 | 8h | Sprint 1 | ✅ 완료 |
+| BL-003 | 대시보드 UI | ServiceHealthCard, Timeline, IssueList | 14h | Sprint 2 | ✅ 완료 |
+| BL-004 | docx RFP 템플릿 | 정부 SI, 스타트업, 엔터프라이즈 | 16h | Sprint 3 | ✅ 완료 |
+| BL-005 | MCP 토큰 발급/검증 | JWT 인증 시스템 | 14h | Sprint 4 | ⏳ 대기 |
+
+**P0 통계**: ✅ 완료 4/5 | ⏳ 대기 1/5
 
 ### 🟠 P1: 중요 (사용성 향상)
 
@@ -131,7 +133,10 @@
 
 | ID | 기능 | 완료일 | Sprint |
 |----|------|--------|--------|
-| - | (아직 없음) | - | - |
+| BL-001 | Central Hub Phase 2 완료 | 2025-11-23 | 선행 조건 |
+| BL-002 | xlsx 기본 Export | 2025-11-23 | Sprint 1 |
+| BL-003 | 대시보드 UI | 2025-11-23 | Sprint 2 |
+| BL-004 | docx RFP 템플릿 | 2025-11-23 | Sprint 3 |
 
 ---
 
@@ -139,4 +144,6 @@
 
 | 버전 | 날짜 | 변경 내용 | 작성자 |
 |------|------|----------|--------|
+| 1.2.0 | 2025-11-23 | BL-004 (docx RFP 템플릿) 완료 처리 | Claude |
+| 1.1.0 | 2025-11-23 | BL-001~003 완료 처리, BL-004 진행 중 표시 | Claude |
 | 1.0.0 | 2025-11-23 | 초기 작성 | Claude |

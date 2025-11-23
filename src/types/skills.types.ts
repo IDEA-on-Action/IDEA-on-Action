@@ -202,3 +202,9 @@ export const EVENT_TYPE_LABELS: Record<string, string> = {
   'service.health': '서비스 헬스 체크',
   'user.action': '사용자 액션',
 };
+
+// ============================================================================
+// docx Skill 타입 re-export
+// ============================================================================
+
+export * from './docx.types';

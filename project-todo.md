@@ -3,9 +3,9 @@
 > 프로젝트 작업 목록 및 진행 상황 관리
 
 **마지막 업데이트**: 2025-11-23
-**현재 Phase**: Claude Skills SDD 문서 체계 완성
-**다음 단계**: Central Hub Phase 2 → Claude Skills Sprint 1
-**프로젝트 버전**: 2.9.0 (Central Hub 인프라 - Minu 서비스 중심 시스템)
+**현재 Phase**: Claude Skills Sprint 3 완료 - docx Skill + RFP 템플릿
+**다음 단계**: Claude Skills Sprint 4 (MCP Orchestrator)
+**프로젝트 버전**: 2.11.0 (Claude Skills Sprint 3 - docx Skill + RFP)
 **프로덕션**: https://www.ideaonaction.ai
 
 ---
@@ -32,10 +32,10 @@ Claude Skills Integration
 
 ### Sprint 계획 (Claude Skills)
 - [x] **SDD 문서 체계 완성** - 요구사항, 인수조건, 아키텍처, 구현 전략 ✅ 2025-11-23
-- [ ] **선행 조건**: Central Hub Phase 2 완료 (MCPProtected HOC)
-- [ ] **Sprint 1**: xlsx Skill 통합 (8h) - TASK-CS-001~008
-- [ ] **Sprint 2**: 대시보드 UI (14h) - TASK-CS-009~016
-- [ ] **Sprint 3**: docx Skill + RFP (16h) - TASK-CS-017~025
+- [x] **선행 조건**: Central Hub Phase 2 완료 (MCPProtected HOC) ✅ 2025-11-23
+- [x] **Sprint 1**: xlsx Skill 통합 (8h) - TASK-CS-001~008 ✅ 2025-11-23
+- [x] **Sprint 2**: 대시보드 UI (14h) - TASK-CS-009~016 ✅ 2025-11-23
+- [x] **Sprint 3**: docx Skill + RFP (16h) - TASK-CS-017~025 ✅ 2025-11-23
 - [ ] **Sprint 4**: MCP Orchestrator (14h) - TASK-CS-026~033
 - [ ] **Sprint 5**: 서비스별 특화 (16h) - TASK-CS-034~038
 
@@ -53,7 +53,7 @@ Claude Skills Integration
 
 ---
 
-## 🔄 대기 중: Central Hub Phase 2
+## ✅ 완료: Central Hub Phase 1-2
 
 **목표**: IDEA on Action을 Minu 서비스들의 인증 허브 + 이벤트 수신 센터로 구축
 **SDD 문서**: [spec/central-hub/](spec/central-hub/) | [plan/central-hub/](plan/central-hub/) | [tasks/central-hub/](tasks/central-hub/)
@@ -74,8 +74,8 @@ IDEA on Action (Central Hub)
 
 ### Sprint 계획
 - [x] **Phase 1**: 웹훅 수신 인프라 (DB + Edge Function + React 훅) ✅ 2025-11-23 완료
-- [ ] **Phase 2**: MCP 통합 확대 (Minu Frame, Build, Keep 페이지)
-- [ ] **Phase 3**: 실시간 상태 동기화 + 관리자 대시보드
+- [x] **Phase 2**: MCP 컴포넌트 인프라 (MCPProtected HOC, 대시보드 UI) ✅ 2025-11-23 완료
+- [ ] **Phase 3**: 실시간 상태 동기화 + 관리자 대시보드 확장
 
 ### Phase 1 완료 내역 (2025-11-23)
 | 카테고리 | 파일 | 설명 |
@@ -1181,11 +1181,14 @@ IDEA on Action (Central Hub)
 ---
 
 **최종 업데이트**: 2025-11-23 KST
-**정리 버전**: v2.9.0 (Central Hub 인프라 - Minu 서비스 중심 시스템)
+**정리 버전**: v2.11.0 (Claude Skills Sprint 3 - docx Skill + RFP)
 **완료된 항목**:
-- ✅ Central Hub Phase 1 완료 (웹훅 수신 인프라)
+- ✅ Claude Skills Sprint 3 완료 (docx Skill + RFP 템플릿)
+- ✅ Claude Skills Sprint 2 완료 (Central Hub 대시보드 UI)
+- ✅ Claude Skills Sprint 1 완료 (xlsx Skill 구현)
+- ✅ Central Hub Phase 1-2 완료 (웹훅 수신 + MCP 컴포넌트)
 - ✅ 사이트 재구조화 Sprint 1-4 완료 (GitHub 연동)
 - ✅ CMS Phase 5 완료 (리치 텍스트 에디터 & 미디어 고도화)
 - ✅ Minu 브랜드 전환 완료
 **아카이브 파일**: docs/archive/completed-todos-v1.8.0-v2.0.0.md
-**다음 단계**: Central Hub Phase 2 (MCP 통합 확대)
+**다음 단계**: Claude Skills Sprint 4 (MCP Orchestrator)

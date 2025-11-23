@@ -75,7 +75,7 @@ const SERVICE_COLORS_LIGHT: Record<ServiceId, string> = {
 // KPI 카드 컴포넌트
 // ============================================================================
 
-interface KPICardProps extends KPICardData {}
+type KPICardProps = KPICardData;
 
 function KPICard({ title, value, icon: Icon, trend, highlight }: KPICardProps) {
   const getTrendIcon = (direction: TrendDirection) => {

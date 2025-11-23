@@ -3,7 +3,7 @@
 > Claude와의 개발 협업을 위한 프로젝트 핵심 문서
 
 **마지막 업데이트**: 2025-11-23
-**현재 버전**: 2.10.0 (Claude Skills Sprint 2 - Central Hub 대시보드)
+**현재 버전**: 2.11.0 (Claude Skills Sprint 3 - docx Skill + RFP)
 **상태**: ✅ Production Ready | 🔒 보안 점수 98/100 | 🎯 토스페이먼츠 심사 제출 완료
 **개발 방법론**: SDD (Spec-Driven Development) + MCP (Model Context Protocol) Integration
 
@@ -12,6 +12,18 @@
 ## 📋 최신 업데이트
 
 ### 2025-11-23 (오늘)
+- ✅ **Claude Skills Sprint 3 완료** - docx Skill + RFP 템플릿
+  - **패키지**: `docx` (v9.5.1) 설치, vite.config.ts 청크 최적화
+  - **타입**: `docx.types.ts` (29개 타입 정의)
+  - **TemplateEngine**: 변수 치환, 섹션 빌더 (heading/paragraph/table/list)
+  - **훅**: `useDocxGenerate` + 편의 훅 2개 (useGenerateRFP, useGenerateReport)
+  - **RFP 템플릿 3종**: 정부 SI, 스타트업 MVP, 엔터프라이즈
+  - **보고서 템플릿 2종**: 주간 보고서, 월간 보고서
+  - **RFPWizard**: 4단계 마법사 컴포넌트 (개요/요구사항/평가기준/검토)
+  - **DB 마이그레이션**: `document_templates` 테이블
+  - **E2E 테스트**: 신규 작성 (`docx-rfp.spec.ts`)
+  - **병렬 에이전트**: 4개 동시 작업
+
 - ✅ **Claude Skills Sprint 2 완료** - Central Hub 대시보드 UI
   - **컴포넌트 4개**: `ServiceHealthCard`, `EventTimeline`, `IssueList`, `StatisticsChart`
   - **대시보드 페이지**: `CentralHubDashboard.tsx` (탭 UI: Overview/Events/Issues)
@@ -403,6 +415,7 @@ SDD 접근: 명세 중심 → 코드는 명세의 구현체
 
 | 버전 | 날짜 | 핵심 변경 |
 |------|------|-----------|
+| 2.11.0 | 2025-11-23 | Claude Skills Sprint 3 (docx Skill + RFP) |
 | 2.10.0 | 2025-11-23 | Claude Skills Sprint 2 (Central Hub 대시보드) |
 | 2.9.0 | 2025-11-23 | Central Hub 인프라 (Minu 서비스 중심 시스템) |
 | 2.8.1 | 2025-11-23 | 프로덕션 빌드 크래시 Hotfix |
@@ -412,7 +425,6 @@ SDD 접근: 명세 중심 → 코드는 명세의 구현체
 | 2.5.0 | 2025-11-23 | Tiptap 에디터 & 미디어 고도화 |
 | 2.4.0 | 2025-11-22 | Minu 브랜드 전환 |
 | 2.3.0 | 2025-11-22 | Newsletter 관리 기능 |
-| 2.0.0 | 2025-11-16 | Version 2.0 리팩토링 |
 
 **전체 히스토리**: [docs/project/version-history.md](docs/project/version-history.md)
 
