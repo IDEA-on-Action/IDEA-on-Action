@@ -57,7 +57,7 @@ export interface GitHubRelease {
  * GitHub URL에서 owner와 repo를 추출
  */
 export function parseGitHubUrl(url: string): { owner: string; repo: string } | null {
-  const match = url.match(/github\.com\/([^\/]+)\/([^\/]+)/);
+  const match = url.match(/github\.com\/([^/]+)\/([^/]+)/);
   if (!match) return null;
 
   // .git 확장자 제거

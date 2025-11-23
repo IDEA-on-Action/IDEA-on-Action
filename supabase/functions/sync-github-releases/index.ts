@@ -84,7 +84,7 @@ function parseReleaseBody(body: string | null): object[] {
 
 // GitHub URL에서 owner/repo 추출
 function parseGitHubUrl(url: string): { owner: string; repo: string } | null {
-  const match = url.match(/github\.com\/([^\/]+)\/([^\/]+)/);
+  const match = url.match(/github\.com\/([^/]+)\/([^/]+)/);
   if (!match) return null;
 
   const repo = match[2].replace(/\.git$/, "");
