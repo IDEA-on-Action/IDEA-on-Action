@@ -9,8 +9,111 @@
 
 ## 목차
 
-1. [2025-11-23: notices 테이블 접근 에러](#2025-11-23-notices-테이블-접근-에러)
-2. [2025-11-23: StoriesHub 레이아웃 누락](#2025-11-23-storieshub-레이아웃-누락)
+1. [2025-11-23: StoriesHub RLS 권한 오류 (newsletter_archive, changelog_entries)](#2025-11-23-storieshub-rls-권한-오류)
+2. [2025-11-23: notices 테이블 접근 에러](#2025-11-23-notices-테이블-접근-에러)
+3. [2025-11-23: StoriesHub 레이아웃 누락](#2025-11-23-storieshub-레이아웃-누락)
+
+---
+
+## 2025-11-23: StoriesHub RLS 권한 오류
+
+### 증상
+- `/stories` 페이지에서 뉴스레터 섹션과 변경사항 섹션이 로드되지 않음
+- "아직 발행된 뉴스레터가 없습니다", "아직 등록된 변경사항이 없습니다" 메시지 표시
+- 콘솔에 403 Forbidden 에러 반복 발생
+
+### 에러 메시지
+```
+GET https://zykjdneewbzyazfukzyg.supabase.co/rest/v1/newsletter_archive?select=*&order=sent_at.desc&limit=3 403 (Forbidden)
+
+[useNewsletterArchive] 조회 에러: {code: '42501', details: null, hint: null, message: 'permission denied for table newsletter_archive'}
+
+GET https://zykjdneewbzyazfukzyg.supabase.co/rest/v1/changelog_entries?select=*%2Cproject%3Aprojects%28id%2Ctitle%2Cslug%29&order=released_at.desc&limit=3 403 (Forbidden)
+
+[useChangelog] 조회 에러: {code: '42501', details: null, hint: null, message: 'permission denied for table changelog_entries'}
+```
+
+### 원인
+- `newsletter_archive`와 `changelog_entries` 테이블에 RLS가 활성화되어 있음
+- 마이그레이션 파일에 RLS 정책이 정의되어 있었으나, **프로덕션 DB에 적용되지 않음**
+- `anon` 역할에 테이블 SELECT 권한(GRANT)이 누락됨
+- PostgreSQL 에러 코드 `42501` = permission denied
+
+### 해결
+Supabase 대시보드 SQL Editor에서 아래 SQL 실행:
+
+```sql
+-- 1. newsletter_archive 테이블
+DROP POLICY IF EXISTS "newsletter_archive_select_public" ON public.newsletter_archive;
+ALTER TABLE public.newsletter_archive ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "newsletter_archive_select_public"
+  ON public.newsletter_archive
+  FOR SELECT
+  TO public
+  USING (true);
+
+GRANT SELECT ON public.newsletter_archive TO anon;
+GRANT SELECT ON public.newsletter_archive TO authenticated;
+
+-- 2. changelog_entries 테이블
+DROP POLICY IF EXISTS "changelog_select_public" ON public.changelog_entries;
+ALTER TABLE public.changelog_entries ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "changelog_select_public"
+  ON public.changelog_entries
+  FOR SELECT
+  TO public
+  USING (true);
+
+GRANT SELECT ON public.changelog_entries TO anon;
+GRANT SELECT ON public.changelog_entries TO authenticated;
+
+-- 3. projects 테이블 권한 (changelog JOIN용)
+GRANT SELECT ON public.projects TO anon;
+GRANT SELECT ON public.projects TO authenticated;
+```
+
+### 관련 파일
+- `supabase/migrations/20251123220000_fix_stories_hub_rls.sql` - 마이그레이션 파일
+- `scripts/fix-stories-hub-rls.cjs` - RLS 진단 스크립트
+- `src/hooks/useNewsletterArchive.ts` - 뉴스레터 아카이브 훅
+- `src/hooks/useChangelog.ts` - 변경 로그 훅
+
+### 교훈
+1. **RLS 정책 ≠ 테이블 접근 권한**: RLS 정책이 있어도 GRANT 없으면 접근 불가
+2. **마이그레이션 적용 확인 필수**: `supabase db push` 실행 후 실제 적용 여부 확인
+3. **Service Role vs Anon 테스트**: Service Role은 RLS 우회하므로, 반드시 anon 키로 테스트
+
+### 진단 방법
+```bash
+# RLS 진단 스크립트 실행
+node scripts/fix-stories-hub-rls.cjs
+```
+
+출력 예시:
+```
+📋 RLS 정책 확인...
+❌ [anon] newsletter_archive 조회 실패: 42501 permission denied
+❌ [anon] changelog_entries 조회 실패: 42501 permission denied
+```
+
+### 새 테이블 체크리스트
+```sql
+-- 1. RLS 활성화
+ALTER TABLE public.{table_name} ENABLE ROW LEVEL SECURITY;
+
+-- 2. RLS 정책 생성 (TO public 또는 TO anon, authenticated)
+CREATE POLICY "{policy_name}"
+  ON public.{table_name}
+  FOR SELECT
+  TO public
+  USING (true);
+
+-- 3. GRANT 권한 부여 (필수!)
+GRANT SELECT ON public.{table_name} TO anon;
+GRANT SELECT ON public.{table_name} TO authenticated;
+```
 
 ---
 
