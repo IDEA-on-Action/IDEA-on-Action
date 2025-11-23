@@ -98,6 +98,12 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://www.ideaonaction.ai/projects/p001</loc>
+    <lastmod>2025-11-22</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://www.ideaonaction.ai/projects/project-homepage-v2</loc>
     <lastmod>2025-11-14</lastmod>
     <changefreq>weekly</changefreq>
@@ -112,12 +118,6 @@
   <url>
     <loc>https://www.ideaonaction.ai/projects/project-og-image-generator</loc>
     <lastmod>2025-11-14</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://www.ideaonaction.ai/projects/p001</loc>
-    <lastmod>2025-11-09</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
