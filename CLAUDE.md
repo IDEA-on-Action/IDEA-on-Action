@@ -12,6 +12,13 @@
 ## 📋 최신 업데이트
 
 ### 2025-11-23 (오늘)
+- ✅ **StoriesHub 데이터 연동 완료** - 4개 섹션 모두 자동 업데이트
+  - **블로그**: WordPress API 연동 (`useWordPressPosts`)
+  - **뉴스레터**: Supabase `newsletter_archive` 연동 (`useNewsletterArchive`)
+  - **변경사항**: Supabase `changelog_entries` 연동 (`useChangelog`)
+  - **공지사항**: Supabase `notices` 연동 (기존 유지)
+  - 더미 데이터 제거, 실시간 데이터 로딩 및 로딩 상태 표시
+
 - ✅ **사이트 재구조화 Sprint 4 완료** - GitHub 연동 & 진척률 자동화
   - **TASK-026**: GitHub API 서비스 생성 (`src/lib/github-api.ts`)
   - **TASK-027**: useGitHubStats 훅 생성 (React Query 캐싱)
