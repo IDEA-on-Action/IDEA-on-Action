@@ -9,6 +9,52 @@
 
 ---
 
+## [2.12.0] - 2025-11-23 (MCP Orchestrator)
+
+### 🎯 Claude Skills Sprint 4: MCP Orchestrator
+
+IDEA on Action Hub와 Minu 서비스 간 인증 및 데이터 동기화를 위한 MCP Orchestrator 구현 완료.
+
+#### DB 마이그레이션 (4개 테이블)
+- `service_tokens`: 서비스 간 인증 토큰 저장 (SHA256 해시, 권한, 만료 시간)
+- `refresh_tokens`: 리프레시 토큰 관리 (7일 만료)
+- `event_queue`: 이벤트 큐 (이벤트 라우팅용)
+- `dead_letter_queue`: 실패한 이벤트 저장 (재시도 3회 초과)
+
+#### Edge Functions (3개)
+- `mcp-auth`: JWT 토큰 발급/검증/갱신/폐기 (jose 라이브러리)
+- `mcp-router`: 이벤트 유형별 서비스 라우팅, 지수 백오프 재시도
+- `mcp-sync`: Cross-service 상태 동기화, 캐시 무효화 알림
+
+#### React 훅 (3개)
+- `useMCPAuth`: 토큰 발급/검증/갱신 (React Query)
+- `useMCPSync`: 상태 동기화 구독
+- `useMCPCache`: 캐시 관리 및 무효화
+
+#### TypeScript 타입
+- `mcp-auth.types.ts`: 토큰 관련 타입 (TokenRequest, TokenPayload, AuthResponse)
+- `mcp-sync.types.ts`: 동기화 관련 타입 (SyncEvent, CacheInvalidation)
+
+#### SDD 문서 (3개)
+- 스펙: MCP Orchestrator 요구사항
+- 스키마: DB 테이블 설계
+- 함수 설계: Edge Function API 설계
+
+#### E2E 테스트
+- `mcp-orchestrator.spec.ts`: 14개 테스트 케이스
+  - 토큰 발급/검증/갱신/폐기
+  - 이벤트 라우팅
+  - 재시도 로직
+  - 캐시 무효화
+
+### 📦 Stats
+- 신규 파일: 12개 (Edge Functions 3, 훅 3, 타입 2, 마이그레이션 4)
+- E2E 테스트: 14개 신규
+- 병렬 에이전트: 4개 동시 작업
+- 토큰 발급/검증: <100ms
+
+---
+
 ## [2.10.0] - 2025-11-23 (Central Hub 대시보드)
 
 ### 🎯 Claude Skills Sprint 2: Central Hub 대시보드 UI

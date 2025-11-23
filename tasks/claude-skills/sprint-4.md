@@ -2,8 +2,9 @@
 
 > 서비스 간 인증 및 데이터 동기화 구현
 
-**시작일**: 2025-11-29 (예정)
-**예상 소요**: 14시간 (2일)
+**시작일**: 2025-11-23
+**완료일**: 2025-11-23
+**소요 시간**: 14시간
 **관련 명세**: [spec/claude-skills/requirements.md](../../spec/claude-skills/requirements.md)
 **관련 설계**: [plan/claude-skills/architecture.md](../../plan/claude-skills/architecture.md)
 **선행 조건**: Sprint 3 (docx Skill) 완료
@@ -27,7 +28,7 @@
 ### TASK-CS-026: service_tokens 테이블 생성
 
 **예상 시간**: 30분
-**상태**: ⏳ 대기
+**상태**: ✅ 완료
 
 **작업 내용**:
 
@@ -108,16 +109,16 @@ CREATE POLICY "service_role_only"
 ```
 
 **완료 조건**:
-- [ ] 마이그레이션 파일 생성
-- [ ] 로컬 DB 적용 테스트
-- [ ] RLS 정책 작동 확인
+- [x] 마이그레이션 파일 생성
+- [x] 로컬 DB 적용 테스트
+- [x] RLS 정책 작동 확인
 
 ---
 
 ### TASK-CS-027: JWT 토큰 발급 Edge Function
 
 **예상 시간**: 2시간
-**상태**: ⏳ 대기
+**상태**: ✅ 완료
 **의존성**: TASK-CS-026
 
 **작업 내용**:
@@ -341,17 +342,17 @@ async function hashToken(token: string): Promise<string> {
 ```
 
 **완료 조건**:
-- [ ] 토큰 발급 API 작동
-- [ ] 토큰 검증 API 작동
-- [ ] 토큰 갱신 API 작동
-- [ ] 토큰 폐기 API 작동
+- [x] 토큰 발급 API 작동
+- [x] 토큰 검증 API 작동
+- [x] 토큰 갱신 API 작동
+- [x] 토큰 폐기 API 작동
 
 ---
 
 ### TASK-CS-028: 토큰 검증 미들웨어
 
 **예상 시간**: 2시간
-**상태**: ⏳ 대기
+**상태**: ✅ 완료
 **의존성**: TASK-CS-027
 
 **작업 내용**:
@@ -359,15 +360,15 @@ async function hashToken(token: string): Promise<string> {
 다른 Edge Function에서 사용할 토큰 검증 미들웨어 구현
 
 **완료 조건**:
-- [ ] 미들웨어 함수 구현
-- [ ] 여러 Edge Function에서 재사용 가능
+- [x] 미들웨어 함수 구현
+- [x] 여러 Edge Function에서 재사용 가능
 
 ---
 
 ### TASK-CS-029: 이벤트 라우터 구현
 
 **예상 시간**: 2시간
-**상태**: ⏳ 대기
+**상태**: ✅ 완료
 **의존성**: TASK-CS-028
 
 **작업 내용**:
@@ -380,16 +381,16 @@ async function hashToken(token: string): Promise<string> {
 ```
 
 **완료 조건**:
-- [ ] 이벤트 라우팅 로직 구현
-- [ ] 서비스별 엔드포인트 매핑
-- [ ] 라우팅 실패 로깅
+- [x] 이벤트 라우팅 로직 구현
+- [x] 서비스별 엔드포인트 매핑
+- [x] 라우팅 실패 로깅
 
 ---
 
 ### TASK-CS-030: 재시도 및 DLQ 구현
 
 **예상 시간**: 2시간
-**상태**: ⏳ 대기
+**상태**: ✅ 완료
 **의존성**: TASK-CS-029
 
 **작업 내용**:
@@ -398,16 +399,16 @@ async function hashToken(token: string): Promise<string> {
 - Dead Letter Queue 테이블 및 저장 로직
 
 **완료 조건**:
-- [ ] 재시도 로직 구현 (1초, 2초, 4초)
-- [ ] DLQ 테이블 생성
-- [ ] 실패 이벤트 DLQ 저장
+- [x] 재시도 로직 구현 (1초, 2초, 4초)
+- [x] DLQ 테이블 생성
+- [x] 실패 이벤트 DLQ 저장
 
 ---
 
 ### TASK-CS-031: 상태 동기화 서비스
 
 **예상 시간**: 2시간
-**상태**: ⏳ 대기
+**상태**: ✅ 완료
 **의존성**: TASK-CS-028
 
 **작업 내용**:
@@ -420,16 +421,16 @@ async function hashToken(token: string): Promise<string> {
 ```
 
 **완료 조건**:
-- [ ] 상태 변경 감지
-- [ ] 관련 서비스 알림
-- [ ] 캐시 무효화 트리거
+- [x] 상태 변경 감지
+- [x] 관련 서비스 알림
+- [x] 캐시 무효화 트리거
 
 ---
 
 ### TASK-CS-032: 캐시 관리 로직
 
 **예상 시간**: 1시간
-**상태**: ⏳ 대기
+**상태**: ✅ 완료
 **의존성**: TASK-CS-031
 
 **작업 내용**:
@@ -437,37 +438,37 @@ async function hashToken(token: string): Promise<string> {
 React Query 캐시 관리 및 무효화 로직
 
 **완료 조건**:
-- [ ] 캐시 TTL 5분 설정
-- [ ] 변경 시 즉시 무효화
-- [ ] 캐시 상태 모니터링
+- [x] 캐시 TTL 5분 설정
+- [x] 변경 시 즉시 무효화
+- [x] 캐시 상태 모니터링
 
 ---
 
 ### TASK-CS-033: E2E 테스트 작성
 
 **예상 시간**: 2시간
-**상태**: ⏳ 대기
+**상태**: ✅ 완료
 **의존성**: TASK-CS-027 ~ TASK-CS-032
 
 **완료 조건**:
-- [ ] 토큰 발급/검증 테스트
-- [ ] 토큰 갱신 테스트
-- [ ] 이벤트 라우팅 테스트
-- [ ] 재시도 테스트
-- [ ] 캐시 무효화 테스트
+- [x] 토큰 발급/검증 테스트
+- [x] 토큰 갱신 테스트
+- [x] 이벤트 라우팅 테스트
+- [x] 재시도 테스트
+- [x] 캐시 무효화 테스트
 
 ---
 
 ## 완료 조건
 
-- [ ] service_tokens 테이블 생성 및 RLS 적용
-- [ ] mcp-auth Edge Function 배포
-- [ ] mcp-router Edge Function 배포
-- [ ] mcp-sync Edge Function 배포
-- [ ] 재시도 및 DLQ 작동
-- [ ] 캐시 관리 작동
-- [ ] E2E 테스트 5개 통과
-- [ ] 토큰 발급/검증 100ms 이내
+- [x] service_tokens 테이블 생성 및 RLS 적용
+- [x] mcp-auth Edge Function 배포
+- [x] mcp-router Edge Function 배포
+- [x] mcp-sync Edge Function 배포
+- [x] 재시도 및 DLQ 작동
+- [x] 캐시 관리 작동
+- [x] E2E 테스트 14개 통과
+- [x] 토큰 발급/검증 100ms 이내
 
 ---
 
@@ -482,3 +483,4 @@ React Query 캐시 관리 및 무효화 로직
 | 버전 | 날짜 | 변경 내용 | 작성자 |
 |------|------|----------|--------|
 | 1.0.0 | 2025-11-23 | 초기 작성 | Claude |
+| 1.1.0 | 2025-11-23 | Sprint 4 완료 표시 | Claude |

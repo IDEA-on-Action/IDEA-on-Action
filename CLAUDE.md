@@ -3,7 +3,7 @@
 > Claude와의 개발 협업을 위한 프로젝트 핵심 문서
 
 **마지막 업데이트**: 2025-11-23
-**현재 버전**: 2.11.0 (Claude Skills Sprint 3 - docx Skill + RFP)
+**현재 버전**: 2.12.0 (Claude Skills Sprint 4 - MCP Orchestrator)
 **상태**: ✅ Production Ready | 🔒 보안 점수 98/100 | 🎯 토스페이먼츠 심사 제출 완료
 **개발 방법론**: SDD (Spec-Driven Development) + MCP (Model Context Protocol) Integration
 
@@ -12,6 +12,15 @@
 ## 📋 최신 업데이트
 
 ### 2025-11-23 (오늘)
+- ✅ **Claude Skills Sprint 4 완료** - MCP Orchestrator
+  - **DB 마이그레이션**: `service_tokens`, `refresh_tokens`, `event_queue`, `dead_letter_queue` 테이블
+  - **Edge Functions**: `mcp-auth` (토큰 발급/검증), `mcp-router` (이벤트 라우팅), `mcp-sync` (상태 동기화)
+  - **React 훅**: `useMCPAuth`, `useMCPSync`, `useMCPCache`
+  - **TypeScript 타입**: `mcp-auth.types.ts`, `mcp-sync.types.ts`
+  - **E2E 테스트**: 14개 신규 작성 (`mcp-orchestrator.spec.ts`)
+  - **SDD 문서**: 3개 신규 (스펙, 스키마, 함수 설계)
+  - **병렬 에이전트**: 4개 동시 작업
+
 - ✅ **Claude Skills Sprint 3 완료** - docx Skill + RFP 템플릿
   - **패키지**: `docx` (v9.5.1) 설치, vite.config.ts 청크 최적화
   - **타입**: `docx.types.ts` (29개 타입 정의)
