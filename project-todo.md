@@ -3,10 +3,54 @@
 > 프로젝트 작업 목록 및 진행 상황 관리
 
 **마지막 업데이트**: 2025-11-24
-**현재 Phase**: AI 통합 완료 - Claude API 연동
-**다음 단계**: Central Hub Phase 3 (실시간 상태 동기화) 또는 Vision API 통합
-**프로젝트 버전**: 2.14.0 (AI 통합 - Claude API 연동)
+**현재 Phase**: Central Hub Phase 3 + Vision API 완료
+**다음 단계**: 멀티턴 대화 컨텍스트 관리 또는 프롬프트 템플릿 관리
+**프로젝트 버전**: 2.15.0 (Central Hub Phase 3 + Vision API)
 **프로덕션**: https://www.ideaonaction.ai
+
+---
+
+## ✅ 완료: Central Hub Phase 3 + Vision API (v2.15.0)
+
+**목표**: Central Hub 실시간 상태 동기화 및 Vision API 통합
+**완료일**: 2025-11-24
+**SDD 문서**: [spec/claude-integration/vision-api/](spec/claude-integration/vision-api/) | [tasks/central-hub/sprint-3.md](tasks/central-hub/sprint-3.md)
+
+### 완료된 작업 (2025-11-24)
+
+| 카테고리 | 작업 | 상태 |
+|---------|------|------|
+| Central Hub | `useRealtimeServiceStatus` 훅 (Realtime 채널) | ✅ 완료 |
+| Central Hub | `useRealtimeEventStream` 훅 (이벤트/이슈 스트림) | ✅ 완료 |
+| Central Hub | `ServiceHealthCard` 컴포넌트 | ✅ 완료 |
+| Central Hub | `ServiceStatusDashboard` 컴포넌트 (2x2 그리드) | ✅ 완료 |
+| Central Hub | `RealtimeAlertPanel` 컴포넌트 | ✅ 완료 |
+| Vision API | Edge Function `vision-handler.ts` | ✅ 완료 |
+| Vision API | `useClaudeVision` 훅 (스트리밍/비스트리밍) | ✅ 완료 |
+| Vision API | `ImageAnalyzer` 컴포넌트 | ✅ 완료 |
+| Vision API | `vision.types.ts` 타입 정의 | ✅ 완료 |
+| Vision API | `image-utils.ts` 유틸리티 | ✅ 완료 |
+| 테스트 | E2E 테스트 8개 (`vision-api.spec.ts`) | ✅ 완료 |
+
+### 생성된 파일
+
+| 카테고리 | 파일 | 설명 |
+|---------|------|------|
+| 훅 | `src/hooks/useRealtimeServiceStatus.ts` | 서비스 상태 Realtime |
+| 훅 | `src/hooks/useRealtimeEventStream.ts` | 이벤트/이슈 스트림 |
+| 훅 | `src/hooks/useClaudeVision.ts` | Vision API 훅 |
+| 컴포넌트 | `src/components/admin/ServiceHealthCard.tsx` | 서비스 헬스 카드 |
+| 컴포넌트 | `src/components/admin/ServiceStatusDashboard.tsx` | 상태 대시보드 |
+| 컴포넌트 | `src/components/admin/RealtimeAlertPanel.tsx` | 실시간 알림 |
+| 컴포넌트 | `src/components/ai/ImageAnalyzer.tsx` | 이미지 분석 UI |
+| 타입 | `src/types/vision.types.ts` | Vision API 타입 |
+| 유틸 | `src/lib/image-utils.ts` | 이미지 처리 유틸 |
+| Edge Function | `supabase/functions/claude-ai/vision-handler.ts` | Vision 핸들러 |
+| 테스트 | `tests/e2e/ai/vision-api.spec.ts` | E2E 테스트 8개 |
+| SDD | `spec/claude-integration/vision-api/*.md` | 요구사항, 인수조건 |
+| SDD | `plan/claude-integration/vision-api/*.md` | 아키텍처 |
+| SDD | `tasks/claude-integration/vision-api/*.md` | 태스크 |
+| SDD | `tasks/central-hub/sprint-3.md` | Central Hub Sprint 3 |
 
 ---
 

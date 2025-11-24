@@ -1,7 +1,7 @@
 /**
  * Claude AI Edge Function
  *
- * Claude API를 사용한 AI 채팅 기능을 제공합니다.
+ * Claude API를 사용한 AI 채팅 및 이미지 분석 기능을 제공합니다.
  * - JWT 토큰 검증 (MCP Auth 패턴 기반)
  * - Claude API 호출 (fetch 기반)
  * - SSE 스트리밍 응답 지원
@@ -10,12 +10,14 @@
  *
  * @endpoint POST /functions/v1/claude-ai/chat - 채팅 요청
  * @endpoint POST /functions/v1/claude-ai/chat/stream - 스트리밍 채팅 요청
+ * @endpoint POST /functions/v1/claude-ai/vision - 이미지 분석 요청
+ * @endpoint POST /functions/v1/claude-ai/vision/stream - 스트리밍 이미지 분석 요청
  *
  * @headers
  *   Authorization: Bearer <ACCESS_TOKEN>
  *   Content-Type: application/json
  *
- * @version 1.0.0
+ * @version 1.1.0
  */
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
@@ -38,6 +40,11 @@ import {
   handleAnthropicResponse,
   scrubPII,
 } from './error-handler.ts'
+
+import {
+  handleVision,
+  handleVisionStream,
+} from './vision-handler.ts'
 
 // ============================================================================
 // 상수 정의
@@ -835,6 +842,62 @@ serve(async (req) => {
     // POST /chat - 비스트리밍 채팅
     if (lastPart === 'chat' || lastPart === 'claude-ai') {
       return await handleChat(req, supabase, requestId)
+    }
+
+    // POST /vision/stream - 스트리밍 이미지 분석
+    if (lastPart === 'stream' && secondLastPart === 'vision') {
+      // 인증 확인 (Vision 핸들러로 전달 전에)
+      const visionToken = extractBearerToken(req.headers.get('authorization'))
+      if (!visionToken) {
+        return errorResponse('unauthorized', '인증 토큰이 필요합니다.', 401, requestId)
+      }
+
+      // 사용자 ID 추출
+      let visionUserId: string | undefined
+      const visionSupabaseAuth = await verifySupabaseAuth(visionToken, supabase)
+      if (visionSupabaseAuth.valid) {
+        visionUserId = visionSupabaseAuth.userId
+      } else {
+        const visionJwt = await verifyJWT(visionToken, supabase)
+        if (!visionJwt.valid) {
+          return errorResponse(visionJwt.error || 'invalid_token', '유효하지 않은 토큰입니다.', 401, requestId)
+        }
+        visionUserId = visionJwt.userId
+      }
+
+      if (!visionUserId) {
+        return errorResponse('unauthorized', '사용자 인증에 실패했습니다.', 401, requestId)
+      }
+
+      return await handleVisionStream(req, supabase, visionUserId, requestId, corsHeaders)
+    }
+
+    // POST /vision - 비스트리밍 이미지 분석
+    if (lastPart === 'vision') {
+      // 인증 확인 (Vision 핸들러로 전달 전에)
+      const visionToken = extractBearerToken(req.headers.get('authorization'))
+      if (!visionToken) {
+        return errorResponse('unauthorized', '인증 토큰이 필요합니다.', 401, requestId)
+      }
+
+      // 사용자 ID 추출
+      let visionUserId: string | undefined
+      const visionSupabaseAuth = await verifySupabaseAuth(visionToken, supabase)
+      if (visionSupabaseAuth.valid) {
+        visionUserId = visionSupabaseAuth.userId
+      } else {
+        const visionJwt = await verifyJWT(visionToken, supabase)
+        if (!visionJwt.valid) {
+          return errorResponse(visionJwt.error || 'invalid_token', '유효하지 않은 토큰입니다.', 401, requestId)
+        }
+        visionUserId = visionJwt.userId
+      }
+
+      if (!visionUserId) {
+        return errorResponse('unauthorized', '사용자 인증에 실패했습니다.', 401, requestId)
+      }
+
+      return await handleVision(req, supabase, visionUserId, requestId, corsHeaders)
     }
 
     // 지원하지 않는 엔드포인트

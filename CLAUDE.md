@@ -3,7 +3,7 @@
 > Claude와의 개발 협업을 위한 프로젝트 핵심 문서
 
 **마지막 업데이트**: 2025-11-24
-**현재 버전**: 2.14.0 (AI 통합 - Claude API 연동)
+**현재 버전**: 2.15.0 (Central Hub Phase 3 + Vision API)
 **상태**: ✅ Production Ready | 🔒 보안 점수 98/100 | 🎯 토스페이먼츠 심사 제출 완료
 **개발 방법론**: SDD (Spec-Driven Development) + MCP (Model Context Protocol) Integration
 
@@ -12,6 +12,26 @@
 ## 📋 최신 업데이트
 
 ### 2025-11-24 (오늘)
+- ✅ **Central Hub Phase 3 + Vision API 통합 (v2.15.0)**
+  - **Central Hub 실시간 동기화**:
+    - `useRealtimeServiceStatus` 훅 (Supabase Realtime 채널)
+    - `useRealtimeEventStream` 훅 (이벤트/이슈 스트림)
+    - 연결 상태 관리 (connecting/connected/disconnected/error)
+    - 자동 재연결 로직 (최대 5회)
+  - **Central Hub 대시보드 확장**:
+    - `ServiceHealthCard` 컴포넌트 (상태별 색상, 메트릭)
+    - `ServiceStatusDashboard` 컴포넌트 (2x2 그리드)
+    - `RealtimeAlertPanel` 컴포넌트 (실시간 알림)
+  - **Vision API 통합**:
+    - Edge Function `claude-ai/vision-handler.ts`
+    - `useClaudeVision` 훅 (스트리밍/비스트리밍)
+    - `ImageAnalyzer` 컴포넌트 (드래그앤드롭)
+    - 5개 분석 유형 (UI/다이어그램/스크린샷/와이어프레임/일반)
+  - **SDD 문서**: 5개 신규 (Vision API spec/plan/tasks)
+  - **E2E 테스트**: 8개 신규 (`vision-api.spec.ts`)
+  - **빌드**: 36.94s 성공 (PWA precache 27 entries)
+  - **병렬 에이전트**: 4개 동시 작업
+
 - ✅ **AI 통합 완료 (v2.14.0)** - Claude API 연동
   - **Edge Function**: `claude-ai` (채팅/스트리밍, JWT 인증, Rate Limiting)
   - **DB 마이그레이션**: `claude_usage_logs`, `claude_rate_limits` 테이블
