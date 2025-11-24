@@ -3,14 +3,68 @@
 > 프로젝트 작업 목록 및 진행 상황 관리
 
 **마지막 업데이트**: 2025-11-24
-**현재 Phase**: Claude Skills Sprint 5 완료 - 서비스별 특화 기능
-**다음 단계**: Central Hub Phase 3 (실시간 상태 동기화) 또는 AI 통합
-**프로젝트 버전**: 2.13.0 (Claude Skills Sprint 5 - 서비스별 특화 기능)
+**현재 Phase**: AI 통합 완료 - Claude API 연동
+**다음 단계**: Central Hub Phase 3 (실시간 상태 동기화) 또는 Vision API 통합
+**프로젝트 버전**: 2.14.0 (AI 통합 - Claude API 연동)
 **프로덕션**: https://www.ideaonaction.ai
 
 ---
 
-## 🚀 진행 중: Claude Skills 통합 (허브 + Minu 시리즈)
+## ✅ 완료: AI 통합 (v2.14.0)
+
+**목표**: Claude API를 IDEA on Action에 통합하여 Minu 서비스에 AI 기반 문서 자동화 기능 제공
+**SDD 문서**: [spec/claude-integration/](spec/claude-integration/) | [plan/claude-integration/](plan/claude-integration/) | [tasks/claude-integration/](tasks/claude-integration/)
+
+### 아키텍처
+```
+사용자 요청 → React Hook → Edge Function (프록시) → Claude API
+                              ↓
+                       JWT 토큰 검증 (MCP Auth)
+                              ↓
+                       응답 → docx/xlsx 생성기 연동
+```
+
+### 완료된 작업 (2025-11-24)
+| Sprint | 작업 | 상태 |
+|--------|------|------|
+| Sprint 1 | Edge Function `claude-ai` (채팅/스트리밍) | ✅ 완료 |
+| Sprint 1 | TypeScript 타입 `claude.types.ts` | ✅ 완료 |
+| Sprint 1 | React 훅 `useClaudeChat`, `useClaudeStreaming` | ✅ 완료 |
+| Sprint 1 | Rate Limiting & 로깅 | ✅ 완료 |
+| Sprint 1 | DB 마이그레이션 `claude_usage_logs`, `claude_rate_limits` | ✅ 완료 |
+| Sprint 2 | Minu Find - RFP 자동 생성 | ✅ 완료 |
+| Sprint 2 | Minu Frame - 요구사항 작성 보조 | ✅ 완료 |
+| Sprint 2 | Minu Build - 프로젝트 계획 생성 | ✅ 완료 |
+| Sprint 2 | Minu Keep - 운영 보고서 초안 | ✅ 완료 |
+| Sprint 2 | AI → docx/xlsx 연동 (`documentBridge.ts`) | ✅ 완료 |
+| Sprint 2 | UI 컴포넌트 `AIAssistButton`, `AIUsageDashboard` | ✅ 완료 |
+| Sprint 2 | E2E 테스트 22개 | ✅ 완료 |
+
+### 생성된 파일
+| 카테고리 | 파일 | 설명 |
+|---------|------|------|
+| Edge Function | `supabase/functions/claude-ai/index.ts` | Claude API 프록시 |
+| Edge Function | `supabase/functions/claude-ai/rate-limiter.ts` | Token Bucket Rate Limiting |
+| Edge Function | `supabase/functions/claude-ai/error-handler.ts` | 에러 핸들링 & 로깅 |
+| DB | `20251124100000_create_claude_tables.sql` | 사용량 로그 & Rate Limit 테이블 |
+| 타입 | `src/types/claude.types.ts` | Claude API 타입 (50+) |
+| 타입 | `src/types/claude-skills.types.ts` | Skills 생성기 타입 |
+| 훅 | `src/hooks/useClaudeChat.ts` | 채팅 훅 |
+| 훅 | `src/hooks/useClaudeStreaming.ts` | 스트리밍 훅 |
+| 훅 | `src/hooks/useClaudeSkill.ts` | Skills 통합 훅 |
+| 생성기 | `src/skills/claude/generators/rfpGenerator.ts` | RFP 자동 생성 |
+| 생성기 | `src/skills/claude/generators/requirementsGenerator.ts` | 요구사항 분석 |
+| 생성기 | `src/skills/claude/generators/projectPlanGenerator.ts` | 프로젝트 계획 |
+| 생성기 | `src/skills/claude/generators/opsReportGenerator.ts` | 운영 보고서 |
+| 유틸 | `src/skills/claude/utils/documentBridge.ts` | AI → docx/xlsx 변환 |
+| 컴포넌트 | `src/components/ai/AIAssistButton.tsx` | AI 도우미 버튼 |
+| 컴포넌트 | `src/components/ai/AIUsageDashboard.tsx` | 사용량 대시보드 |
+| 테스트 | `tests/e2e/ai/claude-integration.spec.ts` | 기본 통합 테스트 10개 |
+| 테스트 | `tests/e2e/ai/claude-skills.spec.ts` | Skills 테스트 12개 |
+
+---
+
+## ✅ 완료: Claude Skills 통합 (허브 + Minu 시리즈)
 
 **목표**: Claude Skills를 IDEA on Action 허브 및 Minu 서비스에 통합하여 문서 자동화 기능 제공
 **SDD 문서**: [spec/claude-skills/](spec/claude-skills/) | [plan/claude-skills/](plan/claude-skills/) | [tasks/claude-skills/](tasks/claude-skills/)

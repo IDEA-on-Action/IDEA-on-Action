@@ -3,7 +3,7 @@
 > Claude와의 개발 협업을 위한 프로젝트 핵심 문서
 
 **마지막 업데이트**: 2025-11-24
-**현재 버전**: 2.13.0 (Claude Skills Sprint 5 - 서비스별 특화 기능)
+**현재 버전**: 2.14.0 (AI 통합 - Claude API 연동)
 **상태**: ✅ Production Ready | 🔒 보안 점수 98/100 | 🎯 토스페이먼츠 심사 제출 완료
 **개발 방법론**: SDD (Spec-Driven Development) + MCP (Model Context Protocol) Integration
 
@@ -12,6 +12,18 @@
 ## 📋 최신 업데이트
 
 ### 2025-11-24 (오늘)
+- ✅ **AI 통합 완료 (v2.14.0)** - Claude API 연동
+  - **Edge Function**: `claude-ai` (채팅/스트리밍, JWT 인증, Rate Limiting)
+  - **DB 마이그레이션**: `claude_usage_logs`, `claude_rate_limits` 테이블
+  - **React 훅 5개**: `useClaudeChat`, `useClaudeStreaming`, `useClaudeSkill`, `useRFPGenerator`, `useOpsReportWriter`
+  - **AI 생성기 4개**: RFP, 요구사항 분석, 프로젝트 계획, 운영 보고서
+  - **UI 컴포넌트 2개**: `AIAssistButton`, `AIUsageDashboard`
+  - **docx/xlsx 연동**: AI 생성 결과를 문서로 변환 (`documentBridge.ts`)
+  - **E2E 테스트**: 22개 신규 작성 (`claude-integration.spec.ts`, `claude-skills.spec.ts`)
+  - **SDD 문서**: 7개 신규 (spec, plan, tasks)
+  - **빌드**: 24.34s 성공 (PWA precache 27 entries)
+  - **병렬 에이전트**: 4개 동시 작업 (2개 Sprint)
+
 - ✅ **Claude Skills Sprint 5 완료** - 서비스별 특화 기능
   - **패키지**: `pptxgenjs` (v3.12.0) 설치, vite.config.ts 청크 최적화
   - **Minu Find**: 시장분석 Excel 생성기 (`marketAnalysis.ts`)
