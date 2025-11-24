@@ -103,16 +103,16 @@ export function generateMarketAnalysisSheet(data: MarketAnalysisData): SheetConf
 ```
 
 **완료 조건**:
-- [ ] 경쟁사 비교 매트릭스 시트
-- [ ] 트렌드 분석 시트 (차트 데이터)
-- [ ] 사업기회 스코어링 시트
+- [x] 경쟁사 비교 매트릭스 시트
+- [x] 트렌드 분석 시트 (차트 데이터)
+- [x] 사업기회 스코어링 시트
 
 ---
 
 ### TASK-CS-035: Minu Frame - 발표 자료 기초 ✅
 
 **예상 시간**: 4시간
-**상태**: ⏳ 대기
+**상태**: ✅ 완료 (2025-11-24)
 
 **작업 내용**:
 
@@ -171,16 +171,16 @@ export function usePptxGenerate() {
 ```
 
 **완료 조건**:
-- [ ] pptxgenjs 패키지 설치
-- [ ] 기본 슬라이드 템플릿 4종
-- [ ] 브랜드 스타일 적용
+- [x] pptxgenjs 패키지 설치
+- [x] 기본 슬라이드 템플릿 4종
+- [x] 브랜드 스타일 적용
 
 ---
 
 ### TASK-CS-036: Minu Build - 프로젝트 리포트 ✅
 
 **예상 시간**: 3시간
-**상태**: ⏳ 대기
+**상태**: ✅ 완료 (2025-11-24)
 
 **작업 내용**:
 
@@ -242,17 +242,17 @@ export function generateProjectReportSheets(data: ProjectReportData): SheetConfi
 ```
 
 **완료 조건**:
-- [ ] 스프린트 요약 시트
-- [ ] 작업 목록 시트
-- [ ] 번다운 차트 데이터 시트
-- [ ] 리소스 할당 시트
+- [x] 스프린트 요약 시트
+- [x] 작업 목록 시트
+- [x] 번다운 차트 데이터 시트
+- [x] 리소스 할당 시트
 
 ---
 
 ### TASK-CS-037: Minu Keep - 운영 보고서 ✅
 
 **예상 시간**: 3시간
-**상태**: ⏳ 대기
+**상태**: ✅ 완료 (2025-11-24)
 
 **작업 내용**:
 
@@ -309,33 +309,33 @@ export const operationsReportTemplate: DocumentTemplate = {
 ```
 
 **완료 조건**:
-- [ ] SLA 지표 테이블
-- [ ] 장애 이력 섹션
-- [ ] 개선 사항 및 계획 섹션
+- [x] SLA 지표 테이블
+- [x] 장애 이력 섹션
+- [x] 개선 사항 및 계획 섹션
 
 ---
 
 ### TASK-CS-038: 서비스별 E2E 테스트 ✅
 
 **예상 시간**: 3시간
-**상태**: ⏳ 대기
+**상태**: ✅ 완료 (2025-11-24)
 **의존성**: TASK-CS-034 ~ TASK-CS-037
 
 **완료 조건**:
-- [ ] Minu Find 시장 분석 Excel 생성 테스트
-- [ ] Minu Frame 발표 자료 생성 테스트
-- [ ] Minu Build 프로젝트 리포트 테스트
-- [ ] Minu Keep 운영 보고서 테스트
+- [x] Minu Find 시장 분석 Excel 생성 테스트
+- [x] Minu Frame 발표 자료 생성 테스트
+- [x] Minu Build 프로젝트 리포트 테스트
+- [x] Minu Keep 운영 보고서 테스트
 
 ---
 
 ## 완료 조건
 
-- [ ] Minu Find 시장 분석 Excel 기능 완성
-- [ ] Minu Frame 발표 자료 기초 기능 완성
-- [ ] Minu Build 프로젝트 리포트 기능 완성
-- [ ] Minu Keep 운영 보고서 기능 완성
-- [ ] 서비스별 E2E 테스트 4개 통과
+- [x] Minu Find 시장 분석 Excel 기능 완성
+- [x] Minu Frame 발표 자료 기초 기능 완성
+- [x] Minu Build 프로젝트 리포트 기능 완성
+- [x] Minu Keep 운영 보고서 기능 완성
+- [x] 서비스별 E2E 테스트 4개 통과
 
 ---
 
@@ -358,3 +358,4 @@ export const operationsReportTemplate: DocumentTemplate = {
 | 버전 | 날짜 | 변경 내용 | 작성자 |
 |------|------|----------|--------|
 | 1.0.0 | 2025-11-23 | 초기 작성 | Claude |
+| 1.1.0 | 2025-11-24 | Sprint 5 완료, 모든 태스크 완료 표시 | Claude |
