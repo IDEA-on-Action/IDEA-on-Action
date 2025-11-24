@@ -1,7 +1,7 @@
 /**
  * 보고서 템플릿 모듈
  *
- * 주간/월간 보고서 템플릿을 통합 export 합니다.
+ * 주간/월간/운영 보고서 템플릿을 통합 export 합니다.
  *
  * @module lib/skills/templates/reports
  */
@@ -39,3 +39,25 @@ export {
   generateMonthlyReportBlob,
   downloadMonthlyReport,
 } from './monthly-report';
+
+// ============================================================================
+// 운영 보고서 (Minu Keep)
+// ============================================================================
+
+export {
+  // 타입
+  type SLAMetricItem,
+  type IncidentItem,
+  type OperationsReportVariable,
+  type OperationsReportData,
+  // 템플릿 정의
+  operationsReportTemplate,
+  // 기본 데이터
+  defaultSLAMetrics,
+  operationsReportDefaults,
+  // 빌더 함수
+  buildOperationsReportSections,
+  createOperationsReportDocument,
+  generateOperationsReportBlob,
+  downloadOperationsReport,
+} from './operations-report';

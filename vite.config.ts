@@ -275,7 +275,12 @@ export default defineConfig(({ mode }) => ({
             return 'docx-skill';
           }
 
-          // 5. TipTap Editor - DISABLED due to React dependency issues
+          // 5. pptx Skill - PowerPoint export functionality (lazy loaded)
+          if (id.includes('node_modules/pptxgenjs')) {
+            return 'pptx-skill';
+          }
+
+          // 6. TipTap Editor - DISABLED due to React dependency issues
           // TipTap/Prosemirror uses React's useSyncExternalStore internally
           // which causes "Cannot read properties of undefined" errors
           // when separated into their own chunk.
@@ -287,14 +292,14 @@ export default defineConfig(({ mode }) => ({
           //   return 'vendor-editor';
           // }
 
-          // 6. Sentry - DISABLED due to React dependency issues
+          // 7. Sentry - DISABLED due to React dependency issues
           // Sentry React SDK uses React.Component internally
           // which causes "Cannot read properties of undefined" errors
           // if (id.includes('node_modules/@sentry')) {
           //   return 'vendor-sentry';
           // }
 
-          // 7. Auth & Security (OTP, QR Code) - Only used in 2FA setup
+          // 8. Auth & Security (OTP, QR Code) - Only used in 2FA setup
           if (
             id.includes('node_modules/otpauth') ||
             id.includes('node_modules/qrcode')

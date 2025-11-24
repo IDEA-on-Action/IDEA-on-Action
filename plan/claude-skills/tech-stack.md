@@ -171,19 +171,51 @@ export async function generateDocument(data: RFPData): Promise<Blob> {
 - 복잡한 레이아웃 제한
 - 이미지 삽입 시 Base64 변환 필요
 
-### 3.3 pptxgenjs (선택)
+### 3.3 pptxgenjs (Sprint 5 구현)
 
 **선택 이유**:
 - **브라우저 호환**: 클라이언트 사이드 생성
 - **TypeScript 지원**: 타입 정의 제공
 - **비교적 안정적**: 널리 사용되는 라이브러리
+- **16:9 레이아웃**: 현대적 프레젠테이션 지원
 
-**버전**: pptxgenjs 3.x
+**버전**: pptxgenjs ^3.12.0
 
-**설치** (필요 시):
+**설치**:
 ```bash
 npm install pptxgenjs
 ```
+
+**사용 예시**:
+```typescript
+import PptxGenJS from 'pptxgenjs';
+
+export function usePptxGenerate() {
+  const generatePresentation = async (slides: SlideContent[], filename: string) => {
+    const pptx = new PptxGenJS();
+
+    // 브랜드 스타일 설정
+    pptx.layout = 'LAYOUT_16x9';
+    pptx.author = 'IDEA on Action';
+    pptx.company = '생각과행동';
+    pptx.subject = 'Generated Presentation';
+
+    for (const slide of slides) {
+      const pptSlide = pptx.addSlide();
+      // 슬라이드 타입별 처리
+    }
+
+    await pptx.writeFile({ fileName: filename });
+  };
+
+  return { generatePresentation };
+}
+```
+
+**제한사항**:
+- 복잡한 차트는 데이터만 전달 (시각화 제한)
+- 애니메이션/전환 효과 미지원
+- 마스터 슬라이드 커스텀 제한
 
 ### 3.4 pdf-lib (선택)
 

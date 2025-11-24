@@ -215,10 +215,30 @@
 - [ ] AC-CS-02.2.1 ~ AC-CS-02.2.3 (보고서 템플릿)
 - [ ] AC-CS-02.3.1 ~ AC-CS-02.3.4 (동적 콘텐츠)
 
-### Phase 5: MCP Orchestrator (Sprint 5)
+### Phase 5: MCP Orchestrator (Sprint 4) ✅ 완료
 
-- [ ] AC-CS-04.2.1 ~ AC-CS-04.2.4 (이벤트 라우팅)
-- [ ] AC-CS-04.3.1 ~ AC-CS-04.3.3 (상태 동기화)
+- [x] AC-CS-04.2.1 ~ AC-CS-04.2.4 (이벤트 라우팅)
+- [x] AC-CS-04.3.1 ~ AC-CS-04.3.3 (상태 동기화)
+
+### Phase 6: 서비스별 특화 기능 (Sprint 5)
+
+- [ ] AC-CS-01.3.1 ~ AC-CS-01.3.3 (Minu Find 시장분석)
+- [ ] AC-CS-01.4.1 ~ AC-CS-01.4.3 (Minu Build 프로젝트 리포트)
+- [ ] AC-CS-01.5.1 ~ AC-CS-01.5.3 (Minu Keep 운영 보고서)
+- [ ] AC-CS-07.1.1 ~ AC-CS-07.1.4 (Minu Frame PowerPoint)
+
+---
+
+## 8. pptx Skill (FR-CS-07) - Sprint 5
+
+### AC-CS-07.1: PowerPoint 기본 기능 (Minu Frame)
+
+| ID | 조건 | 검증 방법 |
+|----|------|----------|
+| AC-CS-07.1.1 | Title 슬라이드: 제목 + 부제목 표시 | E2E 테스트 |
+| AC-CS-07.1.2 | Content 슬라이드: 제목 + 불릿 포인트 | E2E 테스트 |
+| AC-CS-07.1.3 | TwoColumn 슬라이드: 2열 레이아웃 | E2E 테스트 |
+| AC-CS-07.1.4 | 브랜드 스타일: IDEA on Action 로고/색상 적용 | 수동 검증 |
 
 ---
 

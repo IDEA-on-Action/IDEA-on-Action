@@ -2,8 +2,8 @@
 
 > Claude와의 개발 협업을 위한 프로젝트 핵심 문서
 
-**마지막 업데이트**: 2025-11-23
-**현재 버전**: 2.12.0 (Claude Skills Sprint 4 - MCP Orchestrator)
+**마지막 업데이트**: 2025-11-24
+**현재 버전**: 2.13.0 (Claude Skills Sprint 5 - 서비스별 특화 기능)
 **상태**: ✅ Production Ready | 🔒 보안 점수 98/100 | 🎯 토스페이먼츠 심사 제출 완료
 **개발 방법론**: SDD (Spec-Driven Development) + MCP (Model Context Protocol) Integration
 
@@ -11,11 +11,27 @@
 
 ## 📋 최신 업데이트
 
-### 2025-11-23 (오늘)
+### 2025-11-24 (오늘)
+- ✅ **Claude Skills Sprint 5 완료** - 서비스별 특화 기능
+  - **패키지**: `pptxgenjs` (v3.12.0) 설치, vite.config.ts 청크 최적화
+  - **Minu Find**: 시장분석 Excel 생성기 (`marketAnalysis.ts`)
+    - 경쟁사 비교 매트릭스, 트렌드 분석, 사업기회 스코어링 시트
+  - **Minu Frame**: PowerPoint 생성 훅 (`usePptxGenerate.ts`)
+    - 4종 슬라이드 템플릿 (Title, Content, TwoColumn, Chart)
+    - 브랜드 스타일 적용 (IDEA on Action, 16:9)
+  - **Minu Build**: 프로젝트 리포트 생성기 (`projectReport.ts`)
+    - 스프린트 요약, 작업 목록, 번다운, 리소스 할당 시트
+  - **Minu Keep**: 운영 보고서 템플릿 (`operationsReport.ts`)
+    - SLA 지표, 장애 이력, 개선사항, 다음달 계획 섹션
+  - **E2E 테스트**: 18개 신규 작성 (`minu-services.spec.ts`)
+  - **빌드**: 40.56s 성공 (PWA precache 27 entries)
+  - **병렬 에이전트**: 4개 동시 작업
+
+### 2025-11-23
 - ✅ **Claude Skills Sprint 4 완료** - MCP Orchestrator
   - **DB 마이그레이션**: `service_tokens`, `refresh_tokens`, `event_queue`, `dead_letter_queue` 테이블
   - **Edge Functions**: `mcp-auth` (토큰 발급/검증), `mcp-router` (이벤트 라우팅), `mcp-sync` (상태 동기화)
-  - **React 훅**: `useMCPAuth`, `useMCPSync`, `useMCPCache`
+  - **React 훅**: `useMCPAuth`, `useMCPSync`, `useMCPClient`, `useMCPPermission`
   - **TypeScript 타입**: `mcp-auth.types.ts`, `mcp-sync.types.ts`
   - **E2E 테스트**: 14개 신규 작성 (`mcp-orchestrator.spec.ts`)
   - **SDD 문서**: 3개 신규 (스펙, 스키마, 함수 설계)
