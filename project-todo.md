@@ -1234,9 +1234,11 @@ IDEA on Action (Central Hub)
 
 ---
 
-**최종 업데이트**: 2025-11-23 KST
-**정리 버전**: v2.12.0 (Claude Skills Sprint 4 - MCP Orchestrator)
+**최종 업데이트**: 2025-11-24 KST
+**정리 버전**: v2.14.0 (AI 통합 - Claude API 연동)
 **완료된 항목**:
+- ✅ AI 통합 완료 (Claude API 연동, Edge Function, React 훅, 생성기 4개)
+- ✅ Claude Skills Sprint 5 완료 (서비스별 특화 기능)
 - ✅ Claude Skills Sprint 4 완료 (MCP Orchestrator)
 - ✅ Claude Skills Sprint 3 완료 (docx Skill + RFP 템플릿)
 - ✅ Claude Skills Sprint 2 완료 (Central Hub 대시보드 UI)
@@ -1246,4 +1248,4 @@ IDEA on Action (Central Hub)
 - ✅ CMS Phase 5 완료 (리치 텍스트 에디터 & 미디어 고도화)
 - ✅ Minu 브랜드 전환 완료
 **아카이브 파일**: docs/archive/completed-todos-v1.8.0-v2.0.0.md
-**다음 단계**: Claude Skills Sprint 5 (서비스별 특화 기능)
+**다음 단계**: Central Hub Phase 3 (실시간 상태 동기화) 또는 Vision API 통합
