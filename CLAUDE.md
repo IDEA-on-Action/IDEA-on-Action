@@ -2,8 +2,8 @@
 
 > Claude와의 개발 협업을 위한 프로젝트 핵심 문서
 
-**마지막 업데이트**: 2025-11-24
-**현재 버전**: 2.15.0 (Central Hub Phase 3 + Vision API)
+**마지막 업데이트**: 2025-11-25
+**현재 버전**: 2.16.0 (프롬프트 템플릿 + 대화 컨텍스트 관리)
 **상태**: ✅ Production Ready | 🔒 보안 점수 98/100 | 🎯 토스페이먼츠 심사 제출 완료
 **개발 방법론**: SDD (Spec-Driven Development) + MCP (Model Context Protocol) Integration
 
@@ -11,7 +11,25 @@
 
 ## 📋 최신 업데이트
 
-### 2025-11-24 (오늘)
+### 2025-11-25 (오늘)
+- ✅ **v2.16.0: 프롬프트 템플릿 + 대화 컨텍스트 관리**
+  - **Sprint 3: 프롬프트 템플릿 관리** (BL-AI-005)
+    - DB 마이그레이션: `prompt_templates` 테이블
+    - TypeScript 타입: `prompt-template.types.ts` (30+ 타입)
+    - React 훅: `usePromptTemplates` (CRUD + 변수 치환)
+    - UI 컴포넌트: `PromptTemplateSelector`, `PromptTemplateShareModal`
+    - E2E 테스트: 6개 (`prompt-templates.spec.ts`)
+  - **Sprint 4: 대화 컨텍스트 관리** (BL-AI-002)
+    - DB 마이그레이션: `ai_conversations`, `ai_messages` 테이블
+    - TypeScript 타입: `conversation.types.ts` (40+ 타입)
+    - React 훅: `useConversationManager` (세션 CRUD, 요약, 포크, 내보내기)
+    - UI 컴포넌트: `ConversationList`, `ConversationDetail`
+    - E2E 테스트: 13개 (`conversation-context.spec.ts`)
+  - **SDD 문서**: 8개 신규 (spec, plan, tasks)
+  - **빌드**: 21.06s 성공 (PWA precache 27 entries)
+  - **병렬 에이전트**: 7개 동시 작업 (Sprint 3: 3개, Sprint 4: 4개)
+
+### 2025-11-24
 - ✅ **Central Hub Phase 3 + Vision API 통합 (v2.15.0)**
   - **Central Hub 실시간 동기화**:
     - `useRealtimeServiceStatus` 훅 (Supabase Realtime 채널)

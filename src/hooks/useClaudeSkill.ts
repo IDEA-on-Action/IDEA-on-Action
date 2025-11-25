@@ -13,6 +13,7 @@
 
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { useClaudeStreaming } from './useClaudeStreaming';
+import { usePromptTemplates } from './usePromptTemplates';
 import {
   createClaudeSkillError,
   isClaudeSkillError,
@@ -476,8 +477,38 @@ export function useClaudeSkill<TInput extends Record<string, unknown>, TOutput>(
     streaming: false, // JSON 응답이므로 스트리밍 비활성화
   });
 
-  // 템플릿 가져오기
-  const template = useMemo(() => PROMPT_TEMPLATES[skillType], [skillType]);
+  // DB 템플릿 가져오기 (시스템 템플릿 + 활성 상태)
+  const { data: dbTemplatesResponse } = usePromptTemplates({
+    skillType,
+    isSystem: true,
+    isActive: true,
+    limit: 1, // 가장 최신 템플릿 1개만
+    orderBy: 'updated_at',
+    orderDirection: 'desc',
+  });
+
+  // 템플릿 가져오기 (DB 템플릿 우선, 없으면 하드코딩 템플릿 사용)
+  const template = useMemo(() => {
+    // DB 템플릿이 있으면 사용
+    if (dbTemplatesResponse?.data && dbTemplatesResponse.data.length > 0) {
+      const dbTemplate = dbTemplatesResponse.data[0];
+      // PromptTemplate 타입으로 변환 (claude-skills.types.ts 형식)
+      return {
+        id: dbTemplate.id,
+        name: dbTemplate.name,
+        description: dbTemplate.description,
+        skillType: dbTemplate.skillType,
+        systemPrompt: dbTemplate.systemPrompt,
+        userPromptTemplate: dbTemplate.userPromptTemplate,
+        variables: dbTemplate.variables,
+        version: dbTemplate.version,
+        serviceId: dbTemplate.serviceId ?? undefined,
+      } as PromptTemplate;
+    }
+
+    // Fallback: 하드코딩 템플릿
+    return PROMPT_TEMPLATES[skillType];
+  }, [skillType, dbTemplatesResponse]);
 
   // 클린업
   useEffect(() => {
