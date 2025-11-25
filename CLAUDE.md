@@ -3,7 +3,7 @@
 > Claude와의 개발 협업을 위한 프로젝트 핵심 문서
 
 **마지막 업데이트**: 2025-11-25
-**현재 버전**: 2.17.0 (AI 채팅 위젯 + Tool Use + 기술 부채 해소)
+**현재 버전**: 2.18.0 (RAG - 문서 검색 증강 생성)
 **상태**: ✅ Production Ready | 🔒 보안 점수 98/100 | 🎯 토스페이먼츠 심사 제출 완료
 **개발 방법론**: SDD (Spec-Driven Development) + MCP (Model Context Protocol) Integration
 
@@ -12,6 +12,24 @@
 ## 📋 최신 업데이트
 
 ### 2025-11-25 (오늘)
+- ✅ **v2.18.0: RAG (Retrieval-Augmented Generation) 구현**
+  - **Sprint 1: RAG 인프라** (BL-AI-004)
+    - DB 마이그레이션: `rag_documents`, `rag_embeddings` 테이블 (pgvector)
+    - 벡터 검색 함수: `search_rag_embeddings()` (코사인 유사도)
+    - TypeScript 타입: `rag.types.ts` (30+ 타입)
+    - Edge Function: `rag-embed` (OpenAI text-embedding-3-small)
+    - Edge Function: `rag-search` (벡터 검색)
+  - **Sprint 2: RAG 통합**
+    - React 훅: `useRAGDocuments` (문서 CRUD + 임베딩 트리거)
+    - React 훅: `useRAGSearch` (벡터 검색 + 디바운스)
+    - React 훅: `useClaudeChatWithRAG` (RAG 통합 채팅)
+    - UI 컴포넌트: `DocumentUploader` (드래그앤드롭, URL, 텍스트)
+    - UI 컴포넌트: `RAGSearchResults` (유사도 표시, 하이라이트)
+  - **SDD 문서**: 7개 신규 (spec/plan/tasks)
+  - **E2E 테스트**: 18개 신규 (`rag.spec.ts`)
+  - **빌드**: 23.32s 성공 (PWA precache 27 entries)
+  - **병렬 에이전트**: 7개 동시 작업
+
 - ✅ **v2.17.0: AI 채팅 위젯 + Tool Use + 기술 부채 해소**
   - **Sprint 1: AI 어시스턴트 채팅 위젯** (BL-AI-008)
     - 플로팅 채팅 위젯: `AIChatWidget`, `AIChatButton`, `AIChatWindow`
