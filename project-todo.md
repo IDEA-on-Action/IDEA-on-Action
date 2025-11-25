@@ -3,10 +3,63 @@
 > 프로젝트 작업 목록 및 진행 상황 관리
 
 **마지막 업데이트**: 2025-11-25
-**현재 Phase**: 프롬프트 템플릿 + 대화 컨텍스트 관리 완료
-**다음 단계**: AI 기능 고도화 또는 백로그 항목 진행
-**프로젝트 버전**: 2.16.0 (프롬프트 템플릿 + 대화 컨텍스트 관리)
+**현재 Phase**: AI 채팅 위젯 + Tool Use + 기술 부채 해소 완료
+**다음 단계**: App.tsx 위젯 통합 또는 RAG 구현
+**프로젝트 버전**: 2.17.0 (AI 채팅 위젯 + Tool Use + 기술 부채 해소)
 **프로덕션**: https://www.ideaonaction.ai
+
+---
+
+## ✅ 완료: AI 채팅 위젯 + Tool Use + 기술 부채 (v2.17.0)
+
+**목표**: AI 채팅 위젯, Tool Use 인프라, 기술 부채 해소
+**완료일**: 2025-11-25
+**SDD 문서**: [spec/claude-integration/ai-chat-widget/](spec/claude-integration/ai-chat-widget/) | [spec/ai-tool-use/](spec/ai-tool-use/) | [spec/technical-debt/](spec/technical-debt/)
+
+### 완료된 작업 (2025-11-25)
+
+| Sprint | 작업 | 상태 |
+|--------|------|------|
+| Sprint 1 | AI 채팅 위젯 컴포넌트 7개 | ✅ 완료 |
+| Sprint 1 | `usePageContext` 훅 | ✅ 완료 |
+| Sprint 1 | `ai-chat-widget.types.ts` 타입 | ✅ 완료 |
+| Sprint 2 | TODO 주석 제거 (5개) | ✅ 완료 |
+| Sprint 2 | any 타입 제거 (7개) | ✅ 완료 |
+| Sprint 2 | 린트 경고 감소 (40→36개) | ✅ 완료 |
+| Sprint 3 | ToolRegistry 클래스 | ✅ 완료 |
+| Sprint 3 | 도구 4개 (issues, events, health, projects) | ✅ 완료 |
+| Sprint 3 | `useClaudeTools` 훅 | ✅ 완료 |
+
+### 생성된 파일
+
+| 카테고리 | 파일 | 설명 |
+|---------|------|------|
+| 컴포넌트 | `src/components/ai-chat/AIChatWidget.tsx` | 메인 위젯 |
+| 컴포넌트 | `src/components/ai-chat/AIChatButton.tsx` | 플로팅 버튼 |
+| 컴포넌트 | `src/components/ai-chat/AIChatWindow.tsx` | 채팅 창 |
+| 컴포넌트 | `src/components/ai-chat/AIChatHeader.tsx` | 헤더 |
+| 컴포넌트 | `src/components/ai-chat/AIChatMessages.tsx` | 메시지 목록 |
+| 컴포넌트 | `src/components/ai-chat/AIChatMessage.tsx` | 개별 메시지 |
+| 컴포넌트 | `src/components/ai-chat/AIChatInput.tsx` | 입력 영역 |
+| 훅 | `src/hooks/usePageContext.ts` | 페이지 컨텍스트 |
+| 훅 | `src/hooks/useClaudeTools.ts` | Tool Use 훅 |
+| 타입 | `src/types/ai-chat-widget.types.ts` | 채팅 위젯 타입 |
+| 도구 | `src/lib/claude/tools.ts` | ToolRegistry |
+| 도구 | `src/lib/claude/tools/issues.tool.ts` | 이슈 조회 |
+| 도구 | `src/lib/claude/tools/events.tool.ts` | 이벤트 조회 |
+| 도구 | `src/lib/claude/tools/health.tool.ts` | 헬스 조회 |
+| 도구 | `src/lib/claude/tools/projects.tool.ts` | 프로젝트 조회 |
+| SDD | `spec/claude-integration/ai-chat-widget/*.md` | 채팅 위젯 명세 |
+| SDD | `spec/ai-tool-use/*.md` | Tool Use 명세 |
+| SDD | `spec/technical-debt/*.md` | 기술 부채 명세 |
+
+### 품질 지표 개선
+
+| 지표 | 이전 | 이후 | 변화 |
+|------|------|------|------|
+| 린트 경고 | 40개 | 36개 | -10% |
+| TODO 주석 | 5개 | 0개 | -100% |
+| any 타입 (프로덕션) | 7개 | 0개 | -100% |
 
 ---
 
