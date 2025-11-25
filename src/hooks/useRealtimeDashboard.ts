@@ -39,7 +39,15 @@ export function useRealtimeDashboard() {
     const loadRecentOrders = async () => {
       const { data, error } = await supabase
         .from('orders')
-        .select('id, order_number, user_id, total_amount, status, created_at')
+        .select(`
+          id,
+          order_number,
+          user_id,
+          total_amount,
+          status,
+          created_at,
+          items:order_items(count)
+        `)
         .order('created_at', { ascending: false })
         .limit(10)
 
@@ -48,10 +56,15 @@ export function useRealtimeDashboard() {
         return
       }
 
-      // items_count 계산 (임시로 1로 설정, 실제로는 order_items 조인 필요)
-      const ordersWithCount = data.map((order) => ({
-        ...order,
-        items_count: 1, // TODO: order_items 조인으로 실제 개수 계산
+      // items_count 계산 (order_items 조인으로 실제 개수)
+      const ordersWithCount = (data || []).map((order) => ({
+        id: order.id,
+        order_number: order.order_number,
+        user_id: order.user_id,
+        total_amount: order.total_amount,
+        status: order.status,
+        created_at: order.created_at,
+        items_count: Array.isArray(order.items) ? order.items.length : 0,
       }))
 
       setLiveOrders(ordersWithCount)

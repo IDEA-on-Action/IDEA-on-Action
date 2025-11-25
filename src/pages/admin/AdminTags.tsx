@@ -217,7 +217,7 @@ export default function AdminTags() {
           values,
         });
       } else {
-        await createMutation.mutateAsync(values as any);
+        await createMutation.mutateAsync(values);
       }
 
       setIsFormOpen(false);

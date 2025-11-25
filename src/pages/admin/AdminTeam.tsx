@@ -123,7 +123,7 @@ export default function AdminTeam() {
       await updateMutation.mutateAsync({ id: editItem.id, values });
       toast.success('팀원 수정 완료');
     } else {
-      await createMutation.mutateAsync(values as any);
+      await createMutation.mutateAsync(values);
       toast.success('팀원 생성 완료');
     }
     setIsFormOpen(false);

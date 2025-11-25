@@ -13,6 +13,18 @@ import type { ServiceCartItem } from '@/types/services-platform'
 import { handleSupabaseError, devError } from '@/lib/errors'
 import { createQueryKeys, commonQueryOptions, createUserQueryKey } from '@/lib/react-query'
 
+// CartItem 타입 정의 (cart_items 조인 결과)
+interface CartItemWithService {
+  service_id: string
+  price: number
+  quantity: number
+  package_name?: string | null
+  service?: {
+    title: string
+    description?: string | null
+  } | null
+}
+
 // ===================================================================
 // Query Keys
 // ===================================================================
@@ -141,20 +153,23 @@ export function useCreateOrder() {
       if (!user) throw new Error('로그인이 필요합니다')
 
       // 1. 장바구니 항목 조회 (일반 cart_items)
-      let cartItems: unknown[] = []
+      let cartItems: CartItemWithService[] = []
       if (params.cartId) {
         const { data, error: cartError } = await supabase
           .from('cart_items')
           .select(
             `
-            *,
-            service:services(*)
+            service_id,
+            price,
+            quantity,
+            package_name,
+            service:services(title, description)
           `
           )
           .eq('cart_id', params.cartId)
 
         if (cartError) throw cartError
-        cartItems = data || []
+        cartItems = (data || []) as CartItemWithService[]
       }
 
       // 2. 서비스 항목 (service_items)
@@ -167,7 +182,7 @@ export function useCreateOrder() {
 
       // 4. 주문 금액 계산 (cart items + service items)
       const cartSubtotal = cartItems.reduce(
-        (sum, item: any) => sum + item.price * item.quantity,
+        (sum, item) => sum + item.price * item.quantity,
         0
       )
       const serviceSubtotal = serviceItems.reduce(
@@ -215,7 +230,7 @@ export function useCreateOrder() {
       const orderItems: OrderItemInsert[] = []
 
       // 5a. cart items 변환
-      cartItems.forEach((item: any) => {
+      cartItems.forEach((item) => {
         orderItems.push({
           order_id: order.id,
           service_id: item.service_id,

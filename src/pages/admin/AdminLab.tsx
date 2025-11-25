@@ -246,7 +246,7 @@ export default function AdminLab() {
           values,
         });
       } else {
-        await createMutation.mutateAsync(values as any);
+        await createMutation.mutateAsync(values);
       }
 
       setIsFormOpen(false);
@@ -271,7 +271,7 @@ export default function AdminLab() {
     try {
       await updateMutation.mutateAsync({
         id: viewApplicantsItem.id,
-        values: { applicants: updatedApplicants } as any,
+        values: { applicants: updatedApplicants },
       });
       toast.success('Applicant accepted');
       refetch();
@@ -290,7 +290,7 @@ export default function AdminLab() {
     try {
       await updateMutation.mutateAsync({
         id: viewApplicantsItem.id,
-        values: { applicants: updatedApplicants } as any,
+        values: { applicants: updatedApplicants },
       });
       toast.success('Applicant rejected');
       refetch();

@@ -9,6 +9,76 @@
 
 ---
 
+## [2.17.0] - 2025-11-25 (AI 채팅 위젯 + Tool Use + 기술 부채)
+
+### 🎯 Sprint 1: AI 어시스턴트 채팅 위젯 (BL-AI-008)
+
+사이트 전체에서 AI와 대화할 수 있는 플로팅 채팅 위젯 구현.
+
+#### 신규 컴포넌트 (7개)
+- `AIChatWidget`: 메인 위젯 (상태 관리, API 연동)
+- `AIChatButton`: 플로팅 버튼 (우하단 고정)
+- `AIChatWindow`: 채팅 창 레이아웃
+- `AIChatHeader`: 헤더 (제목, 새 대화, 닫기)
+- `AIChatMessages`: 메시지 목록 (자동 스크롤)
+- `AIChatMessage`: 개별 메시지 (마크다운 지원)
+- `AIChatInput`: 입력 영역 (자동 높이 조절)
+
+#### React 훅
+- `usePageContext`: 페이지 컨텍스트 추출 (서비스별 맞춤 프롬프트)
+
+#### TypeScript 타입
+- `ai-chat-widget.types.ts`: AIChatMessage, AIChatState, PageContext, AIChatConfig
+
+---
+
+### 🔧 Sprint 2: 기술 부채 해소
+
+코드 품질 개선 및 TODO 주석 제거.
+
+#### TODO 주석 제거 (5개)
+- `PromptTemplateSelector.tsx`: useAuth 통합, usePromptTemplates 연결
+- `PromptTemplateShareModal.tsx`: useUpdatePromptTemplate 훅 연결
+- `useRealtimeDashboard.ts`: order_items 조인 구현
+
+#### any 타입 제거 (7개 → 0개, 프로덕션 코드)
+- `useOrders.ts`: CartItemWithService 타입 정의
+- `AdminTeam.tsx`: CMSTeamMember 타입 적용
+- `AdminTags.tsx`: CMSTag 타입 적용
+- `AdminLab.tsx`: CMSLabItem 타입 적용
+
+#### 품질 지표
+- 린트 경고: 40개 → 36개 (-10%)
+- TODO 주석: 5개 → 0개 (-100%)
+- any 타입 (프로덕션): 7개 → 0개 (-100%)
+
+---
+
+### 🤖 Sprint 3: AI Tool Use 기반 구축 (BL-AI-003)
+
+Claude AI가 시스템 데이터를 직접 조회할 수 있는 Tool Use 인프라 구현.
+
+#### ToolRegistry 클래스
+- `src/lib/claude/tools.ts`: 도구 등록, 조회, 실행 관리
+
+#### 구현된 도구 (4개)
+- `get_issues`: 서비스 이슈 조회 (service_issues 테이블)
+- `get_events`: 서비스 이벤트 조회 (service_events 테이블)
+- `get_health`: 서비스 헬스 조회 (service_health 테이블)
+- `get_projects`: 프로젝트 조회 (projects 테이블)
+
+#### React 훅
+- `useClaudeTools`: 도구 실행 + React Query
+- `useClaudeToolList`: 도구 목록 조회
+- `useHasTool`: 도구 존재 확인
+
+### 📦 Stats
+- 신규 파일: 30+ (컴포넌트 7, 훅 4, 타입 2, 도구 5, SDD 12+)
+- 빌드: 32.74s 성공 (PWA precache 27 entries)
+- 병렬 에이전트: 7개 동시 작업
+
+---
+
 ## [2.16.0] - 2025-11-25 (프롬프트 템플릿 + 대화 컨텍스트)
 
 ### 🎯 Sprint 3: 프롬프트 템플릿 관리 (BL-AI-005)

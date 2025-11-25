@@ -35,10 +35,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
-
-// 타입이 아직 생성되지 않았으므로 임포트 경로만 설정
-// import type { PromptTemplate } from '@/types/prompt-template.types';
-// import { useUpdatePromptTemplate } from '@/hooks/ai/usePromptTemplate';
+import { useUpdatePromptTemplate } from '@/hooks/usePromptTemplates';
 
 // ============================================================================
 // Types (임시 - 실제로는 prompt-template.types.ts에서 임포트)
@@ -47,12 +44,19 @@ import {
 interface PromptTemplate {
   id: string;
   name: string;
-  description?: string;
-  content: string;
-  is_public: boolean;
-  user_id: string;
-  created_at: string;
-  updated_at: string;
+  description: string;
+  skillType: string;
+  systemPrompt: string;
+  userPromptTemplate: string;
+  variables: string[];
+  version: string;
+  serviceId?: string;
+  isSystem?: boolean;
+  isPublic?: boolean;
+  isActive?: boolean;
+  createdBy?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 // ============================================================================
@@ -92,16 +96,18 @@ export const PromptTemplateShareModal: React.FC<
   PromptTemplateShareModalProps
 > = ({ open, onOpenChange, template, onShareComplete, className }) => {
   // State
-  const [isPublic, setIsPublic] = useState(template?.is_public || false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isPublic, setIsPublic] = useState(template?.isPublic || false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
 
+  // Update mutation
+  const updateMutation = useUpdatePromptTemplate();
+
   // 템플릿 변경 시 상태 동기화
   useEffect(() => {
     if (template) {
-      setIsPublic(template.is_public);
+      setIsPublic(template.isPublic || false);
       setSuccess(false);
       setError(null);
       setLinkCopied(false);
@@ -114,41 +120,23 @@ export const PromptTemplateShareModal: React.FC<
     : '';
 
   // 공개 상태 토글 핸들러
-  const handleTogglePublic = useCallback(async (checked: boolean) => {
+  const handleTogglePublic = useCallback((checked: boolean) => {
     setIsPublic(checked);
     setError(null);
     setSuccess(false);
-
-    // TODO: useUpdatePromptTemplate 훅으로 대체
-    // try {
-    //   setIsLoading(true);
-    //   await updateTemplate(template.id, { is_public: checked });
-    //   setSuccess(true);
-    //   onShareComplete?.(updatedTemplate);
-    // } catch (err) {
-    //   setError(err.message);
-    //   setIsPublic(!checked); // 실패 시 롤백
-    // } finally {
-    //   setIsLoading(false);
-    // }
   }, []);
 
   // 공유 설정 저장
   const handleSaveShare = useCallback(async () => {
     if (!template) return;
 
-    setIsLoading(true);
     setError(null);
 
     try {
-      // TODO: useUpdatePromptTemplate 훅으로 대체
-      // const updatedTemplate = await updateTemplate(template.id, {
-      //   is_public: isPublic,
-      // });
-
-      // 임시: 모의 업데이트
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      const updatedTemplate = { ...template, is_public: isPublic };
+      const updatedTemplate = await updateMutation.mutateAsync({
+        id: template.id,
+        isPublic,
+      });
 
       setSuccess(true);
       onShareComplete?.(updatedTemplate);
@@ -159,10 +147,8 @@ export const PromptTemplateShareModal: React.FC<
       }, 2000);
     } catch (err) {
       setError(err instanceof Error ? err.message : '공유 설정에 실패했습니다.');
-    } finally {
-      setIsLoading(false);
     }
-  }, [template, isPublic, onShareComplete, onOpenChange]);
+  }, [template, isPublic, onShareComplete, onOpenChange, updateMutation]);
 
   // 링크 복사
   const handleCopyLink = useCallback(async () => {
@@ -231,7 +217,7 @@ export const PromptTemplateShareModal: React.FC<
               id="public-switch"
               checked={isPublic}
               onCheckedChange={handleTogglePublic}
-              disabled={isLoading}
+              disabled={updateMutation.isPending}
               aria-label="공개 상태 토글"
               data-testid="public-switch"
             />
@@ -252,7 +238,7 @@ export const PromptTemplateShareModal: React.FC<
                   variant="outline"
                   size="icon"
                   onClick={handleCopyLink}
-                  disabled={isLoading}
+                  disabled={updateMutation.isPending}
                   aria-label="공유 링크 복사"
                   data-testid="copy-link-button"
                 >
@@ -329,17 +315,17 @@ export const PromptTemplateShareModal: React.FC<
           <Button
             variant="outline"
             onClick={handleClose}
-            disabled={isLoading}
+            disabled={updateMutation.isPending}
             data-testid="cancel-button"
           >
             취소
           </Button>
           <Button
             onClick={handleSaveShare}
-            disabled={isLoading}
+            disabled={updateMutation.isPending}
             data-testid="save-button"
           >
-            {isLoading ? '저장 중...' : '저장'}
+            {updateMutation.isPending ? '저장 중...' : '저장'}
           </Button>
         </DialogFooter>
       </DialogContent>

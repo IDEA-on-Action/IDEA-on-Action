@@ -3,7 +3,7 @@
 > Claude와의 개발 협업을 위한 프로젝트 핵심 문서
 
 **마지막 업데이트**: 2025-11-25
-**현재 버전**: 2.16.0 (프롬프트 템플릿 + 대화 컨텍스트 관리)
+**현재 버전**: 2.17.0 (AI 채팅 위젯 + Tool Use + 기술 부채 해소)
 **상태**: ✅ Production Ready | 🔒 보안 점수 98/100 | 🎯 토스페이먼츠 심사 제출 완료
 **개발 방법론**: SDD (Spec-Driven Development) + MCP (Model Context Protocol) Integration
 
@@ -12,6 +12,24 @@
 ## 📋 최신 업데이트
 
 ### 2025-11-25 (오늘)
+- ✅ **v2.17.0: AI 채팅 위젯 + Tool Use + 기술 부채 해소**
+  - **Sprint 1: AI 어시스턴트 채팅 위젯** (BL-AI-008)
+    - 플로팅 채팅 위젯: `AIChatWidget`, `AIChatButton`, `AIChatWindow`
+    - 메시지 컴포넌트: `AIChatMessages`, `AIChatMessage`, `AIChatInput`
+    - 페이지 컨텍스트 훅: `usePageContext` (서비스별 맞춤 프롬프트)
+    - 타입 정의: `ai-chat-widget.types.ts`
+  - **Sprint 2: 기술 부채 해소**
+    - TODO 주석 제거: PromptTemplateSelector, PromptTemplateShareModal, useRealtimeDashboard
+    - any 타입 제거: useOrders, AdminTeam, AdminTags, AdminLab
+    - 린트 경고: 40개 → 36개 (-10%)
+  - **Sprint 3: AI Tool Use 기반 구축** (BL-AI-003)
+    - ToolRegistry 클래스: `src/lib/claude/tools.ts`
+    - 도구 4개: issues, events, health, projects
+    - React 훅: `useClaudeTools`, `useClaudeToolList`, `useHasTool`
+  - **SDD 문서**: 12개 신규 (3개 Sprint × spec/plan/tasks)
+  - **빌드**: 32.74s 성공 (PWA precache 27 entries)
+  - **병렬 에이전트**: 7개 동시 작업
+
 - ✅ **v2.16.0: 프롬프트 템플릿 + 대화 컨텍스트 관리**
   - **Sprint 3: 프롬프트 템플릿 관리** (BL-AI-005)
     - DB 마이그레이션: `prompt_templates` 테이블

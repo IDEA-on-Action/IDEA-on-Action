@@ -45,6 +45,8 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useAuth } from '@/hooks/useAuth';
+import { usePromptTemplates } from '@/hooks/usePromptTemplates';
 
 // 타입이 아직 생성되지 않았으므로 임포트 경로만 설정
 // import type { PromptTemplate, TemplateVariable } from '@/types/prompt-template.types';
@@ -68,19 +70,24 @@ interface TemplateVariable {
 }
 
 /**
- * 프롬프트 템플릿
+ * 프롬프트 템플릿 (실제 타입에서 가져옴)
  */
 interface PromptTemplate {
   id: string;
   name: string;
-  description?: string;
-  content: string;
-  variables: TemplateVariable[];
-  category?: string;
-  is_public: boolean;
-  user_id: string;
-  created_at: string;
-  updated_at: string;
+  description: string;
+  skillType: string;
+  systemPrompt: string;
+  userPromptTemplate: string;
+  variables: string[];
+  version: string;
+  serviceId?: string;
+  isSystem?: boolean;
+  isPublic?: boolean;
+  isActive?: boolean;
+  createdBy?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 // ============================================================================
@@ -103,18 +110,6 @@ export interface PromptTemplateSelectorProps {
 // ============================================================================
 // Helper Functions
 // ============================================================================
-
-/**
- * 템플릿의 변수를 추출
- *
- * @param content - 템플릿 내용
- * @returns 변수명 배열
- */
-function extractVariables(content: string): string[] {
-  const regex = /\{\{(\w+)\}\}/g;
-  const matches = content.matchAll(regex);
-  return Array.from(matches, (m) => m[1]);
-}
 
 /**
  * 변수를 실제 값으로 치환
@@ -153,11 +148,11 @@ function groupTemplatesByCategory(
   };
 
   templates.forEach((template) => {
-    if (template.category === 'system') {
+    if (template.isSystem) {
       groups.system.push(template);
-    } else if (template.user_id === currentUserId) {
+    } else if (template.createdBy === currentUserId) {
       groups.mine.push(template);
-    } else if (template.is_public) {
+    } else if (template.isPublic) {
       groups.shared.push(template);
     }
   });
@@ -199,18 +194,24 @@ export const PromptTemplateSelector: React.FC<PromptTemplateSelectorProps> = ({
   );
   const [variableValues, setVariableValues] = useState<Record<string, string>>({});
   const [showPreview, setShowPreview] = useState(autoShowPreview);
-  const [templates, setTemplates] = useState<PromptTemplate[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // 현재 사용자 ID (실제로는 useAuth 훅에서 가져올 수 있음)
-  const currentUserId = 'current-user-id'; // TODO: useAuth에서 가져오기
+  // 현재 사용자 인증 정보
+  const { user } = useAuth();
+  const currentUserId = user?.id || '';
 
   // 선택된 템플릿
   const selectedTemplate = useMemo(
     () => templates.find((t) => t.id === selectedTemplateId) || null,
     [templates, selectedTemplateId]
   );
+
+  // 프롬프트 템플릿 목록 조회
+  const { data: templatesResponse, isLoading } = usePromptTemplates({
+    isActive: true,
+  });
+
+  const templates = templatesResponse?.data || [];
 
   // 카테고리별 그룹화된 템플릿
   const groupedTemplates = useMemo(
@@ -221,64 +222,16 @@ export const PromptTemplateSelector: React.FC<PromptTemplateSelectorProps> = ({
   // 프리뷰 텍스트 (변수 치환된)
   const previewText = useMemo(() => {
     if (!selectedTemplate) return '';
-    return substituteVariables(selectedTemplate.content, variableValues);
+    return substituteVariables(selectedTemplate.userPromptTemplate, variableValues);
   }, [selectedTemplate, variableValues]);
 
   // 모든 변수가 채워졌는지 확인
   const allVariablesFilled = useMemo(() => {
     if (!selectedTemplate) return false;
     return selectedTemplate.variables.every(
-      (variable) => variableValues[variable.name]?.trim().length > 0
+      (varName) => variableValues[varName]?.trim().length > 0
     );
   }, [selectedTemplate, variableValues]);
-
-  // 템플릿 목록 로드 (실제로는 usePromptTemplates 훅 사용)
-  useEffect(() => {
-    // TODO: usePromptTemplates 훅으로 대체
-    // const { templates, loading, error } = usePromptTemplates();
-    // setTemplates(templates);
-    // setIsLoading(loading);
-    // setError(error);
-
-    // 임시 모의 데이터
-    const mockTemplates: PromptTemplate[] = [
-      {
-        id: 'template-1',
-        name: 'RFP 작성 템플릿',
-        description: '제안요청서 작성을 위한 템플릿',
-        content: '프로젝트명: {{project_name}}\n예산: {{budget}}\n기간: {{duration}}',
-        variables: [
-          { name: 'project_name', description: '프로젝트 이름' },
-          { name: 'budget', description: '예산 범위' },
-          { name: 'duration', description: '프로젝트 기간' },
-        ],
-        category: 'system',
-        is_public: true,
-        user_id: 'system',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      },
-      {
-        id: 'template-2',
-        name: '요구사항 분석 템플릿',
-        description: '비즈니스 요구사항 분석 템플릿',
-        content:
-          '고객사: {{client_name}}\n산업 분야: {{industry}}\n핵심 과제: {{challenge}}',
-        variables: [
-          { name: 'client_name', description: '고객사명' },
-          { name: 'industry', description: '산업 분야' },
-          { name: 'challenge', description: '해결해야 할 핵심 과제' },
-        ],
-        category: 'business',
-        is_public: true,
-        user_id: currentUserId,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      },
-    ];
-
-    setTemplates(mockTemplates);
-  }, [currentUserId]);
 
   // 템플릿 선택 핸들러
   const handleTemplateSelect = useCallback(
@@ -289,8 +242,8 @@ export const PromptTemplateSelector: React.FC<PromptTemplateSelectorProps> = ({
       if (template) {
         // 변수 초기값 설정
         const initialValues: Record<string, string> = {};
-        template.variables.forEach((variable) => {
-          initialValues[variable.name] = variable.default_value || '';
+        template.variables.forEach((varName) => {
+          initialValues[varName] = '';
         });
         setVariableValues(initialValues);
 
@@ -310,7 +263,7 @@ export const PromptTemplateSelector: React.FC<PromptTemplateSelectorProps> = ({
     if (!selectedTemplate) return;
 
     const generatedPrompt = substituteVariables(
-      selectedTemplate.content,
+      selectedTemplate.userPromptTemplate,
       variableValues
     );
 
@@ -483,24 +436,19 @@ export const PromptTemplateSelector: React.FC<PromptTemplateSelectorProps> = ({
             </div>
 
             <div className="grid gap-4">
-              {selectedTemplate.variables.map((variable) => (
-                <div key={variable.name} className="space-y-2">
-                  <Label htmlFor={`var-${variable.name}`}>
-                    {variable.name}
-                    {variable.description && (
-                      <span className="ml-2 text-xs font-normal text-muted-foreground">
-                        ({variable.description})
-                      </span>
-                    )}
+              {selectedTemplate.variables.map((varName) => (
+                <div key={varName} className="space-y-2">
+                  <Label htmlFor={`var-${varName}`}>
+                    {varName}
                   </Label>
                   <Input
-                    id={`var-${variable.name}`}
-                    value={variableValues[variable.name] || ''}
+                    id={`var-${varName}`}
+                    value={variableValues[varName] || ''}
                     onChange={(e) =>
-                      handleVariableChange(variable.name, e.target.value)
+                      handleVariableChange(varName, e.target.value)
                     }
-                    placeholder={`${variable.name} 입력`}
-                    data-testid={`variable-input-${variable.name}`}
+                    placeholder={`${varName} 입력`}
+                    data-testid={`variable-input-${varName}`}
                   />
                 </div>
               ))}
