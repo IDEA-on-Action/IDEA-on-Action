@@ -13,6 +13,7 @@
  */
 
 import { test, expect, Page } from '@playwright/test';
+import * as fs from 'fs';
 
 // ============================================================================
 // Test Helpers
@@ -792,7 +793,6 @@ test.describe('Markdown 내보내기', () => {
         // 파일 내용 검증
         const path = await download.path();
         if (path) {
-          const fs = require('fs');
           const content = fs.readFileSync(path, 'utf-8');
 
           // Markdown 형식 검증

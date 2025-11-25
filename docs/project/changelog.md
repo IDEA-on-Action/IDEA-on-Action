@@ -9,6 +9,185 @@
 
 ---
 
+## [2.16.0] - 2025-11-25 (프롬프트 템플릿 + 대화 컨텍스트)
+
+### 🎯 Sprint 3: 프롬프트 템플릿 관리 (BL-AI-005)
+
+AI 활용을 위한 프롬프트 템플릿 관리 시스템 구현 완료.
+
+#### DB 마이그레이션
+- `prompt_templates`: 프롬프트 템플릿 저장 (카테고리, 변수, 공유 설정)
+
+#### TypeScript 타입
+- `prompt-template.types.ts`: 30+ 타입 정의 (PromptTemplate, TemplateVariable, TemplateCategory)
+
+#### React 훅
+- `usePromptTemplates`: CRUD + 변수 치환 기능
+
+#### UI 컴포넌트
+- `PromptTemplateSelector`: 템플릿 선택 드롭다운
+- `PromptTemplateShareModal`: 공유 설정 모달
+
+#### E2E 테스트
+- `prompt-templates.spec.ts`: 6개 테스트 케이스
+
+---
+
+### 🎯 Sprint 4: 대화 컨텍스트 관리 (BL-AI-002)
+
+멀티턴 대화 컨텍스트 관리 시스템 구현 완료.
+
+#### DB 마이그레이션
+- `ai_conversations`: 대화 세션 저장 (제목, 요약, 아카이브 상태)
+- `ai_messages`: 메시지 저장 (역할, 내용, 토큰 수)
+
+#### TypeScript 타입
+- `conversation.types.ts`: 40+ 타입 정의 (Conversation, Message, ConversationSummary)
+
+#### React 훅
+- `useConversationManager`: 세션 CRUD, 요약 생성, 포크, 내보내기
+
+#### UI 컴포넌트
+- `ConversationList`: 대화 목록 (검색, 필터링)
+- `ConversationDetail`: 대화 상세 보기
+
+#### E2E 테스트
+- `conversation-context.spec.ts`: 13개 테스트 케이스
+
+### 📦 Stats
+- 신규 파일: 20+ (마이그레이션 3, 타입 2, 훅 2, 컴포넌트 4, 테스트 2)
+- SDD 문서: 8개 신규
+- E2E 테스트: 19개 신규
+- 빌드: 21.06s (PWA precache 27 entries)
+- 병렬 에이전트: 7개 동시 작업
+
+---
+
+## [2.15.0] - 2025-11-24 (Central Hub Phase 3 + Vision API)
+
+### 🎯 Central Hub Phase 3: 실시간 동기화
+
+Central Hub 실시간 상태 동기화 구현 완료.
+
+#### React 훅
+- `useRealtimeServiceStatus`: Supabase Realtime 채널 구독
+- `useRealtimeEventStream`: 이벤트/이슈 스트림
+
+#### UI 컴포넌트
+- `ServiceHealthCard`: 서비스 상태 카드 (상태별 색상, 메트릭)
+- `ServiceStatusDashboard`: 2x2 그리드 대시보드
+- `RealtimeAlertPanel`: 실시간 알림 패널
+
+---
+
+### 🎯 Vision API 통합
+
+Claude Vision API 연동 완료.
+
+#### Edge Function
+- `claude-ai/vision-handler.ts`: 이미지 분석 핸들러
+
+#### React 훅
+- `useClaudeVision`: 스트리밍/비스트리밍 지원
+
+#### UI 컴포넌트
+- `ImageAnalyzer`: 드래그앤드롭 이미지 분석 UI
+
+#### 분석 유형 (5개)
+- UI 분석, 다이어그램 분석, 스크린샷 분석, 와이어프레임 분석, 일반 분석
+
+### 📦 Stats
+- 신규 파일: 15+ (Edge Function 1, 훅 3, 컴포넌트 4, 타입 1, 유틸 1)
+- SDD 문서: 5개 신규
+- E2E 테스트: 8개 신규
+- 빌드: 36.94s (PWA precache 27 entries)
+- 병렬 에이전트: 4개 동시 작업
+
+---
+
+## [2.14.0] - 2025-11-24 (AI 통합)
+
+### 🎯 Claude API 연동
+
+Claude API를 IDEA on Action에 통합하여 Minu 서비스에 AI 기반 문서 자동화 기능 제공.
+
+#### Edge Function
+- `claude-ai/index.ts`: Claude API 프록시 (채팅/스트리밍)
+- `claude-ai/rate-limiter.ts`: Token Bucket Rate Limiting
+- `claude-ai/error-handler.ts`: 에러 핸들링 & 로깅
+
+#### DB 마이그레이션
+- `claude_usage_logs`: 사용량 로그 테이블
+- `claude_rate_limits`: Rate Limit 테이블
+
+#### React 훅 (5개)
+- `useClaudeChat`: 채팅 훅
+- `useClaudeStreaming`: 스트리밍 훅
+- `useClaudeSkill`: Skills 통합 훅
+- `useRFPGenerator`: RFP 생성 훅
+- `useOpsReportWriter`: 운영 보고서 훅
+
+#### AI 생성기 (4개)
+- `rfpGenerator.ts`: RFP 자동 생성
+- `requirementsGenerator.ts`: 요구사항 분석
+- `projectPlanGenerator.ts`: 프로젝트 계획
+- `opsReportGenerator.ts`: 운영 보고서
+
+#### UI 컴포넌트
+- `AIAssistButton`: AI 도우미 버튼
+- `AIUsageDashboard`: 사용량 대시보드
+
+### 📦 Stats
+- 신규 파일: 20+ (Edge Functions 3, 훅 5, 생성기 4, 컴포넌트 2)
+- SDD 문서: 7개 신규
+- E2E 테스트: 22개 신규
+- 빌드: 24.34s (PWA precache 27 entries)
+- 병렬 에이전트: 4개 동시 작업
+
+---
+
+## [2.13.0] - 2025-11-24 (Claude Skills Sprint 5)
+
+### 🎯 서비스별 특화 Skills
+
+Minu 서비스별 특화 기능 구현 완료.
+
+#### 패키지
+- `pptxgenjs` (v3.12.0): PowerPoint 생성 라이브러리
+
+#### Minu Find - 시장분석 Excel
+- `marketAnalysis.ts`: 시장분석 Excel 생성기
+  - 경쟁사 비교 매트릭스
+  - 트렌드 분석
+  - 사업기회 스코어링 시트
+
+#### Minu Frame - PowerPoint 생성
+- `usePptxGenerate.ts`: PowerPoint 생성 훅
+  - 4종 슬라이드 템플릿 (Title, Content, TwoColumn, Chart)
+  - 브랜드 스타일 적용 (IDEA on Action, 16:9)
+
+#### Minu Build - 프로젝트 리포트
+- `projectReport.ts`: 프로젝트 리포트 생성기
+  - 스프린트 요약
+  - 작업 목록
+  - 번다운
+  - 리소스 할당 시트
+
+#### Minu Keep - 운영 보고서
+- `operationsReport.ts`: 운영 보고서 템플릿
+  - SLA 지표
+  - 장애 이력
+  - 개선사항
+  - 다음달 계획 섹션
+
+### 📦 Stats
+- 신규 파일: 8+ (생성기 4, 훅 1, 타입 1)
+- E2E 테스트: 18개 신규 (`minu-services.spec.ts`)
+- 빌드: 40.56s (PWA precache 27 entries)
+- 병렬 에이전트: 4개 동시 작업
+
+---
+
 ## [2.12.0] - 2025-11-23 (MCP Orchestrator)
 
 ### 🎯 Claude Skills Sprint 4: MCP Orchestrator
