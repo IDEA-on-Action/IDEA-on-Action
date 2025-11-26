@@ -41,3 +41,11 @@ export {
   type OpportunityData,
   type MarketAnalysisMetadata,
 } from './generators/marketAnalysis';
+
+// xlsx 차트 생성
+export {
+  generateChartImage,
+  createTrendChart,
+  createPieChart,
+} from './chart/chart-utils';
+export { generateEventReportWithChart } from './generators/eventReportWithChart';

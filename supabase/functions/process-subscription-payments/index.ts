@@ -1,30 +1,18 @@
 
 import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3'
 import { corsHeaders } from '../_shared/cors.ts'
+import type {
+  SubscriptionInfo,
+  TossPaymentResult,
+  TossPaymentError,
+  PaymentProcessResult,
+  SubscriptionPayment,
+  ActivityLog
+} from '../_shared/toss-payments.types.ts'
 
 // Toss Payments API Configuration
 const TOSS_PAYMENTS_SECRET_KEY = Deno.env.get('TOSS_PAYMENTS_SECRET_KEY')
 const TOSS_PAYMENTS_API_URL = 'https://api.tosspayments.com/v1/billing'
-
-interface Subscription {
-  id: string
-  user_id: string
-  plan_id: string
-  billing_key_id: string
-  current_period_end: string
-  next_billing_date: string
-  status: string
-  cancel_at_period_end: boolean
-  billing_key: {
-    billing_key: string
-    customer_key: string
-  }
-  plan: {
-    price: number
-    plan_name: string
-    billing_cycle: string
-  }
-}
 
 Deno.serve(async (req: Request) => {
   // CORS handling
@@ -79,7 +67,7 @@ Deno.serve(async (req: Request) => {
     const results = []
 
     // 2. Process each subscription
-    for (const sub of (subscriptions as unknown as Subscription[]) || []) {
+    for (const sub of (subscriptions as unknown as SubscriptionInfo[]) || []) {
       try {
         // Skip if price is 0 (Free plan?)
         if (sub.plan.price === 0) {
@@ -95,17 +83,18 @@ Deno.serve(async (req: Request) => {
 
         if (paymentResult.success) {
           // Payment Success
-          await handlePaymentSuccess(supabase, sub, paymentResult.data, orderId)
+          await handlePaymentSuccess(supabase, sub, paymentResult.data!, orderId)
           results.push({ id: sub.id, status: 'success', orderId })
         } else {
           // Payment Failed
-          await handlePaymentFailure(supabase, sub, paymentResult.error, orderId)
+          await handlePaymentFailure(supabase, sub, paymentResult.error!, orderId)
           results.push({ id: sub.id, status: 'failed', error: paymentResult.error })
         }
 
-      } catch (err: any) {
+      } catch (err: unknown) {
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error'
         console.error(`Error processing subscription ${sub.id}:`, err)
-        results.push({ id: sub.id, status: 'error', error: err.message || 'Unknown error' })
+        results.push({ id: sub.id, status: 'error', error: errorMessage })
       }
     }
 
@@ -124,10 +113,11 @@ Deno.serve(async (req: Request) => {
       }
     )
 
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
     console.error('Error:', error)
     return new Response(
-      JSON.stringify({ error: error.message || 'Unknown error' }),
+      JSON.stringify({ error: errorMessage }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500
@@ -137,7 +127,7 @@ Deno.serve(async (req: Request) => {
 })
 
 // Helper: Process Payment with Toss Payments (with retry logic)
-async function processPayment(sub: Subscription, orderId: string, retryCount = 0): Promise<any> {
+async function processPayment(sub: SubscriptionInfo, orderId: string, retryCount = 0): Promise<PaymentProcessResult> {
   const MAX_RETRIES = 3
   const RETRY_DELAY_MS = 1000 // Initial delay: 1 second
 
@@ -164,7 +154,7 @@ async function processPayment(sub: Subscription, orderId: string, retryCount = 0
       })
     })
 
-    const data = await response.json()
+    const data = await response.json() as TossPaymentResult | TossPaymentError
 
     if (!response.ok) {
       // Check if error is retryable (network errors, 5xx server errors)
@@ -177,12 +167,12 @@ async function processPayment(sub: Subscription, orderId: string, retryCount = 0
         return processPayment(sub, orderId, retryCount + 1)
       }
 
-      return { success: false, error: data }
+      return { success: false, error: data as TossPaymentError }
     }
 
-    return { success: true, data }
+    return { success: true, data: data as TossPaymentResult }
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     // Network errors - retry
     if (retryCount < MAX_RETRIES) {
       const delay = RETRY_DELAY_MS * Math.pow(2, retryCount)
@@ -191,14 +181,15 @@ async function processPayment(sub: Subscription, orderId: string, retryCount = 0
       return processPayment(sub, orderId, retryCount + 1)
     }
 
-    return { success: false, error: { message: error.message || 'Unknown error', code: 'NETWORK_ERROR' } }
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    return { success: false, error: { message: errorMessage, code: 'NETWORK_ERROR' } }
   }
 }
 
 // Helper: Handle Payment Success
-async function handlePaymentSuccess(supabase: SupabaseClient, sub: Subscription, paymentData: any, orderId: string) {
+async function handlePaymentSuccess(supabase: SupabaseClient, sub: SubscriptionInfo, paymentData: TossPaymentResult, orderId: string) {
   // 1. Record Payment
-  await supabase.from('subscription_payments').insert({
+  const payment: SubscriptionPayment = {
     subscription_id: sub.id,
     amount: sub.plan.price,
     status: 'success',
@@ -206,7 +197,8 @@ async function handlePaymentSuccess(supabase: SupabaseClient, sub: Subscription,
     order_id: orderId,
     paid_at: new Date().toISOString(),
     metadata: paymentData
-  })
+  }
+  await supabase.from('subscription_payments').insert(payment)
 
   // 2. Calculate next dates
   const nextDates = calculateNextDates(sub.plan.billing_cycle)
@@ -221,7 +213,7 @@ async function handlePaymentSuccess(supabase: SupabaseClient, sub: Subscription,
   }).eq('id', sub.id)
 
   // 4. Log activity
-  await supabase.from('activity_logs').insert({
+  const log: ActivityLog = {
     user_id: sub.user_id,
     action: 'subscription_payment_success',
     entity_type: 'subscription',
@@ -232,15 +224,16 @@ async function handlePaymentSuccess(supabase: SupabaseClient, sub: Subscription,
       order_id: orderId,
       payment_key: paymentData.paymentKey
     }
-  })
+  }
+  await supabase.from('activity_logs').insert(log)
 
   console.log(`✅ Payment successful for ${sub.id}: ₩${sub.plan.price.toLocaleString()}`)
 }
 
 // Helper: Handle Payment Failure
-async function handlePaymentFailure(supabase: SupabaseClient, sub: Subscription, errorData: any, orderId: string) {
+async function handlePaymentFailure(supabase: SupabaseClient, sub: SubscriptionInfo, errorData: TossPaymentError, orderId: string) {
   // 1. Record Failed Payment
-  await supabase.from('subscription_payments').insert({
+  const payment: SubscriptionPayment = {
     subscription_id: sub.id,
     amount: sub.plan.price,
     status: 'failed',
@@ -248,7 +241,8 @@ async function handlePaymentFailure(supabase: SupabaseClient, sub: Subscription,
     error_code: errorData.code || 'UNKNOWN',
     error_message: errorData.message || 'Unknown error',
     metadata: errorData
-  })
+  }
+  await supabase.from('subscription_payments').insert(payment)
 
   // 2. Check consecutive failures
   const { data: recentPayments } = await supabase
@@ -271,7 +265,7 @@ async function handlePaymentFailure(supabase: SupabaseClient, sub: Subscription,
       .eq('id', sub.id)
 
     // Log suspension activity
-    await supabase.from('activity_logs').insert({
+    const suspensionLog: ActivityLog = {
       user_id: sub.user_id,
       action: 'subscription_suspended',
       entity_type: 'subscription',
@@ -281,7 +275,8 @@ async function handlePaymentFailure(supabase: SupabaseClient, sub: Subscription,
         failure_count: consecutiveFailures,
         last_error: errorData.message
       }
-    })
+    }
+    await supabase.from('activity_logs').insert(suspensionLog)
 
     console.log(`⚠️ Subscription ${sub.id} suspended after 3 consecutive payment failures`)
 
@@ -289,7 +284,7 @@ async function handlePaymentFailure(supabase: SupabaseClient, sub: Subscription,
     // await sendPaymentFailureEmail(sub.user_id, sub)
   } else {
     // Log payment failure activity
-    await supabase.from('activity_logs').insert({
+    const failureLog: ActivityLog = {
       user_id: sub.user_id,
       action: 'subscription_payment_failed',
       entity_type: 'subscription',
@@ -302,14 +297,15 @@ async function handlePaymentFailure(supabase: SupabaseClient, sub: Subscription,
         error_message: errorData.message,
         consecutive_failures: consecutiveFailures
       }
-    })
+    }
+    await supabase.from('activity_logs').insert(failureLog)
 
     console.log(`❌ Payment failed for ${sub.id}: ${errorData.message} (${consecutiveFailures}/3 failures)`)
   }
 }
 
 // Helper: Extend Free Subscription
-async function extendSubscription(supabase: SupabaseClient, sub: Subscription) {
+async function extendSubscription(supabase: SupabaseClient, sub: SubscriptionInfo) {
   const nextDates = calculateNextDates(sub.plan.billing_cycle)
 
   await supabase.from('subscriptions').update({
@@ -332,7 +328,7 @@ async function handleExpiredSubscriptions(supabase: SupabaseClient, today: strin
     .neq('status', 'expired') // Avoid re-processing
 
   if (expiredSubs && expiredSubs.length > 0) {
-    const ids = expiredSubs.map((s: any) => s.id)
+    const ids = expiredSubs.map((s: { id: string }) => s.id)
     await supabase
       .from('subscriptions')
       .update({ status: 'expired' })
@@ -343,7 +339,7 @@ async function handleExpiredSubscriptions(supabase: SupabaseClient, today: strin
 }
 
 // Utility: Calculate Next Dates
-function calculateNextDates(cycle: string) {
+function calculateNextDates(cycle: 'monthly' | 'quarterly' | 'yearly') {
   const now = new Date()
   const nextDate = new Date(now)
 
@@ -357,8 +353,6 @@ function calculateNextDates(cycle: string) {
     case 'yearly':
       nextDate.setFullYear(now.getFullYear() + 1)
       break
-    default:
-      nextDate.setMonth(now.getMonth() + 1) // Default to monthly
   }
 
   return {

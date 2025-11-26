@@ -12,7 +12,9 @@ export { KeyboardShortcuts } from "./KeyboardShortcuts";
 
 // Status Messages (4.1.3) - Live regions for announcements
 export { LiveRegion } from "./LiveRegion";
-export { AnnouncerProvider, useAnnouncerContext } from "./Announcer";
+export { AnnouncerProvider } from "./Announcer";
+export { useAnnouncerContext } from "./useAnnouncerContext";
+export type { AriaLive, AnnounceOptions, AnnouncerContextType } from "./announcer.types";
 
 // Focus Management (2.4.3, 2.1.2) - Focus trap for modals
 export { FocusTrap } from "./FocusTrap";

@@ -12,44 +12,11 @@
  */
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import type { WeeklyLog, ProjectActivity, WeeklyStats } from '../_shared/toss-payments.types.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
-
-interface WeeklyLog {
-  log_type: string
-  log_count: number
-  logs: Array<{
-    id: number
-    type: string
-    title: string
-    content: string
-    project_id: string | null
-    tags: string[]
-    created_at: string
-  }>
-}
-
-interface ProjectActivity {
-  project_id: string
-  project_title: string
-  log_count: number
-  release_count: number
-  learning_count: number
-  decision_count: number
-}
-
-interface WeeklyStats {
-  total_logs: number
-  release_count: number
-  learning_count: number
-  decision_count: number
-  active_projects: number
-  top_tags: Array<{ tag: string; count: number }>
-  start_date: string
-  end_date: string
 }
 
 /**
@@ -79,7 +46,7 @@ function generateMarkdown(
 
   // 인기 태그
   if (stats.top_tags && stats.top_tags.length > 0) {
-    markdown += `**인기 태그**: ${stats.top_tags.map((t: any) => `#${t.tag}`).join(', ')}\n\n`
+    markdown += `**인기 태그**: ${stats.top_tags.map(t => `#${t.tag}`).join(', ')}\n\n`
   }
 
   // 프로젝트 활동

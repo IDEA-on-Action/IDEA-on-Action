@@ -150,41 +150,7 @@ export function MCPProtected({
   return <>{children}</>;
 }
 
-/**
- * MCPProtected를 HOC 형태로 사용
- *
- * @example
- * ```tsx
- * const ProtectedMinuFrame = withMCPProtection(
- *   MinuFrameContent,
- *   'minu-frame'
- * );
- *
- * // 추가 권한 필요 시
- * const ProtectedExport = withMCPProtection(
- *   ExportComponent,
- *   'minu-build',
- *   'export_data'
- * );
- * ```
- */
-export function withMCPProtection<P extends object>(
-  WrappedComponent: React.ComponentType<P>,
-  serviceId: MinuServiceId,
-  requiredPermission?: string
-) {
-  const displayName = WrappedComponent.displayName || WrappedComponent.name || 'Component';
+// Re-export HOC from separate file to maintain backward compatibility
+export * from './withMCPProtection';
 
-  const WithMCPProtection = (props: P) => (
-    <MCPProtected serviceId={serviceId} requiredPermission={requiredPermission}>
-      <WrappedComponent {...props} />
-    </MCPProtected>
-  );
-
-  WithMCPProtection.displayName = `withMCPProtection(${displayName})`;
-
-  return WithMCPProtection;
-}
-
-export type { MinuServiceId };
 export default MCPProtected;

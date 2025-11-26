@@ -2,11 +2,68 @@
 
 > 프로젝트 작업 목록 및 진행 상황 관리
 
-**마지막 업데이트**: 2025-11-25
-**현재 Phase**: AI 채팅 위젯 + Tool Use + 기술 부채 해소 완료
-**다음 단계**: App.tsx 위젯 통합 또는 RAG 구현
-**프로젝트 버전**: 2.17.0 (AI 채팅 위젯 + Tool Use + 기술 부채 해소)
+**마지막 업데이트**: 2025-11-26
+**현재 Phase**: Quick Wins + 품질 안정화 + 기능 확장 완료
+**다음 단계**: 프로덕션 배포 및 테스트
+**프로젝트 버전**: 2.19.0 (Quick Wins + xlsx 차트 + RAG 하이브리드)
 **프로덕션**: https://www.ideaonaction.ai
+
+---
+
+## ✅ 완료: Quick Wins + xlsx 차트 + RAG 하이브리드 (v2.19.0)
+
+**목표**: AI 채팅 위젯 통합, Fast Refresh 경고 해결, Edge Functions 타입화, xlsx 차트, RAG 하이브리드 검색
+**완료일**: 2025-11-26
+**SDD 문서**: [spec/v2.19/](spec/v2.19/) | [spec/claude-skills/xlsx-chart/](spec/claude-skills/xlsx-chart/) | [spec/claude-integration/rag-hybrid/](spec/claude-integration/rag-hybrid/)
+
+### 완료된 작업 (2025-11-26)
+
+| Sprint | 작업 | 상태 |
+|--------|------|------|
+| Sprint 1 | SDD 문서 작성 (spec, plan, tasks) | ✅ 완료 |
+| Sprint 1 | AI 채팅 위젯 App.tsx 통합 (lazy loading) | ✅ 완료 |
+| Sprint 1 | Fast Refresh 경고 해결 (4개 파일 분리) | ✅ 완료 |
+| Sprint 1 | E2E 테스트 작성 (19개) | ✅ 완료 |
+| Sprint 2 | Edge Functions any 타입 제거 (9개→0개) | ✅ 완료 |
+| Sprint 2 | `toss-payments.types.ts` 생성 | ✅ 완료 |
+| Sprint 3 | React Hooks 의존성 해결 (3개 파일) | ✅ 완료 |
+| Sprint 4 | xlsx 차트 삽입 기능 (BL-006) | ✅ 완료 |
+| Sprint 4 | `xlsx-chart.types.ts`, `chart-utils.ts` | ✅ 완료 |
+| Sprint 5 | RAG 하이브리드 검색 | ✅ 완료 |
+| Sprint 5 | `useRAGHybridSearch` 훅 | ✅ 완료 |
+| Sprint 5 | 하이브리드 검색 UI 컴포넌트 | ✅ 완료 |
+
+### 생성된 파일
+
+| 카테고리 | 파일 | 설명 |
+|---------|------|------|
+| MCP 분리 | `src/components/mcp/useMCPPermission.ts` | 권한 훅 분리 |
+| MCP 분리 | `src/components/mcp/withMCPProtection.tsx` | HOC 분리 |
+| UI 분리 | `src/components/ui/toggle.variants.ts` | 토글 variants 분리 |
+| A11y 분리 | `src/components/a11y/useAnnouncerContext.ts` | 알림 훅 분리 |
+| Edge Types | `supabase/functions/_shared/toss-payments.types.ts` | 토스페이먼츠 타입 |
+| xlsx 차트 | `src/types/xlsx-chart.types.ts` | 차트 타입 정의 |
+| xlsx 차트 | `src/skills/xlsx/chart/chart-utils.ts` | Canvas 차트 렌더링 |
+| xlsx 차트 | `src/hooks/useXlsxChart.ts` | 차트 생성 훅 |
+| RAG 하이브리드 | `supabase/migrations/20251126200000_hybrid_search.sql` | 하이브리드 검색 함수 |
+| RAG 하이브리드 | `src/hooks/useRAGHybridSearch.ts` | 하이브리드 검색 훅 |
+| RAG 하이브리드 | `src/components/ai/HybridSearchResults.tsx` | 검색 결과 UI |
+| RAG 하이브리드 | `src/components/ai/HybridSearchWeightControl.tsx` | 가중치 조절 UI |
+| SDD | `spec/v2.19/*.md` | 요구사항, 인수조건 |
+| SDD | `plan/v2.19/*.md` | 구현 전략 |
+| SDD | `tasks/v2.19/*.md` | 스프린트 1-5 태스크 |
+| 테스트 | `tests/e2e/ai/ai-chat-integration.spec.ts` | E2E 테스트 19개 |
+| 테스트 | `tests/e2e/skills/xlsx-chart.spec.ts` | E2E 테스트 10개 |
+| 테스트 | `tests/e2e/rag-hybrid.spec.ts` | E2E 테스트 18개 |
+
+### 품질 지표 개선
+
+| 지표 | 이전 | 이후 | 변화 |
+|------|------|------|------|
+| 린트 경고 | 36개 | 20개 | -44% |
+| Fast Refresh 경고 | 4개 | 0개 | -100% |
+| any 타입 (Edge Functions) | 9개 | 0개 | -100% |
+| useMemo 의존성 경고 | 3개 | 0개 | -100% |
 
 ---
 

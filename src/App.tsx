@@ -14,8 +14,8 @@ import { PWAUpdatePrompt } from "./components/PWAUpdatePrompt";
 import { SkipToContent, KeyboardShortcuts, AnnouncerProvider } from "./components/a11y";
 import { CommandPalette } from "./components/CommandPalette";
 
-// Lazy load ChatWidget (contains react-markdown dependency)
-const ChatWidget = lazy(() => import("./components/chat").then(module => ({ default: module.ChatWidget })));
+// Lazy load AIChatWidget (AI-powered chat with Claude integration)
+const AIChatWidget = lazy(() => import("./components/ai-chat").then(m => ({ default: m.AIChatWidget })));
 import { initSentry } from "./lib/sentry";
 import { trackPageView } from "./lib/analytics";
 import { initWebVitals } from "./lib/web-vitals";
@@ -208,7 +208,7 @@ const App = () => (
               <CartDrawer />
               <CommandPalette />
               <Suspense fallback={null}>
-                <ChatWidget />
+                <AIChatWidget />
               </Suspense>
               <PWAInstallPrompt />
               <PWAUpdatePrompt />

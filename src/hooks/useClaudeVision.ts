@@ -12,7 +12,7 @@
 
 import { useState, useCallback } from 'react'
 import { useMutation } from '@tanstack/react-query'
-import { supabase } from '@/lib/supabase'
+import { supabase } from '@/integrations/supabase/client'
 import { devError } from '@/lib/errors'
 import type {
   VisionRequest,

@@ -9,6 +9,109 @@
 
 ---
 
+## [2.19.0] - 2025-11-26 (Quick Wins + xlsx 차트 + RAG 하이브리드)
+
+### 🎯 Sprint 1: Quick Wins + SDD 문서
+
+AI 채팅 위젯 App.tsx 통합, Fast Refresh 경고 해결, SDD 문서 작성.
+
+#### AI 채팅 위젯 통합
+- `App.tsx`: ChatWidget → AIChatWidget 교체 (lazy loading)
+- `ai-chat/index.ts`: 모듈 내보내기 정리
+
+#### Fast Refresh 경고 해결 (4개 파일 분리)
+- `useMCPPermission.ts`: MCPPermissionContext에서 훅 분리
+- `withMCPProtection.tsx`: MCPProtected에서 HOC 분리
+- `toggle.variants.ts`: toggle.tsx에서 variants 분리
+- `useAnnouncerContext.ts`: Announcer.tsx에서 훅 분리
+
+#### SDD 문서 (9개)
+- `spec/v2.19/requirements.md`: 요구사항 정의
+- `spec/v2.19/acceptance-criteria.md`: 인수 조건
+- `plan/v2.19/implementation-strategy.md`: 구현 전략
+- `tasks/v2.19/sprint-1.md` ~ `sprint-5.md`: 스프린트별 태스크
+
+#### E2E 테스트
+- `ai-chat-integration.spec.ts`: 19개 테스트 케이스
+
+---
+
+### 🔧 Sprint 2: Edge Functions 타입화
+
+Toss Payments Edge Functions에서 any 타입 제거 (9개→0개).
+
+#### 신규 타입 파일
+- `supabase/functions/_shared/toss-payments.types.ts`
+
+#### 적용 파일 (5개)
+- `process-payment/index.ts`
+- `verify-payment/index.ts`
+- `cancel-payment/index.ts`
+- `create-payment/index.ts`
+- `subscription-payment-callback/index.ts`
+
+#### 타입 안전성 패턴
+- `unknown` + `instanceof Error` 패턴 적용
+- API 응답 타입 엄격화
+
+---
+
+### 🔧 Sprint 3: React Hooks 의존성 해결
+
+useMemo 의존성 경고 해결 (3개 파일).
+
+#### 수정된 파일
+- `AdminTeam.tsx`: `teamMembers` useMemo 래핑
+- `AdminLab.tsx`: `labItems` useMemo 래핑
+- `AdminRoadmap.tsx`: `roadmapItems` useMemo 래핑
+
+---
+
+### 📊 Sprint 4: xlsx 차트 삽입 기능 (BL-006)
+
+Excel 파일에 차트 이미지 삽입 기능 구현.
+
+#### TypeScript 타입
+- `xlsx-chart.types.ts`: ChartType, ChartConfig, ChartDataPoint 등
+
+#### Canvas 유틸리티
+- `chart-utils.ts`: 4종 차트 렌더링 (line, bar, pie, area)
+
+#### React 훅
+- `useXlsxChart.ts`: 차트 생성 + 엑셀 삽입
+
+#### E2E 테스트
+- `xlsx-chart.spec.ts`: 10개 테스트 케이스
+
+---
+
+### 🔍 Sprint 5: RAG 하이브리드 검색
+
+키워드 검색(FTS) + 벡터 검색(Semantic) 결합.
+
+#### DB 마이그레이션
+- `20251126200000_hybrid_search.sql`: hybrid_search_documents() 함수
+
+#### React 훅
+- `useRAGHybridSearch.ts`: 가중치 조절, 디바운스, 서비스별 편의 훅
+
+#### UI 컴포넌트
+- `HybridSearchResults.tsx`: 점수 시각화, 색상 코딩
+- `HybridSearchWeightControl.tsx`: 슬라이더, 프리셋 버튼
+
+#### E2E 테스트
+- `rag-hybrid.spec.ts`: 18개 테스트 케이스
+
+### 📦 Stats
+- 린트 경고: 36개 → 20개 (-44%)
+- Fast Refresh 경고: 4개 → 0개 (-100%)
+- any 타입 (Edge Functions): 9개 → 0개 (-100%)
+- 신규 파일: 25+ (타입 3, 컴포넌트 4, 훅 3, 유틸 1, 테스트 3, SDD 9+)
+- 빌드: ~19s 성공 (PWA precache 27 entries)
+- 병렬 에이전트: 5개 동시 작업
+
+---
+
 ## [2.17.0] - 2025-11-25 (AI 채팅 위젯 + Tool Use + 기술 부채)
 
 ### 🎯 Sprint 1: AI 어시스턴트 채팅 위젯 (BL-AI-008)

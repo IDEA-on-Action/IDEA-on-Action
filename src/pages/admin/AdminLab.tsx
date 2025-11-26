@@ -86,7 +86,7 @@ export default function AdminLab() {
   const updateMutation = labCRUD.useUpdate();
   const deleteMutation = labCRUD.useDelete();
 
-  const items = response?.data || [];
+  const items = useMemo(() => response?.data || [], [response?.data]);
 
   // =====================================================
   // STATISTICS

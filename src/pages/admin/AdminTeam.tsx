@@ -78,7 +78,7 @@ export default function AdminTeam() {
   const debouncedSearch = useDebounce(search, 300);
 
   // Data from response
-  const teamMembers = response?.data || [];
+  const teamMembers = useMemo(() => response?.data || [], [response?.data]);
 
   // Filter team members
   const filteredMembers = useMemo(() => {

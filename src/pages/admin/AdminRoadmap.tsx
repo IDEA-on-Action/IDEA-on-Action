@@ -104,7 +104,7 @@ export default function AdminRoadmap() {
   const [isFormOpen, setIsFormOpen] = useState(false);
 
   // Extract items from paginated response
-  const roadmapItems = roadmapResponse?.data || [];
+  const roadmapItems = useMemo(() => roadmapResponse?.data || [], [roadmapResponse?.data]);
 
   // Filter roadmap items
   const filteredItems = useMemo(() => {

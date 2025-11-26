@@ -1,18 +1,6 @@
-import { createContext, useContext, useRef, useCallback, type ReactNode } from 'react';
-
-type AriaLive = 'polite' | 'assertive';
-
-interface AnnounceOptions {
-  politeness?: AriaLive;
-  delay?: number;
-  clearAfter?: number;
-}
-
-interface AnnouncerContextType {
-  announce: (message: string, options?: AnnounceOptions) => void;
-}
-
-const AnnouncerContext = createContext<AnnouncerContextType | null>(null);
+import { useRef, useCallback, type ReactNode } from 'react';
+import type { AriaLive, AnnounceOptions } from './announcer.types';
+import { AnnouncerContext } from './useAnnouncerContext';
 
 /**
  * AnnouncerProvider Component
@@ -97,21 +85,4 @@ export function AnnouncerProvider({ children }: { children: ReactNode }) {
       />
     </AnnouncerContext.Provider>
   );
-}
-
-/**
- * Hook to access the global announcer
- *
- * @example
- * ```tsx
- * const { announce } = useAnnouncerContext();
- * announce('Form submitted successfully', { politeness: 'assertive' });
- * ```
- */
-export function useAnnouncerContext() {
-  const context = useContext(AnnouncerContext);
-  if (!context) {
-    throw new Error('useAnnouncerContext must be used within an AnnouncerProvider');
-  }
-  return context;
 }
