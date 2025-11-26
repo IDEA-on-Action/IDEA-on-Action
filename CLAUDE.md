@@ -2,7 +2,7 @@
 
 > Claude와의 개발 협업을 위한 프로젝트 핵심 문서
 
-**마지막 업데이트**: 2025-11-25
+**마지막 업데이트**: 2025-11-26
 **현재 버전**: 2.18.0 (RAG - 문서 검색 증강 생성)
 **상태**: ✅ Production Ready | 🔒 보안 점수 98/100 | 🎯 토스페이먼츠 심사 제출 완료
 **개발 방법론**: SDD (Spec-Driven Development) + MCP (Model Context Protocol) Integration
@@ -11,7 +11,17 @@
 
 ## 📋 최신 업데이트
 
-### 2025-11-25 (오늘)
+### 2025-11-26 (오늘)
+- ✅ **v2.18.0 프로덕션 배포 완료**
+  - **DB 마이그레이션 수정**:
+    - `project_id UUID` → `TEXT` (projects.id 타입 호환)
+    - `'korean'` → `'simple'` FTS 설정 (PostgreSQL 호환)
+    - `pg_stat_user_indexes` 컬럼명 수정 (`relname`, `indexrelname`)
+  - **Edge Functions 배포**: `rag-embed`, `rag-search`
+  - **OpenAI API 키 설정**: `OPENAI_API_KEY` Secret 추가
+  - **Supabase CLI**: 2.58.5 → 2.62.5 업데이트
+
+### 2025-11-25
 - ✅ **v2.18.0: RAG (Retrieval-Augmented Generation) 구현**
   - **Sprint 1: RAG 인프라** (BL-AI-004)
     - DB 마이그레이션: `rag_documents`, `rag_embeddings` 테이블 (pgvector)

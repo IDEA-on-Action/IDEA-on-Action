@@ -49,7 +49,7 @@ CREATE TABLE IF NOT EXISTS public.rag_documents (
 
   -- 서비스 및 프로젝트 연결
   service_id TEXT,
-  project_id UUID REFERENCES public.projects(id) ON DELETE SET NULL,
+  project_id TEXT REFERENCES public.projects(id) ON DELETE SET NULL,
 
   -- 카테고리 및 태그
   category TEXT,
@@ -144,14 +144,14 @@ CREATE INDEX IF NOT EXISTS idx_rag_documents_created_at
 CREATE INDEX IF NOT EXISTS idx_rag_documents_updated_at
   ON public.rag_documents(updated_at DESC);
 
--- Full-Text Search 인덱스 (제목 + 내용)
+-- Full-Text Search 인덱스 (제목 + 내용) - simple 설정 사용
 CREATE INDEX IF NOT EXISTS idx_rag_documents_title_fts
   ON public.rag_documents
-  USING GIN (to_tsvector('korean', title));
+  USING GIN (to_tsvector('simple', title));
 
 CREATE INDEX IF NOT EXISTS idx_rag_documents_content_fts
   ON public.rag_documents
-  USING GIN (to_tsvector('korean', content));
+  USING GIN (to_tsvector('simple', content));
 
 -- 복합 인덱스: 사용자 + 상태
 CREATE INDEX IF NOT EXISTS idx_rag_documents_user_status
@@ -319,8 +319,8 @@ AS $$
     d.chunk_count,
     d.created_at,
     ts_rank(
-      to_tsvector('korean', d.title || ' ' || d.content),
-      plainto_tsquery('korean', p_query)
+      to_tsvector('simple', d.title || ' ' || d.content),
+      plainto_tsquery('simple', p_query)
     ) AS rank
   FROM public.rag_documents d
   WHERE
@@ -329,8 +329,8 @@ AS $$
     AND (p_category IS NULL OR d.category = p_category)
     AND d.status = p_status
     AND (
-      to_tsvector('korean', d.title) @@ plainto_tsquery('korean', p_query)
-      OR to_tsvector('korean', d.content) @@ plainto_tsquery('korean', p_query)
+      to_tsvector('simple', d.title) @@ plainto_tsquery('simple', p_query)
+      OR to_tsvector('simple', d.content) @@ plainto_tsquery('simple', p_query)
     )
   ORDER BY rank DESC, d.created_at DESC
   LIMIT p_limit;

@@ -80,9 +80,10 @@ CREATE INDEX IF NOT EXISTS idx_rag_embeddings_metadata
   ON public.rag_embeddings USING GIN(metadata);
 
 -- Full-Text Search 인덱스 (청크 텍스트)
+-- 'simple' 설정 사용 (한국어 FTS 설정이 없는 경우)
 CREATE INDEX IF NOT EXISTS idx_rag_embeddings_chunk_text_fts
   ON public.rag_embeddings
-  USING GIN (to_tsvector('korean', chunk_text));
+  USING GIN (to_tsvector('simple', chunk_text));
 
 -- ============================================================================
 -- 3. 벡터 유사도 검색 인덱스 (IVFFlat)

@@ -179,8 +179,8 @@ BEGIN
       d.project_id,
       0::FLOAT AS similarity,
       ts_rank(
-        to_tsvector('korean', e.chunk_text),
-        plainto_tsquery('korean', query_text)
+        to_tsvector('simple', e.chunk_text),
+        plainto_tsquery('simple', query_text)
       ) AS text_rank,
       d.metadata AS document_metadata,
       e.metadata AS chunk_metadata,
@@ -194,7 +194,7 @@ BEGIN
     WHERE
       d.status = 'active'
       AND d.embedding_status = 'completed'
-      AND to_tsvector('korean', e.chunk_text) @@ plainto_tsquery('korean', query_text)
+      AND to_tsvector('simple', e.chunk_text) @@ plainto_tsquery('simple', query_text)
       AND (filter_service_id IS NULL OR d.service_id = filter_service_id)
       AND (filter_project_id IS NULL OR d.project_id = filter_project_id)
       AND (
@@ -435,15 +435,15 @@ COMMENT ON FUNCTION find_similar_documents IS '특정 문서와 유사한 다른
 
 CREATE OR REPLACE VIEW rag_index_stats AS
 SELECT
-  schemaname,
-  tablename,
-  indexname,
-  idx_scan AS index_scans,
-  idx_tup_read AS tuples_read,
-  idx_tup_fetch AS tuples_fetched
-FROM pg_stat_user_indexes
-WHERE tablename IN ('rag_documents', 'rag_embeddings')
-ORDER BY idx_scan DESC;
+  s.schemaname,
+  s.relname AS tablename,
+  s.indexrelname AS indexname,
+  s.idx_scan AS index_scans,
+  s.idx_tup_read AS tuples_read,
+  s.idx_tup_fetch AS tuples_fetched
+FROM pg_stat_user_indexes s
+WHERE s.relname IN ('rag_documents', 'rag_embeddings')
+ORDER BY s.idx_scan DESC;
 
 COMMENT ON VIEW rag_index_stats IS 'RAG 테이블 인덱스 사용 통계 모니터링';
 
@@ -465,8 +465,8 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
   SELECT
-    i.tablename::TEXT,
-    i.indexname::TEXT,
+    i.relname::TEXT AS table_name,
+    i.indexrelname::TEXT AS index_name,
     pg_size_pretty(pg_relation_size(i.indexrelid)) AS index_size,
     i.idx_scan AS index_scans,
     ROUND(
@@ -479,7 +479,7 @@ AS $$
   FROM pg_stat_user_indexes i
   LEFT JOIN pg_stat_user_tables s ON i.relid = s.relid
   WHERE i.schemaname = 'public'
-  AND i.tablename IN ('rag_documents', 'rag_embeddings')
+  AND i.relname IN ('rag_documents', 'rag_embeddings')
   ORDER BY i.idx_scan DESC;
 $$;
 
