@@ -33,8 +33,9 @@ CREATE TABLE IF NOT EXISTS public.ai_conversations (
   title TEXT NOT NULL,
   description TEXT,
 
-  -- 프롬프트 템플릿 연결 (선택)
-  template_id UUID REFERENCES public.prompt_templates(id) ON DELETE SET NULL,
+  -- 프롬프트 템플릿 연결 (선택, 외래키 없이 저장)
+  -- prompt_templates 테이블이 나중에 생성될 수 있으므로 FK 제약 없음
+  template_id UUID,
 
   -- 시스템 프롬프트 (대화별 커스터마이징)
   system_prompt TEXT,
@@ -165,13 +166,14 @@ CREATE INDEX IF NOT EXISTS idx_ai_messages_created_at
   ON public.ai_messages(created_at DESC);
 
 -- Full-Text Search 인덱스 (제목 + 내용)
+-- 'simple' 설정 사용 (PostgreSQL 기본, 'korean'은 별도 설치 필요)
 CREATE INDEX IF NOT EXISTS idx_ai_conversations_title_fts
   ON public.ai_conversations
-  USING GIN (to_tsvector('korean', title));
+  USING GIN (to_tsvector('simple', title));
 
 CREATE INDEX IF NOT EXISTS idx_ai_messages_content_fts
   ON public.ai_messages
-  USING GIN (to_tsvector('korean', COALESCE(content, '')));
+  USING GIN (to_tsvector('simple', COALESCE(content, '')));
 
 -- ============================================================================
 -- 4. RLS (Row Level Security) 정책
@@ -554,14 +556,14 @@ AS $$
     c.total_tokens,
     c.last_activity_at,
     c.created_at,
-    ts_rank(to_tsvector('korean', c.title), plainto_tsquery('korean', p_query)) AS rank
+    ts_rank(to_tsvector('simple', c.title), plainto_tsquery('simple', p_query)) AS rank
   FROM public.ai_conversations c
   WHERE
     c.user_id = p_user_id
     AND (p_status IS NULL OR c.status = p_status)
     AND (
-      to_tsvector('korean', c.title) @@ plainto_tsquery('korean', p_query)
-      OR to_tsvector('korean', COALESCE(c.description, '')) @@ plainto_tsquery('korean', p_query)
+      to_tsvector('simple', c.title) @@ plainto_tsquery('simple', p_query)
+      OR to_tsvector('simple', COALESCE(c.description, '')) @@ plainto_tsquery('simple', p_query)
     )
   ORDER BY rank DESC, c.last_activity_at DESC
   LIMIT p_limit;

@@ -3,7 +3,7 @@
 > Claude와의 개발 협업을 위한 프로젝트 핵심 문서
 
 **마지막 업데이트**: 2025-11-26
-**현재 버전**: 2.18.0 (RAG - 문서 검색 증강 생성)
+**현재 버전**: 2.19.0 (RAG 하이브리드 검색)
 **상태**: ✅ Production Ready | 🔒 보안 점수 98/100 | 🎯 토스페이먼츠 심사 제출 완료
 **개발 방법론**: SDD (Spec-Driven Development) + MCP (Model Context Protocol) Integration
 
@@ -12,6 +12,39 @@
 ## 📋 최신 업데이트
 
 ### 2025-11-26 (오늘)
+- ✅ **v2.19.0: RAG 하이브리드 검색 구현**
+  - **핵심 기능**: 키워드 검색(FTS) + 벡터 검색(Semantic) 결합
+  - **DB 마이그레이션**:
+    - `hybrid_search_documents()` 함수 (가중치 조절 가능)
+    - 복합 인덱스 추가 (`idx_rag_documents_hybrid_search`)
+    - 성능 테스트 함수 (`test_hybrid_search_performance()`)
+    - 통계 함수 (`get_hybrid_search_stats()`)
+  - **React 훅**:
+    - `useRAGHybridSearch` (키워드/벡터 가중치 조절)
+    - 가중치 정규화 (합계 1.0 유지)
+    - 디바운스 검색 (300ms)
+    - 서비스별 편의 훅 4개 (Minu Find/Frame/Build/Keep)
+  - **UI 컴포넌트**:
+    - `HybridSearchResults` (점수 시각화, 색상 코딩)
+    - `HybridSearchWeightControl` (슬라이더, 프리셋 버튼)
+    - 점수 프로그레스 바 (키워드/벡터/통합)
+  - **SDD 문서**: 1개 신규 (`spec/claude-integration/rag-hybrid/requirements.md`)
+  - **E2E 테스트**: 18개 신규 (`rag-hybrid.spec.ts`)
+  - **빌드**: 22.95s 성공 (PWA precache 27 entries)
+
+- ✅ **대화 컨텍스트 테이블명 불일치 수정**
+  - **원인**: 훅에서 `conversation_sessions` 조회 → 실제 테이블은 `ai_conversations`
+  - **수정 파일**:
+    - `useConversationManager.ts` - 테이블/컬럼명 업데이트
+    - `conversation-context.types.ts` - 타입 정의 동기화
+    - `20251125110000_create_ai_conversations.sql` - FK 제거, FTS 호환성 수정
+  - **주요 변경**:
+    - 테이블: `conversation_sessions` → `ai_conversations`
+    - 테이블: `conversation_messages` → `ai_messages`
+    - 컬럼: `session_id` → `conversation_id`, `parent_session_id` → `parent_id`
+    - FTS: `'korean'` → `'simple'` (PostgreSQL 기본)
+  - **프로덕션 DB 마이그레이션 완료**
+
 - ✅ **v2.18.0 프로덕션 배포 완료**
   - **DB 마이그레이션 수정**:
     - `project_id UUID` → `TEXT` (projects.id 타입 호환)

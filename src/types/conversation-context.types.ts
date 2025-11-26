@@ -23,7 +23,7 @@ export type ConversationStatus = 'active' | 'archived';
 export type MessageRole = 'user' | 'assistant' | 'system';
 
 /**
- * 대화 세션 DB 레코드 (conversation_sessions 테이블)
+ * 대화 세션 DB 레코드 (ai_conversations 테이블)
  */
 export interface ConversationSessionDB {
   /** UUID */
@@ -32,22 +32,30 @@ export interface ConversationSessionDB {
   user_id: string;
   /** 세션 제목 */
   title: string;
+  /** 설명 */
+  description?: string | null;
   /** 시스템 프롬프트 */
   system_prompt: string | null;
   /** 프롬프트 템플릿 ID */
   template_id: string | null;
-  /** 세션 상태 */
-  status: ConversationStatus;
+  /** 세션 상태: active, archived, deleted */
+  status: ConversationStatus | 'deleted';
   /** 누적 토큰 수 */
   total_tokens: number;
+  /** 메시지 수 (트리거로 자동 관리) */
+  message_count?: number;
   /** 부모 세션 ID (포크 시) */
-  parent_session_id: string | null;
+  parent_id: string | null;
   /** 포크 순서 */
-  fork_index: number | null;
-  /** 컨텍스트 요약 */
-  summary: string | null;
-  /** 메타데이터 (Tool Use, RAG 설정 등) */
+  fork_index: number;
+  /** 메타데이터 (Tool Use, RAG 설정, summary 등) */
   metadata: ConversationMetadata | null;
+  /** Tool 설정 */
+  tool_config?: Record<string, unknown> | null;
+  /** RAG 설정 */
+  rag_config?: Record<string, unknown> | null;
+  /** 마지막 활동 시각 */
+  last_activity_at?: string;
   /** 생성 시각 */
   created_at: string;
   /** 수정 시각 */
@@ -55,27 +63,33 @@ export interface ConversationSessionDB {
 }
 
 /**
- * 대화 메시지 DB 레코드 (conversation_messages 테이블)
+ * 대화 메시지 DB 레코드 (ai_messages 테이블)
  */
 export interface ConversationMessageDB {
   /** UUID */
   id: string;
-  /** 세션 UUID */
-  session_id: string;
-  /** 메시지 역할 */
-  role: MessageRole;
-  /** 메시지 내용 */
-  content: string;
-  /** 메시지 순서 */
-  sequence: number;
+  /** 대화 UUID */
+  conversation_id: string;
+  /** 메시지 역할: user, assistant, system, tool_result */
+  role: MessageRole | 'tool_result';
+  /** 메시지 내용 (간단한 텍스트) */
+  content: string | null;
+  /** 콘텐츠 블록 (복잡한 멀티모달) */
+  content_blocks?: Record<string, unknown>[] | null;
+  /** 도구 사용 정보 */
+  tool_use?: Record<string, unknown> | null;
+  /** 도구 결과 정보 */
+  tool_result?: Record<string, unknown> | null;
   /** 토큰 수 */
   token_count: number | null;
   /** 사용한 모델 */
   model: string | null;
-  /** 요약 처리 여부 */
-  is_summarized: boolean;
-  /** 메타데이터 (Tool Use 결과 등) */
-  metadata: MessageMetadata | null;
+  /** 중단 이유: end_turn, max_tokens, stop_sequence, tool_use */
+  stop_reason?: string | null;
+  /** 사용자 평가 */
+  rating?: 'positive' | 'negative' | 'neutral' | null;
+  /** 피드백 텍스트 */
+  feedback_text?: string | null;
   /** 생성 시각 */
   created_at: string;
 }
@@ -130,14 +144,18 @@ export interface ConversationSession {
   id: string;
   userId: string;
   title: string;
+  description?: string | null;
   systemPrompt: string | null;
   templateId: string | null;
-  status: ConversationStatus;
+  status: ConversationStatus | 'deleted';
   totalTokens: number;
-  parentSessionId: string | null;
-  forkIndex: number | null;
-  summary: string | null;
+  messageCount?: number;
+  parentId: string | null;
+  forkIndex: number;
   metadata: ConversationMetadata | null;
+  toolConfig?: Record<string, unknown> | null;
+  ragConfig?: Record<string, unknown> | null;
+  lastActivityAt?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -148,13 +166,16 @@ export interface ConversationSession {
 export interface ConversationMessage {
   id: string;
   sessionId: string;
-  role: MessageRole;
-  content: string;
-  sequence: number;
+  role: MessageRole | 'tool_result';
+  content: string | null;
+  contentBlocks?: Record<string, unknown>[] | null;
+  toolUse?: Record<string, unknown> | null;
+  toolResult?: Record<string, unknown> | null;
   tokenCount: number | null;
   model: string | null;
-  isSummarized: boolean;
-  metadata: MessageMetadata | null;
+  stopReason?: string | null;
+  rating?: 'positive' | 'negative' | 'neutral' | null;
+  feedbackText?: string | null;
   createdAt: string;
 }
 
@@ -428,14 +449,18 @@ export function dbToConversationSession(db: ConversationSessionDB): Conversation
     id: db.id,
     userId: db.user_id,
     title: db.title,
+    description: db.description,
     systemPrompt: db.system_prompt,
     templateId: db.template_id,
     status: db.status,
     totalTokens: db.total_tokens,
-    parentSessionId: db.parent_session_id,
+    messageCount: db.message_count,
+    parentId: db.parent_id,
     forkIndex: db.fork_index,
-    summary: db.summary,
     metadata: db.metadata,
+    toolConfig: db.tool_config,
+    ragConfig: db.rag_config,
+    lastActivityAt: db.last_activity_at,
     createdAt: db.created_at,
     updatedAt: db.updated_at,
   };
@@ -465,14 +490,17 @@ export function conversationSessionToDb(
 export function dbToConversationMessage(db: ConversationMessageDB): ConversationMessage {
   return {
     id: db.id,
-    sessionId: db.session_id,
+    sessionId: db.conversation_id,
     role: db.role,
     content: db.content,
-    sequence: db.sequence,
+    contentBlocks: db.content_blocks,
+    toolUse: db.tool_use,
+    toolResult: db.tool_result,
     tokenCount: db.token_count,
     model: db.model,
-    isSummarized: db.is_summarized,
-    metadata: db.metadata,
+    stopReason: db.stop_reason,
+    rating: db.rating,
+    feedbackText: db.feedback_text,
     createdAt: db.created_at,
   };
 }
@@ -485,14 +513,17 @@ export function conversationMessageToDb(
 ): Partial<ConversationMessageDB> {
   const db: Partial<ConversationMessageDB> = {};
 
-  if (message.sessionId !== undefined) db.session_id = message.sessionId;
+  if (message.sessionId !== undefined) db.conversation_id = message.sessionId;
   if (message.role !== undefined) db.role = message.role;
   if (message.content !== undefined) db.content = message.content;
-  if (message.sequence !== undefined) db.sequence = message.sequence;
+  if (message.contentBlocks !== undefined) db.content_blocks = message.contentBlocks;
+  if (message.toolUse !== undefined) db.tool_use = message.toolUse;
+  if (message.toolResult !== undefined) db.tool_result = message.toolResult;
   if (message.tokenCount !== undefined) db.token_count = message.tokenCount;
   if (message.model !== undefined) db.model = message.model;
-  if (message.isSummarized !== undefined) db.is_summarized = message.isSummarized;
-  if (message.metadata !== undefined) db.metadata = message.metadata;
+  if (message.stopReason !== undefined) db.stop_reason = message.stopReason;
+  if (message.rating !== undefined) db.rating = message.rating;
+  if (message.feedbackText !== undefined) db.feedback_text = message.feedbackText;
 
   return db;
 }

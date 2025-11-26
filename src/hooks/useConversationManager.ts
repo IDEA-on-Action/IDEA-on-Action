@@ -13,7 +13,7 @@
 
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 import { devError } from '@/lib/errors';
 import type {
   ConversationSession,
@@ -142,11 +142,11 @@ export function useConversations(filters?: ConversationFilters) {
     queryFn: async () => {
       // Base query with message count
       let query = supabase
-        .from('conversation_sessions')
+        .from('ai_conversations')
         .select(
           `
           *,
-          message_count:conversation_messages(count)
+          message_count:ai_messages(count)
         `,
           { count: 'exact' }
         );
@@ -218,7 +218,7 @@ export function useConversation(sessionId: string | null) {
       if (!sessionId) return null;
 
       const { data, error } = await supabase
-        .from('conversation_sessions')
+        .from('ai_conversations')
         .select('*')
         .eq('id', sessionId)
         .single();
@@ -258,10 +258,10 @@ export function useMessages(sessionId: string | null, limit?: number) {
       const messageLimit = limit || DEFAULT_MESSAGE_LIMIT;
 
       const { data, error, count } = await supabase
-        .from('conversation_messages')
+        .from('ai_messages')
         .select('*', { count: 'exact' })
-        .eq('session_id', sessionId)
-        .order('sequence', { ascending: true })
+        .eq('conversation_id', sessionId)
+        .order('created_at', { ascending: true })
         .limit(messageLimit);
 
       if (error) {
@@ -318,14 +318,13 @@ export function useCreateConversation() {
         template_id: input.templateId || null,
         status: 'active',
         total_tokens: 0,
-        parent_session_id: null,
-        fork_index: null,
-        summary: null,
+        parent_id: null,
+        fork_index: 0,
         metadata: input.metadata || null,
       };
 
       const { data, error } = await supabase
-        .from('conversation_sessions')
+        .from('ai_conversations')
         .insert(dbRecord)
         .select()
         .single();
@@ -356,7 +355,7 @@ export function useUpdateConversation() {
       const dbUpdates = convertSessionToDb(updates as Partial<ConversationSession>);
 
       const { data, error } = await supabase
-        .from('conversation_sessions')
+        .from('ai_conversations')
         .update(dbUpdates)
         .eq('id', id)
         .select()
@@ -385,7 +384,7 @@ export function useArchiveConversation() {
   return useMutation({
     mutationFn: async (sessionId: string): Promise<void> => {
       const { error } = await supabase
-        .from('conversation_sessions')
+        .from('ai_conversations')
         .update({ status: 'archived' })
         .eq('id', sessionId);
 
@@ -416,27 +415,16 @@ export function useAddMessage() {
       // 토큰 수 계산 (제공되지 않은 경우)
       const tokenCount = input.tokenCount || estimateTokenCount(input.content);
 
-      // 메시지 sequence 조회 (자동 증가)
-      const { count } = await supabase
-        .from('conversation_messages')
-        .select('*', { count: 'exact', head: true })
-        .eq('session_id', input.sessionId);
-
-      const sequence = (count || 0) + 1;
-
       const dbRecord: Partial<ConversationMessageDB> = {
-        session_id: input.sessionId,
+        conversation_id: input.sessionId,
         role: input.role,
         content: input.content,
-        sequence,
         token_count: tokenCount,
         model: input.model || null,
-        is_summarized: false,
-        metadata: input.metadata || null,
       };
 
       const { data, error } = await supabase
-        .from('conversation_messages')
+        .from('ai_messages')
         .insert(dbRecord)
         .select()
         .single();
@@ -446,11 +434,7 @@ export function useAddMessage() {
         throw new Error(`메시지 저장에 실패했습니다: ${error.message}`);
       }
 
-      // 세션의 total_tokens 업데이트
-      await supabase.rpc('increment_session_tokens', {
-        session_id: input.sessionId,
-        tokens: tokenCount,
-      });
+      // Note: ai_conversations의 message_count와 total_tokens는 트리거로 자동 업데이트됨
 
       return convertDbToMessage(data as ConversationMessageDB);
     },
@@ -477,10 +461,10 @@ export function useSummarizeContext() {
 
       // 메시지 조회
       const { data: messages } = await supabase
-        .from('conversation_messages')
+        .from('ai_messages')
         .select('*')
-        .eq('session_id', sessionId)
-        .order('sequence', { ascending: true });
+        .eq('conversation_id', sessionId)
+        .order('created_at', { ascending: true });
 
       if (!messages || messages.length === 0) {
         throw new Error('요약할 메시지가 없습니다.');
@@ -520,18 +504,17 @@ export function useSummarizeContext() {
 
       const summary = summaryResponse.data.content;
 
-      // 세션 업데이트 (요약 저장)
+      // 세션 업데이트 (요약을 metadata에 저장)
       await supabase
-        .from('conversation_sessions')
-        .update({ summary })
+        .from('ai_conversations')
+        .update({
+          metadata: supabase.rpc('jsonb_set_value', {
+            target: 'metadata',
+            path: '{summary}',
+            value: JSON.stringify(summary),
+          }),
+        })
         .eq('id', sessionId);
-
-      // 요약된 메시지 표시
-      const messageIds = messagesToSummarize.map((msg) => msg.id);
-      await supabase
-        .from('conversation_messages')
-        .update({ is_summarized: true })
-        .in('id', messageIds);
 
       // 토큰 절약 추정
       const originalTokens = messagesToSummarize.reduce(
@@ -570,7 +553,7 @@ export function useForkConversation() {
 
       // 부모 세션 조회
       const { data: parentSession } = await supabase
-        .from('conversation_sessions')
+        .from('ai_conversations')
         .select('*')
         .eq('id', parentSessionId)
         .single();
@@ -581,9 +564,9 @@ export function useForkConversation() {
 
       // fork_index 계산
       const { count } = await supabase
-        .from('conversation_sessions')
+        .from('ai_conversations')
         .select('*', { count: 'exact', head: true })
-        .eq('parent_session_id', parentSessionId);
+        .eq('parent_id', parentSessionId);
 
       const forkIndex = (count || 0) + 1;
 
@@ -597,14 +580,13 @@ export function useForkConversation() {
         template_id: parentSession.template_id,
         status: 'active',
         total_tokens: 0,
-        parent_session_id: parentSessionId,
+        parent_id: parentSessionId,
         fork_index: forkIndex,
-        summary: null,
         metadata: parentSession.metadata,
       };
 
       const { data: createdSession, error: createError } = await supabase
-        .from('conversation_sessions')
+        .from('ai_conversations')
         .insert(newSession)
         .select()
         .single();
@@ -614,34 +596,30 @@ export function useForkConversation() {
         throw new Error(`대화 분기에 실패했습니다: ${createError.message}`);
       }
 
-      // 메시지 복사
+      // 메시지 복사 (forkFromSequence개까지만)
       const { data: messagesToCopy } = await supabase
-        .from('conversation_messages')
+        .from('ai_messages')
         .select('*')
-        .eq('session_id', parentSessionId)
-        .lte('sequence', forkFromSequence)
-        .order('sequence', { ascending: true });
+        .eq('conversation_id', parentSessionId)
+        .order('created_at', { ascending: true })
+        .limit(forkFromSequence);
 
       if (messagesToCopy && messagesToCopy.length > 0) {
-        const copiedMessages = messagesToCopy.map((msg, index) => ({
-          session_id: createdSession.id,
+        const copiedMessages = messagesToCopy.map((msg) => ({
+          conversation_id: createdSession.id,
           role: msg.role,
           content: msg.content,
-          sequence: index + 1,
+          content_blocks: msg.content_blocks,
+          tool_use: msg.tool_use,
+          tool_result: msg.tool_result,
           token_count: msg.token_count,
           model: msg.model,
-          is_summarized: msg.is_summarized,
-          metadata: msg.metadata,
+          stop_reason: msg.stop_reason,
         }));
 
-        await supabase.from('conversation_messages').insert(copiedMessages);
+        await supabase.from('ai_messages').insert(copiedMessages);
 
-        // 토큰 수 업데이트
-        const totalTokens = messagesToCopy.reduce((sum, msg) => sum + (msg.token_count || 0), 0);
-        await supabase
-          .from('conversation_sessions')
-          .update({ total_tokens: totalTokens })
-          .eq('id', createdSession.id);
+        // Note: total_tokens는 트리거로 자동 업데이트됨
       }
 
       return {
@@ -667,7 +645,7 @@ export function useExportToMarkdown() {
     mutationFn: async (sessionId: string): Promise<ExportMarkdownResult> => {
       // 세션 조회
       const { data: session } = await supabase
-        .from('conversation_sessions')
+        .from('ai_conversations')
         .select('*')
         .eq('id', sessionId)
         .single();
@@ -678,10 +656,10 @@ export function useExportToMarkdown() {
 
       // 메시지 조회
       const { data: messages } = await supabase
-        .from('conversation_messages')
+        .from('ai_messages')
         .select('*')
-        .eq('session_id', sessionId)
-        .order('sequence', { ascending: true });
+        .eq('conversation_id', sessionId)
+        .order('created_at', { ascending: true });
 
       if (!messages || messages.length === 0) {
         throw new Error('내보낼 메시지가 없습니다.');
