@@ -5,11 +5,19 @@
  */
 
 // 메인 컴포넌트
-export { MCPProtected, withMCPProtection } from './MCPProtected';
+export { MCPProtected } from './MCPProtected';
 export { MCPLoading } from './MCPLoading';
 export { MCPFallback } from './MCPFallback';
-export { MCPPermissionProvider, useMCPPermissionContext, useMCPPermissionContextOptional } from './MCPPermissionContext';
+export { MCPPermissionProvider } from './MCPPermissionContext';
+
+// 훅 및 HOC (Fast Refresh 분리)
+export { withMCPProtection, type MinuServiceId } from './MCPProtected.hoc';
+export {
+  MCPPermissionContext,
+  useMCPPermissionContext,
+  useMCPPermissionContextOptional,
+  type MCPPermissionContextValue,
+} from './MCPPermissionContext.hooks';
 
 // 타입
-export type { MinuServiceId } from './MCPProtected';
 export type { FallbackReason } from './MCPFallback';

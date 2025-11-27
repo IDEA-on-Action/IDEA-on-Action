@@ -6,6 +6,35 @@
  * - subscription_plans.features에서 제한 확인
  * - React Query 사용 (5분 캐싱)
  * - 로그인 안 됨 → Free 플랜 기준 적용
+ *
+ * @description
+ * 사용자의 구독 플랜에 따라 특정 기능에 대한 접근 권한을 확인합니다.
+ * Free 플랜 사용자에게는 기본 제한이 적용되며, 유료 플랜 사용자는
+ * subscription_plans.features에 정의된 제한을 따릅니다.
+ *
+ * @module hooks/useCanAccess
+ *
+ * @example
+ * ```tsx
+ * function ChatWidget() {
+ *   const { canAccess, remaining, limit, isLoading } = useCanAccess('ai_chat_messages');
+ *
+ *   if (isLoading) return <Spinner />;
+ *
+ *   if (!canAccess) {
+ *     return <UpgradePrompt feature="AI 채팅 메시지" />;
+ *   }
+ *
+ *   return (
+ *     <div>
+ *       <Chat />
+ *       {remaining !== null && (
+ *         <p>남은 메시지: {remaining}/{limit}</p>
+ *       )}
+ *     </div>
+ *   );
+ * }
+ * ```
  */
 
 import { useQuery } from '@tanstack/react-query'

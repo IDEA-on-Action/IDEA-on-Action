@@ -150,8 +150,4 @@ export function MCPProtected({
   return <>{children}</>;
 }
 
-// Re-export HOC from separate file to maintain backward compatibility
-export { withMCPProtection } from './withMCPProtection';
-export type { MinuServiceId } from './withMCPProtection';
-
 export default MCPProtected;

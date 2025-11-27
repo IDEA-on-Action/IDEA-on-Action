@@ -710,22 +710,27 @@ export function useClaudeRequest(defaultOptions?: ClaudeRequestOptions) {
  */
 export function useClaudeModel(initialModel: ClaudeModel = DEFAULT_CLAUDE_MODEL) {
   const [selectedModel, setSelectedModel] = useState<ClaudeModel>(initialModel);
+  const [models, setModels] = useState<Array<{ id: string; name: string }>>([]);
 
-  const models = Object.values(
+  // 모델 정보 로드 (컴포넌트 마운트 시 한 번만)
+  useEffect(() => {
+    // 별도 모듈에서 동적으로 로드하여 Vite 경고 회피
+    // claude.types.ts는 이미 정적으로 import되어 있으므로
+    // 동적 import 대신 lazy 초기화 사용
     (async () => {
-      const { CLAUDE_MODEL_INFO } = await import('@/types/claude.types');
-      return CLAUDE_MODEL_INFO;
-    })()
-  );
+      const { CLAUDE_MODEL_INFO } = await import('@/lib/claude/model-info');
+      setModels(Object.values(CLAUDE_MODEL_INFO));
+    })();
+  }, []);
 
   const selectModel = useCallback((model: ClaudeModel) => {
     setSelectedModel(model);
   }, []);
 
   return {
+    models,
     selectedModel,
     selectModel,
-    // modelInfo는 동기적으로 접근할 수 없으므로 별도 처리 필요
   };
 }
 

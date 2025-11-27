@@ -6,6 +6,40 @@
  * - 토큰 자동 갱신 (만료 5분 전)
  * - localStorage 토큰 관리
  * - Supabase Auth와 독립적으로 작동 (Minu 서비스 전용)
+ *
+ * @description
+ * PKCE 플로우를 사용하여 안전한 OAuth 2.0 인증을 구현합니다.
+ * 토큰 만료 시 자동으로 갱신하며, Minu 서비스 간 SSO를 지원합니다.
+ *
+ * @module hooks/useOAuthClient
+ *
+ * @example
+ * ```tsx
+ * function MinuService() {
+ *   const {
+ *     isAuthenticated,
+ *     isLoading,
+ *     user,
+ *     subscription,
+ *     login,
+ *     logout,
+ *   } = useOAuthClient();
+ *
+ *   if (isLoading) return <Spinner />;
+ *
+ *   if (!isAuthenticated) {
+ *     return <Button onClick={() => login()}>Minu 로그인</Button>;
+ *   }
+ *
+ *   return (
+ *     <div>
+ *       <p>환영합니다, {user?.name}님!</p>
+ *       <p>플랜: {subscription?.plan_name}</p>
+ *       <Button onClick={logout}>로그아웃</Button>
+ *     </div>
+ *   );
+ * }
+ * ```
  */
 
 import { useState, useEffect, useCallback } from 'react'

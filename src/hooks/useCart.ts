@@ -2,6 +2,34 @@
  * useCart Hooks
  *
  * React Query를 사용한 장바구니 서버 상태 관리
+ *
+ * @description
+ * Supabase를 백엔드로 사용하는 장바구니 CRUD 기능을 제공합니다.
+ * React Query를 활용하여 서버 상태를 캐싱하고 자동으로 동기화합니다.
+ *
+ * @module hooks/useCart
+ *
+ * @example
+ * ```tsx
+ * // 장바구니 조회
+ * const { data: cart, isLoading } = useCart();
+ *
+ * // 장바구니에 추가
+ * const addToCart = useAddToCart();
+ * await addToCart.mutateAsync({
+ *   serviceId: 'service-uuid',
+ *   price: 10000,
+ *   quantity: 1,
+ * });
+ *
+ * // 수량 변경
+ * const updateItem = useUpdateCartItem();
+ * await updateItem.mutateAsync({ itemId: 'item-uuid', quantity: 2 });
+ *
+ * // 항목 삭제
+ * const removeItem = useRemoveCartItem();
+ * await removeItem.mutateAsync('item-uuid');
+ * ```
  */
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -22,6 +50,34 @@ const cartQueryKeys = createQueryKeys('cart')
 // 1. 장바구니 조회 (GET)
 // ===================================================================
 
+/**
+ * 장바구니 조회 훅
+ *
+ * @description
+ * 현재 로그인한 사용자의 장바구니를 조회합니다.
+ * 장바구니 항목(cart_items)과 서비스(services) 정보가 조인되어 반환됩니다.
+ *
+ * @returns {UseQueryResult<CartWithItems | null>} 장바구니 데이터 및 쿼리 상태
+ *
+ * @example
+ * ```tsx
+ * function CartPage() {
+ *   const { data: cart, isLoading, error } = useCart();
+ *
+ *   if (isLoading) return <Spinner />;
+ *   if (error) return <ErrorMessage error={error} />;
+ *   if (!cart || cart.items.length === 0) return <EmptyCart />;
+ *
+ *   return (
+ *     <div>
+ *       {cart.items.map(item => (
+ *         <CartItem key={item.id} item={item} />
+ *       ))}
+ *     </div>
+ *   );
+ * }
+ * ```
+ */
 export function useCart() {
   const { user } = useAuth()
 

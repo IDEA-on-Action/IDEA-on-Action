@@ -27,18 +27,30 @@ export default defineConfig({
     /* 커버리지 설정 */
     coverage: {
       provider: 'v8',
-      reporter: ['text', 'json', 'html'],
+      reporter: ['text', 'html', 'lcov', 'json'],
+      include: [
+        'src/**/*.ts',
+        'src/**/*.tsx',
+      ],
       exclude: [
         'node_modules/',
         'tests/',
         '*.config.ts',
+        '*.config.js',
         'dist/',
+        'src/**/*.d.ts',
+        'src/**/*.test.ts',
+        'src/**/*.test.tsx',
+        'src/vite-env.d.ts',
+        'src/main.tsx',
+        'src/integrations/**',
       ],
       all: true,
       lines: 80,
       functions: 80,
       branches: 80,
       statements: 80,
+      reportsDirectory: './coverage',
     },
 
     /* 병렬 실행 */

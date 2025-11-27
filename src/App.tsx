@@ -172,6 +172,7 @@ const RealtimeDashboard = lazy(() => import("./pages/admin/RealtimeDashboard"));
 const AdminMedia = lazy(() => import("./pages/admin/AdminMedia"));
 const AdminIntegrations = lazy(() => import("./pages/admin/AdminIntegrations"));
 const CentralHubDashboard = lazy(() => import("./pages/admin/CentralHubDashboard"));
+const AdminPromptTemplates = lazy(() => import("./pages/admin/AdminPromptTemplates"));
 
 // Sentry 초기화
 initSentry();
@@ -331,6 +332,7 @@ const App = () => (
                   <Route path="audit-logs" element={<AuditLogs />} />
                   <Route path="orders" element={<AdminOrders />} />
                   <Route path="blog/categories" element={<AdminBlogCategories />} />
+                  <Route path="prompt-templates" element={<AdminPromptTemplates />} />
                   <Route path="lab" element={<AdminLab />} />
                   <Route path="portfolio" element={<AdminPortfolio />} />
                   <Route path="roadmap" element={<AdminRoadmap />} />

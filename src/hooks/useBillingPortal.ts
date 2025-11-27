@@ -5,6 +5,42 @@
  * - 현재 플랜, 결제 수단, 인보이스 조회
  * - 결제 포털 열기 (토스페이먼츠 빌링)
  * - 구독 취소, 플랜 변경
+ *
+ * @description
+ * 사용자의 구독 및 결제 정보를 관리하는 통합 훅입니다.
+ * 토스페이먼츠와 연동하여 결제 수단을 관리하고, 구독 플랜을 변경하거나
+ * 취소할 수 있습니다. 인보이스 조회 및 다운로드 기능도 제공합니다.
+ *
+ * @module hooks/useBillingPortal
+ *
+ * @example
+ * ```tsx
+ * function BillingPage() {
+ *   const {
+ *     currentPlan,
+ *     nextBillingDate,
+ *     paymentMethod,
+ *     invoices,
+ *     isLoading,
+ *     openPortal,
+ *     cancelSubscription,
+ *     changePlan,
+ *   } = useBillingPortal();
+ *
+ *   if (isLoading) return <Spinner />;
+ *
+ *   return (
+ *     <div>
+ *       <h2>현재 플랜: {currentPlan?.plan.plan_name}</h2>
+ *       <p>다음 결제일: {nextBillingDate}</p>
+ *       <Button onClick={openPortal}>결제 수단 관리</Button>
+ *       <Button onClick={() => changePlan('pro-plan-id')}>
+ *         Pro 플랜으로 변경
+ *       </Button>
+ *     </div>
+ *   );
+ * }
+ * ```
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
