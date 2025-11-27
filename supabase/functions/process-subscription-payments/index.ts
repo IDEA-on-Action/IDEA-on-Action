@@ -1,6 +1,6 @@
 
 import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3'
-import { corsHeaders } from '../_shared/cors.ts'
+import { getCorsHeaders } from '../_shared/cors.ts'
 import type {
   SubscriptionInfo,
   TossPaymentResult,
@@ -15,6 +15,9 @@ const TOSS_PAYMENTS_SECRET_KEY = Deno.env.get('TOSS_PAYMENTS_SECRET_KEY')
 const TOSS_PAYMENTS_API_URL = 'https://api.tosspayments.com/v1/billing'
 
 Deno.serve(async (req: Request) => {
+  const origin = req.headers.get('origin');
+  const corsHeaders = getCorsHeaders(origin);
+
   // CORS handling
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })

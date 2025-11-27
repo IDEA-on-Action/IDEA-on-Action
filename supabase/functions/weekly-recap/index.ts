@@ -13,11 +13,9 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import type { WeeklyLog, ProjectActivity, WeeklyStats } from '../_shared/toss-payments.types.ts'
+import { getCorsHeaders } from '../_shared/cors.ts'
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+// CORS 헤더는 getCorsHeaders()로 동적 생성 (삭제됨)
 
 /**
  * Markdown 템플릿 생성
@@ -104,6 +102,9 @@ function getWeekNumber(date: Date): number {
  * Edge Function 핸들러
  */
 Deno.serve(async (req) => {
+  const origin = req.headers.get('origin');
+  const corsHeaders = getCorsHeaders(origin);
+
   // CORS preflight 처리
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })

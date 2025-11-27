@@ -16,17 +16,13 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import * as jose from 'https://deno.land/x/jose@v5.2.0/index.ts'
+import { getCorsHeaders } from '../_shared/cors.ts'
 
 // ============================================================================
 // 상수 정의
 // ============================================================================
 
-// CORS 헤더
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-service-id, x-signature, x-timestamp, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-}
+// CORS 헤더는 getCorsHeaders()로 동적 생성 (삭제됨)
 
 // 유효한 서비스 ID 목록
 const VALID_SERVICE_IDS = ['minu-find', 'minu-frame', 'minu-build', 'minu-keep'] as const
@@ -834,6 +830,9 @@ async function handleRevoke(
 // ============================================================================
 
 serve(async (req) => {
+  const origin = req.headers.get('origin');
+  const corsHeaders = getCorsHeaders(origin);
+
   // CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })

@@ -12,16 +12,13 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import * as jose from 'https://deno.land/x/jose@v5.2.0/index.ts'
+import { getCorsHeaders } from '../_shared/cors.ts'
 
 // ============================================================================
 // 상수 정의
 // ============================================================================
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-}
+// CORS 헤더는 getCorsHeaders()로 동적 생성 (삭제됨)
 
 // 토큰 만료 시간
 const ACCESS_TOKEN_EXPIRY_SECONDS = 60 * 60 // 1시간
@@ -73,6 +70,8 @@ interface JWTPayload {
     plan_id: string
     plan_name: string
     status: string
+    expires_at: string
+    services: string[]
   }
 }
 
@@ -173,7 +172,7 @@ async function generateAccessToken(
   }
 
   const token = await new jose.SignJWT(payload)
-    .setProtectedHeader({ alg: 'RS256', typ: 'JWT' })
+    .setProtectedHeader({ alg: 'HS256', typ: 'JWT' })
     .setIssuer(JWT_ISSUER)
     .setSubject(userId)
     .setAudience(JWT_AUDIENCE)
@@ -263,15 +262,19 @@ async function logAuditEvent(
 async function getUserSubscription(
   supabase: ReturnType<typeof createClient>,
   userId: string
-): Promise<{ plan_id: string; plan_name: string; status: string } | null> {
+): Promise<{ plan_id: string; plan_name: string; status: string; expires_at: string; services: string[] } | null> {
   const { data } = await supabase
     .from('subscriptions')
     .select(`
       id,
       status,
       plan_id,
+      ends_at,
       subscription_plans (
         plan_name
+      ),
+      services (
+        slug
       )
     `)
     .eq('user_id', userId)
@@ -282,10 +285,17 @@ async function getUserSubscription(
 
   if (!data) return null
 
+  // 서비스 슬러그를 추출하여 배열로 변환
+  const services = Array.isArray(data.services)
+    ? data.services.map((s: { slug?: string }) => s.slug).filter(Boolean)
+    : []
+
   return {
     plan_id: data.plan_id,
     plan_name: (data.subscription_plans as { plan_name?: string })?.plan_name || 'Basic',
     status: data.status,
+    expires_at: data.ends_at || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(), // 기본값: 1년 후
+    services: services as string[],
   }
 }
 
@@ -474,6 +484,9 @@ async function handleRefreshTokenGrant(
 // ============================================================================
 
 serve(async (req) => {
+  const origin = req.headers.get('origin');
+  const corsHeaders = getCorsHeaders(origin);
+
   // CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })

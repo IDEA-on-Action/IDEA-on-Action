@@ -2,11 +2,70 @@
 
 > 프로젝트 작업 목록 및 진행 상황 관리
 
-**마지막 업데이트**: 2025-11-27
-**현재 Phase**: SSDD 병렬 4개 에이전트 작업 완료
-**다음 단계**: API 문서 생성 및 ErrorBoundary 적용
-**프로젝트 버전**: 2.21.0 (SSDD 도입 + 병렬 4개 에이전트)
+**마지막 업데이트**: 2025-11-28
+**현재 Phase**: Minu 연동 가이드라인 반영 완료
+**다음 단계**: Edge Function 배포 및 E2E 테스트 실행
+**프로젝트 버전**: 2.22.0 (Minu 연동 가이드라인 반영)
 **프로덕션**: https://www.ideaonaction.ai
+
+---
+
+## ✅ 완료: Minu 연동 가이드라인 반영 (v2.22.0)
+
+**목표**: Minu 서비스 연동 보안 강화, API 표준화, 운영 환경 구축
+**완료일**: 2025-11-28
+**병렬 에이전트**: 4개 동시 작업 (SSDD)
+
+### 완료된 작업
+
+| Agent | 작업 | 상태 |
+|-------|------|------|
+| Agent 1 | JWT 알고리즘 통일 (HS256) | ✅ 완료 |
+| Agent 1 | CORS 정책 강화 (18개 Edge Function) | ✅ 완료 |
+| Agent 1 | Webhook HMAC-SHA256 서명 검증 | ✅ 완료 |
+| Agent 2 | JWT Payload 확장 (expires_at, services) | ✅ 완료 |
+| Agent 2 | 헬스체크 엔드포인트 (api-v1-health) | ✅ 완료 |
+| Agent 2 | RFC 7807 에러 포맷 (problem-details.ts) | ✅ 완료 |
+| Agent 2 | API 공통 타입 정의 (api.types.ts) | ✅ 완료 |
+| Agent 3 | 환경별 OAuth 클라이언트 시드 (12개) | ✅ 완료 |
+| Agent 3 | 테스트 계정 시드 (5개 플랜) | ✅ 완료 |
+| Agent 3 | OAuth 모니터링 테이블 | ✅ 완료 |
+| Agent 4 | E2E 테스트 (minu-test-accounts.spec.ts) | ✅ 완료 |
+| Agent 4 | E2E 테스트 (oauth-multi-env.spec.ts) | ✅ 완료 |
+| Agent 4 | 가이드라인 체크리스트 업데이트 | ✅ 완료 |
+
+### 생성된 파일
+
+| 카테고리 | 파일 | 설명 |
+|---------|------|------|
+| 보안 | `supabase/functions/_shared/webhook-verify.ts` | Webhook 서명 검증 |
+| API | `supabase/functions/_shared/problem-details.ts` | RFC 7807 에러 |
+| API | `supabase/functions/api-v1-health/index.ts` | 헬스체크 |
+| 타입 | `src/types/api.types.ts` | API 공통 타입 |
+| DB | `20251128000001_seed_oauth_clients_multi_env.sql` | OAuth 클라이언트 12개 |
+| DB | `20251128000002_seed_minu_test_accounts.sql` | 테스트 계정 5개 |
+| DB | `20251128000003_create_oauth_health_monitoring.sql` | 모니터링 테이블 |
+| Tests | `tests/e2e/minu/minu-test-accounts.spec.ts` | 플랜별 E2E |
+| Tests | `tests/e2e/oauth/oauth-multi-env.spec.ts` | 환경별 OAuth E2E |
+
+### 수정된 파일 (22개)
+
+- `cors.ts` - CORS 정책 강화
+- `oauth-token/index.ts` - JWT HS256, Payload 확장
+- `oauth.types.ts` - expires_at, services 필드
+- `users.ts` - Minu 테스트 계정
+- `.env.example` - Minu 환경 변수
+- 18개 Edge Function - 동적 CORS 적용
+
+### 품질 지표
+
+| 지표 | 이전 | 이후 | 변화 |
+|------|------|------|------|
+| 린트 경고 | 0개 | 0개 | 유지 |
+| CORS 보안 | `*` (전체) | 허용 도메인만 | 강화 |
+| JWT 알고리즘 | RS256/HS256 혼용 | HS256 통일 | 통일 |
+| 테스트 계정 | 0개 | 5개 | +5개 |
+| OAuth 클라이언트 | 4개 | 16개 | +12개 |
 
 ---
 

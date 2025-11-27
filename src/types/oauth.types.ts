@@ -217,6 +217,11 @@ export interface OAuthTokenRevokeRequest {
 // ============================================================================
 
 /**
+ * Minu 서비스 타입
+ */
+export type MinuService = 'find' | 'frame' | 'build' | 'keep'
+
+/**
  * OAuth JWT Payload
  *
  * 액세스 토큰 디코딩 결과
@@ -242,6 +247,10 @@ export interface OAuthJWTPayload {
     plan_name: string
     /** 구독 상태 */
     status: SubscriptionStatus
+    /** 구독 만료 일시 (ISO 8601) */
+    expires_at: string
+    /** 구독된 서비스 목록 */
+    services: MinuService[]
   }
   /** 사용자 정보 (커스텀 클레임) */
   user: {

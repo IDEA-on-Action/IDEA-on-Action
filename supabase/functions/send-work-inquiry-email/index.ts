@@ -14,12 +14,7 @@
  */
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
-
-// CORS 헤더
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+import { getCorsHeaders } from '../_shared/cors.ts'
 
 // Work Inquiry 인터페이스
 interface WorkInquiryData {
@@ -133,6 +128,9 @@ async function sendEmail(data: WorkInquiryData): Promise<ResendResponse> {
  * Edge Function 핸들러
  */
 serve(async (req: Request) => {
+  const origin = req.headers.get('origin')
+  const corsHeaders = getCorsHeaders(origin)
+
   // CORS Preflight 처리
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
