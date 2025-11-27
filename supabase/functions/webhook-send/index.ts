@@ -39,7 +39,7 @@ const REQUEST_TIMEOUT_MS = 10000 // 10초
 
 interface WebhookRequest {
   event_type: string
-  payload: Record<string, any>
+  payload: Record<string, unknown>
   target_urls: string[]
   webhook_secret?: string // 선택 (없으면 기본 시크릿 사용)
 }
@@ -111,7 +111,7 @@ async function generateSignature(
 async function sendWebhook(
   targetUrl: string,
   eventType: string,
-  payload: Record<string, any>,
+  payload: Record<string, unknown>,
   signature: string,
   requestId: string
 ): Promise<WebhookResult> {
@@ -193,7 +193,7 @@ async function sendWebhook(
 async function recordDeadLetter(
   supabase: ReturnType<typeof createClient>,
   eventType: string,
-  payload: Record<string, any>,
+  payload: Record<string, unknown>,
   targetUrl: string,
   error: string,
   requestId: string

@@ -337,7 +337,7 @@ async function handleGetSubscription(
 
     // 플랜 기능 추출
     const features = Array.isArray(subscription.subscription_plans?.features)
-      ? subscription.subscription_plans.features.map((f: any) => f.text || '')
+      ? subscription.subscription_plans.features.map((f: { text?: string }) => f.text || '')
       : []
 
     const detail: SubscriptionDetail = {

@@ -16,6 +16,14 @@ import { useAuth } from '@/hooks/useAuth'
 import { supabase } from '@/integrations/supabase/client'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 
+interface PlanInfo {
+  plan_id: string
+  plan_name: string
+  service_title: string
+  billing_cycle: 'monthly' | 'quarterly' | 'yearly'
+  price: number
+}
+
 export default function SubscriptionSuccess() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
@@ -26,7 +34,7 @@ export default function SubscriptionSuccess() {
   const customerKey = searchParams.get('customerKey')
   const authKey = searchParams.get('authKey') // 빌링키
 
-  const [planInfo, setPlanInfo] = useState<any>(null)
+  const [planInfo, setPlanInfo] = useState<PlanInfo | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
   const [error, setError] = useState<string | null>(null)
 

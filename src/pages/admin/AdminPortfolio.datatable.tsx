@@ -9,7 +9,7 @@
  * - 생성/수정/삭제 CRUD
  */
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import { Helmet } from 'react-helmet-async'
 import { ColumnDef } from '@tanstack/react-table'
 import {
@@ -187,7 +187,7 @@ export default function AdminPortfolio() {
   }
 
   // Toggle published status
-  const handleTogglePublished = async (item: PortfolioItemWithStatus) => {
+  const handleTogglePublished = useCallback(async (item: PortfolioItemWithStatus) => {
     try {
       await updateMutation.mutateAsync({
         id: item.id,
@@ -205,10 +205,10 @@ export default function AdminPortfolio() {
         variant: 'destructive',
       })
     }
-  }
+  }, [updateMutation, toast])
 
   // Toggle featured status
-  const handleToggleFeatured = async (item: PortfolioItemWithStatus) => {
+  const handleToggleFeatured = useCallback(async (item: PortfolioItemWithStatus) => {
     try {
       await updateMutation.mutateAsync({
         id: item.id,
@@ -226,7 +226,37 @@ export default function AdminPortfolio() {
         variant: 'destructive',
       })
     }
-  }
+  }, [updateMutation, toast])
+
+  // Open dialog for editing item
+  const handleEdit = useCallback((item: PortfolioItemWithStatus) => {
+    setEditItem(item)
+    form.reset({
+      slug: item.slug,
+      title: item.title,
+      summary: item.summary,
+      description: item.description || '',
+      client_name: item.clientName || '',
+      client_logo: item.clientLogo || '',
+      project_type: item.projectType,
+      thumbnail: item.thumbnail || '',
+      images: JSON.stringify(item.images || []),
+      tech_stack: JSON.stringify(item.techStack || []),
+      project_url: item.projectUrl || '',
+      github_url: item.githubUrl || '',
+      duration: item.duration || '',
+      team_size: item.teamSize || 1,
+      start_date: item.startDate || '',
+      end_date: item.endDate || '',
+      challenges: item.challenges || '',
+      solutions: item.solutions || '',
+      outcomes: item.outcomes || '',
+      testimonial: JSON.stringify(item.testimonial || {}),
+      featured: item.featured || false,
+      published: item.published || false,
+    })
+    setIsDialogOpen(true)
+  }, [form])
 
   // Define columns for DataTable
   const columns = useMemo<ColumnDef<PortfolioItemWithStatus>[]>(
@@ -340,7 +370,7 @@ export default function AdminPortfolio() {
         ),
       },
     ],
-    []
+    [handleEdit, handleToggleFeatured, handleTogglePublished]
   )
 
   // Open dialog for creating new item
@@ -369,36 +399,6 @@ export default function AdminPortfolio() {
       testimonial: '{}',
       featured: false,
       published: false,
-    })
-    setIsDialogOpen(true)
-  }
-
-  // Open dialog for editing item
-  const handleEdit = (item: PortfolioItemWithStatus) => {
-    setEditItem(item)
-    form.reset({
-      slug: item.slug,
-      title: item.title,
-      summary: item.summary,
-      description: item.description || '',
-      client_name: item.clientName || '',
-      client_logo: item.clientLogo || '',
-      project_type: item.projectType,
-      thumbnail: item.thumbnail || '',
-      images: JSON.stringify(item.images || []),
-      tech_stack: JSON.stringify(item.techStack || []),
-      project_url: item.projectUrl || '',
-      github_url: item.githubUrl || '',
-      duration: item.duration || '',
-      team_size: item.teamSize || 1,
-      start_date: item.startDate || '',
-      end_date: item.endDate || '',
-      challenges: item.challenges || '',
-      solutions: item.solutions || '',
-      outcomes: item.outcomes || '',
-      testimonial: JSON.stringify(item.testimonial || {}),
-      featured: item.featured || false,
-      published: item.published || false,
     })
     setIsDialogOpen(true)
   }

@@ -2,11 +2,67 @@
 
 > 프로젝트 작업 목록 및 진행 상황 관리
 
-**마지막 업데이트**: 2025-11-26
-**현재 Phase**: Quick Wins + 품질 안정화 + 기능 확장 완료
+**마지막 업데이트**: 2025-11-27
+**현재 Phase**: Claude Skills P1 + Minu 통합 완료
 **다음 단계**: 프로덕션 배포 및 테스트
-**프로젝트 버전**: 2.19.0 (Quick Wins + xlsx 차트 + RAG 하이브리드)
+**프로젝트 버전**: 2.20.0 (Claude Skills P1 + Minu OAuth 2.0 + Slack 알림)
 **프로덕션**: https://www.ideaonaction.ai
+
+---
+
+## ✅ 완료: Claude Skills P1 + Minu OAuth 2.0 + Slack 알림 (v2.20.0)
+
+**목표**: Claude Skills P1 백로그, Minu 통합 OAuth 2.0, 구독 시스템, Slack 알림
+**완료일**: 2025-11-27
+**SDD 문서**: [spec/claude-skills/](spec/claude-skills/) | [spec/v2.19/](spec/v2.19/)
+
+### 완료된 작업 (2025-11-27)
+
+| Sprint | 작업 | 상태 |
+|--------|------|------|
+| BL-009 | 생성 문서 이력 (`generated_documents` 테이블, `useDocumentHistory` 훅) | ✅ 완료 |
+| BL-006 | xlsx 차트 내보내기 (ZIP 방식, `chart-exporter.ts`) | ✅ 완료 |
+| BL-008 | 템플릿 버전 관리 (`template_versions` 테이블, 자동 버전 생성 트리거) | ✅ 완료 |
+| BL-007 | docx 이미지 삽입 (`createImageRun`, `createHeaderWithLogo`) | ✅ 완료 |
+| BL-011 | pptx 고도화 (마스터 슬라이드, 이미지 슬라이드, 차트 개선) | ✅ 완료 |
+| TD-001~003 | 동적 로딩 (xlsx, docx, pptxgenjs) | ✅ 완료 |
+| OAuth 2.0 | Edge Functions (`oauth-authorize`, `oauth-token`, `oauth-revoke`) | ✅ 완료 |
+| REST API | Edge Functions (`user-api`, `subscription-api`, `webhook-send`) | ✅ 완료 |
+| 구독 시스템 | React 훅 8개, 컴포넌트 6개 | ✅ 완료 |
+| BL-012 | Slack 알림 (`send-slack-notification`, DB 트리거) | ✅ 완료 |
+
+### 생성된 파일
+
+| 카테고리 | 파일 | 설명 |
+|---------|------|------|
+| Skills | `src/hooks/useDocumentHistory.ts` | 문서 이력 관리 |
+| Skills | `src/hooks/useTemplateVersions.ts` | 템플릿 버전 관리 |
+| Skills | `src/lib/skills/xlsx/chart-exporter.ts` | 차트 이미지 내보내기 |
+| Skills | `src/components/skills/DocumentHistoryList.tsx` | 문서 이력 UI |
+| Skills | `src/components/skills/TemplateVersionHistory.tsx` | 템플릿 버전 UI |
+| OAuth | `supabase/functions/oauth-authorize/index.ts` | 인가 엔드포인트 |
+| OAuth | `supabase/functions/oauth-token/index.ts` | 토큰 발급 |
+| OAuth | `supabase/functions/oauth-revoke/index.ts` | 토큰 폐기 |
+| REST API | `supabase/functions/user-api/index.ts` | 사용자 API |
+| REST API | `supabase/functions/subscription-api/index.ts` | 구독 API |
+| REST API | `supabase/functions/webhook-send/index.ts` | 웹훅 전송 |
+| 구독 | `src/hooks/useCanAccess.ts` | 기능 접근 권한 |
+| 구독 | `src/hooks/useSubscriptionUsage.ts` | 사용량 조회 |
+| 구독 | `src/hooks/useOAuthClient.ts` | OAuth 클라이언트 |
+| 구독 | `src/components/subscription/SubscriptionGate.tsx` | 기능 접근 제어 |
+| 구독 | `src/components/subscription/UpgradePrompt.tsx` | 업그레이드 유도 |
+| Slack | `supabase/functions/send-slack-notification/index.ts` | Slack 알림 |
+| DB | `supabase/migrations/20251127000000_create_oauth_tables.sql` | OAuth 테이블 |
+| DB | `supabase/migrations/20251127000001_create_generated_documents.sql` | 문서 이력 |
+| DB | `supabase/migrations/20251127000002_create_slack_notification_trigger.sql` | Slack 트리거 |
+| DB | `supabase/migrations/20251127000003_create_template_versions.sql` | 템플릿 버전 |
+
+### 품질 지표 개선
+
+| 지표 | 이전 | 이후 | 변화 |
+|------|------|------|------|
+| 린트 경고 | 27개 | 21개 | -22% |
+| Edge Functions any 타입 | 5개 | 1개 | -80% |
 
 ---
 

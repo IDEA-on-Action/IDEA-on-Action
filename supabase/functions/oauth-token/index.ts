@@ -284,7 +284,7 @@ async function getUserSubscription(
 
   return {
     plan_id: data.plan_id,
-    plan_name: (data.subscription_plans as any)?.plan_name || 'Basic',
+    plan_name: (data.subscription_plans as { plan_name?: string })?.plan_name || 'Basic',
     status: data.status,
   }
 }
