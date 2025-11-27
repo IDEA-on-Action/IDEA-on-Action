@@ -3,10 +3,50 @@
 > 프로젝트 작업 목록 및 진행 상황 관리
 
 **마지막 업데이트**: 2025-11-28
-**현재 Phase**: Minu 연동 가이드라인 반영 완료
+**현재 Phase**: 유닛 테스트 정비 완료
 **다음 단계**: Edge Function 배포 및 E2E 테스트 실행
-**프로젝트 버전**: 2.22.0 (Minu 연동 가이드라인 반영)
+**프로젝트 버전**: 2.22.0
 **프로덕션**: https://www.ideaonaction.ai
+
+---
+
+## ✅ 완료: 유닛 테스트 정비 (v2.22.0)
+
+**목표**: 실패 테스트 37개 수정, 버전 동기화
+**완료일**: 2025-11-28
+**병렬 에이전트**: 7개 동시 작업 (SSDD)
+
+### 완료된 작업
+
+| Agent | 작업 | 상태 |
+|-------|------|------|
+| Agent 1 | 버전 동기화 (2.21.0 → 2.22.0) | ✅ 완료 |
+| Agent 2 | Hero.test.tsx 수정 (5개) | ✅ 완료 |
+| Agent 3 | useProjects 확인 (이미 통과) | ✅ 완료 |
+| Agent 4 | useServices.test.tsx 수정 (6개) | ✅ 완료 |
+| Agent 5 | Header.test.tsx 수정 (21개) | ✅ 완료 |
+| Agent 6 | Footer.test.tsx 수정 (6개) | ✅ 완료 |
+| Agent 7 | useRealtimeDashboard, useIsAdmin 수정 (2개) | ✅ 완료 |
+
+### 수정된 파일 (7개)
+
+| 파일 | 수정 내용 |
+|------|----------|
+| `package.json` | 버전 2.21.0 → 2.22.0 |
+| `Hero.test.tsx` | 실제 컴포넌트 텍스트에 맞게 수정 |
+| `Header.test.tsx` | 네비게이션, ARIA 레이블, QueryClient 모킹 |
+| `Footer.test.tsx` | 섹션 구조, 링크, 그리드 클래스 |
+| `useServices.test.tsx` | eq() 메서드 모킹 체인 추가 |
+| `useRealtimeDashboard.test.tsx` | items 배열 모킹 추가 |
+| `useIsAdmin.test.tsx` | admins 테이블 및 캐시 로직 반영 |
+
+### 품질 지표
+
+| 지표 | 이전 | 이후 | 개선 |
+|------|------|------|------|
+| 유닛 테스트 실패 | 37개 | 0개 | -100% |
+| 테스트 통과 | 274개 | 311개 | +37개 |
+| 린트 경고 | 0개 | 0개 | 유지 |
 
 ---
 
