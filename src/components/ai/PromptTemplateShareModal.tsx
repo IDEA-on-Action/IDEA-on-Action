@@ -135,7 +135,9 @@ export const PromptTemplateShareModal: React.FC<
     try {
       const updatedTemplate = await updateMutation.mutateAsync({
         id: template.id,
-        isPublic,
+        updates: {
+          is_public: isPublic,
+        },
       });
 
       setSuccess(true);

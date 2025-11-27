@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, type MockedFunction } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { useCheckout } from '../useCheckout'
 import { createWrapper } from '@/test/utils'
@@ -44,15 +44,15 @@ describe('useCheckout', () => {
         vi.clearAllMocks()
 
             // Default mocks
-            ; (useNavigate as any).mockReturnValue(mockNavigate)
-            ; (useCreateOrder as any).mockReturnValue({
+            ; (useNavigate as MockedFunction<typeof useNavigate>).mockReturnValue(mockNavigate)
+            ; (useCreateOrder as MockedFunction<typeof useCreateOrder>).mockReturnValue({
                 mutate: mockCreateOrder,
                 isPending: false
             })
-            ; (useAuth as any).mockReturnValue({
+            ; (useAuth as MockedFunction<typeof useAuth>).mockReturnValue({
                 user: { id: 'user-123', email: 'test@example.com' }
             })
-            ; (useCart as any).mockReturnValue({
+            ; (useCart as MockedFunction<typeof useCart>).mockReturnValue({
                 data: {
                     items: [
                         { id: 'item-1', price: 1000, quantity: 2, service: { title: 'Service 1' } }
@@ -60,7 +60,7 @@ describe('useCheckout', () => {
                 },
                 isLoading: false
             })
-            ; (useCartStore as any).mockReturnValue({
+            ; (useCartStore as MockedFunction<typeof useCartStore>).mockReturnValue({
                 serviceItems: [],
                 clearServiceItems: mockClearServiceItems
             })
@@ -80,7 +80,7 @@ describe('useCheckout', () => {
 
     it('should calculate totals correctly with service items', () => {
         // Mock service items for this test
-        ; (useCartStore as any).mockReturnValue({
+        ; (useCartStore as MockedFunction<typeof useCartStore>).mockReturnValue({
             serviceItems: [
                 {
                     item_id: 'service-1',

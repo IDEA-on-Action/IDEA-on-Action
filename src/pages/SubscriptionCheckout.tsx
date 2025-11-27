@@ -32,6 +32,18 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Badge } from '@/components/ui/badge'
 import { AlertCircle, ArrowLeft, CreditCard, Shield, Check, ExternalLink } from 'lucide-react'
 
+// 플랜 정보 타입 정의
+interface SavedPlanInfo {
+  service_id: string
+  service_title: string
+  plan_id: string
+  plan_name: string
+  price: number
+  billing_cycle: string
+  features?: string[]
+  is_popular?: boolean
+}
+
 // 정기결제 폼 스키마
 const subscriptionSchema = z.object({
   // 구독자 정보
@@ -75,7 +87,7 @@ export default function SubscriptionCheckout() {
   const [isProcessing, setIsProcessing] = useState(false)
 
   // sessionStorage에서 플랜 정보 가져오기
-  const [planInfo, setPlanInfo] = useState<any>(null)
+  const [planInfo, setPlanInfo] = useState<SavedPlanInfo | null>(null)
   useEffect(() => {
     const savedPlanInfo = sessionStorage.getItem('subscription_plan_info')
     if (savedPlanInfo) {

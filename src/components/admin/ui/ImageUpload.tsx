@@ -48,8 +48,11 @@ export function ImageUpload({
   const [uploadingFiles, setUploadingFiles] = useState<UploadingFile[]>([]);
   const [error, setError] = useState<string | null>(null);
 
-  // Convert value to array
-  const urls = Array.isArray(value) ? value : value ? [value] : [];
+  // Convert value to array (memoized)
+  const urls = React.useMemo(
+    () => (Array.isArray(value) ? value : value ? [value] : []),
+    [value]
+  );
 
   // Handle file drop
   const onDrop = useCallback(

@@ -86,6 +86,6 @@ export function SubscriptionGate({
 }
 
 // Re-export HOC from separate file to maintain backward compatibility
-export * from './withSubscriptionGate';
+export { withSubscriptionGate } from './withSubscriptionGate';
 
 export default SubscriptionGate;

@@ -86,6 +86,11 @@ export function MCPPermissionProvider({ children }: { children: React.ReactNode 
 }
 
 // Re-export hooks from separate file to maintain backward compatibility
-export * from './useMCPPermission';
+export {
+  MCPPermissionContext,
+  useMCPPermissionContext,
+  useMCPPermissionContextOptional,
+} from './useMCPPermission';
+export type { MCPPermissionContextValue } from './useMCPPermission';
 
 export default MCPPermissionProvider;

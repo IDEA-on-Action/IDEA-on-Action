@@ -3,15 +3,30 @@
 > Claude와의 개발 협업을 위한 프로젝트 핵심 문서
 
 **마지막 업데이트**: 2025-11-27
-**현재 버전**: 2.20.0 (Claude Skills P1 완료)
+**현재 버전**: 2.21.0 (SSDD 도입 + 기술 부채 해소)
 **상태**: ✅ Production Ready | 🔒 보안 점수 98/100 | 🎯 토스페이먼츠 심사 제출 완료
-**개발 방법론**: SDD (Spec-Driven Development) + MCP (Model Context Protocol) Integration
+**개발 방법론**: SSDD (Skillful Spec-Driven Development) - SDD + Claude Skills Integration
 
 ---
 
 ## 📋 최신 업데이트
 
 ### 2025-11-27 (오늘)
+- ✅ **v2.21.0: SSDD 도입 + 기술 부채 해소** (병렬 4개 에이전트)
+  - **SSDD (Skillful SDD) 방법론 정의**:
+    - SDD + Claude Skills Integration 통합 개발 방법론
+    - xlsx/docx/pptx/RAG/MCP Skills 활용 체계
+    - 병렬 에이전트 작업 패턴 정립
+  - **기술 부채 해소** (린트 경고 20개 → 4개):
+    - React Hooks 의존성 수정 (ImageUpload, PromptTemplateSelector, TemplateVersionHistory, file-upload)
+    - any 타입 제거 (useCheckout.test, useSubscriptions.test, SubscriptionCheckout)
+    - export * → 명시적 export (MCPPermissionContext, MCPProtected, SubscriptionGate)
+  - **프롬프트 템플릿 타입 통합**:
+    - `prompt-template.types.ts` Primary 확정
+    - skill_type → category 필터 변경
+    - extractVariables() 함수 검증
+  - **빌드**: 22.34s 성공 (PWA precache 27 entries)
+
 - ✅ **Claude Skills P1 백로그 완료** (병렬 6개 에이전트)
   - **BL-009: 생성 문서 이력**
     - DB: `generated_documents` 테이블 (RLS, 인덱스)
@@ -371,20 +386,63 @@
 
 ---
 
-## 🎯 SDD (Spec-Driven Development) 방법론
+## 🎯 SSDD (Skillful Spec-Driven Development) 방법론
 
 ### 개요
-IDEA on Action 프로젝트는 **명세 주도 개발(Spec-Driven Development)**을 적용하여, 코드보다 의도를 먼저 정의하고 AI와 협업하는 체계적인 개발 프로세스를 따릅니다.
+IDEA on Action 프로젝트는 **SSDD (Skillful Spec-Driven Development)**를 적용합니다. 이는 기존 SDD(명세 주도 개발)에 **Claude Skills**를 통합한 진화된 개발 방법론입니다.
 
-### SDD란?
+### SSDD란?
+
+**SSDD = SDD + Claude Skills Integration**
+
+```
+SDD (Spec-Driven Development)
+  └─ 명세 중심 개발: 코드보다 의도를 먼저 정의
+
+Claude Skills
+  └─ AI 기반 자동화: xlsx/docx/pptx 생성, RAG 검색, MCP 오케스트레이션
+
+SSDD (Skillful SDD)
+  └─ 명세 기반 + AI Skills 활용 = 체계적이고 자동화된 개발
+```
+
+### SDD 기반
 코드 작성 전에 **명세서(Specification)**를 먼저 작성하는 개발 방법론으로, 명세서가 개발자와 AI의 **단일 진실 소스(Single Source of Truth)** 역할을 수행합니다.
 
 ```
 전통적 접근: 코드 중심 → 문서는 사후 보강
-SDD 접근: 명세 중심 → 코드는 명세의 구현체
+SSDD 접근: 명세 중심 + AI Skills → 자동화된 산출물 생성
 ```
 
-### SDD의 핵심 원칙
+### Claude Skills 통합
+
+SSDD에서 활용하는 핵심 Skills:
+
+| Skill | 용도 | 산출물 |
+|-------|------|--------|
+| **xlsx Skill** | 데이터 분석/보고서 | Excel 스프레드시트, 차트 |
+| **docx Skill** | 문서 생성 | RFP, 보고서, 계약서 |
+| **pptx Skill** | 프레젠테이션 | 슬라이드, 발표 자료 |
+| **RAG Skill** | 지식 검색 | 하이브리드 검색 결과 |
+| **MCP Orchestrator** | 서비스 연동 | Minu 서비스 통합 |
+
+### SSDD 병렬 작업 패턴
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    SSDD Sprint                          │
+├─────────────────────────────────────────────────────────┤
+│  Agent 1: 기술 부채     │  Agent 3: 프롬프트 템플릿      │
+│  - Hooks 의존성         │  - 타입 통합                   │
+│  - any 타입 제거        │  - TemplateEditor             │
+├─────────────────────────┼──────────────────────────────┤
+│  Agent 2: Export 수정   │  Agent 4: E2E 테스트          │
+│  - export * 경고        │  - 10개 테스트 케이스          │
+│  - 코드 순서            │  - 통합 검증                   │
+└─────────────────────────┴──────────────────────────────┘
+```
+
+### SSDD의 핵심 원칙
 
 #### 1. 명세가 원본(Source)이다
 - 코드는 명세의 **표현물(Artifact)**

@@ -11,102 +11,23 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type {
   PromptTemplate,
-  PromptTemplateDB,
   PromptTemplateFilters,
-  PromptTemplatesResponse,
   CreatePromptTemplateInput,
   UpdatePromptTemplateInput,
-  RenderedPrompt,
-  dbToPromptTemplate,
-  promptTemplateToDb,
-} from '@/types/prompt-templates.types';
-
-// ============================================================================
-// 유틸리티 함수 임포트
-// ============================================================================
-
-// dbToPromptTemplate, promptTemplateToDb는 타입 파일에서 정의되어 있음
-import {
-  dbToPromptTemplate as convertDbToPromptTemplate,
-  promptTemplateToDb as convertPromptTemplateToDb,
-} from '@/types/prompt-templates.types';
+  RenderPromptInput,
+  RenderPromptResult,
+  interpolateTemplate,
+  extractVariables,
+} from '@/types/prompt-template.types';
 
 // ============================================================================
 // 프롬프트 렌더링 (useClaudeSkill의 renderPrompt 재사용)
 // ============================================================================
 
-/**
- * 프롬프트 변수 치환
- *
- * Handlebars 스타일 템플릿 렌더링:
- * - {{variable}}: 일반 변수
- * - {{#if variable}}...{{/if}}: 조건부 블록
- * - {{variable.nested}}: 중첩 객체
- *
- * @param template - 템플릿 문자열
- * @param variables - 변수 맵
- * @returns 렌더링된 문자열
- */
-export function renderPrompt(template: string, variables: Record<string, unknown>): string {
-  let result = template;
-
-  // 조건부 블록 처리 {{#if variable}}...{{/if}}
-  const conditionalRegex = /\{\{#if\s+(\w+)\}\}([\s\S]*?)\{\{\/if\}\}/g;
-  result = result.replace(conditionalRegex, (_, varName, content) => {
-    const value = variables[varName];
-    if (value !== undefined && value !== null && value !== '') {
-      return content;
-    }
-    return '';
-  });
-
-  // 일반 변수 치환 {{variable}} 또는 {{variable.nested}}
-  const variableRegex = /\{\{(\w+(?:\.\w+)*)\}\}/g;
-  result = result.replace(variableRegex, (_, path) => {
-    const parts = path.split('.');
-    let value: unknown = variables;
-
-    for (const part of parts) {
-      if (value && typeof value === 'object' && part in value) {
-        value = (value as Record<string, unknown>)[part];
-      } else {
-        return '';
-      }
-    }
-
-    // 배열은 번호 매긴 목록으로 변환
-    if (Array.isArray(value)) {
-      return value.map((item, i) => `${i + 1}. ${typeof item === 'string' ? item : JSON.stringify(item)}`).join('\n');
-    }
-
-    // 객체는 JSON으로 변환
-    if (typeof value === 'object' && value !== null) {
-      return JSON.stringify(value, null, 2);
-    }
-
-    return String(value ?? '');
-  });
-
-  return result;
-}
-
-/**
- * 템플릿 렌더링
- *
- * @param template - 프롬프트 템플릿
- * @param variables - 변수 맵
- * @returns 렌더링된 프롬프트
- */
-export function renderPromptTemplate(
-  template: PromptTemplate,
-  variables: Record<string, unknown>
-): RenderedPrompt {
-  return {
-    systemPrompt: renderPrompt(template.systemPrompt, variables),
-    userPrompt: renderPrompt(template.userPromptTemplate, variables),
-    variables,
-  };
-}
+// 렌더링 함수는 타입 파일에서 임포트
+import {
+  interpolateTemplate as renderPrompt,
+} from '@/types/prompt-template.types';
 
 // ============================================================================
 // 템플릿 조회 훅
@@ -120,15 +41,14 @@ export function renderPromptTemplate(
  *
  * @example
  * ```tsx
- * const { templates, totalCount, isLoading, error } = usePromptTemplates({
- *   skillType: 'rfp-generator',
- *   isActive: true,
+ * const { data, isLoading, error } = usePromptTemplates({
+ *   category: 'rfp',
  *   limit: 20,
  * });
  * ```
  */
 export function usePromptTemplates(filters?: PromptTemplateFilters) {
-  return useQuery<PromptTemplatesResponse>({
+  return useQuery({
     queryKey: ['prompt-templates', filters],
     queryFn: async () => {
       // Base query
@@ -137,23 +57,31 @@ export function usePromptTemplates(filters?: PromptTemplateFilters) {
         .select('*', { count: 'exact' });
 
       // Filters
-      if (filters?.skillType) {
-        query = query.eq('skill_type', filters.skillType);
+      if (filters?.category) {
+        query = query.eq('category', filters.category);
       }
-      if (filters?.serviceId) {
-        query = query.eq('service_id', filters.serviceId);
+      if (filters?.service_id !== undefined) {
+        if (filters.service_id === null) {
+          query = query.is('service_id', null);
+        } else {
+          query = query.eq('service_id', filters.service_id);
+        }
       }
-      if (filters?.isSystem !== undefined) {
-        query = query.eq('is_system', filters.isSystem);
+      if (filters?.is_system !== undefined) {
+        query = query.eq('is_system', filters.is_system);
       }
-      if (filters?.isPublic !== undefined) {
-        query = query.eq('is_public', filters.isPublic);
+      if (filters?.is_public !== undefined) {
+        query = query.eq('is_public', filters.is_public);
       }
-      if (filters?.isActive !== undefined) {
-        query = query.eq('is_active', filters.isActive);
+      if (filters?.created_by) {
+        query = query.eq('created_by', filters.created_by);
       }
-      if (filters?.createdBy) {
-        query = query.eq('created_by', filters.createdBy);
+      if (filters?.parent_id !== undefined) {
+        if (filters.parent_id === null) {
+          query = query.is('parent_id', null);
+        } else {
+          query = query.eq('parent_id', filters.parent_id);
+        }
       }
 
       // Search (name 또는 description)
@@ -162,14 +90,15 @@ export function usePromptTemplates(filters?: PromptTemplateFilters) {
       }
 
       // Ordering
-      const orderBy = filters?.orderBy || 'created_at';
-      const orderDirection = filters?.orderDirection || 'desc';
-      query = query.order(orderBy, { ascending: orderDirection === 'asc' });
+      const sortBy = filters?.sortBy || 'created_at';
+      const sortOrder = filters?.sortOrder || 'desc';
+      query = query.order(sortBy, { ascending: sortOrder === 'asc' });
 
       // Pagination
-      const limit = filters?.limit || 50;
-      const offset = filters?.offset || 0;
-      query = query.range(offset, offset + limit - 1);
+      const pageSize = filters?.pageSize || 50;
+      const page = filters?.page || 1;
+      const offset = (page - 1) * pageSize;
+      query = query.range(offset, offset + pageSize - 1);
 
       // Execute query
       const { data, error, count } = await query;
@@ -179,12 +108,15 @@ export function usePromptTemplates(filters?: PromptTemplateFilters) {
         throw new Error(`템플릿 목록을 불러오는데 실패했습니다: ${error.message}`);
       }
 
-      // DB 레코드를 클라이언트 객체로 변환
-      const templates = (data as PromptTemplateDB[]).map(convertDbToPromptTemplate);
+      // DB 레코드는 이미 올바른 형식 (camelCase 변환 불필요)
+      const templates = (data || []) as PromptTemplate[];
 
       return {
-        data: templates,
-        count,
+        templates,
+        totalCount: count || 0,
+        isLoading: false,
+        error: null,
+        hasMore: count ? offset + pageSize < count : false,
       };
     },
     staleTime: 30 * 1000, // 30초
@@ -206,10 +138,10 @@ export function usePromptTemplates(filters?: PromptTemplateFilters) {
  * await createTemplate.mutateAsync({
  *   name: '내 RFP 템플릿',
  *   description: '정부 SI 프로젝트용 RFP',
- *   skillType: 'rfp-generator',
- *   systemPrompt: '...',
- *   userPromptTemplate: '...',
- *   variables: ['projectName', 'clientName'],
+ *   category: 'rfp',
+ *   system_prompt: '...',
+ *   user_prompt_template: '...',
+ *   variables: [{name: 'projectName', type: 'string', required: true, description: '프로젝트명'}],
  * });
  * ```
  */
@@ -225,21 +157,20 @@ export function useCreatePromptTemplate() {
       }
 
       // DB 레코드 생성
-      const dbRecord: Partial<PromptTemplateDB> = {
+      const dbRecord = {
         name: input.name,
         description: input.description,
-        skill_type: input.skillType,
-        system_prompt: input.systemPrompt,
-        user_prompt_template: input.userPromptTemplate,
-        variables: input.variables,
+        category: input.category,
+        system_prompt: input.system_prompt,
+        user_prompt_template: input.user_prompt_template,
+        variables: input.variables || [],
+        output_schema: input.output_schema || null,
         version: input.version || '1.0.0',
-        service_id: input.serviceId || null,
+        service_id: input.service_id || null,
         is_system: false, // 사용자가 생성한 템플릿은 시스템 템플릿이 아님
-        is_public: input.isPublic || false,
-        is_active: true,
+        is_public: input.is_public || false,
+        parent_id: input.parent_id || null,
         created_by: user.id,
-        usage_count: 0,
-        metadata: input.metadata || null,
       };
 
       // Insert
@@ -259,7 +190,7 @@ export function useCreatePromptTemplate() {
         throw new Error(`템플릿 생성에 실패했습니다: ${error.message}`);
       }
 
-      return convertDbToPromptTemplate(data as PromptTemplateDB);
+      return data as PromptTemplate;
     },
     onSuccess: (data) => {
       // Invalidate queries
@@ -283,26 +214,20 @@ export function useCreatePromptTemplate() {
  * ```tsx
  * const updateTemplate = useUpdatePromptTemplate();
  * await updateTemplate.mutateAsync({
- *   id: 'template-uuid',
  *   name: '수정된 템플릿명',
- *   isPublic: true,
- * });
+ *   is_public: true,
+ * }, 'template-uuid');
  * ```
  */
 export function useUpdatePromptTemplate() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (input: UpdatePromptTemplateInput) => {
-      const { id, ...updates } = input;
-
-      // 클라이언트 객체를 DB 레코드로 변환
-      const dbUpdates = convertPromptTemplateToDb(updates as Partial<PromptTemplate>);
-
+    mutationFn: async ({ id, updates }: { id: string; updates: UpdatePromptTemplateInput }) => {
       // Update
       const { data, error } = await supabase
         .from('prompt_templates')
-        .update(dbUpdates)
+        .update(updates)
         .eq('id', id)
         .select()
         .single();
@@ -317,7 +242,7 @@ export function useUpdatePromptTemplate() {
         throw new Error(`템플릿 수정에 실패했습니다: ${error.message}`);
       }
 
-      return convertDbToPromptTemplate(data as PromptTemplateDB);
+      return data as PromptTemplate;
     },
     onSuccess: (data) => {
       // Invalidate queries
@@ -398,7 +323,7 @@ export function useIncrementTemplateUsage() {
     mutationFn: async (templateId: string) => {
       // RPC 함수 호출 (increment_template_usage)
       const { error } = await supabase.rpc('increment_template_usage', {
-        template_id: templateId,
+        p_template_id: templateId,
       });
 
       if (error) {

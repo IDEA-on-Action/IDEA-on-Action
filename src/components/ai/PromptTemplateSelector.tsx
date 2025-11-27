@@ -200,18 +200,17 @@ export const PromptTemplateSelector: React.FC<PromptTemplateSelectorProps> = ({
   const { user } = useAuth();
   const currentUserId = user?.id || '';
 
+  // 프롬프트 템플릿 목록 조회
+  const { data: templatesResponse, isLoading } = usePromptTemplates();
+
+  // 템플릿 목록 (memoized)
+  const templates = useMemo(() => templatesResponse?.templates || [], [templatesResponse?.templates]);
+
   // 선택된 템플릿
   const selectedTemplate = useMemo(
     () => templates.find((t) => t.id === selectedTemplateId) || null,
     [templates, selectedTemplateId]
   );
-
-  // 프롬프트 템플릿 목록 조회
-  const { data: templatesResponse, isLoading } = usePromptTemplates({
-    isActive: true,
-  });
-
-  const templates = templatesResponse?.data || [];
 
   // 카테고리별 그룹화된 템플릿
   const groupedTemplates = useMemo(

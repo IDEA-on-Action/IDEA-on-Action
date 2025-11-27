@@ -138,7 +138,7 @@ export function TemplateVersionHistory({
   const getDiff = useMemo(() => {
     if (!compareVersions) return null;
     return compareVersions(compareVersions.v1.id, compareVersions.v2.id);
-  }, [compareVersions, compareVersions]);
+  }, [compareVersions]);
 
   // 로딩 상태
   if (isLoading) {

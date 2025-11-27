@@ -1,5 +1,5 @@
 
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, type MockedFunction } from 'vitest'
 import { renderHook, waitFor } from '@testing-library/react'
 import { useMySubscriptions, useCancelSubscription } from './useSubscriptions'
 import { createWrapper } from '@/test/utils' // Assuming a test wrapper exists or I'll create a simple one
@@ -31,7 +31,7 @@ describe('useSubscriptions', () => {
     describe('useMySubscriptions', () => {
         it('should throw error if user is not logged in', async () => {
             // Mock getUser to return null
-            (supabase.auth.getUser as any).mockResolvedValue({ data: { user: null } })
+            (supabase.auth.getUser as MockedFunction<typeof supabase.auth.getUser>).mockResolvedValue({ data: { user: null } })
 
             const { result } = renderHook(() => useMySubscriptions(), {
                 wrapper: createWrapper()
@@ -43,7 +43,7 @@ describe('useSubscriptions', () => {
 
         it('should return subscriptions if user is logged in', async () => {
             // Mock getUser
-            (supabase.auth.getUser as any).mockResolvedValue({ data: { user: { id: 'user-123' } } })
+            (supabase.auth.getUser as MockedFunction<typeof supabase.auth.getUser>).mockResolvedValue({ data: { user: { id: 'user-123' } } })
 
             // Mock select chain
             const mockData = [{ id: 'sub-1', status: 'active' }]
@@ -53,7 +53,7 @@ describe('useSubscriptions', () => {
                 })
             })
 
-                ; (supabase.from as any).mockReturnValue({
+                ; (supabase.from as MockedFunction<typeof supabase.from>).mockReturnValue({
                     select: mockSelect
                 })
 
@@ -77,7 +77,7 @@ describe('useSubscriptions', () => {
                 })
             })
 
-                ; (supabase.from as any).mockReturnValue({
+                ; (supabase.from as MockedFunction<typeof supabase.from>).mockReturnValue({
                     update: mockUpdate
                 })
 

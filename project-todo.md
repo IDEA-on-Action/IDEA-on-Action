@@ -3,10 +3,47 @@
 > 프로젝트 작업 목록 및 진행 상황 관리
 
 **마지막 업데이트**: 2025-11-27
-**현재 Phase**: Claude Skills P1 + Minu 통합 완료
-**다음 단계**: 프로덕션 배포 및 테스트
-**프로젝트 버전**: 2.20.0 (Claude Skills P1 + Minu OAuth 2.0 + Slack 알림)
+**현재 Phase**: SSDD 도입 + 기술 부채 해소 완료
+**다음 단계**: TemplateEditor 구현 + E2E 테스트
+**프로젝트 버전**: 2.21.0 (SSDD 도입 + 기술 부채 해소)
 **프로덕션**: https://www.ideaonaction.ai
+
+---
+
+## ✅ 완료: SSDD 도입 + 기술 부채 해소 (v2.21.0)
+
+**목표**: SSDD 방법론 정의, 기술 부채 해소, 프롬프트 템플릿 타입 통합
+**완료일**: 2025-11-27
+**병렬 에이전트**: 4개 동시 작업
+
+### 완료된 작업
+
+| 카테고리 | 작업 | 상태 |
+|---------|------|------|
+| 문서 | SSDD (Skillful SDD) 방법론 CLAUDE.md 반영 | ✅ 완료 |
+| Hooks | ImageUpload useMemo 적용 | ✅ 완료 |
+| Hooks | PromptTemplateSelector 순서 수정 + useMemo | ✅ 완료 |
+| Hooks | TemplateVersionHistory 중복 의존성 제거 | ✅ 완료 |
+| Hooks | file-upload previewUrl 의존성 추가 | ✅ 완료 |
+| 타입 | useCheckout.test MockedFunction 적용 | ✅ 완료 |
+| 타입 | useSubscriptions.test MockedFunction 적용 | ✅ 완료 |
+| 타입 | SubscriptionCheckout SavedPlanInfo 인터페이스 | ✅ 완료 |
+| Export | MCPPermissionContext 명시적 export | ✅ 완료 |
+| Export | MCPProtected 명시적 export | ✅ 완료 |
+| Export | SubscriptionGate 명시적 export | ✅ 완료 |
+| 템플릿 | prompt-template.types.ts Primary 확정 | ✅ 완료 |
+| 템플릿 | skill_type → category 필터 변경 | ✅ 완료 |
+| 템플릿 | usePromptTemplates 훅 시그니처 수정 | ✅ 완료 |
+
+### 품질 지표 개선
+
+| 지표 | 이전 | 이후 | 개선 |
+|------|------|------|------|
+| 린트 경고 | 20개 | 4개 | -80% |
+| React Hooks 경고 | 10개 | 0개 | -100% |
+| any 타입 | 6개 | 0개 | -100% |
+| export * 경고 | 3개 | 0개 | -100% |
+| 빌드 시간 | - | 22.34s | ✅ |
 
 ---
 
