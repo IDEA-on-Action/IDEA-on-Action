@@ -83,6 +83,8 @@ export interface UseXlsxExportOptions {
   serviceId?: ServiceId;
   /** 차트 포함 여부 (기본값: false) */
   includeCharts?: boolean;
+  /** 차트 Canvas 참조 배열 (includeCharts가 true일 때 필수) */
+  chartRefs?: React.RefObject<HTMLCanvasElement>[];
 }
 
 /**

@@ -220,6 +220,10 @@ export interface DocxGenerateOptions {
   styles?: DocxStyleOptions;
   /** 헤더/푸터 옵션 */
   headerFooter?: HeaderFooterOptions;
+  /** 헤더 로고 URL */
+  headerLogo?: string;
+  /** 문서 내 이미지 목록 */
+  images?: ImageOptions[];
 }
 
 /**
@@ -257,10 +261,31 @@ export interface HeaderFooterOptions {
   footerText?: string;
   /** 로고 이미지 URL */
   logoUrl?: string;
+  /** 로고 크기 */
+  logoSize?: {
+    width?: number;
+    height?: number;
+  };
   /** 페이지 번호 표시 */
   showPageNumbers?: boolean;
   /** 날짜 표시 */
   showDate?: boolean;
+}
+
+/**
+ * 이미지 옵션
+ */
+export interface ImageOptions {
+  /** 이미지 URL */
+  url: string;
+  /** 이미지 너비 (픽셀) */
+  width?: number;
+  /** 이미지 높이 (픽셀) */
+  height?: number;
+  /** 캡션 텍스트 */
+  caption?: string;
+  /** 정렬 */
+  alignment?: 'left' | 'center' | 'right';
 }
 
 // ============================================================================

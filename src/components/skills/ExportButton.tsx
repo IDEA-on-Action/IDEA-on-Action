@@ -20,6 +20,10 @@ interface ExportButtonProps {
   children?: React.ReactNode;
   /** 추가 클래스 */
   className?: string;
+  /** 차트 포함 여부 (기본값: false) */
+  includeCharts?: boolean;
+  /** 차트 Canvas 참조 배열 */
+  chartRefs?: React.RefObject<HTMLCanvasElement>[];
 }
 
 /**
@@ -52,12 +56,23 @@ export function ExportButton({
   size = 'default',
   children,
   className,
+  includeCharts = false,
+  chartRefs,
 }: ExportButtonProps) {
   const { exportToExcel, isExporting, progress, error } = useXlsxExport();
 
   const handleClick = async () => {
-    await exportToExcel(options);
+    // 차트 옵션 병합
+    const exportOptions: UseXlsxExportOptions = {
+      ...options,
+      includeCharts,
+      chartRefs,
+    };
+    await exportToExcel(exportOptions);
   };
+
+  // 버튼 라벨 결정
+  const defaultLabel = includeCharts ? 'Excel + 차트 내보내기' : 'Excel 내보내기';
 
   return (
     <div className="inline-flex flex-col items-start gap-1">
@@ -76,7 +91,7 @@ export function ExportButton({
         ) : (
           <>
             <Download className="mr-2 h-4 w-4" />
-            {children || 'Excel 내보내기'}
+            {children || defaultLabel}
           </>
         )}
       </Button>

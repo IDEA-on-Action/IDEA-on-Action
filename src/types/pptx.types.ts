@@ -15,7 +15,7 @@ import type { SkillError } from './skills.types';
 /**
  * 슬라이드 유형
  */
-export type SlideType = 'title' | 'content' | 'twoColumn' | 'chart';
+export type SlideType = 'title' | 'content' | 'twoColumn' | 'chart' | 'image' | 'comparison' | 'quote';
 
 /**
  * 차트 유형
@@ -41,6 +41,11 @@ export interface ChartData {
 }
 
 /**
+ * 이미지 레이아웃 타입
+ */
+export type ImageLayout = 'full' | 'left' | 'right' | 'center';
+
+/**
  * 슬라이드 콘텐츠
  */
 export interface SlideContent {
@@ -62,6 +67,22 @@ export interface SlideContent {
   rightTitle?: string;
   /** 차트 데이터 (chart 슬라이드용) */
   chartData?: ChartData;
+  /** 이미지 URL (image 슬라이드용) */
+  imageUrl?: string;
+  /** 이미지 Base64 (image 슬라이드용) */
+  imageBase64?: string;
+  /** 이미지 레이아웃 (image 슬라이드용) */
+  imageLayout?: ImageLayout;
+  /** 캡션 (image 슬라이드용) */
+  caption?: string;
+  /** 인용문 텍스트 (quote 슬라이드용) */
+  quoteText?: string;
+  /** 인용문 출처 (quote 슬라이드용) */
+  quoteAuthor?: string;
+  /** 범례 표시 여부 (chart 슬라이드용) */
+  showLegend?: boolean;
+  /** 데이터 레이블 표시 여부 (chart 슬라이드용) */
+  showDataLabels?: boolean;
   /** 슬라이드 노트 */
   notes?: string;
 }
@@ -242,6 +263,9 @@ export const SLIDE_TYPE_LABELS: Record<SlideType, string> = {
   content: '내용 슬라이드',
   twoColumn: '2단 레이아웃',
   chart: '차트 슬라이드',
+  image: '이미지 슬라이드',
+  comparison: '비교 슬라이드',
+  quote: '인용문 슬라이드',
 };
 
 /**

@@ -12,7 +12,6 @@
 
 import { useState, useCallback } from 'react';
 import { useMutation } from '@tanstack/react-query';
-import { Document, Packer } from 'docx';
 import { toast } from 'sonner';
 
 import type {
@@ -121,8 +120,13 @@ export function useDocxGenerate(): UseDocxGenerateReturn {
 
   const mutation = useMutation({
     mutationFn: async (options: DocxGenerateOptions): Promise<DocxGenerateResult> => {
-      setProgress(10);
+      setProgress(5);
       setSkillError(null);
+
+      // docx 라이브러리 동적 로딩
+      const docx = await import('docx');
+      const { Document, Packer } = docx;
+      setProgress(10);
 
       const { template, category, data, metadata, outputFileName, styles } = options;
 
@@ -153,7 +157,7 @@ export function useDocxGenerate(): UseDocxGenerateReturn {
             // RFP 템플릿: 카테고리별 전용 빌더 사용
             const sections = buildRFPSections(engine, category as RFPCategory, data);
             setProgress(60);
-            blob = await createDocumentBlob(docMetadata, sections);
+            blob = await createDocumentBlob(docMetadata, sections, Document, Packer);
             fileName = outputFileName || generateFileName(template, data.projectName);
             break;
           }
@@ -162,7 +166,7 @@ export function useDocxGenerate(): UseDocxGenerateReturn {
             // 보고서 템플릿: 카테고리별 전용 빌더 사용
             const sections = buildReportSections(category as ReportCategory, data);
             setProgress(60);
-            blob = await createDocumentBlob(docMetadata, sections);
+            blob = await createDocumentBlob(docMetadata, sections, Document, Packer);
             fileName = outputFileName || generateFileName(template, data.projectName);
             break;
           }
@@ -280,7 +284,9 @@ function buildReportSections(
  */
 async function createDocumentBlob(
   metadata: DocumentMetadata,
-  sections: (import('docx').Paragraph | import('docx').Table)[]
+  sections: (import('docx').Paragraph | import('docx').Table)[],
+  Document: typeof import('docx').Document,
+  Packer: typeof import('docx').Packer
 ): Promise<Blob> {
   const doc = new Document({
     creator: metadata.author,

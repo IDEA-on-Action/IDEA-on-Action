@@ -1,7 +1,7 @@
 {
   "name": "vite_react_shadcn_ts",
   "private": true,
-  "version": "2.19.0",
+  "version": "2.20.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -139,6 +139,7 @@
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.0",
     "@testing-library/user-event": "^14.6.1",
+    "@types/jszip": "^3.4.0",
     "@types/node": "^22.16.5",
     "@types/qrcode": "^1.5.5",
     "@types/react": "^18.3.23",

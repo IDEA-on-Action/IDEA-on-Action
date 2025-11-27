@@ -1,6 +1,6 @@
 /**
  * PowerPoint Skills Module
- * TASK-CS-035: Minu Frame 발표 자료 생성 스킬
+ * TASK-CS-035, BL-011: Minu Frame 발표 자료 생성 스킬 (고도화)
  *
  * @module skills/pptx
  */
@@ -16,12 +16,16 @@ export {
 // 템플릿
 export * from './templates';
 
+// 마스터 슬라이드
+export * from './masters';
+
 // 타입 re-export
 export type {
   SlideType,
   SlideContent,
   ChartType,
   ChartData,
+  ImageLayout,
   PresentationMetadata,
   BrandColors,
   PptxStyleOptions,

@@ -12,7 +12,6 @@
 
 import { useState, useCallback } from 'react';
 import { useMutation } from '@tanstack/react-query';
-import PptxGenJS from 'pptxgenjs';
 import { toast } from 'sonner';
 
 import type {
@@ -30,6 +29,8 @@ import { addTitleSlide } from './templates/titleSlide';
 import { addContentSlide } from './templates/contentSlide';
 import { addTwoColumnSlide } from './templates/twoColumnSlide';
 import { addChartSlide } from './templates/chartSlide';
+import { addImageSlide } from './templates/imageSlide';
+import { applyAllBrandMasters } from './masters/brandMaster';
 
 // ============================================================================
 // 유틸리티 함수
@@ -144,7 +145,60 @@ function buildSlide(
         colors,
         titleFont: styles.titleFont,
         bodyFont: styles.bodyFont,
+        showLegend: content.showLegend,
+        showDataLabels: content.showDataLabels,
       });
+      break;
+
+    case 'image':
+      addImageSlide({
+        slide,
+        content,
+        colors,
+        titleFont: styles.titleFont,
+        bodyFont: styles.bodyFont,
+      });
+      break;
+
+    case 'comparison':
+      // comparison은 twoColumn과 동일하게 처리
+      addTwoColumnSlide({
+        slide,
+        content,
+        colors,
+        titleFont: styles.titleFont,
+        bodyFont: styles.bodyFont,
+        bodyFontSize: styles.bodyFontSize,
+      });
+      break;
+
+    case 'quote':
+      // quote 슬라이드는 특별한 content 슬라이드로 처리
+      addContentSlide({
+        slide,
+        content: {
+          ...content,
+          content: content.quoteText ? [`"${content.quoteText}"`] : [],
+        },
+        colors,
+        titleFont: styles.titleFont,
+        bodyFont: styles.bodyFont,
+        bodyFontSize: styles.bodyFontSize,
+      });
+      if (content.quoteAuthor) {
+        slide.addText(`— ${content.quoteAuthor}`, {
+          x: 0.5,
+          y: 5.5,
+          w: '90%',
+          h: 0.5,
+          fontSize: 16,
+          fontFace: styles.bodyFont,
+          color: colors.text,
+          align: 'right',
+          valign: 'middle',
+          italic: true,
+        });
+      }
       break;
 
     default:
@@ -190,8 +244,12 @@ export function usePptxGenerate(): UsePptxGenerateReturn {
 
   const mutation = useMutation({
     mutationFn: async (options: PptxGenerateOptions): Promise<PptxGenerateResult> => {
-      setProgress(10);
+      setProgress(5);
       setSkillError(null);
+
+      // pptxgenjs 라이브러리 동적 로딩
+      const { default: PptxGenJS } = await import('pptxgenjs');
+      setProgress(10);
 
       const { slides, filename, metadata, styles: userStyles } = options;
 
@@ -200,6 +258,10 @@ export function usePptxGenerate(): UsePptxGenerateReturn {
 
       // pptxgenjs 인스턴스 생성
       const pptx = new PptxGenJS();
+
+      // 브랜드 마스터 슬라이드 적용 (선택사항)
+      // 주석 해제 시 마스터 슬라이드 사용
+      // applyAllBrandMasters(pptx);
 
       // 프레젠테이션 설정
       pptx.layout = styles.layout;

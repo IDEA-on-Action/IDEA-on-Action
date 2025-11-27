@@ -2,8 +2,8 @@
 
 > Claude와의 개발 협업을 위한 프로젝트 핵심 문서
 
-**마지막 업데이트**: 2025-11-26
-**현재 버전**: 2.19.0 (RAG 하이브리드 검색)
+**마지막 업데이트**: 2025-11-27
+**현재 버전**: 2.20.0 (Claude Skills P1 완료)
 **상태**: ✅ Production Ready | 🔒 보안 점수 98/100 | 🎯 토스페이먼츠 심사 제출 완료
 **개발 방법론**: SDD (Spec-Driven Development) + MCP (Model Context Protocol) Integration
 
@@ -11,7 +11,89 @@
 
 ## 📋 최신 업데이트
 
-### 2025-11-26 (오늘)
+### 2025-11-27 (오늘)
+- ✅ **Claude Skills P1 백로그 완료** (병렬 6개 에이전트)
+  - **BL-009: 생성 문서 이력**
+    - DB: `generated_documents` 테이블 (RLS, 인덱스)
+    - 훅: `useDocumentHistory` (조회, 저장, 삭제)
+    - UI: `DocumentHistoryList` (테이블, 삭제 확인)
+  - **BL-006: xlsx 차트 내보내기**
+    - ZIP 방식: xlsx + 차트 PNG 이미지 묶음
+    - `chart-exporter.ts`, JSZip 활용
+    - `ExportButton` 확장 (includeCharts, chartRefs)
+  - **BL-008: 템플릿 버전 관리**
+    - DB: `template_versions` 테이블, 자동 버전 생성 트리거
+    - 훅: `useTemplateVersions` (버전 목록, 복원, 비교)
+    - UI: `TemplateVersionHistory` (타임라인, 복원 다이얼로그)
+  - **BL-007: docx 이미지 삽입**
+    - `createImageRun()`, `createHeaderWithLogo()` 함수
+    - `ImageRun` API 활용 (docx 패키지)
+  - **BL-011: pptx 고도화**
+    - 마스터 슬라이드: `IDEA_BRAND`, `IDEA_TITLE`
+    - 이미지 슬라이드: 4가지 레이아웃 (full/left/right/center)
+    - 차트 개선: 범례/레이블 제어, 10색 팔레트
+    - 새 슬라이드 타입: image, comparison, quote
+  - **TD-001~003: 동적 로딩**
+    - xlsx, docx, pptxgenjs 동적 import 적용
+    - 초기 번들 ~300KB 절감
+  - **빌드**: 23.23s 성공 (PWA precache 27 entries)
+
+- ✅ **BL-012: Slack 알림 구현** - Critical/High 이슈 자동 알림
+  - **Edge Function**: `send-slack-notification` (Slack Incoming Webhook 연동)
+    - 서비스/심각도/상태별 색상 코딩
+    - 타임스탬프 및 메타데이터 포함
+    - CORS 지원, 에러 핸들링
+  - **DB 트리거**: `notify_slack_on_critical_issue()`
+    - INSERT 트리거: 신규 Critical/High 이슈 발생 시
+    - UPDATE 트리거: 심각도 변경 또는 재발 시
+    - pg_net 비동기 HTTP POST (알림 실패가 이슈 생성을 막지 않음)
+  - **DB 마이그레이션**: `20251127000002_create_slack_notification_trigger.sql`
+    - pg_net 확장 활성화
+    - 환경 변수 기반 설정 (app.settings.supabase_url, service_role_key)
+  - **Supabase Secrets**: `SLACK_WEBHOOK_URL` 설정 완료
+  - **문서**: `docs/guides/ideaonaction-slack-notification-setup.md` (설정 가이드)
+  - **테스트 스크립트**: `scripts/test-slack-notification.sql` (SQL 테스트 도구)
+
+- ✅ **v2.20.0: Minu 통합 OAuth 2.0 + 구독 시스템**
+  - **OAuth 2.0 Authorization Server**:
+    - Edge Functions: `oauth-authorize`, `oauth-token`, `oauth-revoke`
+    - PKCE (RFC 7636) 필수, RS256 JWT 서명
+    - Minu 4개 서비스 클라이언트 등록 (find/frame/build/keep.minu.best)
+  - **REST API Edge Functions**:
+    - `user-api`: 사용자 정보 + 구독 조회
+    - `subscription-api`: 플랜 기능, 사용량 조회/증가, 접근 가능 여부
+    - `webhook-send`: HMAC-SHA256 서명, 재시도 로직
+  - **DB 마이그레이션** (5개):
+    - `oauth_clients`: OAuth 클라이언트 등록
+    - `authorization_codes`: 인가 코드 (10분 만료)
+    - `subscription_usage`: 사용량 추적 (월간 리셋)
+    - `plan_features`: 플랜별 기능 제한 정의
+    - `oauth_refresh_tokens`, `oauth_audit_log` 포함
+  - **React 훅** (8개):
+    - `useCanAccess`: 기능 접근 권한 확인
+    - `useSubscriptionUsage`: 사용량 조회/증가
+    - `useOAuthClient`: PKCE OAuth 인증, 토큰 자동 갱신
+    - `useBillingPortal`: 결제 포털, 구독 관리
+  - **React 컴포넌트** (6개):
+    - `SubscriptionGate`: 기능 접근 제어 래퍼
+    - `UpgradePrompt`: 업그레이드 유도 UI
+    - `UsageIndicator`: 사용량 프로그레스 바
+    - `BillingDashboard`: 결제 대시보드 페이지
+    - `withSubscriptionGate`: HOC 버전
+  - **TypeScript 타입** (4개):
+    - `oauth.types.ts`: OAuth 2.0 타입 (23개 스코프)
+    - `subscription-usage.types.ts`: 기능 키 38개, 사용량 타입
+    - `minu-integration.types.ts`: SSO, 웹훅, 서비스 통신 타입
+  - **E2E 테스트** (63개 케이스):
+    - `oauth-flow.spec.ts`: OAuth 플로우 12개
+    - `subscription-usage.spec.ts`: 사용량 추적 14개
+    - `subscription-gate.spec.ts`: 접근 제어 16개
+    - `billing-api.spec.ts`: 결제 API 21개
+  - **문서** (5개): 통합 가이드, REST API, 타입, 훅 가이드
+  - **빌드**: 46.34s 성공 (PWA precache 27 entries)
+  - **병렬 에이전트**: 7개 동시 작업
+
+### 2025-11-26
 - ✅ **v2.19.0: RAG 하이브리드 검색 구현**
   - **핵심 기능**: 키워드 검색(FTS) + 벡터 검색(Semantic) 결합
   - **DB 마이그레이션**:

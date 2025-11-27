@@ -280,7 +280,12 @@ export default defineConfig(({ mode }) => ({
             return 'pptx-skill';
           }
 
-          // 6. TipTap Editor - DISABLED due to React dependency issues
+          // 6. jszip Skill - ZIP file generation (used by xlsx/docx/pptx)
+          if (id.includes('node_modules/jszip')) {
+            return 'jszip-skill';
+          }
+
+          // 7. TipTap Editor - DISABLED due to React dependency issues
           // TipTap/Prosemirror uses React's useSyncExternalStore internally
           // which causes "Cannot read properties of undefined" errors
           // when separated into their own chunk.
@@ -292,14 +297,14 @@ export default defineConfig(({ mode }) => ({
           //   return 'vendor-editor';
           // }
 
-          // 7. Sentry - DISABLED due to React dependency issues
+          // 8. Sentry - DISABLED due to React dependency issues
           // Sentry React SDK uses React.Component internally
           // which causes "Cannot read properties of undefined" errors
           // if (id.includes('node_modules/@sentry')) {
           //   return 'vendor-sentry';
           // }
 
-          // 8. Auth & Security (OTP, QR Code) - Only used in 2FA setup
+          // 9. Auth & Security (OTP, QR Code) - Only used in 2FA setup
           if (
             id.includes('node_modules/otpauth') ||
             id.includes('node_modules/qrcode')

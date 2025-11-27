@@ -1,10 +1,12 @@
 /**
  * Chart Slide Template
- * TASK-CS-035: 차트 슬라이드 템플릿
+ * TASK-CS-035, BL-011: 차트 슬라이드 템플릿 (개선)
  *
  * 데이터 시각화용 슬라이드
  * - bar, line, pie, doughnut, area 차트 지원
  * - 데이터 레이블 표시
+ * - 범례 위치 및 데이터 레이블 제어 옵션 추가
+ * - 브랜드 색상 팔레트 확장
  *
  * @module skills/pptx/templates/chartSlide
  */
@@ -26,6 +28,10 @@ export interface ChartSlideOptions {
   titleFont: string;
   /** 본문 폰트 */
   bodyFont: string;
+  /** 범례 표시 여부 (기본: true) */
+  showLegend?: boolean;
+  /** 데이터 레이블 표시 여부 (기본: false) */
+  showDataLabels?: boolean;
 }
 
 /**
@@ -48,22 +54,27 @@ function mapChartType(type: ChartType): PptxChartType {
 }
 
 /**
- * 차트 색상 팔레트 생성
+ * 차트 색상 팔레트 생성 (확장)
+ *
+ * IDEA on Action 브랜드 색상 기반 팔레트
  */
 function generateChartColors(primaryColor: string, count: number): string[] {
-  // 기본 색상 팔레트
+  // 확장된 브랜드 색상 팔레트
   const colorPalette = [
-    primaryColor,      // Primary
-    '10B981',          // Emerald
-    'F59E0B',          // Amber
-    'EF4444',          // Red
-    '8B5CF6',          // Violet
-    '06B6D4',          // Cyan
-    'F97316',          // Orange
-    '84CC16',          // Lime
+    primaryColor,      // Primary (Blue 500)
+    '10B981',          // Emerald 500
+    'F59E0B',          // Amber 500
+    'EF4444',          // Red 500
+    '8B5CF6',          // Violet 500
+    '06B6D4',          // Cyan 500
+    'F97316',          // Orange 500
+    '84CC16',          // Lime 500
+    'EC4899',          // Pink 500
+    '14B8A6',          // Teal 500
   ];
 
-  return colorPalette.slice(0, count);
+  // count가 팔레트보다 많으면 순환
+  return Array.from({ length: count }, (_, i) => colorPalette[i % colorPalette.length]);
 }
 
 /**
@@ -92,7 +103,15 @@ function generateChartColors(primaryColor: string, count: number): string[] {
  * ```
  */
 export function addChartSlide(options: ChartSlideOptions): void {
-  const { slide, content, colors, titleFont, bodyFont } = options;
+  const {
+    slide,
+    content,
+    colors,
+    titleFont,
+    bodyFont,
+    showLegend = true,
+    showDataLabels = false,
+  } = options;
 
   // 배경 설정
   slide.background = { color: colors.background };
@@ -167,14 +186,14 @@ export function addChartSlide(options: ChartSlideOptions): void {
       titleColor: colors.text,
 
       // 범례 설정
-      showLegend: true,
+      showLegend,
       legendPos: isPieOrDoughnut ? 'r' : 'b',
       legendFontFace: bodyFont,
       legendFontSize: 10,
       legendColor: colors.text,
 
       // 데이터 레이블
-      showValue: true,
+      showValue: showDataLabels,
       dataLabelFontFace: bodyFont,
       dataLabelFontSize: 10,
       dataLabelColor: isPieOrDoughnut ? 'FFFFFF' : colors.text,

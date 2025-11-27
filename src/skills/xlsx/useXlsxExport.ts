@@ -7,7 +7,6 @@
  */
 
 import { useState, useCallback } from 'react';
-import * as XLSX from 'xlsx';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import type {
@@ -15,11 +14,13 @@ import type {
   UseXlsxExportResult,
   SheetConfig,
   SkillError,
+  ChartExportConfig,
 } from '@/types/skills.types';
 import { fetchEvents, eventColumns } from './generators/eventsSheet';
 import { fetchIssues, issueColumns } from './generators/issuesSheet';
 import { fetchHealth, healthColumns } from './generators/healthSheet';
 import { calculateKPI, kpiColumns } from './generators/kpiSheet';
+import { exportWithCharts } from '@/lib/skills/xlsx/chart-exporter';
 
 /**
  * xlsx 내보내기 훅
@@ -66,8 +67,13 @@ export function useXlsxExport(): UseXlsxExportResult {
       setError(null);
 
       try {
-        // 1. 데이터 로딩 (0-30%)
+        // 0. xlsx 라이브러리 동적 로딩 (0-10%)
+        setProgress(5);
+        const XLSX = await import('xlsx');
         setProgress(10);
+
+        // 1. 데이터 로딩 (10-30%)
+        setProgress(15);
         const sheets =
           options?.sheets ||
           (await fetchDefaultSheets(options?.dateRange));
@@ -92,19 +98,46 @@ export function useXlsxExport(): UseXlsxExportResult {
         }
         setProgress(60);
 
-        // 3. 파일 생성 (60-80%)
-        const buffer = XLSX.write(workbook, {
-          type: 'array',
-          bookType: 'xlsx',
-        });
-        const blob = new Blob([buffer], {
-          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        });
-        setProgress(80);
-
-        // 4. 다운로드 (80-100%)
+        // 3. 파일 생성 및 다운로드 (60-100%)
         const filename = options?.filename || generateFilename();
-        downloadBlob(blob, filename);
+
+        // 차트 포함 여부에 따라 분기
+        if (options?.includeCharts && options?.chartRefs?.length) {
+          setProgress(70);
+
+          // 차트 설정 생성
+          const charts: ChartExportConfig[] = options.chartRefs
+            .map((ref, i) => ({
+              chartId: `chart-${i}`,
+              chartElement: ref.current,
+              fileName: `chart-${i + 1}`,
+            }))
+            .filter(c => c.chartElement);
+
+          setProgress(80);
+
+          // ZIP 방식으로 내보내기
+          await exportWithCharts({
+            workbook,
+            fileName: filename.replace('.xlsx', ''), // 확장자 제거
+            charts,
+          });
+        } else {
+          // 기존 xlsx만 내보내기
+          setProgress(70);
+
+          const buffer = XLSX.write(workbook, {
+            type: 'array',
+            bookType: 'xlsx',
+          });
+          const blob = new Blob([buffer], {
+            type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          });
+
+          setProgress(80);
+          downloadBlob(blob, filename);
+        }
+
         setProgress(100);
       } catch (err) {
         console.error('[useXlsxExport] Export failed:', err);

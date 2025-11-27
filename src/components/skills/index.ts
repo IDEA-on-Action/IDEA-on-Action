@@ -8,3 +8,4 @@
 
 export { ExportButton } from './ExportButton';
 export { RFPWizard } from './RFPWizard';
+export { DocumentHistoryList } from './DocumentHistoryList';

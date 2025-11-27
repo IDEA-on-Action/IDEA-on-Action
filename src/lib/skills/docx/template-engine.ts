@@ -17,6 +17,8 @@ import {
   AlignmentType,
   BorderStyle,
   ShadingType,
+  ImageRun,
+  Header,
   convertInchesToTwip,
 } from 'docx';
 
@@ -371,5 +373,148 @@ export class TemplateEngine {
       currency,
       maximumFractionDigits: 0,
     }).format(amount);
+  }
+}
+
+// ============================================================================
+// 이미지 관련 유틸리티 함수
+// ============================================================================
+
+/**
+ * 이미지 URL을 ImageRun으로 변환
+ *
+ * @param imageUrl - 이미지 URL (http/https)
+ * @param options - 이미지 옵션 (너비, 높이)
+ * @returns ImageRun 객체
+ *
+ * @example
+ * ```typescript
+ * const imageRun = await createImageRun('https://example.com/logo.png', {
+ *   width: 200,
+ *   height: 150,
+ * });
+ * ```
+ */
+export async function createImageRun(
+  imageUrl: string,
+  options?: { width?: number; height?: number }
+): Promise<ImageRun> {
+  try {
+    const response = await fetch(imageUrl);
+    if (!response.ok) {
+      throw new Error(`이미지 로드 실패: ${response.statusText}`);
+    }
+
+    const buffer = await response.arrayBuffer();
+
+    return new ImageRun({
+      data: buffer,
+      transformation: {
+        width: options?.width || 200,
+        height: options?.height || 150,
+      },
+    });
+  } catch (error) {
+    console.error('[createImageRun] 이미지 생성 실패:', error);
+    throw new Error(`이미지 생성 실패: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+
+/**
+ * 로고가 포함된 헤더 생성
+ *
+ * @param logoUrl - 로고 이미지 URL
+ * @param options - 로고 크기 옵션
+ * @returns Header 객체
+ *
+ * @example
+ * ```typescript
+ * const header = await createHeaderWithLogo('https://example.com/logo.png', {
+ *   width: 100,
+ *   height: 50,
+ * });
+ * ```
+ */
+export async function createHeaderWithLogo(
+  logoUrl: string,
+  options?: { width?: number; height?: number }
+): Promise<Header> {
+  try {
+    const logo = await createImageRun(logoUrl, options);
+    return new Header({
+      children: [
+        new Paragraph({
+          children: [logo],
+          alignment: AlignmentType.CENTER,
+        }),
+      ],
+    });
+  } catch (error) {
+    console.error('[createHeaderWithLogo] 헤더 생성 실패:', error);
+    throw new Error(`헤더 생성 실패: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+
+/**
+ * 이미지가 포함된 문단 생성
+ *
+ * @param imageUrl - 이미지 URL
+ * @param options - 이미지 및 문단 옵션
+ * @returns Paragraph 객체
+ *
+ * @example
+ * ```typescript
+ * const imageParagraph = await createImageParagraph('https://example.com/chart.png', {
+ *   width: 400,
+ *   height: 300,
+ *   caption: '그림 1. 매출 추이',
+ *   alignment: AlignmentType.CENTER,
+ * });
+ * ```
+ */
+export async function createImageParagraph(
+  imageUrl: string,
+  options?: {
+    width?: number;
+    height?: number;
+    caption?: string;
+    alignment?: AlignmentType;
+  }
+): Promise<Paragraph[]> {
+  try {
+    const imageRun = await createImageRun(imageUrl, {
+      width: options?.width,
+      height: options?.height,
+    });
+
+    const paragraphs: Paragraph[] = [
+      new Paragraph({
+        children: [imageRun],
+        alignment: options?.alignment || AlignmentType.CENTER,
+        spacing: { before: 120, after: 60 },
+      }),
+    ];
+
+    // 캡션이 있으면 추가
+    if (options?.caption) {
+      paragraphs.push(
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: options.caption,
+              italics: true,
+              size: 20, // 10pt
+            }),
+          ],
+          alignment: options?.alignment || AlignmentType.CENTER,
+          spacing: { after: 120 },
+        })
+      );
+    }
+
+    return paragraphs;
+  } catch (error) {
+    console.error('[createImageParagraph] 이미지 문단 생성 실패:', error);
+    throw new Error(`이미지 문단 생성 실패: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
