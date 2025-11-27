@@ -34,6 +34,9 @@ interface ImportMetaEnv {
   readonly VITE_GISCUS_CATEGORY_GENERAL_ID: string
   readonly VITE_GISCUS_CATEGORY_BLOG: string
   readonly VITE_GISCUS_CATEGORY_BLOG_ID: string
+
+  // Feature Flags
+  readonly VITE_FEATURE_TOOL_USE?: string  // 'true' | 'false' - Claude Tool Use 활성화
 }
 
 interface ImportMeta {

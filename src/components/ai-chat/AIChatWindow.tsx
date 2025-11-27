@@ -1,6 +1,7 @@
 import { AIChatHeader } from './AIChatHeader';
 import { AIChatMessages } from './AIChatMessages';
 import { AIChatInput } from './AIChatInput';
+import { AIChatToolStatus } from './AIChatToolStatus';
 import type { AIChatMessage } from '@/types/ai-chat-widget.types';
 import { cn } from '@/lib/utils';
 
@@ -11,6 +12,8 @@ interface AIChatWindowProps {
   onNewChat: () => void;
   onSendMessage: (message: string) => void;
   position?: 'bottom-right' | 'bottom-left';
+  /** 현재 실행 중인 도구 이름 (Tool Use 상태 표시) */
+  executingTool?: string | null;
 }
 
 /**
@@ -26,6 +29,7 @@ export function AIChatWindow({
   onNewChat,
   onSendMessage,
   position = 'bottom-right',
+  executingTool,
 }: AIChatWindowProps) {
   return (
     <div
@@ -43,8 +47,11 @@ export function AIChatWindow({
       {/* 메시지 목록 */}
       <AIChatMessages messages={messages} isLoading={isLoading} />
 
+      {/* 도구 실행 상태 */}
+      <AIChatToolStatus toolName={executingTool ?? null} />
+
       {/* 입력창 */}
-      <AIChatInput onSend={onSendMessage} disabled={isLoading} />
+      <AIChatInput onSend={onSendMessage} disabled={isLoading || !!executingTool} />
     </div>
   );
 }

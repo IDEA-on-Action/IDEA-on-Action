@@ -9,6 +9,79 @@
 
 ---
 
+## [2.22.0] - 2025-11-28 (유닛 테스트 정비 + Minu 연동)
+
+### 🧪 유닛 테스트 정비
+
+37개 실패 테스트 수정, 버전 동기화 완료.
+
+#### 병렬 에이전트 작업 (SSDD)
+- Agent 1: 버전 동기화 (2.21.0 → 2.22.0)
+- Agent 2: Hero.test.tsx 수정 (5개)
+- Agent 3: useProjects 확인 (이미 통과)
+- Agent 4: useServices.test.tsx 수정 (6개)
+- Agent 5: Header.test.tsx 수정 (21개)
+- Agent 6: Footer.test.tsx 수정 (6개)
+- Agent 7: useRealtimeDashboard, useIsAdmin 수정 (2개)
+
+#### 수정된 파일 (7개)
+- `package.json`: 버전 2.21.0 → 2.22.0
+- `Hero.test.tsx`: 실제 컴포넌트 텍스트에 맞게 수정
+- `Header.test.tsx`: 네비게이션, ARIA 레이블, QueryClient 모킹
+- `Footer.test.tsx`: 섹션 구조, 링크, 그리드 클래스
+- `useServices.test.tsx`: eq() 메서드 모킹 체인 추가
+- `useRealtimeDashboard.test.tsx`: items 배열 모킹 추가
+- `useIsAdmin.test.tsx`: admins 테이블 및 캐시 로직 반영
+
+#### 품질 지표
+- 유닛 테스트: 274개 → 311개 (+37개)
+- 실패: 37개 → 0개 (-100%)
+- 린트 경고: 0개 유지
+
+---
+
+## [2.21.0] - 2025-11-28 (Minu 연동 가이드라인)
+
+### 🔐 보안 강화
+
+Minu 서비스 연동을 위한 보안 및 API 표준화.
+
+#### JWT & CORS
+- JWT 알고리즘 HS256 통일
+- CORS 정책 강화 (18개 Edge Function)
+- Webhook HMAC-SHA256 서명 검증
+
+#### API 표준화
+- JWT Payload 확장 (expires_at, services)
+- 헬스체크 엔드포인트 (api-v1-health)
+- RFC 7807 에러 포맷 (problem-details.ts)
+- API 공통 타입 정의 (api.types.ts)
+
+#### 운영 환경
+- 환경별 OAuth 클라이언트 시드 (12개)
+- 테스트 계정 시드 (5개 플랜)
+- OAuth 모니터링 테이블
+
+#### E2E 테스트
+- `minu-test-accounts.spec.ts`: 플랜별 테스트
+- `oauth-multi-env.spec.ts`: 환경별 OAuth 테스트
+
+---
+
+## [2.20.0] - 2025-11-27 (CLAUDE.md 경량화)
+
+### 📝 문서 최적화
+
+CLAUDE.md 984줄 → 172줄로 82% 감소.
+
+#### 변경 사항
+- 중복 정보 제거 및 링크 참조로 대체
+- 메타데이터 헤더 통합
+- 히스토리 아카이브 이동 (docs/archive/)
+- 단일 책임 원칙 적용
+
+---
+
 ## [2.19.0] - 2025-11-26 (Quick Wins + xlsx 차트 + RAG 하이브리드)
 
 ### 🎯 Sprint 1: Quick Wins + SDD 문서

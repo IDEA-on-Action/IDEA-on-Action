@@ -701,6 +701,14 @@ export interface UseClaudeChatOptions {
   streaming?: boolean;
   /** 자동 저장 여부 */
   autoSave?: boolean;
+  /** Tool Use 활성화 여부 */
+  enableTools?: boolean;
+  /** 사용할 도구 목록 */
+  tools?: ClaudeTool[];
+  /** 도구 선택 방식 */
+  toolChoice?: ClaudeToolChoice;
+  /** Tool Use 콜백 (도구 실행 요청 시 호출) */
+  onToolUse?: (toolUses: ClaudeToolUseBlock[]) => Promise<ClaudeToolResultBlock[]>;
   /** 메시지 변경 콜백 */
   onMessageChange?: (messages: ClaudeMessage[]) => void;
   /** 스트리밍 텍스트 콜백 */

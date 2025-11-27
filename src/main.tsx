@@ -3,6 +3,14 @@ import App from "./App.tsx";
 import "./index.css";
 import "./lib/i18n";
 
+// Claude Tool Use 시스템 초기화 (Feature Flag로 제어)
+if (import.meta.env.VITE_FEATURE_TOOL_USE === 'true') {
+  import('@/lib/claude/tools').then(({ registerAllTools }) => {
+    registerAllTools();
+    console.log('[App] Tool Use 기능 활성화됨');
+  });
+}
+
 // Vercel Toolbar 제거 (Production 환경에서도 숨김)
 if (typeof window !== "undefined") {
   // 즉시 실행 함수로 Toolbar 제거

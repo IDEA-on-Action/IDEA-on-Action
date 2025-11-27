@@ -1,11 +1,14 @@
 import { useState, useCallback, useEffect } from 'react';
 import { AIChatButton } from './AIChatButton';
 import { AIChatWindow } from './AIChatWindow';
+import { AIChatToolStatus } from './AIChatToolStatus';
 import { useClaudeStreaming } from '@/hooks/useClaudeStreaming';
+import { useClaudeTools } from '@/hooks/useClaudeTools';
 import { useConversationManager } from '@/hooks/useConversationManager';
 import { useAuth } from '@/hooks/useAuth';
 import { usePageContext } from '@/hooks/usePageContext';
 import type { AIChatMessage, AIChatConfig } from '@/types/ai-chat-widget.types';
+import type { ClaudeToolUseBlock, ClaudeToolResultBlock } from '@/types/claude.types';
 
 interface AIChatWidgetProps {
   config?: Partial<AIChatConfig>;
@@ -28,19 +31,60 @@ interface AIChatWidgetProps {
 export function AIChatWidget({ config }: AIChatWidgetProps) {
   const [isOpen, setIsOpen] = useState(config?.defaultOpen ?? false);
   const [messages, setMessages] = useState<AIChatMessage[]>([]);
+  const [executingTool, setExecutingTool] = useState<string | null>(null);
 
   const { user } = useAuth();
   const pageContext = usePageContext();
+
+  // Tool Use 기능 활성화 여부 (Feature Flag)
+  const isToolUseEnabled = import.meta.env.VITE_FEATURE_TOOL_USE === 'true';
+
+  // Claude Tools 훅
+  const { tools, executeTool } = useClaudeTools();
+
+  // Tool Use 콜백: 도구 실행 요청 처리
+  const handleToolUse = useCallback(
+    async (toolUses: ClaudeToolUseBlock[]): Promise<ClaudeToolResultBlock[]> => {
+      const results: ClaudeToolResultBlock[] = [];
+
+      for (const toolUse of toolUses) {
+        setExecutingTool(toolUse.name);
+        console.log(`[AIChatWidget] 도구 실행: ${toolUse.name}`, toolUse.input);
+
+        try {
+          const result = await executeTool({ toolUse });
+          results.push(result);
+        } catch (error) {
+          console.error(`[AIChatWidget] 도구 실행 실패: ${toolUse.name}`, error);
+          // 에러 발생 시 에러 결과 반환
+          results.push({
+            type: 'tool_result',
+            tool_use_id: toolUse.id,
+            content: `도구 실행 실패: ${error instanceof Error ? error.message : '알 수 없는 오류'}`,
+            is_error: true,
+          });
+        }
+      }
+
+      setExecutingTool(null);
+      return results;
+    },
+    [executeTool]
+  );
 
   // Claude Streaming 훅
   const {
     state: claudeState,
     sendMessage: claudeSendMessage,
-    streamingText,
     isStreaming,
-    reset: resetClaude,
+    clearConversation: resetClaude,
   } = useClaudeStreaming({
     systemPrompt: buildSystemPrompt(pageContext, config?.systemPrompt),
+    // Tool Use 옵션 (Feature Flag로 제어)
+    enableTools: isToolUseEnabled,
+    tools: isToolUseEnabled ? tools : undefined,
+    toolChoice: isToolUseEnabled ? { type: 'auto' } : undefined,
+    onToolUse: isToolUseEnabled ? handleToolUse : undefined,
     onStreamingText: (text) => {
       // 스트리밍 중인 메시지 업데이트
       setMessages((prev) => {
@@ -166,6 +210,7 @@ export function AIChatWidget({ config }: AIChatWidgetProps) {
           onNewChat={handleNewChat}
           onSendMessage={handleSendMessage}
           position={config?.position ?? 'bottom-right'}
+          executingTool={executingTool}
         />
       )}
     </>

@@ -19,3 +19,4 @@ export { AIChatHeader } from './AIChatHeader';
 export { AIChatMessages } from './AIChatMessages';
 export { AIChatMessage } from './AIChatMessage';
 export { AIChatInput } from './AIChatInput';
+export { AIChatToolStatus } from './AIChatToolStatus';

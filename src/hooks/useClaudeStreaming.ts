@@ -37,6 +37,12 @@ import type {
   UseClaudeChatOptions,
   ClaudeTextDelta,
   ClaudeModel,
+  ClaudeTool,
+  ClaudeToolChoice,
+  ClaudeToolUseBlock,
+  ClaudeToolResultBlock,
+  ClaudeInputJsonDelta,
+  ClaudeStopReason,
 } from '@/types/claude.types';
 
 // ============================================================================
@@ -154,6 +160,10 @@ export function useClaudeStreaming(options: UseClaudeChatOptions = {}): UseClaud
     maxTokens: defaultMaxTokens = DEFAULT_MAX_TOKENS,
     temperature: defaultTemperature = DEFAULT_TEMPERATURE,
     streaming: defaultStreaming = true,
+    enableTools = false,
+    tools: defaultTools,
+    toolChoice: defaultToolChoice,
+    onToolUse,
     onMessageChange,
     onStreamingText,
     onComplete,
@@ -226,11 +236,17 @@ export function useClaudeStreaming(options: UseClaudeChatOptions = {}): UseClaud
     async (
       reader: ReadableStreamDefaultReader<Uint8Array>,
       signal: AbortSignal
-    ): Promise<{ text: string; usage: ClaudeUsage }> => {
+    ): Promise<{ text: string; usage: ClaudeUsage; toolUses: ClaudeToolUseBlock[]; stopReason: ClaudeStopReason | null }> => {
       const decoder = new TextDecoder();
       let buffer = '';
       let accumulatedText = '';
       let finalUsage: ClaudeUsage = { ...EMPTY_USAGE };
+      let stopReason: ClaudeStopReason | null = null;
+
+      // Tool Use 관련 상태
+      const pendingToolUses: ClaudeToolUseBlock[] = [];
+      let currentToolUse: Partial<ClaudeToolUseBlock> | null = null;
+      let inputJsonBuffer = '';
 
       try {
         while (!signal.aborted) {
@@ -266,6 +282,22 @@ export function useClaudeStreaming(options: UseClaudeChatOptions = {}): UseClaud
 
             // 이벤트 처리
             switch (event.type) {
+              case 'content_block_start': {
+                const contentBlock = event.content_block;
+                if (contentBlock.type === 'tool_use') {
+                  // Tool Use 블록 시작
+                  currentToolUse = {
+                    type: 'tool_use',
+                    id: contentBlock.id,
+                    name: contentBlock.name,
+                    input: {},
+                  };
+                  inputJsonBuffer = '';
+                  console.log(`[Claude] 도구 사용 시작: ${contentBlock.name}`);
+                }
+                break;
+              }
+
               case 'content_block_delta': {
                 const delta = event.delta;
                 if (delta.type === 'text_delta') {
@@ -282,6 +314,32 @@ export function useClaudeStreaming(options: UseClaudeChatOptions = {}): UseClaud
                   if (onStreamingText) {
                     onStreamingText(accumulatedText);
                   }
+                } else if (delta.type === 'input_json_delta') {
+                  // Tool Use input JSON 누적
+                  const jsonDelta = delta as ClaudeInputJsonDelta;
+                  inputJsonBuffer += jsonDelta.partial_json;
+                }
+                break;
+              }
+
+              case 'content_block_stop': {
+                // Tool Use 블록 완료
+                if (currentToolUse && currentToolUse.id) {
+                  try {
+                    const parsedInput = inputJsonBuffer ? JSON.parse(inputJsonBuffer) : {};
+                    const completedToolUse: ClaudeToolUseBlock = {
+                      type: 'tool_use',
+                      id: currentToolUse.id,
+                      name: currentToolUse.name!,
+                      input: parsedInput,
+                    };
+                    pendingToolUses.push(completedToolUse);
+                    console.log(`[Claude] 도구 사용 완료: ${completedToolUse.name}`, completedToolUse.input);
+                  } catch (e) {
+                    console.error('[Claude] Tool Use input 파싱 실패:', e);
+                  }
+                  currentToolUse = null;
+                  inputJsonBuffer = '';
                 }
                 break;
               }
@@ -303,6 +361,9 @@ export function useClaudeStreaming(options: UseClaudeChatOptions = {}): UseClaud
                     output_tokens: event.usage.output_tokens,
                   };
                 }
+                if (event.delta?.stop_reason) {
+                  stopReason = event.delta.stop_reason;
+                }
                 break;
               }
 
@@ -319,7 +380,7 @@ export function useClaudeStreaming(options: UseClaudeChatOptions = {}): UseClaud
         throw error;
       }
 
-      return { text: accumulatedText, usage: finalUsage };
+      return { text: accumulatedText, usage: finalUsage, toolUses: pendingToolUses, stopReason };
     },
     [onStreamingText]
   );
@@ -339,6 +400,8 @@ export function useClaudeStreaming(options: UseClaudeChatOptions = {}): UseClaud
       const streaming = requestOptions?.streaming ?? defaultStreaming;
       const effectiveSystemPrompt = requestOptions?.systemPrompt ?? systemPrompt;
       const timeout = requestOptions?.timeout ?? DEFAULT_TIMEOUT;
+      const tools = requestOptions?.tools ?? defaultTools;
+      const toolChoice = requestOptions?.toolChoice ?? defaultToolChoice;
 
       // 새 AbortController 생성
       abortControllerRef.current = new AbortController();
@@ -393,6 +456,11 @@ export function useClaudeStreaming(options: UseClaudeChatOptions = {}): UseClaud
             system: effectiveSystemPrompt,
             temperature,
             stream: streaming,
+            // Tool Use 파라미터 (enableTools가 true이고 tools가 있을 때만)
+            ...(enableTools && tools && tools.length > 0 && {
+              tools,
+              tool_choice: toolChoice ?? { type: 'auto' },
+            }),
           }),
           signal,
         });
@@ -416,6 +484,8 @@ export function useClaudeStreaming(options: UseClaudeChatOptions = {}): UseClaud
 
         let responseText: string;
         let usage: ClaudeUsage;
+        let toolUses: ClaudeToolUseBlock[] = [];
+        let stopReason: ClaudeStopReason | null = null;
 
         if (streaming && response.body) {
           // 스트리밍 응답 처리
@@ -423,14 +493,62 @@ export function useClaudeStreaming(options: UseClaudeChatOptions = {}): UseClaud
           const result = await processSSEStream(readerRef.current, signal);
           responseText = result.text;
           usage = result.usage;
+          toolUses = result.toolUses;
+          stopReason = result.stopReason;
         } else {
           // 일반 응답 처리
           const data = await response.json();
-          responseText = data.content?.[0]?.text ?? '';
+          responseText = data.content?.find((b: { type: string }) => b.type === 'text')?.text ?? '';
           usage = data.usage ?? { ...EMPTY_USAGE };
+          toolUses = data.content?.filter((b: { type: string }) => b.type === 'tool_use') ?? [];
+          stopReason = data.stop_reason ?? null;
         }
 
-        // 어시스턴트 메시지 추가
+        // Tool Use 응답 처리
+        if (stopReason === 'tool_use' && toolUses.length > 0 && onToolUse) {
+          console.log(`[Claude] Tool Use 응답 감지: ${toolUses.length}개 도구 실행 필요`);
+
+          // 현재 어시스턴트 메시지 저장 (tool_use 블록 포함)
+          const assistantMessageWithTools: ClaudeMessage = {
+            role: 'assistant',
+            content: toolUses,
+          };
+
+          // 도구 실행 콜백 호출
+          const toolResults = await onToolUse(toolUses);
+          console.log(`[Claude] 도구 실행 완료: ${toolResults.length}개 결과`);
+
+          // tool_result 메시지 생성
+          const toolResultMessage: ClaudeMessage = {
+            role: 'user',
+            content: toolResults,
+          };
+
+          // 메시지 히스토리 업데이트
+          const messagesWithToolResults = [
+            ...updatedMessages,
+            assistantMessageWithTools,
+            toolResultMessage,
+          ];
+
+          setState((prev) => ({
+            ...prev,
+            messages: messagesWithToolResults,
+          }));
+
+          // Tool result와 함께 재요청 (재귀)
+          clearTimeout(timeoutId);
+          abortControllerRef.current = null;
+          readerRef.current = null;
+
+          // 재귀 호출로 최종 응답 받기
+          return sendMessage('', {
+            ...requestOptions,
+            // 이미 메시지에 포함되어 있으므로 content는 빈 문자열로
+          });
+        }
+
+        // 일반 텍스트 응답
         const assistantMessage: ClaudeMessage = {
           role: 'assistant',
           content: responseText,
@@ -491,8 +609,12 @@ export function useClaudeStreaming(options: UseClaudeChatOptions = {}): UseClaud
       defaultMaxTokens,
       defaultTemperature,
       defaultStreaming,
+      enableTools,
+      defaultTools,
+      defaultToolChoice,
       stopStreaming,
       processSSEStream,
+      onToolUse,
       onComplete,
       onError,
     ]
