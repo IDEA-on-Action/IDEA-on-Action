@@ -1,8 +1,148 @@
 # CLAUDE.md 히스토리 - November 2025
 
-> 2025년 11월 업데이트 기록 (2025-11-14 ~ 2025-11-22)
+> 2025년 11월 업데이트 기록 (2025-11-14 ~ 2025-11-27)
 
 이 문서는 CLAUDE.md의 과거 히스토리를 보관합니다. 최신 정보는 루트의 `CLAUDE.md` 파일을 참조하세요.
+
+---
+
+## 📅 2025년 11월 23일~27일 업데이트
+
+### 2025-11-27 (v2.21.0)
+- ✅ **v2.21.0: SSDD 도입 + 기술 부채 해소** (병렬 4개 에이전트)
+  - **SSDD (Skillful SDD) 방법론 정의**:
+    - SDD + Claude Skills Integration 통합 개발 방법론
+    - xlsx/docx/pptx/RAG/MCP Skills 활용 체계
+    - 병렬 에이전트 작업 패턴 정립
+  - **기술 부채 해소** (린트 경고 20개 → 4개):
+    - React Hooks 의존성 수정 (ImageUpload, PromptTemplateSelector, TemplateVersionHistory, file-upload)
+    - any 타입 제거 (useCheckout.test, useSubscriptions.test, SubscriptionCheckout)
+    - export * → 명시적 export (MCPPermissionContext, MCPProtected, SubscriptionGate)
+  - **프롬프트 템플릿 타입 통합**:
+    - `prompt-template.types.ts` Primary 확정
+    - skill_type → category 필터 변경
+    - extractVariables() 함수 검증
+  - **빌드**: 22.34s 성공 (PWA precache 27 entries)
+
+- ✅ **Claude Skills P1 백로그 완료** (병렬 6개 에이전트)
+  - **BL-009: 생성 문서 이력**
+    - DB: `generated_documents` 테이블 (RLS, 인덱스)
+    - 훅: `useDocumentHistory` (조회, 저장, 삭제)
+    - UI: `DocumentHistoryList` (테이블, 삭제 확인)
+  - **BL-006: xlsx 차트 내보내기**
+    - ZIP 방식: xlsx + 차트 PNG 이미지 묶음
+    - `chart-exporter.ts`, JSZip 활용
+    - `ExportButton` 확장 (includeCharts, chartRefs)
+  - **BL-008: 템플릿 버전 관리**
+    - DB: `template_versions` 테이블, 자동 버전 생성 트리거
+    - 훅: `useTemplateVersions` (버전 목록, 복원, 비교)
+    - UI: `TemplateVersionHistory` (타임라인, 복원 다이얼로그)
+  - **BL-007: docx 이미지 삽입**
+    - `createImageRun()`, `createHeaderWithLogo()` 함수
+    - `ImageRun` API 활용 (docx 패키지)
+  - **BL-011: pptx 고도화**
+    - 마스터 슬라이드: `IDEA_BRAND`, `IDEA_TITLE`
+    - 이미지 슬라이드: 4가지 레이아웃 (full/left/right/center)
+    - 차트 개선: 범례/레이블 제어, 10색 팔레트
+    - 새 슬라이드 타입: image, comparison, quote
+  - **TD-001~003: 동적 로딩**
+    - xlsx, docx, pptxgenjs 동적 import 적용
+    - 초기 번들 ~300KB 절감
+  - **빌드**: 23.23s 성공 (PWA precache 27 entries)
+
+- ✅ **BL-012: Slack 알림 구현** - Critical/High 이슈 자동 알림
+  - **Edge Function**: `send-slack-notification` (Slack Incoming Webhook 연동)
+  - **DB 트리거**: `notify_slack_on_critical_issue()`
+  - **DB 마이그레이션**: `20251127000002_create_slack_notification_trigger.sql`
+  - **Supabase Secrets**: `SLACK_WEBHOOK_URL` 설정 완료
+
+- ✅ **v2.20.0: Minu 통합 OAuth 2.0 + 구독 시스템**
+  - **OAuth 2.0 Authorization Server**: `oauth-authorize`, `oauth-token`, `oauth-revoke`
+  - **REST API Edge Functions**: `user-api`, `subscription-api`, `webhook-send`
+  - **DB 마이그레이션** (5개): `oauth_clients`, `authorization_codes`, `subscription_usage`, `plan_features`
+  - **React 훅** (8개): `useCanAccess`, `useSubscriptionUsage`, `useOAuthClient`, `useBillingPortal`
+  - **React 컴포넌트** (6개): `SubscriptionGate`, `UpgradePrompt`, `UsageIndicator`, `BillingDashboard`
+  - **E2E 테스트** (63개 케이스)
+  - **병렬 에이전트**: 7개 동시 작업
+
+### 2025-11-26 (v2.19.0)
+- ✅ **v2.19.0: RAG 하이브리드 검색 구현**
+  - **핵심 기능**: 키워드 검색(FTS) + 벡터 검색(Semantic) 결합
+  - **DB 마이그레이션**: `hybrid_search_documents()`, 복합 인덱스
+  - **React 훅**: `useRAGHybridSearch` (가중치 조절, 디바운스)
+  - **UI 컴포넌트**: `HybridSearchResults`, `HybridSearchWeightControl`
+  - **E2E 테스트**: 18개 신규
+
+- ✅ **대화 컨텍스트 테이블명 불일치 수정**
+  - 테이블: `conversation_sessions` → `ai_conversations`
+  - FTS: `'korean'` → `'simple'` (PostgreSQL 기본)
+
+- ✅ **v2.18.0 프로덕션 배포 완료**
+  - Edge Functions 배포: `rag-embed`, `rag-search`
+  - Supabase CLI: 2.58.5 → 2.62.5 업데이트
+
+### 2025-11-25 (v2.17.0~v2.18.0)
+- ✅ **v2.18.0: RAG (Retrieval-Augmented Generation) 구현**
+  - DB 마이그레이션: `rag_documents`, `rag_embeddings` 테이블 (pgvector)
+  - Edge Function: `rag-embed`, `rag-search`
+  - React 훅: `useRAGDocuments`, `useRAGSearch`, `useClaudeChatWithRAG`
+  - UI 컴포넌트: `DocumentUploader`, `RAGSearchResults`
+
+- ✅ **v2.17.0: AI 채팅 위젯 + Tool Use + 기술 부채 해소**
+  - 플로팅 채팅 위젯: `AIChatWidget`, `AIChatButton`, `AIChatWindow`
+  - ToolRegistry 클래스: `src/lib/claude/tools.ts`
+  - 린트 경고: 40개 → 36개 (-10%)
+
+- ✅ **v2.16.0: 프롬프트 템플릿 + 대화 컨텍스트 관리**
+  - DB 마이그레이션: `prompt_templates`, `ai_conversations`, `ai_messages` 테이블
+  - React 훅: `usePromptTemplates`, `useConversationManager`
+  - E2E 테스트: 19개 신규
+
+### 2025-11-24 (v2.14.0~v2.15.0)
+- ✅ **Central Hub Phase 3 + Vision API 통합 (v2.15.0)**
+  - `useRealtimeServiceStatus`, `useRealtimeEventStream` 훅
+  - Vision API: `useClaudeVision` 훅, `ImageAnalyzer` 컴포넌트
+  - E2E 테스트: 8개 신규
+
+- ✅ **AI 통합 완료 (v2.14.0)** - Claude API 연동
+  - Edge Function: `claude-ai` (채팅/스트리밍, JWT 인증, Rate Limiting)
+  - React 훅 5개: `useClaudeChat`, `useClaudeStreaming`, `useClaudeSkill`
+  - AI 생성기 4개: RFP, 요구사항 분석, 프로젝트 계획, 운영 보고서
+
+- ✅ **Claude Skills Sprint 5 완료** - 서비스별 특화 기능
+  - Minu Find: 시장분석 Excel 생성기
+  - Minu Frame: PowerPoint 생성 훅
+  - Minu Build: 프로젝트 리포트 생성기
+  - Minu Keep: 운영 보고서 템플릿
+
+### 2025-11-23 (v2.9.0~v2.11.0)
+- ✅ **Claude Skills Sprint 4 완료** - MCP Orchestrator
+  - DB 마이그레이션: `service_tokens`, `refresh_tokens`, `event_queue`, `dead_letter_queue`
+  - Edge Functions: `mcp-auth`, `mcp-router`, `mcp-sync`
+  - React 훅: `useMCPAuth`, `useMCPSync`, `useMCPClient`, `useMCPPermission`
+
+- ✅ **Claude Skills Sprint 3 완료** - docx Skill + RFP 템플릿
+  - 패키지: `docx` (v9.5.1)
+  - RFP 템플릿 3종: 정부 SI, 스타트업 MVP, 엔터프라이즈
+  - RFPWizard: 4단계 마법사 컴포넌트
+
+- ✅ **Claude Skills Sprint 2 완료** - Central Hub 대시보드 UI
+  - 컴포넌트 4개: `ServiceHealthCard`, `EventTimeline`, `IssueList`, `StatisticsChart`
+  - 대시보드 페이지: `CentralHubDashboard.tsx`
+
+- ✅ **Claude Skills Sprint 1 완료** - xlsx Skill 구현
+  - 패키지: `xlsx` (SheetJS)
+  - 훅: `useXlsxExport`
+  - 컴포넌트: `ExportButton`
+
+- ✅ **Central Hub Phase 2 완료** - MCP 컴포넌트 인프라
+  - HOC: `MCPProtected`, `withMCPProtection`
+  - Context: `MCPPermissionProvider`
+
+- ✅ **Central Hub 인프라 구축** - Phase 1
+  - DB 마이그레이션: `service_events`, `service_issues`, `service_health` 테이블
+  - Edge Function: `receive-service-event`
+  - React 훅: `useServiceEvents`, `useServiceIssues`, `useServiceHealth`
 
 ---
 
