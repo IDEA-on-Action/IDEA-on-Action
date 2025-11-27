@@ -69,6 +69,7 @@ describe('useRealtimeDashboard Hooks', () => {
 
   describe('useRealtimeDashboard', () => {
     it('should load recent orders initially', async () => {
+      // 훅에서 items:order_items(count) 조인을 사용하므로 items 배열 포함
       const mockOrders = [
         {
           id: 'order1',
@@ -76,7 +77,8 @@ describe('useRealtimeDashboard Hooks', () => {
           user_id: 'user1',
           total_amount: 100000,
           status: 'confirmed',
-          created_at: '2025-11-09T12:00:00Z'
+          created_at: '2025-11-09T12:00:00Z',
+          items: [{ count: 1 }] // order_items 조인 결과
         }
       ]
 

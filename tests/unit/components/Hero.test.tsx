@@ -19,8 +19,8 @@ describe('Hero Component', () => {
 
   it('displays the main heading', () => {
     render(<Hero />, { wrapper: TestWrapper });
-    expect(screen.getByText('생각과 행동으로')).toBeInTheDocument();
-    expect(screen.getByText('미래를 설계하다')).toBeInTheDocument();
+    expect(screen.getByText('생각을 멈추지 않고,')).toBeInTheDocument();
+    expect(screen.getByText('행동으로 옮깁니다')).toBeInTheDocument();
   });
 
   it('displays the slogan', () => {
@@ -30,21 +30,21 @@ describe('Hero Component', () => {
 
   it('displays the badge text', () => {
     render(<Hero />, { wrapper: TestWrapper });
-    expect(screen.getByText('AI 기반 워킹 솔루션')).toBeInTheDocument();
+    expect(screen.getByText('아이디어 실험실 & 프로덕트 스튜디오')).toBeInTheDocument();
   });
 
   it('displays CTA buttons', () => {
     render(<Hero />, { wrapper: TestWrapper });
-    expect(screen.getByLabelText('무료로 시작하기')).toBeInTheDocument();
-    expect(screen.getByLabelText('더 알아보기')).toBeInTheDocument();
+    expect(screen.getByLabelText('서비스 살펴보기')).toBeInTheDocument();
+    expect(screen.getByLabelText('프로젝트 보기')).toBeInTheDocument();
   });
 
   it('displays the logo with proper alt text', () => {
     render(<Hero />, { wrapper: TestWrapper });
     const logo = screen.getByAltText('VIBE WORKING - KEEP AWAKE, LIVE PASSIONATE');
     expect(logo).toBeInTheDocument();
-    expect(logo).toHaveAttribute('width', '96');
-    expect(logo).toHaveAttribute('height', '96');
+    expect(logo).toHaveAttribute('width', '1920');
+    expect(logo).toHaveAttribute('height', '832');
   });
 
   it('applies custom className when provided', () => {
@@ -82,11 +82,11 @@ describe('Hero Component', () => {
 
   it('has proper focus management', () => {
     render(<Hero />, { wrapper: TestWrapper });
-    
+
     // Check that buttons are focusable
-    const primaryButton = screen.getByLabelText('무료로 시작하기');
-    const secondaryButton = screen.getByLabelText('더 알아보기');
-    
+    const primaryButton = screen.getByLabelText('서비스 살펴보기');
+    const secondaryButton = screen.getByLabelText('프로젝트 보기');
+
     expect(primaryButton).toBeInTheDocument();
     expect(secondaryButton).toBeInTheDocument();
   });

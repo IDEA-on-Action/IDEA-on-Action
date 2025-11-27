@@ -65,7 +65,7 @@ describe('Footer Component', () => {
   it('displays footer sections', () => {
     render(<Footer />);
 
-    expect(screen.getByText('솔루션')).toBeInTheDocument();
+    expect(screen.getByText('서비스')).toBeInTheDocument();
     expect(screen.getByText('회사')).toBeInTheDocument();
     expect(screen.getByText('리소스')).toBeInTheDocument();
     expect(screen.getByText('법적 정보')).toBeInTheDocument();
@@ -75,24 +75,28 @@ describe('Footer Component', () => {
   it('displays footer links', () => {
     render(<Footer />);
 
-    // 솔루션 섹션
-    expect(screen.getByText('AI 컨설팅')).toBeInTheDocument();
-    expect(screen.getByText('워크플로우 자동화')).toBeInTheDocument();
-    expect(screen.getByText('데이터 분석')).toBeInTheDocument();
+    // 서비스 섹션
+    expect(screen.getByText('모든 서비스')).toBeInTheDocument();
+    expect(screen.getByText('MVP 개발')).toBeInTheDocument();
+    expect(screen.getByText('풀스택 개발')).toBeInTheDocument();
+    expect(screen.getByText('디자인 시스템')).toBeInTheDocument();
 
     // 회사 섹션
     expect(screen.getByText('회사소개')).toBeInTheDocument();
     expect(screen.getByText('로드맵')).toBeInTheDocument();
+    expect(screen.getByText('포트폴리오')).toBeInTheDocument();
+    expect(screen.getByText('실험실')).toBeInTheDocument();
     expect(screen.getByText('협업하기')).toBeInTheDocument();
 
     // 리소스 섹션
     expect(screen.getByText('GitHub')).toBeInTheDocument();
-    expect(screen.getByText('웹사이트')).toBeInTheDocument();
     expect(screen.getByText('블로그')).toBeInTheDocument();
 
     // 법적 정보 섹션
     expect(screen.getByText('이용약관')).toBeInTheDocument();
     expect(screen.getByText('개인정보처리방침')).toBeInTheDocument();
+    expect(screen.getByText('환불정책')).toBeInTheDocument();
+    expect(screen.getByText('전자금융거래약관')).toBeInTheDocument();
   });
 
   it('displays copyright information', () => {
@@ -120,7 +124,7 @@ describe('Footer Component', () => {
 
     // Check for headings
     const headings = screen.getAllByRole('heading', { level: 4 });
-    expect(headings).toHaveLength(5); // 솔루션, 회사, 리소스, 법적 정보, 뉴스레터 구독
+    expect(headings).toHaveLength(5); // 서비스, 회사, 리소스, 법적 정보, 뉴스레터 구독
   });
 
   it('has proper accessibility attributes', () => {
@@ -165,13 +169,13 @@ describe('Footer Component', () => {
 
   it('has proper hover states', () => {
     render(<Footer />);
-    
+
     const socialLinks = screen.getAllByLabelText(/프로필|이메일/);
     socialLinks.forEach(link => {
       expect(link).toHaveClass('hover:border-primary');
     });
-    
-    const footerLinks = screen.getAllByText(/AI 컨설팅|회사소개|GitHub/);
+
+    const footerLinks = screen.getAllByText(/모든 서비스|회사소개|GitHub/);
     footerLinks.forEach(link => {
       expect(link).toHaveClass('hover:text-primary');
     });
@@ -181,7 +185,8 @@ describe('Footer Component', () => {
     render(<Footer />);
 
     const grid = screen.getByRole('contentinfo').querySelector('.grid');
-    expect(grid).toHaveClass('md:grid-cols-2');
+    expect(grid).toHaveClass('md:grid-cols-3');
+    expect(grid).toHaveClass('lg:grid-cols-5');
   });
 
   it('has proper logo attributes', () => {
@@ -194,15 +199,17 @@ describe('Footer Component', () => {
 
   it('has proper list structure', () => {
     render(<Footer />);
-    
+
     const lists = screen.getAllByRole('list');
     expect(lists.length).toBeGreaterThan(0);
-    
-    // Check for social links list - nav contains a div with role="list"
+
+    // Check for social links nav - 소셜 미디어 링크는 flex container 안에 있음
     const socialNav = screen.getByLabelText('소셜 미디어 링크');
     expect(socialNav).toBeInTheDocument();
-    const socialList = socialNav.querySelector('[role="list"]');
-    expect(socialList).toBeInTheDocument();
+
+    // Footer 섹션들은 role="list" 속성을 가진 ul 요소를 사용
+    const footerSectionLists = lists.filter(list => list.tagName === 'UL');
+    expect(footerSectionLists.length).toBeGreaterThan(0);
   });
 
   it('meets accessibility standards', async () => {
@@ -232,12 +239,9 @@ describe('Footer Component', () => {
 
   it('has proper link structure for external resources', () => {
     render(<Footer />);
-    
+
     const githubLink = screen.getByText('GitHub');
     expect(githubLink.closest('a')).toHaveAttribute('target', '_blank');
-    
-    const websiteLink = screen.getByText('웹사이트');
-    expect(websiteLink.closest('a')).toHaveAttribute('target', '_blank');
   });
 
   it('has proper link structure for internal navigation', () => {
@@ -264,8 +268,10 @@ describe('Footer Component', () => {
     expect(headings).toHaveLength(5);
 
     const headingTexts = headings.map(heading => heading.textContent);
-    expect(headingTexts).toContain('솔루션');
+    expect(headingTexts).toContain('서비스');
     expect(headingTexts).toContain('회사');
     expect(headingTexts).toContain('리소스');
+    expect(headingTexts).toContain('법적 정보');
+    expect(headingTexts).toContain('뉴스레터 구독');
   });
 });
