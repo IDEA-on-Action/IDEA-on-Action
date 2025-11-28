@@ -40,15 +40,15 @@ export interface Service extends Omit<Tables['services']['Row'], 'features' | 'i
   status: 'active' | 'draft' | 'archived'; // string -> union type
 }
 
-export interface ServiceCategory extends Tables['service_categories']['Row'] { }
+export type ServiceCategory = Tables['service_categories']['Row'];
 
 // ===================================================================
 // Phase 9: E-commerce
 // ===================================================================
 
-export interface Cart extends Tables['carts']['Row'] { }
+export type Cart = Tables['carts']['Row'];
 
-export interface CartItem extends Tables['cart_items']['Row'] { }
+export type CartItem = Tables['cart_items']['Row'];
 
 export interface Order extends Omit<Tables['orders']['Row'], 'status' | 'shipping_address'> {
   status: 'pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'refunded';
@@ -105,9 +105,9 @@ export interface ConnectedAccount extends Omit<Tables['connected_accounts']['Row
   provider: 'google' | 'github' | 'kakao' | 'microsoft' | 'apple';
 }
 
-export interface TwoFactorAuth extends Tables['two_factor_auth']['Row'] { }
+export type TwoFactorAuth = Tables['two_factor_auth']['Row'];
 
-export interface LoginAttempt extends Tables['login_attempts']['Row'] { }
+export type LoginAttempt = Tables['login_attempts']['Row'];
 
 export interface Role extends Omit<Tables['roles']['Row'], 'name'> {
   name: 'admin' | 'manager' | 'user' | 'viewer';
@@ -117,9 +117,9 @@ export interface Permission extends Omit<Tables['permissions']['Row'], 'action'>
   action: 'create' | 'read' | 'update' | 'delete' | 'manage';
 }
 
-export interface UserRole extends Tables['user_roles']['Row'] { }
+export type UserRole = Tables['user_roles']['Row'];
 
-export interface RolePermission extends Tables['role_permissions']['Row'] { }
+export type RolePermission = Tables['role_permissions']['Row'];
 
 export interface AuditLog extends Omit<Tables['audit_logs']['Row'], 'details'> {
   details: Record<string, unknown> | null;
