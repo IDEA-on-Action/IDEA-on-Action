@@ -228,9 +228,9 @@ supabase secrets set TOSS_WEBHOOK_SECRET=live_webhook_secret
 |------|------|------|------|
 | 프론트엔드 | `VITE_SUPABASE_URL` | Vercel | ✅ |
 | 프론트엔드 | `VITE_SUPABASE_ANON_KEY` | Vercel | ✅ |
-| 프론트엔드 | `VITE_TOSS_CLIENT_KEY` | Vercel | ⬜ |
-| Edge Function | `TOSS_SECRET_KEY` | Supabase Secrets | ⬜ |
-| Edge Function | `TOSS_WEBHOOK_SECRET` | Supabase Secrets | ⬜ |
+| 프론트엔드 | `VITE_TOSS_CLIENT_KEY` | Vercel | ✅ |
+| Edge Function | `TOSS_SECRET_KEY` | Supabase Secrets | ✅ |
+| Edge Function | `TOSS_WEBHOOK_SECRET` | Supabase Secrets | ✅ (임시) |
 
 ---
 
