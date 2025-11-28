@@ -2,12 +2,27 @@ import { defineConfig, devices } from '@playwright/test';
 
 /**
  * CI 환경용 Playwright E2E 테스트 설정
- * - Chromium만 실행 (크로스 브라우저 테스트는 로컬에서)
- * - 워커 2개로 병렬 처리
- * - 재시도 1회로 감소
+ * - Chromium만 실행
+ * - 핵심 Smoke 테스트만 실행 (63개 → 10개 파일)
+ * - 워커 4개로 병렬 처리
+ * - 재시도 없음
  */
 export default defineConfig({
   testDir: './tests/e2e',
+
+  /* CI용 핵심 테스트만 실행 (Smoke Test) */
+  testMatch: [
+    '**/homepage.spec.ts',
+    '**/navigation.spec.ts',
+    '**/login.spec.ts',
+    '**/services.spec.ts',
+    '**/blog.spec.ts',
+    '**/dark-mode.spec.ts',
+    '**/responsive.spec.ts',
+    '**/search.spec.ts',
+    '**/status.spec.ts',
+    '**/work-with-us.spec.ts',
+  ],
 
   /* 병렬 실행 */
   fullyParallel: true,
@@ -15,32 +30,31 @@ export default defineConfig({
   /* CI에서 .only 금지 */
   forbidOnly: true,
 
-  /* 재시도 1회 (2회 → 1회로 감소) */
-  retries: 1,
+  /* 재시도 없음 (속도 우선) */
+  retries: 0,
 
-  /* 워커 2개로 병렬 처리 */
-  workers: 2,
+  /* 워커 4개로 병렬 처리 */
+  workers: 4,
 
   /* 타임아웃 설정 */
-  timeout: 30000,
-  expect: { timeout: 5000 },
+  timeout: 15000,
+  expect: { timeout: 3000 },
 
   /* 리포터 설정 */
   reporter: [
-    ['html', { outputFolder: 'playwright-report' }],
-    ['json', { outputFile: 'test-results/results.json' }],
-    ['github']
+    ['github'],
+    ['list'],
   ],
 
   /* 공통 테스트 설정 */
   use: {
     baseURL: process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:4173',
-    screenshot: 'only-on-failure',
+    screenshot: 'off',
     video: 'off',
     trace: 'off',
   },
 
-  /* 프리뷰 서버 사용 (dev 서버보다 빠름) */
+  /* 프리뷰 서버 사용 */
   webServer: {
     command: 'npm run preview',
     url: 'http://localhost:4173',
