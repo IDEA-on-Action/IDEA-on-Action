@@ -144,6 +144,9 @@ export interface UserProfile {
   avatar_url: string | null
   phone: string | null
   bio: string | null
+  email_verified: boolean
+  email_verification_token: string | null
+  email_verification_sent_at: string | null
   created_at: string
   updated_at: string
 }

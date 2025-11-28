@@ -55,20 +55,33 @@
 ## 📋 Phase 9-11 일정 (12월 1주까지)
 
 ### 🚀 Phase 9: 전자상거래 (v1.6.0 ~ v1.8.0) - ~12/03
-**v1.6.0 장바구니 시스템 (11/29)**
-- [ ] 장바구니 UI (헤더 + 사이드바)
-- [ ] 로컬 스토리지 + Supabase 동기화
-- [ ] 수량 조절 로직
-- [ ] 총액 계산
+
+**✅ v1.6.0 기반 인프라 (11/28 완료)**
+- [x] Cart Store (Zustand) - 이미 존재
+- [x] 보안 수정 - Login.tsx 관리자 자격증명 제거
+- [x] beta_invitations 테이블 및 RLS 정책
+- [x] Edge Functions 구조 생성 (_shared/, toss-payment/, payment-webhook/)
+- [x] 토스페이먼츠 Edge Function 구현
+- [x] 결제 웹훅 핸들러 구현
+- [x] 프론트엔드 서비스 클래스 (tossPaymentService.ts)
+- [x] webhook_events 테이블 마이그레이션
+
+**v1.6.1 장바구니 UI (11/29)**
+- [ ] CartSheet UI (Sheet 컴포넌트)
+- [ ] Header 장바구니 아이콘 통합
+- [ ] 서비스 상세 "장바구니 추가" 버튼
 
 **v1.7.0 주문 관리 시스템 (12/01)**
-- [ ] 주문 폼 구현
+- [ ] Checkout 페이지 UI
+- [ ] OrderForm (React Hook Form + Zod)
 - [ ] 주문 내역 페이지 (`/orders`)
-- [ ] 주문 상태 추적
+- [ ] PaymentSuccess/Fail 페이지
 
-**v1.8.0 결제 연동 (12/03)**
-- [ ] 카카오페이/토스페이먼츠 SDK 연동
-- [ ] 웹훅 처리
+**v1.8.0 결제 통합 (12/03)**
+- [ ] 토스페이먼츠 결제 위젯 연동
+- [ ] Edge Functions 배포
+- [ ] 환경 변수 설정 (VITE_TOSS_CLIENT_KEY, TOSS_SECRET_KEY 등)
+- [ ] 결제 E2E 테스트
 
 ### 🔐 Phase 10: SSO & 인증 강화 (v1.9.0 ~ v1.10.0) - ~12/05
 **v1.9.0 프로필 관리 (12/04)**

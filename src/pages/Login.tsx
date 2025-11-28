@@ -209,10 +209,6 @@ export default function Login() {
               </Button>
             </form>
 
-            {/* 관리자 계정 안내 */}
-            <p className="text-xs text-center text-muted-foreground">
-              관리자 계정: admin / demian00
-            </p>
           </CardContent>
         </Card>
       </div>

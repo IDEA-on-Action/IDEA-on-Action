@@ -9,6 +9,104 @@
 
 ---
 
+## [1.10.0] - 2025-11-28
+
+### Added
+- **Phase 10: SSO & 인증 강화** 🎉
+  - **v1.9.0: 프로필 관리**
+    - Profile 페이지 (`/profile`) - 프로필 정보 조회/수정
+    - `useProfile` 훅 (프로필 CRUD, React Query)
+    - `useUploadAvatar` 훅 (아바타 이미지 업로드)
+    - `ProfileImageUpload` 컴포넌트 (드래그앤드롭 지원)
+    - Supabase Storage 아바타 버킷 연동
+  - **v1.10.0: RBAC 강화 & 이메일 인증**
+    - `user_profiles` 테이블 (이메일 인증 필드 추가)
+    - `user_roles` 테이블 (admin, user, guest)
+    - RLS 정책 8개 (프로필/역할 접근 제어)
+    - 자동 프로필 생성 트리거 (auth.users → user_profiles)
+    - 이메일 인증 플로우 (토큰 기반, 24시간 만료)
+    - EmailVerify 페이지 (`/email/verify`)
+    - `useVerifyEmail`, `useRequestEmailVerification` 훅
+
+- **라우트**
+  - `/profile` - 프로필 설정 페이지
+  - `/email/verify` - 이메일 인증 처리 페이지
+
+- **Supabase 마이그레이션**
+  - `20251128000004_create_profile_tables.sql`
+
+### Build
+- 번들 크기: 254.83 kB (gzip) (+2.93 kB from v1.8.0)
+
+---
+
+## [1.8.0] - 2025-11-28
+
+### Added
+- **Phase 9: 결제 연동** 🎉
+  - `payments` 테이블 (Supabase)
+  - `paymentService.ts` - 결제 준비/승인/취소/환불
+  - `usePayments` 훅 (결제 처리, React Query)
+  - Payment 페이지 (`/payment`) - 결제 수단 선택
+  - PaymentComplete 페이지 (`/payment/complete`) - 결제 완료/실패 처리
+  - 카카오페이, 토스페이, Stripe 결제사 지원 (Mock)
+
+- **라우트**
+  - `/payment` - 결제 수단 선택 페이지
+  - `/payment/complete` - 결제 완료 페이지
+
+- **Supabase 마이그레이션**
+  - `20251128000003_create_payment_tables.sql`
+
+### Build
+- 번들 크기: 251.90 kB (gzip)
+
+---
+
+## [1.7.0] - 2025-11-28
+
+### Added
+- **Phase 9: 주문 관리 시스템** 🎉
+  - `orders`, `order_items` 테이블 (Supabase)
+  - `useOrders` 훅 (주문 목록/상세/생성/취소)
+  - Checkout 페이지 (`/checkout`) - 주문 정보 입력
+  - Orders 페이지 (`/orders`) - 주문 내역 조회
+  - React Hook Form + Zod 검증
+
+- **라우트**
+  - `/checkout` - 결제/주문 페이지
+  - `/orders` - 주문 내역 페이지
+
+- **Supabase 마이그레이션**
+  - `20251128000002_create_order_tables.sql`
+
+### Build
+- 번들 크기: 247.48 kB (gzip)
+
+---
+
+## [1.6.0] - 2025-11-28
+
+### Added
+- **Phase 9: 장바구니 시스템** 🎉
+  - `carts` 테이블 (Supabase)
+  - Zustand 기반 장바구니 상태 관리 (`cartStore.ts`)
+  - localStorage 영속화 (persist middleware)
+  - CartDrawer 컴포넌트 (Sheet 기반 사이드바)
+  - Header 장바구니 버튼 + 배지
+  - ServiceDetail "장바구니 담기" 버튼
+
+- **Dependencies**
+  - `zustand` (v5.x) - 클라이언트 상태 관리
+
+- **Supabase 마이그레이션**
+  - `20251128000001_create_cart_tables.sql`
+
+### Build
+- 번들 크기: 226.99 kB (gzip)
+
+---
+
 ## [1.5.0] - 2025-10-17
 
 ### Added

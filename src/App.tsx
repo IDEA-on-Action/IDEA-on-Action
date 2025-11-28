@@ -14,6 +14,8 @@ import Checkout from "./pages/Checkout";
 import Orders from "./pages/Orders";
 import Payment from "./pages/Payment";
 import PaymentComplete from "./pages/PaymentComplete";
+import Profile from "./pages/Profile";
+import EmailVerify from "./pages/EmailVerify";
 import { AdminRoute } from "./components/auth/AdminRoute";
 import { AdminLayout } from "./components/layouts/AdminLayout";
 import { CartDrawer } from "./components/cart/CartDrawer";
@@ -42,6 +44,8 @@ const App = () => (
             <Route path="/orders" element={<Orders />} />
             <Route path="/payment" element={<Payment />} />
             <Route path="/payment/complete" element={<PaymentComplete />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/email/verify" element={<EmailVerify />} />
             <Route path="/forbidden" element={<Forbidden />} />
 
             {/* Admin Routes */}
