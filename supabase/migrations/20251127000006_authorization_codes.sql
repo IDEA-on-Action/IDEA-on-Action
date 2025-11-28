@@ -36,6 +36,7 @@ CREATE INDEX IF NOT EXISTS idx_authorization_codes_client_id ON authorization_co
 ALTER TABLE authorization_codes ENABLE ROW LEVEL SECURITY;
 
 -- RLS 정책: 본인 코드만 조회 가능
+DROP POLICY IF EXISTS "Users can read own authorization codes" ON authorization_codes;
 CREATE POLICY "Users can read own authorization codes"
   ON authorization_codes
   FOR SELECT
@@ -43,6 +44,7 @@ CREATE POLICY "Users can read own authorization codes"
   USING (user_id = auth.uid());
 
 -- RLS 정책: 시스템(서비스 역할)만 생성 가능
+DROP POLICY IF EXISTS "Service role can insert authorization codes" ON authorization_codes;
 CREATE POLICY "Service role can insert authorization codes"
   ON authorization_codes
   FOR INSERT
@@ -50,6 +52,7 @@ CREATE POLICY "Service role can insert authorization codes"
   WITH CHECK (true);
 
 -- RLS 정책: 시스템만 업데이트 (used_at 마킹)
+DROP POLICY IF EXISTS "Service role can update authorization codes" ON authorization_codes;
 CREATE POLICY "Service role can update authorization codes"
   ON authorization_codes
   FOR UPDATE
