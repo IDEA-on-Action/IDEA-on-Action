@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>VIBE WORKING 블로그</title>
+    <link>https://www.ideaonaction.ai/blog</link>
+    <description>AI 기반 워킹 솔루션, 기술 트렌드, 비즈니스 인사이트를 공유합니다.</description>
+    <language>ko</language>
+    <lastBuildDate>Fri, 28 Nov 2025 09:34:11 GMT</lastBuildDate>
+    <atom:link href="https://www.ideaonaction.ai/rss.xml" rel="self" type="application/rss+xml"/>
+    
+    <item>
+      <title>AI 기반 워킹 솔루션의 미래</title>
+      <link>https://www.ideaonaction.ai/blog/future-of-ai-working-solutions</link>
+      <guid isPermaLink="true">https://www.ideaonaction.ai/blog/future-of-ai-working-solutions</guid>
+      <description>AI 기술이 업무 환경을 어떻게 변화시키고 있는지 살펴봅니다.</description>
+      <pubDate>Fri, 28 Nov 2025 00:00:00 GMT</pubDate>
+      <category>AI</category>
+      <category>워킹솔루션</category>
+      <category>미래기술</category>
+    </item>
+    <item>
+      <title>효율적인 데이터 분석 가이드</title>
+      <link>https://www.ideaonaction.ai/blog/efficient-data-analysis-guide</link>
+      <guid isPermaLink="true">https://www.ideaonaction.ai/blog/efficient-data-analysis-guide</guid>
+      <description>비즈니스 데이터를 효과적으로 분석하는 방법을 알아봅니다.</description>
+      <pubDate>Thu, 27 Nov 2025 00:00:00 GMT</pubDate>
+      <category>데이터분석</category>
+      <category>비즈니스인텔리전스</category>
+    </item>
+  </channel>
+</rss>

@@ -39,6 +39,9 @@ const Header = () => {
           <Link to="/services" className="text-foreground/80 hover:text-foreground transition-colors">
             서비스
           </Link>
+          <Link to="/blog" className="text-foreground/80 hover:text-foreground transition-colors">
+            블로그
+          </Link>
           {isHomePage ? (
             <>
               <a href="#features" className="text-foreground/80 hover:text-foreground transition-colors">

@@ -18,6 +18,7 @@ import {
   Home,
   Menu,
   X,
+  FileText,
 } from 'lucide-react'
 import { useState } from 'react'
 import logoSymbol from '@/assets/logo-symbol.png'
@@ -37,6 +38,11 @@ const navItems = [
     title: '서비스 등록',
     href: '/admin/services/new',
     icon: Plus,
+  },
+  {
+    title: '블로그 관리',
+    href: '/admin/posts',
+    icon: FileText,
   },
 ]
 

@@ -1,3 +1,6 @@
+# robots.txt for VIBE WORKING
+# https://www.ideaonaction.ai
+
 User-agent: Googlebot
 Allow: /
 
@@ -12,3 +15,14 @@ Allow: /
 
 User-agent: *
 Allow: /
+
+# Sitemap
+Sitemap: https://www.ideaonaction.ai/sitemap.xml
+
+# Disallow admin pages
+Disallow: /admin/
+Disallow: /api/
+
+# Allow crawling of all public pages
+Allow: /services/
+Allow: /blog/

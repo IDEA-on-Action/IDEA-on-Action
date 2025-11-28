@@ -3,9 +3,9 @@
 > 프로젝트 작업 목록 및 진행 상황 관리
 
 **마지막 업데이트**: 2025-11-28
-**현재 Phase**: Phase 9 진행 중 (전자상거래)
-**프로젝트 버전**: 1.5.0
-**목표 마감**: 2025-12-07 (Phase 9-11 완료)
+**현재 Phase**: Phase 11 준비 (콘텐츠 관리)
+**프로젝트 버전**: 1.10.0
+**다음 단계**: Phase 11 - 블로그 시스템, SEO 최적화
 
 ---
 
@@ -52,63 +52,65 @@
 
 ---
 
-## 📋 Phase 9-11 일정 (12월 1주까지)
+## ✅ 완료된 작업 (Phase 9-10)
 
-### 🚀 Phase 9: 전자상거래 (v1.6.0 ~ v1.8.0) - ~12/03
+### Phase 9: 전자상거래 ✅ 완료 (2025-11-28)
 
-**✅ v1.6.0 기반 인프라 (11/28 완료)**
-- [x] Cart Store (Zustand) - 이미 존재
-- [x] 보안 수정 - Login.tsx 관리자 자격증명 제거
-- [x] beta_invitations 테이블 및 RLS 정책
-- [x] Edge Functions 구조 생성 (_shared/, toss-payment/, payment-webhook/)
-- [x] 토스페이먼츠 Edge Function 구현
-- [x] 결제 웹훅 핸들러 구현
-- [x] 프론트엔드 서비스 클래스 (tossPaymentService.ts)
-- [x] webhook_events 테이블 마이그레이션
+**v1.6.0 장바구니 시스템**
+- [x] Zustand 기반 장바구니 상태 관리 (`cartStore.ts`)
+- [x] localStorage 영속화 (persist middleware)
+- [x] CartDrawer 컴포넌트 (Sheet 기반 사이드바)
+- [x] Header 장바구니 버튼 + 배지
+- [x] 서비스 상세 "장바구니 담기" 버튼
 
-**v1.6.1 장바구니 UI (11/29)**
-- [ ] CartSheet UI (Sheet 컴포넌트)
-- [ ] Header 장바구니 아이콘 통합
-- [ ] 서비스 상세 "장바구니 추가" 버튼
+**v1.7.0 주문 관리 시스템**
+- [x] `useOrders` 훅 (주문 목록/상세/생성/취소)
+- [x] Checkout 페이지 (`/checkout`)
+- [x] Orders 페이지 (`/orders`)
+- [x] React Hook Form + Zod 검증
 
-**v1.7.0 주문 관리 시스템 (12/01)**
-- [ ] Checkout 페이지 UI
-- [ ] OrderForm (React Hook Form + Zod)
-- [ ] 주문 내역 페이지 (`/orders`)
-- [ ] PaymentSuccess/Fail 페이지
+**v1.8.0 결제 연동**
+- [x] `usePayments` 훅 (결제 처리)
+- [x] Payment 페이지 (`/payment`)
+- [x] PaymentComplete 페이지 (`/payment/complete`)
+- [x] 카카오페이, 토스페이, Stripe 지원 (Mock)
 
-**v1.8.0 결제 통합 (12/03)**
-- [ ] 토스페이먼츠 결제 위젯 연동
-- [ ] Edge Functions 배포
-- [ ] 환경 변수 설정 (VITE_TOSS_CLIENT_KEY, TOSS_SECRET_KEY 등)
-- [ ] 결제 E2E 테스트
+### Phase 10: SSO & 인증 강화 ✅ 완료 (2025-11-28)
 
-### 🔐 Phase 10: SSO & 인증 강화 (v1.9.0 ~ v1.10.0) - ~12/05
-**v1.9.0 프로필 관리 (12/04)**
-- [ ] 프로필 페이지 (`/profile`)
-- [ ] 프로필 이미지 업로드
-- [ ] 개인정보 수정
+**v1.9.0 프로필 관리**
+- [x] Profile 페이지 (`/profile`)
+- [x] `useProfile` 훅 (프로필 CRUD)
+- [x] `useUploadAvatar` 훅 (아바타 업로드)
+- [x] Supabase Storage 아바타 버킷 연동
 
-**v1.10.0 RBAC 강화 (12/05)**
-- [ ] 역할 기반 접근 제어 강화
-- [ ] 권한 관리 시스템
-- [ ] 이메일 인증 플로우
+**v1.10.0 RBAC 강화 & 이메일 인증**
+- [x] `user_profiles` 테이블
+- [x] `user_roles` 테이블 (admin, user, guest)
+- [x] RLS 정책 (프로필/역할 접근 제어)
+- [x] `useVerifyEmail`, `useRequestEmailVerification` 훅
+- [x] EmailVerify 페이지 (`/email/verify`)
 
-### 📝 Phase 11: 콘텐츠 관리 (v1.11.0 ~ v1.12.0) - ~12/07
-**v1.11.0 블로그 시스템 (12/06)**
-- [ ] 블로그 목록/상세 페이지
-- [ ] 마크다운 렌더링
+---
 
-**v1.12.0 SEO 최적화 (12/07)**
-- [ ] sitemap.xml 생성
-- [ ] RSS 피드
-- [ ] 마크다운 에디터
+## 📋 다음 단계
 
-### 🚀 Phase 12: 고도화 & 확장 (v2.0.0 ~) - 안정화 후
+### 🚀 Phase 11: 콘텐츠 관리 (v1.11.0 ~ v1.12.0)
+
+**v1.11.0 블로그 시스템**
+- [ ] 블로그 목록/상세 페이지 (`/blog`, `/blog/:slug`)
+- [ ] 마크다운 렌더링 (react-markdown)
+- [ ] 태그/카테고리 필터링
+
+**v1.12.0 SEO 최적화**
+- [ ] sitemap.xml 자동 생성
+- [ ] RSS 피드 (`/rss.xml`)
+- [ ] 마크다운 에디터 (관리자용)
+
+### 📋 Phase 12: 고도화 & 확장 (v2.0.0 ~) - 안정화 후
 - [ ] 시스템 안정화 완료
-- [ ] 다국어 지원
+- [ ] 다국어 지원 (i18n)
 - [ ] AI 챗봇
-- [ ] 성능 모니터링
+- [ ] 성능 모니터링 (Sentry)
 - [ ] PWA 지원
 
 ---

@@ -9,6 +9,57 @@
 
 ---
 
+## [1.12.0] - 2025-11-28
+
+### Added
+- **Phase 11 v1.12.0: SEO 최적화** 🎉
+  - `generate-sitemap.js` 스크립트 (sitemap.xml 자동 생성)
+  - `generate-rss.js` 스크립트 (RSS 피드 자동 생성)
+  - `SEOHead.tsx` 컴포넌트 (Open Graph, Twitter Cards, JSON-LD)
+  - robots.txt 업데이트 (sitemap 참조)
+  - `build:seo`, `build:all` npm 스크립트
+
+- **SEO 컴포넌트**
+  - HomeSEO - 홈페이지 SEO
+  - ServicesSEO - 서비스 목록 SEO
+  - BlogSEO - 블로그 목록 SEO
+  - BlogPostSEO - 블로그 게시물 SEO
+
+### Build
+- 번들 크기: 260.33 kB (gzip) (+5.50 kB from v1.11.0)
+- sitemap.xml: 9 URLs
+- rss.xml: 2 posts
+
+---
+
+## [1.11.0] - 2025-11-28
+
+### Added
+- **Phase 11 v1.11.0: 블로그 시스템** 🎉
+  - `posts` 테이블 (Supabase) - 블로그 게시물 저장
+  - `usePosts` 훅 (CRUD, 필터링, 검색)
+  - Blog 페이지 (`/blog`) - 게시물 목록
+  - BlogPost 페이지 (`/blog/:slug`) - 게시물 상세
+  - AdminPosts 페이지 (`/admin/posts`) - 게시물 관리
+  - CreatePost/EditPost 페이지 - 게시물 생성/수정
+  - PostForm 컴포넌트 (React Hook Form + Zod)
+  - 마크다운 프리뷰 지원
+
+- **라우트**
+  - `/blog` - 블로그 목록
+  - `/blog/:slug` - 블로그 상세
+  - `/admin/posts` - 블로그 관리
+  - `/admin/posts/new` - 블로그 작성
+  - `/admin/posts/:id/edit` - 블로그 수정
+
+- **Supabase 마이그레이션**
+  - `20251128300001_create_posts_table.sql`
+
+### Build
+- 번들 크기: 260.33 kB (gzip)
+
+---
+
 ## [1.10.0] - 2025-11-28
 
 ### Added

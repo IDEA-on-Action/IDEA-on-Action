@@ -1,12 +1,14 @@
 {
   "name": "vite_react_shadcn_ts",
   "private": true,
-  "version": "1.5.0",
+  "version": "1.12.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "build:dev": "vite build --mode development",
+    "build:seo": "node scripts/generate-sitemap.js && node scripts/generate-rss.js",
+    "build:all": "npm run build:seo && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
     "release": "standard-version",
