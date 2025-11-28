@@ -55,6 +55,7 @@ serve(async (req) => {
         const supabase = createClient(supabaseUrl, supabaseKey)
 
         // 결제 정보 저장/업데이트
+
         const { data: existingPayment } = await supabase
             .from('payments')
             .select('id')

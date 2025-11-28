@@ -34,6 +34,7 @@ CREATE INDEX IF NOT EXISTS idx_subscription_usage_period ON subscription_usage(p
 ALTER TABLE subscription_usage ENABLE ROW LEVEL SECURITY;
 
 -- RLS 정책: 본인 구독 사용량만 조회
+DROP POLICY IF EXISTS "Users can read own subscription usage" ON subscription_usage;
 CREATE POLICY "Users can read own subscription usage"
   ON subscription_usage
   FOR SELECT
@@ -45,6 +46,7 @@ CREATE POLICY "Users can read own subscription usage"
   );
 
 -- RLS 정책: 시스템만 사용량 기록
+DROP POLICY IF EXISTS "Service role can manage subscription usage" ON subscription_usage;
 CREATE POLICY "Service role can manage subscription usage"
   ON subscription_usage
   FOR ALL
@@ -60,6 +62,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS subscription_usage_updated_at ON subscription_usage;
 CREATE TRIGGER subscription_usage_updated_at
   BEFORE UPDATE ON subscription_usage
   FOR EACH ROW
