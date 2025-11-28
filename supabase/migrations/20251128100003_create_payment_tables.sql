@@ -9,16 +9,64 @@
 
 CREATE TABLE IF NOT EXISTS payments (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  order_id UUID REFERENCES orders(id) ON DELETE SET NULL,
-  provider VARCHAR(20) NOT NULL CHECK (provider IN ('kakao', 'toss', 'stripe')),
-  provider_transaction_id VARCHAR(255), -- 결제사 거래 ID
-  amount DECIMAL(12, 2) NOT NULL,
-  status VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'completed', 'failed', 'refunded')),
-  payment_method VARCHAR(50), -- 카드, 계좌이체, 간편결제 등
-  metadata JSONB DEFAULT '{}', -- 결제사별 추가 정보
-  paid_at TIMESTAMPTZ, -- 실제 결제 완료 시간
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+DO $$
+BEGIN
+    ALTER TABLE payments ADD COLUMN IF NOT EXISTS order_id UUID REFERENCES orders(id) ON DELETE SET NULL;
+EXCEPTION
+    WHEN duplicate_column THEN NULL;
+END $$;
+
+DO $$
+BEGIN
+    ALTER TABLE payments ADD COLUMN IF NOT EXISTS provider VARCHAR(20) CHECK (provider IN ('kakao', 'toss', 'stripe'));
+EXCEPTION
+    WHEN duplicate_column THEN NULL;
+END $$;
+
+DO $$
+BEGIN
+    ALTER TABLE payments ADD COLUMN IF NOT EXISTS provider_transaction_id VARCHAR(255);
+EXCEPTION
+    WHEN duplicate_column THEN NULL;
+END $$;
+
+DO $$
+BEGIN
+    ALTER TABLE payments ADD COLUMN IF NOT EXISTS amount DECIMAL(12, 2) NOT NULL DEFAULT 0;
+EXCEPTION
+    WHEN duplicate_column THEN NULL;
+END $$;
+
+DO $$
+BEGIN
+    ALTER TABLE payments ADD COLUMN IF NOT EXISTS status VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'completed', 'failed', 'refunded'));
+EXCEPTION
+    WHEN duplicate_column THEN NULL;
+END $$;
+
+DO $$
+BEGIN
+    ALTER TABLE payments ADD COLUMN IF NOT EXISTS payment_method VARCHAR(50);
+EXCEPTION
+    WHEN duplicate_column THEN NULL;
+END $$;
+
+DO $$
+BEGIN
+    ALTER TABLE payments ADD COLUMN IF NOT EXISTS metadata JSONB DEFAULT '{}';
+EXCEPTION
+    WHEN duplicate_column THEN NULL;
+END $$;
+
+DO $$
+BEGIN
+    ALTER TABLE payments ADD COLUMN IF NOT EXISTS paid_at TIMESTAMPTZ;
+EXCEPTION
+    WHEN duplicate_column THEN NULL;
+END $$;
 
 -- ============================================================
 -- 2. 인덱스
@@ -37,6 +85,7 @@ CREATE INDEX IF NOT EXISTS idx_payments_created_at ON payments(created_at DESC);
 ALTER TABLE payments ENABLE ROW LEVEL SECURITY;
 
 -- 자신의 주문에 대한 결제만 조회 가능
+DROP POLICY IF EXISTS "Users can view own payments" ON payments;
 CREATE POLICY "Users can view own payments"
   ON payments FOR SELECT
   TO authenticated
@@ -49,6 +98,7 @@ CREATE POLICY "Users can view own payments"
   );
 
 -- 자신의 주문에 대한 결제만 생성 가능
+DROP POLICY IF EXISTS "Users can create own payments" ON payments;
 CREATE POLICY "Users can create own payments"
   ON payments FOR INSERT
   TO authenticated
@@ -61,6 +111,7 @@ CREATE POLICY "Users can create own payments"
   );
 
 -- 자신의 결제만 수정 가능 (상태 업데이트)
+DROP POLICY IF EXISTS "Users can update own payments" ON payments;
 CREATE POLICY "Users can update own payments"
   ON payments FOR UPDATE
   TO authenticated

@@ -8,16 +8,58 @@
 
 CREATE TABLE IF NOT EXISTS public.user_profiles (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-  full_name TEXT,
-  avatar_url TEXT,
-  phone TEXT,
-  bio TEXT,
-  email_verified BOOLEAN DEFAULT FALSE,
-  email_verification_token TEXT,
-  email_verification_sent_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+DO $$
+BEGIN
+    ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS full_name TEXT;
+EXCEPTION
+    WHEN duplicate_column THEN NULL;
+END $$;
+
+DO $$
+BEGIN
+    ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS avatar_url TEXT;
+EXCEPTION
+    WHEN duplicate_column THEN NULL;
+END $$;
+
+DO $$
+BEGIN
+    ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS phone TEXT;
+EXCEPTION
+    WHEN duplicate_column THEN NULL;
+END $$;
+
+DO $$
+BEGIN
+    ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS bio TEXT;
+EXCEPTION
+    WHEN duplicate_column THEN NULL;
+END $$;
+
+DO $$
+BEGIN
+    ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS email_verified BOOLEAN DEFAULT FALSE;
+EXCEPTION
+    WHEN duplicate_column THEN NULL;
+END $$;
+
+DO $$
+BEGIN
+    ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS email_verification_token TEXT;
+EXCEPTION
+    WHEN duplicate_column THEN NULL;
+END $$;
+
+DO $$
+BEGIN
+    ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS email_verification_sent_at TIMESTAMPTZ;
+EXCEPTION
+    WHEN duplicate_column THEN NULL;
+END $$;
 
 -- 인덱스
 CREATE INDEX IF NOT EXISTS idx_user_profiles_email_verified ON public.user_profiles(email_verified);
@@ -29,10 +71,23 @@ CREATE INDEX IF NOT EXISTS idx_user_profiles_email_verified ON public.user_profi
 CREATE TABLE IF NOT EXISTS public.user_roles (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  role TEXT NOT NULL DEFAULT 'user' CHECK (role IN ('admin', 'user', 'guest')),
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  UNIQUE(user_id, role)
+  created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+DO $$
+BEGIN
+    ALTER TABLE public.user_roles ADD COLUMN IF NOT EXISTS role TEXT NOT NULL DEFAULT 'user' CHECK (role IN ('admin', 'user', 'guest'));
+EXCEPTION
+    WHEN duplicate_column THEN NULL;
+END $$;
+
+DO $$
+BEGIN
+    ALTER TABLE public.user_roles ADD CONSTRAINT user_roles_user_id_role_key UNIQUE(user_id, role);
+EXCEPTION
+    WHEN duplicate_table THEN NULL; -- constraint already exists
+    WHEN OTHERS THEN NULL;
+END $$;
 
 -- 인덱스
 CREATE INDEX IF NOT EXISTS idx_user_roles_user_id ON public.user_roles(user_id);
@@ -46,12 +101,14 @@ CREATE INDEX IF NOT EXISTS idx_user_roles_role ON public.user_roles(role);
 ALTER TABLE public.user_profiles ENABLE ROW LEVEL SECURITY;
 
 -- 프로필 조회: 본인만 조회 가능
+DROP POLICY IF EXISTS "Users can view own profile" ON public.user_profiles;
 CREATE POLICY "Users can view own profile"
   ON public.user_profiles
   FOR SELECT
   USING (auth.uid() = id);
 
 -- 프로필 업데이트: 본인만 가능
+DROP POLICY IF EXISTS "Users can update own profile" ON public.user_profiles;
 CREATE POLICY "Users can update own profile"
   ON public.user_profiles
   FOR UPDATE
@@ -59,12 +116,14 @@ CREATE POLICY "Users can update own profile"
   WITH CHECK (auth.uid() = id);
 
 -- 프로필 삽입: 본인 ID로만 가능
+DROP POLICY IF EXISTS "Users can insert own profile" ON public.user_profiles;
 CREATE POLICY "Users can insert own profile"
   ON public.user_profiles
   FOR INSERT
   WITH CHECK (auth.uid() = id);
 
 -- 관리자는 모든 프로필 조회 가능
+DROP POLICY IF EXISTS "Admins can view all profiles" ON public.user_profiles;
 CREATE POLICY "Admins can view all profiles"
   ON public.user_profiles
   FOR SELECT
@@ -79,12 +138,14 @@ CREATE POLICY "Admins can view all profiles"
 ALTER TABLE public.user_roles ENABLE ROW LEVEL SECURITY;
 
 -- 역할 조회: 본인 역할만 조회 가능
+DROP POLICY IF EXISTS "Users can view own roles" ON public.user_roles;
 CREATE POLICY "Users can view own roles"
   ON public.user_roles
   FOR SELECT
   USING (auth.uid() = user_id);
 
 -- 관리자는 모든 역할 조회 가능
+DROP POLICY IF EXISTS "Admins can view all roles" ON public.user_roles;
 CREATE POLICY "Admins can view all roles"
   ON public.user_roles
   FOR SELECT
@@ -96,6 +157,7 @@ CREATE POLICY "Admins can view all roles"
   );
 
 -- 관리자만 역할 생성 가능
+DROP POLICY IF EXISTS "Admins can insert roles" ON public.user_roles;
 CREATE POLICY "Admins can insert roles"
   ON public.user_roles
   FOR INSERT
@@ -107,6 +169,7 @@ CREATE POLICY "Admins can insert roles"
   );
 
 -- 관리자만 역할 삭제 가능
+DROP POLICY IF EXISTS "Admins can delete roles" ON public.user_roles;
 CREATE POLICY "Admins can delete roles"
   ON public.user_roles
   FOR DELETE

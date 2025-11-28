@@ -7,19 +7,63 @@
 -- 1. orders 테이블 (주문)
 -- ============================================================
 
+-- 기본 테이블 생성 (존재하지 않을 경우에만)
 CREATE TABLE IF NOT EXISTS orders (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
-  total_amount DECIMAL(12, 2) NOT NULL DEFAULT 0,
-  tax_amount DECIMAL(12, 2) NOT NULL DEFAULT 0,
-  discount_amount DECIMAL(12, 2) NOT NULL DEFAULT 0,
-  status VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'processing', 'completed', 'cancelled', 'refunded')),
-  shipping_address JSONB,
-  contact_info JSONB,
-  shipping_note TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- 컬럼 추가 (존재하지 않을 경우에만)
+DO $$
+BEGIN
+    ALTER TABLE orders ADD COLUMN IF NOT EXISTS total_amount DECIMAL(12, 2) NOT NULL DEFAULT 0;
+EXCEPTION
+    WHEN duplicate_column THEN NULL;
+END $$;
+
+DO $$
+BEGIN
+    ALTER TABLE orders ADD COLUMN IF NOT EXISTS tax_amount DECIMAL(12, 2) NOT NULL DEFAULT 0;
+EXCEPTION
+    WHEN duplicate_column THEN NULL;
+END $$;
+
+DO $$
+BEGIN
+    ALTER TABLE orders ADD COLUMN IF NOT EXISTS discount_amount DECIMAL(12, 2) NOT NULL DEFAULT 0;
+EXCEPTION
+    WHEN duplicate_column THEN NULL;
+END $$;
+
+DO $$
+BEGIN
+    ALTER TABLE orders ADD COLUMN IF NOT EXISTS status VARCHAR(20) NOT NULL DEFAULT 'pending';
+EXCEPTION
+    WHEN duplicate_column THEN NULL;
+END $$;
+
+DO $$
+BEGIN
+    ALTER TABLE orders ADD COLUMN IF NOT EXISTS shipping_address JSONB;
+EXCEPTION
+    WHEN duplicate_column THEN NULL;
+END $$;
+
+DO $$
+BEGIN
+    ALTER TABLE orders ADD COLUMN IF NOT EXISTS contact_info JSONB;
+EXCEPTION
+    WHEN duplicate_column THEN NULL;
+END $$;
+
+DO $$
+BEGIN
+    ALTER TABLE orders ADD COLUMN IF NOT EXISTS shipping_note TEXT;
+EXCEPTION
+    WHEN duplicate_column THEN NULL;
+END $$;
 
 -- ============================================================
 -- 2. order_items 테이블 (주문 상품)
@@ -28,13 +72,43 @@ CREATE TABLE IF NOT EXISTS orders (
 CREATE TABLE IF NOT EXISTS order_items (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   order_id UUID NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
-  service_id UUID REFERENCES services(id) ON DELETE SET NULL,
-  service_title VARCHAR(255) NOT NULL, -- 서비스 삭제되어도 이름 유지
-  quantity INTEGER NOT NULL DEFAULT 1 CHECK (quantity > 0),
-  unit_price DECIMAL(12, 2) NOT NULL,
-  subtotal DECIMAL(12, 2) NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+DO $$
+BEGIN
+    ALTER TABLE order_items ADD COLUMN IF NOT EXISTS service_id UUID REFERENCES services(id) ON DELETE SET NULL;
+EXCEPTION
+    WHEN duplicate_column THEN NULL;
+END $$;
+
+DO $$
+BEGIN
+    ALTER TABLE order_items ADD COLUMN IF NOT EXISTS service_title VARCHAR(255);
+EXCEPTION
+    WHEN duplicate_column THEN NULL;
+END $$;
+
+DO $$
+BEGIN
+    ALTER TABLE order_items ADD COLUMN IF NOT EXISTS quantity INTEGER NOT NULL DEFAULT 1;
+EXCEPTION
+    WHEN duplicate_column THEN NULL;
+END $$;
+
+DO $$
+BEGIN
+    ALTER TABLE order_items ADD COLUMN IF NOT EXISTS unit_price DECIMAL(12, 2);
+EXCEPTION
+    WHEN duplicate_column THEN NULL;
+END $$;
+
+DO $$
+BEGIN
+    ALTER TABLE order_items ADD COLUMN IF NOT EXISTS subtotal DECIMAL(12, 2);
+EXCEPTION
+    WHEN duplicate_column THEN NULL;
+END $$;
 
 -- ============================================================
 -- 3. 인덱스
