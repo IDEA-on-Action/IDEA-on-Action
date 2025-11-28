@@ -1,4 +1,4 @@
-import { Menu, User as UserIcon } from "lucide-react";
+import { Menu, User as UserIcon, ShoppingCart } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/shared/ThemeToggle";
@@ -11,6 +11,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/hooks/useAuth";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
+import { useCartStore } from "@/stores/cartStore";
+import { Badge } from "@/components/ui/badge";
 import logoSymbol from "@/assets/logo-symbol.png";
 
 const Header = () => {
@@ -19,6 +21,8 @@ const Header = () => {
   const isHomePage = location.pathname === "/";
   const { user, signOut } = useAuth();
   const { data: isAdmin } = useIsAdmin();
+  const { openCart, getTotalItems } = useCartStore();
+  const cartItemCount = getTotalItems();
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 glass-card border-b border-gray-200 dark:border-gray-700">
@@ -63,6 +67,25 @@ const Header = () => {
         </div>
 
         <div className="flex items-center gap-3">
+          {/* 장바구니 버튼 */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="relative"
+            onClick={openCart}
+            aria-label="장바구니"
+          >
+            <ShoppingCart className="h-5 w-5" />
+            {cartItemCount > 0 && (
+              <Badge
+                variant="destructive"
+                className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs"
+              >
+                {cartItemCount > 99 ? '99+' : cartItemCount}
+              </Badge>
+            )}
+          </Button>
+
           <ThemeToggle />
 
           {user ? (

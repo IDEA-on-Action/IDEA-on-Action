@@ -15,6 +15,14 @@ import { Button } from '@/components/ui/button'
 import { Link } from 'react-router-dom'
 import type { Service } from '@/types/database'
 
+interface ServiceFormData {
+  title: string
+  description: string
+  category_id: string
+  price: number
+  status: 'active' | 'draft' | 'archived'
+}
+
 export default function EditService() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
@@ -53,7 +61,7 @@ export default function EditService() {
 
   // 서비스 수정
   const updateMutation = useMutation({
-    mutationFn: async ({ data, images, features }: { data: any; images: string[]; features: string[] }) => {
+    mutationFn: async ({ data, images, features }: { data: ServiceFormData; images: string[]; features: string[] }) => {
       // Features 포맷팅
       const formattedFeatures = features
         .filter((f: string) => f.trim())
@@ -87,16 +95,17 @@ export default function EditService() {
       })
       navigate('/admin/services')
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
+      const errorMessage = error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.'
       toast({
         title: '서비스 수정 실패',
-        description: error.message,
+        description: errorMessage,
         variant: 'destructive',
       })
     },
   })
 
-  const handleSubmit = async (data: any, images: string[], features: string[]) => {
+  const handleSubmit = async (data: ServiceFormData, images: string[], features: string[]) => {
     updateMutation.mutate({ data, images, features })
   }
 

@@ -170,9 +170,7 @@ git push origin staging
 ```
 .github/
 └── workflows/
-    ├── ci.yml                        # CI 파이프라인
-    ├── deploy-production.yml         # Production 배포
-    └── deploy-staging.yml            # Staging 배포
+    ├── ci-cd.yml                     # 통합 CI/CD 파이프라인 (CI, Staging, Production)
 ```
 
 ### Status Checks 활성화
@@ -181,8 +179,8 @@ git push origin staging
 1. Settings → Branches → main (Edit)
 2. "Require status checks to pass" 활성화
 3. Status checks 검색:
-   - `CI: Lint & Type Check`
-   - `CI: Build`
+   - `🔍 Quality Check`
+   - `🏗️ Build Check`
 4. 선택 후 Save
 
 **주의**: Workflow가 최소 1회 실행되어야 검색 가능
@@ -352,7 +350,7 @@ git push origin test/branch-protection
 - [ ] staging 브랜치 보호 규칙 설정
 - [ ] develop 브랜치 보호 규칙 설정
 - [ ] GitHub Secrets 추가 (VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID)
-- [ ] GitHub Actions Workflows 추가 (ci.yml, deploy-*.yml)
+- [ ] GitHub Actions Workflows 추가 (ci-cd.yml)
 - [ ] Status Checks 활성화
 
 ### 선택 설정

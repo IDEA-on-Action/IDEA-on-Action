@@ -14,6 +14,14 @@ import { Loader2, ArrowLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Link } from 'react-router-dom'
 
+interface ServiceFormData {
+  title: string
+  description: string
+  category_id: string
+  price: number
+  status: 'active' | 'draft' | 'archived'
+}
+
 export default function CreateService() {
   const navigate = useNavigate()
   const { toast } = useToast()
@@ -34,7 +42,7 @@ export default function CreateService() {
 
   // 서비스 생성
   const createMutation = useMutation({
-    mutationFn: async ({ data, images, features }: { data: any; images: string[]; features: string[] }) => {
+    mutationFn: async ({ data, images, features }: { data: ServiceFormData; images: string[]; features: string[] }) => {
       // Features 포맷팅
       const formattedFeatures = features
         .filter((f: string) => f.trim())
@@ -67,16 +75,17 @@ export default function CreateService() {
       })
       navigate('/admin/services')
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
+      const errorMessage = error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.'
       toast({
         title: '서비스 등록 실패',
-        description: error.message,
+        description: errorMessage,
         variant: 'destructive',
       })
     },
   })
 
-  const handleSubmit = async (data: any, images: string[], features: string[]) => {
+  const handleSubmit = async (data: ServiceFormData, images: string[], features: string[]) => {
     createMutation.mutate({ data, images, features })
   }
 

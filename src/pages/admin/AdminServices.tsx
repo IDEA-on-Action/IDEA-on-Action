@@ -89,10 +89,11 @@ export default function AdminServices() {
       })
       setDeleteId(null)
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
+      const errorMessage = error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.'
       toast({
         title: '서비스 삭제 실패',
-        description: error.message,
+        description: errorMessage,
         variant: 'destructive',
       })
     },

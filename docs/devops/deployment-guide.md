@@ -271,9 +271,8 @@ Preview:
 ### 3. CI Checks (GitHub Actions)
 
 **필수 체크**:
-- ✅ ESLint
-- ✅ TypeScript Type Check
-- ✅ Build Success
+- ✅ Quality Check (Lint & Type Check)
+- ✅ Build Check
 - ✅ Bundle Size Check
 
 ---

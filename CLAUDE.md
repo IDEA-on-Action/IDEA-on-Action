@@ -2,7 +2,7 @@
 
 > Claude와의 개발 협업을 위한 프로젝트 핵심 문서
 
-**마지막 업데이트**: 2025-10-17
+**마지막 업데이트**: 2025-11-28
 **프로젝트 버전**: 1.5.0
 **상태**: ✅ Production Ready | 🎉 인증 & 관리자 시스템 완료 | 🚀 Phase 9 준비
 
@@ -347,25 +347,23 @@ npm run lint      # ESLint 검사
 - [ ] 주문 관리 시스템
 - [ ] 결제 게이트웨이 (카카오페이, 토스)
 
-### 빌드 통계 (2025-10-17)
+### 빌드 통계 (2025-11-28)
 
 **Vite Build Stats**
 ```
 dist/index.html                         1.23 kB │ gzip:   0.66 kB
 dist/assets/logo-symbol-DqUao7Np.png   29.60 kB
 dist/assets/logo-full-BqGYrkB8.png     77.52 kB
-dist/assets/index-NtBw1TBh.css         77.95 kB │ gzip:  12.98 kB
-dist/assets/index-Duh8TxGx.js         754.90 kB │ gzip: 226.66 kB
+dist/assets/index-B52Lhf7h.css         77.64 kB │ gzip:  12.97 kB
+dist/assets/index-Ch4nLWKH.js         755.47 kB │ gzip: 226.91 kB
 
-Total (gzip): 239.64 kB
+Total (gzip): 240.54 kB
 ```
 
 **변경 사항**:
-- v1.4.0 → v1.5.0: +38.44 kB (gzip)
-  - React Hook Form + Zod: +15 kB
-  - 관리자 페이지 컴포넌트: +12 kB
-  - AdminLayout + 사이드바: +5 kB
-  - 기타: +6.44 kB
+- v1.5.0 빌드 최적화: +0.25 kB (gzip)
+  - ESLint 에러 수정 (any → unknown 타입)
+  - TypeScript 타입 안전성 강화
 
 ---
 

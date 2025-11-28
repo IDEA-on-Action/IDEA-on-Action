@@ -10,8 +10,13 @@ import ServiceDetail from "./pages/ServiceDetail";
 import Login from "./pages/Login";
 import Forbidden from "./pages/Forbidden";
 import NotFound from "./pages/NotFound";
+import Checkout from "./pages/Checkout";
+import Orders from "./pages/Orders";
+import Payment from "./pages/Payment";
+import PaymentComplete from "./pages/PaymentComplete";
 import { AdminRoute } from "./components/auth/AdminRoute";
 import { AdminLayout } from "./components/layouts/AdminLayout";
+import { CartDrawer } from "./components/cart/CartDrawer";
 import Dashboard from "./pages/admin/Dashboard";
 import AdminServices from "./pages/admin/AdminServices";
 import CreateService from "./pages/admin/CreateService";
@@ -26,12 +31,17 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
+          <CartDrawer />
           <Routes>
             {/* Public Routes */}
             <Route path="/" element={<Index />} />
             <Route path="/services" element={<Services />} />
             <Route path="/services/:id" element={<ServiceDetail />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/checkout" element={<Checkout />} />
+            <Route path="/orders" element={<Orders />} />
+            <Route path="/payment" element={<Payment />} />
+            <Route path="/payment/complete" element={<PaymentComplete />} />
             <Route path="/forbidden" element={<Forbidden />} />
 
             {/* Admin Routes */}

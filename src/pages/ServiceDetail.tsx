@@ -35,12 +35,29 @@ import {
   AlertCircle,
   Mail,
   ShoppingCart,
+  Check,
 } from 'lucide-react'
+import { useCartStore } from '@/stores/cartStore'
+import { useToast } from '@/hooks/use-toast'
 
 export default function ServiceDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { data: service, isLoading, isError, error } = useServiceDetail(id!)
+  const { addItem, getItemQuantity } = useCartStore()
+  const { toast } = useToast()
+
+  const cartQuantity = service ? getItemQuantity(service.id) : 0
+
+  const handleAddToCart = () => {
+    if (!service) return
+
+    addItem(service)
+    toast({
+      title: '장바구니에 추가되었습니다',
+      description: service.title,
+    })
+  }
 
   if (isLoading) {
     return (
@@ -214,9 +231,22 @@ export default function ServiceDetail() {
                     <div className="text-sm text-muted-foreground">부가세 별도</div>
                   </div>
                   <div className="flex flex-col sm:flex-row gap-3">
-                    <Button size="lg" className="flex-1">
-                      <ShoppingCart className="mr-2 h-5 w-5" />
-                      구매하기
+                    <Button
+                      size="lg"
+                      className="flex-1"
+                      onClick={handleAddToCart}
+                    >
+                      {cartQuantity > 0 ? (
+                        <>
+                          <Check className="mr-2 h-5 w-5" />
+                          담김 ({cartQuantity})
+                        </>
+                      ) : (
+                        <>
+                          <ShoppingCart className="mr-2 h-5 w-5" />
+                          장바구니 담기
+                        </>
+                      )}
                     </Button>
                     <Button size="lg" variant="outline" asChild className="flex-1">
                       <Link to="/contact">

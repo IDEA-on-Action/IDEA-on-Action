@@ -99,6 +99,7 @@ export interface OrderItem {
   id: string
   order_id: string
   service_id: string | null
+  service_title: string
   quantity: number
   unit_price: number
   subtotal: number
