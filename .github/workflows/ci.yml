@@ -6,6 +6,12 @@ on:
   push:
     branches: [main, staging, develop]
 
+# PR 코멘트 작성을 위한 권한 설정
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
 jobs:
   # Setup: 의존성 설치 및 빌드 (1회만)
   setup:
