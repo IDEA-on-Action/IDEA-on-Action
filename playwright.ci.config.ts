@@ -3,25 +3,20 @@ import { defineConfig, devices } from '@playwright/test';
 /**
  * CI 환경용 Playwright E2E 테스트 설정
  * - Chromium만 실행
- * - 핵심 Smoke 테스트만 실행 (63개 → 10개 파일)
+ * - 정적 페이지 Smoke 테스트만 (외부 API 의존 테스트 제외)
  * - 워커 4개로 병렬 처리
  * - 재시도 없음
  */
 export default defineConfig({
   testDir: './tests/e2e',
 
-  /* CI용 핵심 테스트만 실행 (Smoke Test) */
+  /* CI용 핵심 테스트만 실행 (정적 페이지 Smoke Test) */
   testMatch: [
     '**/homepage.spec.ts',
     '**/navigation.spec.ts',
-    '**/login.spec.ts',
-    '**/services.spec.ts',
-    '**/blog.spec.ts',
     '**/dark-mode.spec.ts',
     '**/responsive.spec.ts',
-    '**/search.spec.ts',
     '**/status.spec.ts',
-    '**/work-with-us.spec.ts',
   ],
 
   /* 병렬 실행 */
