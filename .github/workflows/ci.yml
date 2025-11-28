@@ -203,8 +203,8 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-node-modules-
 
-      - name: Install Playwright browsers
-        run: npx playwright install --with-deps
+      - name: Install Playwright browsers (Chromium only)
+        run: npx playwright install chromium --with-deps
 
       - name: Download build artifacts
         uses: actions/download-artifact@v4
@@ -212,8 +212,8 @@ jobs:
           name: build-artifacts
           path: dist
 
-      - name: Run E2E tests
-        run: npm run test:e2e
+      - name: Run E2E tests (CI optimized)
+        run: npm run test:e2e:ci
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
