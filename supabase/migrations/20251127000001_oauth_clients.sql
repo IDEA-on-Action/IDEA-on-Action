@@ -72,40 +72,50 @@ CREATE TRIGGER oauth_clients_updated_at
   EXECUTE FUNCTION update_oauth_clients_updated_at();
 
 -- 초기 데이터: Minu 서비스 4개 등록
-INSERT INTO oauth_clients (client_id, client_secret, name, redirect_uris, scopes, description)
-VALUES
-  (
-    'minu_find_client',
-    '$2a$10$example_hash_replace_with_real_hash', -- 실제 배포 시 bcrypt 해시로 교체
-    'Minu Find',
-    ARRAY['https://find.minuapp.com/oauth/callback'],
-    ARRAY['read:profile', 'read:services', 'write:subscriptions'],
-    '사업기회 탐색 서비스'
-  ),
-  (
-    'minu_frame_client',
-    '$2a$10$example_hash_replace_with_real_hash',
-    'Minu Frame',
-    ARRAY['https://frame.minuapp.com/oauth/callback'],
-    ARRAY['read:profile', 'read:services', 'write:documents'],
-    '문제정의 & RFP 생성 서비스'
-  ),
-  (
-    'minu_build_client',
-    '$2a$10$example_hash_replace_with_real_hash',
-    'Minu Build',
-    ARRAY['https://build.minuapp.com/oauth/callback'],
-    ARRAY['read:profile', 'read:projects', 'write:projects', 'write:tasks'],
-    '프로젝트 진행 관리 서비스'
-  ),
-  (
-    'minu_keep_client',
-    '$2a$10$example_hash_replace_with_real_hash',
-    'Minu Keep',
-    ARRAY['https://keep.minuapp.com/oauth/callback'],
-    ARRAY['read:profile', 'read:services', 'write:monitoring'],
-    '운영/유지보수 관리 서비스'
-  );
+-- name 컬럼이 존재하는 경우에만 INSERT 실행
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'oauth_clients' AND column_name = 'name'
+  ) THEN
+    INSERT INTO oauth_clients (client_id, client_secret, name, redirect_uris, scopes, description)
+    VALUES
+      (
+        'minu_find_client',
+        '$2a$10$example_hash_replace_with_real_hash',
+        'Minu Find',
+        ARRAY['https://find.minuapp.com/oauth/callback'],
+        ARRAY['read:profile', 'read:services', 'write:subscriptions'],
+        '사업기회 탐색 서비스'
+      ),
+      (
+        'minu_frame_client',
+        '$2a$10$example_hash_replace_with_real_hash',
+        'Minu Frame',
+        ARRAY['https://frame.minuapp.com/oauth/callback'],
+        ARRAY['read:profile', 'read:services', 'write:documents'],
+        '문제정의 & RFP 생성 서비스'
+      ),
+      (
+        'minu_build_client',
+        '$2a$10$example_hash_replace_with_real_hash',
+        'Minu Build',
+        ARRAY['https://build.minuapp.com/oauth/callback'],
+        ARRAY['read:profile', 'read:projects', 'write:projects', 'write:tasks'],
+        '프로젝트 진행 관리 서비스'
+      ),
+      (
+        'minu_keep_client',
+        '$2a$10$example_hash_replace_with_real_hash',
+        'Minu Keep',
+        ARRAY['https://keep.minuapp.com/oauth/callback'],
+        ARRAY['read:profile', 'read:services', 'write:monitoring'],
+        '운영/유지보수 관리 서비스'
+      )
+    ON CONFLICT (client_id) DO NOTHING;
+  END IF;
+END $$;
 
 -- 코멘트
 COMMENT ON TABLE oauth_clients IS 'OAuth 2.0 클라이언트 앱 등록 정보';
