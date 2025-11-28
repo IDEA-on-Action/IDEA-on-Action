@@ -1,149 +1,163 @@
-# 1. Quality Check (Lint, Type Check, Unit Test)
-# Runs on all pushes and PRs
-quality-check:
-  name: 🔍 Quality Check
-  runs-on: ubuntu-latest
-  steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+name: CI/CD Pipeline
 
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: "18"
-        cache: "npm"
+on:
+  push:
+    branches: [main, staging, "feature/**"]
+  pull_request:
+    branches: [main, staging, develop]
+  workflow_dispatch:
 
-    - name: Install dependencies
-      run: npm ci
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
-    - name: Run ESLint
-      run: npm run lint
+jobs:
+  # 1. Quality Check (Lint, Type Check, Unit Test)
+  # Runs on all pushes and PRs
+  quality-check:
+    name: 🔍 Quality Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: TypeScript Type Check
-      run: npx tsc --noEmit
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+          cache: "npm"
 
-    # Placeholder for Unit Tests
-    # - name: Run Unit Tests
-    #   run: npm run test
+      - name: Install dependencies
+        run: npm ci
 
-# 2. Build Check
-# Runs only on PRs to ensure code is buildable
-# Runs in PARALLEL with quality-check for speed (SSDD)
-build-check:
-  name: 🏗️ Build Check
-  if: github.event_name == 'pull_request'
-  runs-on: ubuntu-latest
-  steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Run ESLint
+        run: npm run lint
 
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: "18"
-        cache: "npm"
+      - name: TypeScript Type Check
+        run: npx tsc --noEmit
 
-    - name: Install dependencies
-      run: npm ci
+      # Placeholder for Unit Tests
+      # - name: Run Unit Tests
+      #   run: npm run test
 
-    - name: Build project
-      run: npm run build
+  # 2. Build Check
+  # Runs only on PRs to ensure code is buildable
+  # Runs in PARALLEL with quality-check for speed (SSDD)
+  build-check:
+    name: 🏗️ Build Check
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-# 3. E2E Check (Placeholder)
-# Runs on PRs to main/staging
-e2e-check:
-  name: 🧪 E2E Check
-  if: github.event_name == 'pull_request' && (github.base_ref == 'main' || github.base_ref == 'staging')
-  runs-on: ubuntu-latest
-  # needs: [quality-check] # Uncomment if you want to wait for quality check
-  steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+          cache: "npm"
 
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: "18"
-        cache: "npm"
+      - name: Install dependencies
+        run: npm ci
 
-    - name: Install dependencies
-      run: npm ci
+      - name: Build project
+        run: npm run build
 
-    # Placeholder for E2E Tests (e.g., Playwright/Cypress)
-    # - name: Run E2E Tests
-    #   run: npm run e2e
+  # 3. E2E Check (Placeholder)
+  # Runs on PRs to main/staging
+  e2e-check:
+    name: 🧪 E2E Check
+    if: github.event_name == 'pull_request' && (github.base_ref == 'main' || github.base_ref == 'staging')
+    runs-on: ubuntu-latest
+    # needs: [quality-check] # Uncomment if you want to wait for quality check
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-# 4. Lighthouse Check (Placeholder)
-# Runs on Main branch (Production Gatekeeper)
-lighthouse-check:
-  name: 🚦 Lighthouse Check
-  if: github.ref == 'refs/heads/main'
-  runs-on: ubuntu-latest
-  needs: [quality-check]
-  steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+          cache: "npm"
 
-    # Placeholder for Lighthouse CI
-    # - name: Run Lighthouse CI
-    #   run: npm run lighthouse
+      - name: Install dependencies
+        run: npm ci
 
-# 5. Deploy to Staging (Canary)
-deploy-staging:
-  name: 🚀 Deploy to Staging
-  if: github.ref == 'refs/heads/staging'
-  runs-on: ubuntu-latest
-  needs: [quality-check] # Ensure quality is good before deploying
-  environment: staging
-  steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      # Placeholder for E2E Tests (e.g., Playwright/Cypress)
+      # - name: Run E2E Tests
+      #   run: npm run e2e
 
-    - name: Deploy to Vercel (Preview)
-      uses: amondnet/vercel-action@v25
-      with:
-        vercel-token: ${{ secrets.VERCEL_TOKEN }}
-        vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
-        vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
-        vercel-args: "--target=preview"
-        working-directory: ./
-        alias-domains: "staging-ideaonaction.vercel.app"
+  # 4. Lighthouse Check (Placeholder)
+  # Runs on Main branch (Production Gatekeeper)
+  lighthouse-check:
+    name: 🚦 Lighthouse Check
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    needs: [quality-check]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-# 6. Deploy to Production
-deploy-production:
-  name: 🚀 Deploy to Production
-  if: github.ref == 'refs/heads/main'
-  runs-on: ubuntu-latest
-  needs: [quality-check, lighthouse-check] # Strict checks for Production
-  environment: production
-  steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      # Placeholder for Lighthouse CI
+      # - name: Run Lighthouse CI
+      #   run: npm run lighthouse
 
-    - name: Deploy to Vercel (Production)
-      uses: amondnet/vercel-action@v25
-      with:
-        vercel-token: ${{ secrets.VERCEL_TOKEN }}
-        vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
-        vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
-        vercel-args: "--prod"
-        working-directory: ./
+  # 5. Deploy to Staging (Canary)
+  deploy-staging:
+    name: 🚀 Deploy to Staging
+    if: github.ref == 'refs/heads/staging'
+    runs-on: ubuntu-latest
+    needs: [quality-check] # Ensure quality is good before deploying
+    environment: staging
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-# 7. CI Success Aggregator
-# This job runs only if all required checks pass.
-# Use this as the SINGLE required check in Branch Protection Rules.
-ci-success:
-  name: ✅ CI Success
-  needs: [quality-check, build-check]
-  runs-on: ubuntu-latest
-  if: always()
-  steps:
-    - name: Check status
-      run: |
-        if [[ "${{ needs.quality-check.result }}" == "success" && "${{ needs.build-check.result }}" == "success" ]]; then
-            echo "All checks passed!"
-            exit 0
-        else
-            echo "One or more checks failed."
-            exit 1
-        fi
+      - name: Deploy to Vercel (Preview)
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel-args: "--target=preview"
+          working-directory: ./
+          alias-domains: "staging-ideaonaction.vercel.app"
+
+  # 6. Deploy to Production
+  deploy-production:
+    name: 🚀 Deploy to Production
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    needs: [quality-check, lighthouse-check] # Strict checks for Production
+    environment: production
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to Vercel (Production)
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel-args: "--prod"
+          working-directory: ./
+
+  # 7. CI Success Aggregator
+  # This job runs only if all required checks pass.
+  # Use this as the SINGLE required check in Branch Protection Rules.
+  ci-success:
+    name: ✅ CI Success
+    needs: [quality-check, build-check]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Check status
+        run: |
+          if [[ "${{ needs.quality-check.result }}" == "success" && "${{ needs.build-check.result }}" == "success" ]]; then
+              echo "All checks passed!"
+              exit 0
+          else
+              echo "One or more checks failed."
+              exit 1
+          fi
