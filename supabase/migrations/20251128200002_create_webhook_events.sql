@@ -59,7 +59,7 @@ CREATE POLICY "Admins can view webhook events"
       SELECT 1 FROM admins
       WHERE user_id = auth.uid()
       AND role IN ('admin', 'super_admin')
-      AND is_active = true
+      
     )
   );
 

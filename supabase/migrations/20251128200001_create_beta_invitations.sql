@@ -208,7 +208,7 @@ CREATE POLICY "Admins can manage beta invitations"
       SELECT 1 FROM admins
       WHERE user_id = auth.uid()
       AND role IN ('admin', 'super_admin')
-      AND is_active = true
+      
     )
   );
 
@@ -224,7 +224,7 @@ CREATE POLICY "Admins can view invitation uses"
       SELECT 1 FROM admins
       WHERE user_id = auth.uid()
       AND role IN ('admin', 'super_admin')
-      AND is_active = true
+      
     )
   );
 

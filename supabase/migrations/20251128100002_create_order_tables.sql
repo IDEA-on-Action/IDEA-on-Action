@@ -129,7 +129,7 @@ CREATE POLICY "Admins can view all orders"
       SELECT 1 FROM admins
       WHERE admins.user_id = auth.uid()
       AND admins.role IN ('admin', 'super_admin')
-      AND admins.is_active = true
+      
     )
   );
 
@@ -142,7 +142,7 @@ CREATE POLICY "Admins can view all order items"
       SELECT 1 FROM admins
       WHERE admins.user_id = auth.uid()
       AND admins.role IN ('admin', 'super_admin')
-      AND admins.is_active = true
+      
     )
   );
 

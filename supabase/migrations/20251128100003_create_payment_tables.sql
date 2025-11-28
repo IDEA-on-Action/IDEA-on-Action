@@ -82,7 +82,7 @@ CREATE POLICY "Admins can manage all payments"
       SELECT 1 FROM admins
       WHERE admins.user_id = auth.uid()
       AND admins.role IN ('admin', 'super_admin')
-      AND admins.is_active = true
+      
     )
   );
 

@@ -17,7 +17,7 @@ CREATE POLICY "Admins can manage oauth clients"
       SELECT 1 FROM admins
       WHERE user_id = auth.uid()
       AND role IN ('admin', 'super_admin')
-      AND is_active = true
+      
     )
   );
 
@@ -35,7 +35,7 @@ CREATE POLICY "Admins can manage plan features"
       SELECT 1 FROM admins
       WHERE user_id = auth.uid()
       AND role IN ('admin', 'super_admin')
-      AND is_active = true
+      
     )
   );
 
@@ -52,7 +52,7 @@ CREATE POLICY "Admins can view all orders"
       SELECT 1 FROM admins
       WHERE admins.user_id = auth.uid()
       AND admins.role IN ('admin', 'super_admin')
-      AND admins.is_active = true
+      
     )
   );
 
@@ -69,7 +69,7 @@ CREATE POLICY "Admins can view all order items"
       SELECT 1 FROM admins
       WHERE admins.user_id = auth.uid()
       AND admins.role IN ('admin', 'super_admin')
-      AND admins.is_active = true
+      
     )
   );
 
@@ -86,7 +86,7 @@ CREATE POLICY "Admins can manage all payments"
       SELECT 1 FROM admins
       WHERE admins.user_id = auth.uid()
       AND admins.role IN ('admin', 'super_admin')
-      AND admins.is_active = true
+      
     )
   );
 
