@@ -1,0 +1,17 @@
+# CODEOWNERS - 코드 소유자 정의
+# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# 기본 소유자 (모든 파일)
+* @sinclairseo
+
+# 핵심 설정 파일
+/.github/ @sinclairseo
+/supabase/ @sinclairseo
+/spec/ @sinclairseo
+/plan/ @sinclairseo
+
+# 프로덕션 코드
+/src/ @sinclairseo
+
+# 테스트
+/tests/ @sinclairseo
