@@ -115,6 +115,7 @@ CREATE POLICY "Users can insert own order items"
   );
 
 -- Admin: 모든 주문 조회/수정 가능
+DROP POLICY IF EXISTS "Admins can view all orders" ON orders;
 CREATE POLICY "Admins can view all orders"
   ON orders FOR ALL
   TO authenticated
@@ -127,6 +128,7 @@ CREATE POLICY "Admins can view all orders"
     )
   );
 
+DROP POLICY IF EXISTS "Admins can view all order items" ON order_items;
 CREATE POLICY "Admins can view all order items"
   ON order_items FOR ALL
   TO authenticated

@@ -73,6 +73,7 @@ CREATE POLICY "Users can update own payments"
   );
 
 -- Admin: 모든 결제 조회/수정 가능
+DROP POLICY IF EXISTS "Admins can manage all payments" ON payments;
 CREATE POLICY "Admins can manage all payments"
   ON payments FOR ALL
   TO authenticated

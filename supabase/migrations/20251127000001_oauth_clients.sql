@@ -42,6 +42,8 @@ CREATE POLICY "Authenticated users can read active clients"
   USING (is_active = true);
 
 -- RLS 정책: Admin만 클라이언트 CRUD
+-- Note: 이 정책은 20251128200003에서 DROP 후 재생성됨
+DROP POLICY IF EXISTS "Admins can manage oauth clients" ON oauth_clients;
 CREATE POLICY "Admins can manage oauth clients"
   ON oauth_clients
   FOR ALL
