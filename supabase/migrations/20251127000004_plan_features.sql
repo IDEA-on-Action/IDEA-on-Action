@@ -43,15 +43,17 @@ CREATE POLICY "Authenticated users can read plan features"
   USING (true);
 
 -- RLS 정책: Admin만 플랜 기능 관리
+DROP POLICY IF EXISTS "Admins can manage plan features" ON plan_features;
 CREATE POLICY "Admins can manage plan features"
   ON plan_features
   FOR ALL
   TO authenticated
   USING (
     EXISTS (
-      SELECT 1 FROM user_roles
+      SELECT 1 FROM admins
       WHERE user_id = auth.uid()
-      AND role = 'admin'
+      AND role IN ('admin', 'super_admin')
+      
     )
   );
 

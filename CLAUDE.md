@@ -77,6 +77,27 @@ npm run release:minor  # 마이너 버전
 npm run release:major  # 메이저 버전
 ```
 
+### 버전 동기화 원칙 ⚠️ 필수
+**package.json 버전과 GitHub Tag/Release는 반드시 일치해야 합니다.**
+
+| 항목 | 위치 | 동기화 |
+|------|------|--------|
+| 시스템 버전 | `package.json` → `version` | 기준값 |
+| GitHub Tag | `git tag vX.X.X` | 자동 동기화 |
+| GitHub Release | `gh release create` | 자동 동기화 |
+
+**버전 업데이트 체크리스트**:
+1. `package.json` 버전 변경
+2. `git tag -a vX.X.X -m "메시지"` 태그 생성
+3. `git push origin vX.X.X` 태그 푸시
+4. `gh release create vX.X.X` 릴리스 생성
+
+**자동화 명령**:
+```bash
+# 버전 범프 + 태그 + 푸시 + 릴리스 (권장)
+npm run release:patch && git push --follow-tags && gh release create v$(node -p "require('./package.json').version")
+```
+
 ---
 
 ## 📋 프로젝트 개요

@@ -105,7 +105,7 @@ export default function Blog() {
                   value={category || 'all'}
                   onValueChange={handleCategoryChange}
                 >
-                  <SelectTrigger className="w-[180px]">
+                  <SelectTrigger className="w-[180px]" aria-label="카테고리 필터">
                     <Filter className="w-4 h-4 mr-2" />
                     <SelectValue placeholder="Category" />
                   </SelectTrigger>
@@ -124,7 +124,7 @@ export default function Blog() {
                   value={sortBy}
                   onValueChange={(value) => setSortBy(value as typeof sortBy)}
                 >
-                  <SelectTrigger className="w-[180px]">
+                  <SelectTrigger className="w-[180px]" aria-label="정렬 기준">
                     <SelectValue placeholder="Sort by" />
                   </SelectTrigger>
                   <SelectContent>
