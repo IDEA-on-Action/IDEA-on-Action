@@ -26,12 +26,14 @@
 4. **영향 범위** - 변경이 미치는 범위는?
 5. **검증 계획** - 어떻게 확인할까?
 
-### SSDD (Simple, Small, Direct, Deliverable) 원칙
-모든 작업은 SSDD 원칙을 따릅니다:
-- **Simple**: 복잡하지 않은 단순한 구현
-- **Small**: 작은 단위로 분할하여 점진적 진행
-- **Direct**: 직접적이고 명확한 접근
-- **Deliverable**: 즉시 배포 가능한 결과물
+### SSDD (Skillful Spec Driven Development) 원칙
+**SDD (Spec Driven Development) + Claude Skills** = SSDD
+
+모든 작업은 명세 기반으로 진행하며, Claude의 스킬을 활용합니다:
+- **Spec Driven**: 명확한 명세(Spec)를 먼저 정의하고 구현
+- **Skillful**: Claude의 도구와 능력을 최대한 활용
+- **병렬 작업**: 독립적인 작업은 동시에 진행
+- **점진적 배포**: 작은 단위로 나누어 즉시 배포 가능한 결과물 생성
 
 ### 작업 패턴
 1. **SOT 적용** → 계획 수립
