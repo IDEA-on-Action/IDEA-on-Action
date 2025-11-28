@@ -60,6 +60,7 @@ CREATE POLICY "Service role can update authorization codes"
   USING (true);
 
 -- 만료된 코드 자동 삭제 함수
+DROP FUNCTION IF EXISTS cleanup_expired_authorization_codes();
 CREATE OR REPLACE FUNCTION cleanup_expired_authorization_codes()
 RETURNS void AS $$
 BEGIN
