@@ -62,6 +62,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS subscription_usage_updated_at ON subscription_usage;
 CREATE TRIGGER subscription_usage_updated_at
   BEFORE UPDATE ON subscription_usage
   FOR EACH ROW
