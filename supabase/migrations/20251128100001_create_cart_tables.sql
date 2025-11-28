@@ -22,11 +22,17 @@ CREATE TABLE IF NOT EXISTS carts (
 );
 
 -- ============================================================
--- 2. 인덱스
+-- 2. 인덱스 (컬럼이 존재하는 경우에만)
 -- ============================================================
 
 CREATE INDEX IF NOT EXISTS idx_carts_user_id ON carts(user_id);
-CREATE INDEX IF NOT EXISTS idx_carts_service_id ON carts(service_id);
+
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'carts' AND column_name = 'service_id') THEN
+    CREATE INDEX IF NOT EXISTS idx_carts_service_id ON carts(service_id);
+  END IF;
+END $$;
 
 -- ============================================================
 -- 3. updated_at 자동 업데이트 트리거
@@ -53,18 +59,21 @@ CREATE TRIGGER trigger_carts_updated_at
 ALTER TABLE carts ENABLE ROW LEVEL SECURITY;
 
 -- 자신의 장바구니만 조회 가능
+DROP POLICY IF EXISTS "Users can view own cart items" ON carts;
 CREATE POLICY "Users can view own cart items"
   ON carts FOR SELECT
   TO authenticated
   USING (auth.uid() = user_id);
 
 -- 자신의 장바구니에만 추가 가능
+DROP POLICY IF EXISTS "Users can insert own cart items" ON carts;
 CREATE POLICY "Users can insert own cart items"
   ON carts FOR INSERT
   TO authenticated
   WITH CHECK (auth.uid() = user_id);
 
 -- 자신의 장바구니만 수정 가능
+DROP POLICY IF EXISTS "Users can update own cart items" ON carts;
 CREATE POLICY "Users can update own cart items"
   ON carts FOR UPDATE
   TO authenticated
@@ -72,16 +81,25 @@ CREATE POLICY "Users can update own cart items"
   WITH CHECK (auth.uid() = user_id);
 
 -- 자신의 장바구니만 삭제 가능
+DROP POLICY IF EXISTS "Users can delete own cart items" ON carts;
 CREATE POLICY "Users can delete own cart items"
   ON carts FOR DELETE
   TO authenticated
   USING (auth.uid() = user_id);
 
 -- ============================================================
--- 5. 코멘트
+-- 5. 코멘트 (컬럼이 존재하는 경우에만)
 -- ============================================================
 
 COMMENT ON TABLE carts IS '사용자 장바구니 - Phase 9 v1.6.0';
 COMMENT ON COLUMN carts.user_id IS '사용자 ID (auth.users 참조)';
-COMMENT ON COLUMN carts.service_id IS '서비스 ID (services 참조)';
-COMMENT ON COLUMN carts.quantity IS '수량 (최소 1)';
+
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'carts' AND column_name = 'service_id') THEN
+    COMMENT ON COLUMN carts.service_id IS '서비스 ID (services 참조)';
+  END IF;
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'carts' AND column_name = 'quantity') THEN
+    COMMENT ON COLUMN carts.quantity IS '수량 (최소 1)';
+  END IF;
+END $$;
