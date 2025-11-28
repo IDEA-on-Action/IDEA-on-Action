@@ -72,6 +72,10 @@ ls supabase/migrations/ | grep 20251128
 **새 마이그레이션 파일**:
 - `20251128200001_create_beta_invitations.sql` - Beta 초대 시스템
 - `20251128200002_create_webhook_events.sql` - 웹훅 이벤트 기록
+- `20251128200003_fix_rls_policies_user_roles.sql` - RLS 정책 수정 (User Roles)
+- `20251128300001_create_posts_table.sql` - 게시글 테이블 생성
+- `20251129000000_optimize_indexes.sql` - 인덱스 최적화
+- `20251129000001_cleanup_unused_tables.sql` - 미사용 테이블 정리
 
 ### 2.2 마이그레이션 적용
 
