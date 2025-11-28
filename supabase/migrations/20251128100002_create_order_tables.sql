@@ -72,18 +72,21 @@ ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE order_items ENABLE ROW LEVEL SECURITY;
 
 -- Orders: 자신의 주문만 조회 가능
+DROP POLICY IF EXISTS "Users can view own orders" ON orders;
 CREATE POLICY "Users can view own orders"
   ON orders FOR SELECT
   TO authenticated
   USING (auth.uid() = user_id);
 
 -- Orders: 주문 생성 가능 (로그인 사용자)
+DROP POLICY IF EXISTS "Users can create orders" ON orders;
 CREATE POLICY "Users can create orders"
   ON orders FOR INSERT
   TO authenticated
   WITH CHECK (auth.uid() = user_id);
 
 -- Orders: 자신의 주문만 수정 가능 (취소 등)
+DROP POLICY IF EXISTS "Users can update own orders" ON orders;
 CREATE POLICY "Users can update own orders"
   ON orders FOR UPDATE
   TO authenticated
@@ -91,6 +94,7 @@ CREATE POLICY "Users can update own orders"
   WITH CHECK (auth.uid() = user_id);
 
 -- Order Items: 자신의 주문 아이템만 조회 가능
+DROP POLICY IF EXISTS "Users can view own order items" ON order_items;
 CREATE POLICY "Users can view own order items"
   ON order_items FOR SELECT
   TO authenticated
@@ -103,6 +107,7 @@ CREATE POLICY "Users can view own order items"
   );
 
 -- Order Items: 자신의 주문에만 아이템 추가 가능
+DROP POLICY IF EXISTS "Users can insert own order items" ON order_items;
 CREATE POLICY "Users can insert own order items"
   ON order_items FOR INSERT
   TO authenticated
