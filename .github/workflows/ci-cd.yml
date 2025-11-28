@@ -154,10 +154,18 @@ jobs:
     steps:
       - name: Check status
         run: |
-          if [[ "${{ needs.quality-check.result }}" == "success" && "${{ needs.build-check.result }}" == "success" ]]; then
-              echo "All checks passed!"
-              exit 0
-          else
-              echo "One or more checks failed."
+          # quality-check must always succeed
+          if [[ "${{ needs.quality-check.result }}" != "success" ]]; then
+              echo "Quality check failed."
               exit 1
           fi
+
+          # build-check runs only on PRs. If it ran, it must succeed.
+          # If it didn't run (skipped), that's fine for push events.
+          if [[ "${{ needs.build-check.result }}" == "failure" || "${{ needs.build-check.result }}" == "cancelled" ]]; then
+              echo "Build check failed or cancelled."
+              exit 1
+          fi
+
+          echo "All checks passed!"
+          exit 0
