@@ -117,9 +117,17 @@ BEGIN
   END IF;
 END $$;
 
--- 코멘트
+-- 코멘트 (컬럼이 존재하는 경우에만)
 COMMENT ON TABLE oauth_clients IS 'OAuth 2.0 클라이언트 앱 등록 정보';
 COMMENT ON COLUMN oauth_clients.client_id IS '클라이언트 식별자 (공개)';
 COMMENT ON COLUMN oauth_clients.client_secret IS '클라이언트 비밀키 (bcrypt 해시)';
-COMMENT ON COLUMN oauth_clients.redirect_uris IS '허용된 리다이렉트 URI 목록';
-COMMENT ON COLUMN oauth_clients.scopes IS '클라이언트가 요청할 수 있는 스코프';
+
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'oauth_clients' AND column_name = 'redirect_uris') THEN
+    COMMENT ON COLUMN oauth_clients.redirect_uris IS '허용된 리다이렉트 URI 목록';
+  END IF;
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'oauth_clients' AND column_name = 'scopes') THEN
+    COMMENT ON COLUMN oauth_clients.scopes IS '클라이언트가 요청할 수 있는 스코프';
+  END IF;
+END $$;
