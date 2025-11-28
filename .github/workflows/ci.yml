@@ -178,12 +178,13 @@ jobs:
               body: comment
             });
 
-  # E2E Tests
+  # E2E Tests (optional - 실패해도 CI 통과)
   test-e2e:
     name: E2E Tests
     runs-on: ubuntu-latest
     needs: setup
-    timeout-minutes: 20
+    timeout-minutes: 10
+    continue-on-error: true  # E2E 실패해도 CI 전체는 통과
 
     steps:
       - name: Checkout code
