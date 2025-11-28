@@ -49,9 +49,10 @@ CREATE POLICY "Admins can manage plan features"
   TO authenticated
   USING (
     EXISTS (
-      SELECT 1 FROM user_roles
+      SELECT 1 FROM admins
       WHERE user_id = auth.uid()
-      AND role = 'admin'
+      AND role IN ('admin', 'super_admin')
+      AND is_active = true
     )
   );
 
