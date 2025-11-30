@@ -18,6 +18,7 @@ import {
   RefreshCw,
   Trash2,
   Eye,
+  Settings,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -40,6 +41,11 @@ import type {
   EventType,
 } from '@/types/central-hub.types';
 import { SERVICE_INFO, SEVERITY_COLORS } from '@/types/central-hub.types';
+import { AlertFilterPanel } from './AlertFilterPanel';
+import { AlertDetailModal } from './AlertDetailModal';
+import { AlertSettings, type AlertSettingsData } from './AlertSettings';
+import { useAlertSettings } from '@/hooks/useAlertSettings';
+import { showIssueNotification } from '@/utils/notifications';
 
 // ============================================================================
 // 타입 정의
@@ -339,16 +345,37 @@ function EventAlertItem({
 /**
  * 알림 아이템 (래퍼)
  */
-function AlertItem({ item, onMarkAsRead }: { item: StreamItem; onMarkAsRead: (itemId: string) => void }) {
+function AlertItem({
+  item,
+  onMarkAsRead,
+  onItemClick,
+}: {
+  item: StreamItem;
+  onMarkAsRead: (itemId: string) => void;
+  onItemClick: (item: StreamItem) => void;
+}) {
   const issue = getIssueFromStreamItem(item);
   const event = getEventFromStreamItem(item);
 
+  // 아이템 클릭 핸들러
+  const handleClick = () => {
+    onItemClick(item);
+  };
+
   if (issue) {
-    return <IssueAlertItem item={item} issue={issue} onMarkAsRead={onMarkAsRead} />;
+    return (
+      <div onClick={handleClick} className="cursor-pointer">
+        <IssueAlertItem item={item} issue={issue} onMarkAsRead={onMarkAsRead} />
+      </div>
+    );
   }
 
   if (event) {
-    return <EventAlertItem item={item} event={event} onMarkAsRead={onMarkAsRead} />;
+    return (
+      <div onClick={handleClick} className="cursor-pointer">
+        <EventAlertItem item={item} event={event} onMarkAsRead={onMarkAsRead} />
+      </div>
+    );
   }
 
   return null;
@@ -375,6 +402,13 @@ export function RealtimeAlertPanel({
 }: RealtimeAlertPanelProps) {
   const { toast } = useToast();
 
+  // 알림 설정 (localStorage 연동)
+  const { settings: alertSettings, updateSettings: setAlertSettings } = useAlertSettings();
+
+  // 로컬 상태
+  const [selectedItem, setSelectedItem] = useState<StreamItem | null>(null);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+
   // 실시간 스트림
   const {
     filteredItems,
@@ -385,24 +419,62 @@ export function RealtimeAlertPanel({
     markAllAsRead,
     clearStream,
     reconnect,
+    updateFilters,
   } = useRealtimeEventStream({
     maxItems: 100,
     onNewItem: (item) => {
-      // 새 항목 수신 시 토스트 알림
+      // 새 항목 수신 시 알림
       const issue = getIssueFromStreamItem(item);
       const event = getEventFromStreamItem(item);
 
-      if (issue && (issue.severity === 'critical' || issue.severity === 'high')) {
-        toast({
-          title: '중요 이슈 발생',
-          description: issue.title,
-          variant: 'destructive',
-        });
-      } else if (event && (event.event_type === 'milestone.reached' || event.event_type === 'task.completed')) {
-        toast({
-          title: '알림',
-          description: event.payload.message || '이벤트 발생',
-        });
+      // 설정에 따라 알림 필터링
+      if (issue) {
+        const shouldNotify =
+          alertSettings.serviceNotifications[issue.service_id] &&
+          alertSettings.severityNotifications[issue.severity];
+
+        if (shouldNotify && (issue.severity === 'critical' || issue.severity === 'high')) {
+          // 토스트 알림
+          toast({
+            title: '중요 이슈 발생',
+            description: issue.title,
+            variant: 'destructive',
+          });
+
+          // 브라우저 알림
+          if (alertSettings.enableBrowserNotifications) {
+            showIssueNotification(
+              issue.title,
+              issue.severity,
+              issue.service_id,
+              () => {
+                // 클릭 시 상세 모달 열기
+                const streamItem = filteredItems.find((i) => {
+                  const itemIssue = getIssueFromStreamItem(i);
+                  return itemIssue?.id === issue.id;
+                });
+                if (streamItem) {
+                  setSelectedItem(streamItem);
+                  setIsDetailModalOpen(true);
+                }
+              }
+            );
+          }
+
+          // 소리 재생
+          if (alertSettings.enableSound) {
+            // 브라우저 기본 알림 소리 사용 (silent: false)
+          }
+        }
+      } else if (event) {
+        const shouldNotify = alertSettings.serviceNotifications[event.service_id];
+
+        if (shouldNotify && (event.event_type === 'milestone.reached' || event.event_type === 'task.completed')) {
+          toast({
+            title: '알림',
+            description: event.payload.message || '이벤트 발생',
+          });
+        }
       }
     },
   });
@@ -412,6 +484,24 @@ export function RealtimeAlertPanel({
 
   // 표시할 항목 (최근 N개만)
   const displayItems = filteredItems.slice(0, maxDisplay);
+
+  // 아이템 클릭 핸들러
+  const handleItemClick = (item: StreamItem) => {
+    setSelectedItem(item);
+    setIsDetailModalOpen(true);
+  };
+
+  // 상세 모달 닫기 핸들러
+  const handleDetailModalClose = () => {
+    setIsDetailModalOpen(false);
+    // 모달이 완전히 닫힌 후 선택 항목 초기화
+    setTimeout(() => setSelectedItem(null), 300);
+  };
+
+  // 설정 변경 핸들러 (이미 useAlertSettings에서 자동 저장됨)
+  const handleSettingsChange = (newSettings: AlertSettingsData) => {
+    setAlertSettings(newSettings);
+  };
 
   return (
     <Card className={cn('flex flex-col', className)}>
@@ -438,7 +528,13 @@ export function RealtimeAlertPanel({
         </div>
 
         {/* 액션 버튼 */}
-        <div className="flex items-center gap-2 mt-2">
+        <div className="flex items-center gap-2 mt-2 flex-wrap">
+          {/* 필터 패널 */}
+          <AlertFilterPanel
+            filters={{}}
+            onFiltersChange={updateFilters}
+          />
+
           <Button
             variant="outline"
             size="sm"
@@ -469,6 +565,13 @@ export function RealtimeAlertPanel({
             <RefreshCw className="h-3 w-3 mr-1" />
             재연결
           </Button>
+
+          {/* 설정 버튼 */}
+          <AlertSettings
+            settings={alertSettings}
+            onSettingsChange={handleSettingsChange}
+            showTrigger={true}
+          />
         </div>
       </CardHeader>
 
@@ -516,7 +619,12 @@ export function RealtimeAlertPanel({
               <ScrollArea className={maxHeight}>
                 <div className="space-y-3 pr-4">
                   {displayItems.map((item) => (
-                    <AlertItem key={item.id} item={item} onMarkAsRead={markAsRead} />
+                    <AlertItem
+                      key={item.id}
+                      item={item}
+                      onMarkAsRead={markAsRead}
+                      onItemClick={handleItemClick}
+                    />
                   ))}
                 </div>
               </ScrollArea>
@@ -524,6 +632,14 @@ export function RealtimeAlertPanel({
           </>
         )}
       </CardContent>
+
+      {/* 알림 상세 모달 */}
+      <AlertDetailModal
+        item={selectedItem}
+        open={isDetailModalOpen}
+        onClose={handleDetailModalClose}
+        onMarkAsRead={markAsRead}
+      />
     </Card>
   );
 }
