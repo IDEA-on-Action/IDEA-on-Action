@@ -28,6 +28,7 @@ interface DateRangePickerProps extends React.HTMLAttributes<HTMLDivElement> {
 }
 
 const presets = [
+  { label: "오늘", days: 0 },
   { label: "지난 7일", days: 7 },
   { label: "지난 30일", days: 30 },
   { label: "지난 90일", days: 90 },
@@ -62,6 +63,10 @@ export function DateRangePicker({
       if (days === null) {
         // "전체" preset - clear date range
         handleDateChange(undefined);
+      } else if (days === 0) {
+        // "오늘" preset - today only
+        const today = new Date();
+        handleDateChange({ from: today, to: today });
       } else {
         // Calculate date range
         const to = new Date();
@@ -103,29 +108,42 @@ export function DateRangePicker({
         <PopoverContent className="w-auto p-0" align="end">
           <div className="border-b p-3">
             <div className="flex flex-wrap gap-2">
-              {presets.map((preset) => (
-                <Button
-                  key={preset.label}
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handlePresetClick(preset.days)}
-                  className={cn(
-                    "text-xs",
-                    preset.days === null && !selectedRange && "bg-primary text-primary-foreground",
-                    preset.days !== null &&
-                      selectedRange?.from &&
-                      selectedRange?.to &&
-                      Math.floor(
-                        (selectedRange.to.getTime() - selectedRange.from.getTime()) / (1000 * 60 * 60 * 24),
-                      ) ===
-                        preset.days - 1 &&
-                      "bg-primary text-primary-foreground",
-                  )}
-                  aria-label={`${preset.label} 선택`}
-                >
-                  {preset.label}
-                </Button>
-              ))}
+              {presets.map((preset) => {
+                const isSelected = (() => {
+                  // "전체" preset - highlight when no date selected
+                  if (preset.days === null && !selectedRange) return true;
+
+                  if (!selectedRange?.from || !selectedRange?.to) return false;
+
+                  // "오늘" preset - highlight when from and to are the same day
+                  if (preset.days === 0) {
+                    return selectedRange.from.toDateString() === selectedRange.to.toDateString() &&
+                           selectedRange.from.toDateString() === new Date().toDateString();
+                  }
+
+                  // Other presets - check day difference
+                  const daysDiff = Math.floor(
+                    (selectedRange.to.getTime() - selectedRange.from.getTime()) / (1000 * 60 * 60 * 24)
+                  );
+                  return daysDiff === preset.days - 1;
+                })();
+
+                return (
+                  <Button
+                    key={preset.label}
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handlePresetClick(preset.days)}
+                    className={cn(
+                      "text-xs",
+                      isSelected && "bg-primary text-primary-foreground",
+                    )}
+                    aria-label={`${preset.label} 선택`}
+                  >
+                    {preset.label}
+                  </Button>
+                );
+              })}
             </div>
           </div>
           <Calendar

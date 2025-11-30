@@ -3,6 +3,8 @@
  * 서비스 플랫폼 타입 정의
  */
 
+import { LucideIcon } from "lucide-react";
+
 export type ServiceCategory = "development" | "compass";
 
 export type ServiceSlug =
@@ -23,16 +25,31 @@ export interface Service {
   title: string;
   subtitle: string;
   description: string;
-  features: string[];
+  features: ServiceFeature[];
   techStack?: TechStack;
   pricing: Pricing;
-  deliverables?: string[];
+  deliverables?: Deliverable[];
   faq?: FAQ[];
   process?: ProcessStep[];
   paymentMethod?: PaymentMethod;
   refundPolicy?: RefundPolicy;
   status?: "available" | "coming-soon";
   launchDate?: string; // 출시 예정일 (ISO 8601)
+}
+
+// 서비스 기능 타입 (아이콘 포함)
+export interface ServiceFeature {
+  icon?: LucideIcon;
+  title: string;
+  description: string;
+}
+
+// 결과물 타입 (아이콘 포함)
+export interface Deliverable {
+  icon?: LucideIcon;
+  title: string;
+  description: string;
+  format?: string; // 파일 형식 (예: PDF, Figma, Code Repository)
 }
 
 export interface TechStack {
