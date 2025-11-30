@@ -3,10 +3,62 @@
 > 프로젝트 작업 목록 및 진행 상황 관리
 
 **마지막 업데이트**: 2025-11-30
-**현재 Phase**: Central Hub Sprint 3 완료, 테스트 커버리지 분석 완료
-**다음 단계**: 테스트 커버리지 80% 달성, 번들 최적화
+**현재 Phase**: Minu 연동 Phase 2 완료
+**다음 단계**: 마이그레이션 배포, 테스트 커버리지 80% 달성
 **프로젝트 버전**: 2.23.0
 **프로덕션**: https://www.ideaonaction.ai
+
+---
+
+## ✅ 완료: Minu 연동 Phase 2 (v2.24.0)
+
+**목표**: Minu 서비스 연동 완성을 위한 필수 인프라 구현
+**완료일**: 2025-11-30
+**참조 문서**: [docs/guides/minu-integration-guidelines.md](docs/guides/minu-integration-guidelines.md)
+**계획 문서**: [plan/minu-integration-phase2.md](plan/minu-integration-phase2.md)
+
+### Sprint 2-1 완료 (4개 병렬 에이전트)
+
+| 작업 | 산출물 | 상태 |
+|------|--------|------|
+| OpenAPI 문서화 | `docs/api/openapi.yaml`, `docs/api/README.md` | ✅ |
+| Rate Limiting | `_shared/rate-limit.ts`, 마이그레이션 | ✅ |
+| 세션 관리 API | `session-api/index.ts`, `user_sessions` 테이블 | ✅ |
+| 권한 관리 API (RBAC) | `permission-api/index.ts`, `usePermissions.ts` | ✅ |
+
+### Sprint 2-4, 2-5 완료 (3개 병렬 에이전트)
+
+| 작업 | 산출물 | 상태 |
+|------|--------|------|
+| 팀 관리 API | `team-api/index.ts`, `teams` 테이블 | ✅ |
+| Audit Log | `_shared/audit-log.ts`, `audit_log` 테이블 | ✅ |
+| Health API 확장 | `api-v1-health/index.ts` (detailed, metrics, ready, live) | ✅ |
+
+### 생성된 파일 (16개)
+
+| 카테고리 | 파일 |
+|----------|------|
+| API 문서 | `docs/api/openapi.yaml`, `docs/api/README.md` |
+| Edge Functions | `session-api`, `permission-api`, `team-api`, `api-v1-health` (수정) |
+| 공유 모듈 | `rate-limit.ts`, `audit-log.ts`, `audit-events.ts` |
+| React Hooks | `usePermissions.ts` |
+| 마이그레이션 | 6개 SQL 파일 (20251201000001~000006) |
+
+### 다음 단계
+
+| 작업 | 설명 | 상태 |
+|------|------|------|
+| Sandbox 환경 구축 | 테스트용 독립 환경 | ⬜ |
+| 프로필 양방향 동기화 | Minu → ideaonaction | ⬜ |
+| 인시던트 프로세스 | 장애 대응 절차 합의 | ⬜ |
+| SLA 정의 | 가용성 목표 합의 | ⬜ |
+
+### 🟡 향후 고려 - RS256 전환
+
+| 작업 | 현재 상태 | 권장 |
+|------|-----------|------|
+| JWT 알고리즘 전환 | HS256 (대칭키) | RS256 (비대칭키) 권장 |
+| JWKS 엔드포인트 | 불필요 (HS256) | RS256 전환 시 필요 |
 
 ---
 

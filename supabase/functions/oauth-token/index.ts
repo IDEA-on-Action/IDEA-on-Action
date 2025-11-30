@@ -13,6 +13,7 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import * as jose from 'https://deno.land/x/jose@v5.2.0/index.ts'
 import { getCorsHeaders } from '../_shared/cors.ts'
+import { createSession } from '../session-api/index.ts'
 
 // ============================================================================
 // 상수 정의
@@ -381,13 +382,18 @@ async function handleAuthorizationCodeGrant(
   const refreshTokenHash = await sha256Hash(refreshToken)
   const refreshExpiresAt = new Date(Date.now() + REFRESH_TOKEN_EXPIRY_SECONDS * 1000)
 
-  await supabase.from('oauth_refresh_tokens').insert({
+  const { data: refreshTokenData } = await supabase.from('oauth_refresh_tokens').insert({
     token_hash: refreshTokenHash,
     client_id,
     user_id: codeRecord.user_id,
     scope: codeRecord.scope,
     expires_at: refreshExpiresAt.toISOString(),
-  })
+  }).select('id').single()
+
+  // 세션 생성
+  if (refreshTokenData) {
+    await createSession(supabase, codeRecord.user_id, refreshTokenData.id, req)
+  }
 
   // 감사 로그 기록
   await logAuditEvent(supabase, '/oauth/token', client_id, codeRecord.user_id, 'authorization_code', 200, undefined, undefined, req)
