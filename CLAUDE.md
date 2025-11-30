@@ -152,7 +152,7 @@ VITE_SUPABASE_ANON_KEY=[YOUR_KEY]
 
 ## 📊 현재 상태
 
-- **총 테스트**: 353개+ (Unit 353, E2E 172+, Visual 28)
+- **총 테스트**: 760개+ (Unit 560, E2E 172+, Visual 28)
 - **린트 경고**: 0개
 - **번들 크기**: ~1542 kB (PWA 27 entries)
 

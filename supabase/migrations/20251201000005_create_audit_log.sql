@@ -175,9 +175,9 @@ CREATE POLICY "audit_log_admin_read"
   FOR SELECT
   USING (
     EXISTS (
-      SELECT 1 FROM profiles
-      WHERE profiles.id = auth.uid()
-        AND profiles.role = 'admin'
+      SELECT 1 FROM public.admins
+      WHERE admins.user_id = auth.uid()
+        AND admins.role IN ('admin', 'super_admin')
     )
   );
 

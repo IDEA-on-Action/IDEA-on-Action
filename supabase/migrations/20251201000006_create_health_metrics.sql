@@ -122,9 +122,9 @@ CREATE POLICY "health_metrics_read_policy"
   FOR SELECT
   USING (
     EXISTS (
-      SELECT 1 FROM admins
+      SELECT 1 FROM public.admins
       WHERE admins.user_id = auth.uid()
-      AND admins.role = 'super_admin'
+      AND admins.role IN ('admin', 'super_admin')
     )
   );
 
