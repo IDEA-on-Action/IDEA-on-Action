@@ -36,16 +36,8 @@ test.describe('Minu Find - 시장분석 Excel', () => {
   });
 });
 
-test.describe('Minu Frame - PowerPoint 생성', () => {
-  test.describe('PPTX 생성기 모듈', () => {
-    test('pptxgenjs 패키지가 정상적으로 번들됨', async ({ page }) => {
-      await page.goto('/');
-      await page.waitForLoadState('networkidle');
-
-      // 페이지가 정상 로드되면 pptxgenjs가 번들에 포함됨
-      await expect(page).toHaveTitle(/IDEA on Action/);
-    });
-
+test.describe('Minu Frame - RFP 서비스', () => {
+  test.describe('서비스 페이지', () => {
     test('Minu Frame 서비스 페이지 접근 가능', async ({ page }) => {
       await page.goto('/services/minu-frame');
       await page.waitForLoadState('networkidle');
@@ -53,19 +45,8 @@ test.describe('Minu Frame - PowerPoint 생성', () => {
       const heading = page.locator('h1').or(page.locator('[data-testid="page-title"]'));
       await expect(heading.first()).toBeVisible();
     });
-  });
 
-  test.describe('슬라이드 템플릿', () => {
-    test('Title 슬라이드 템플릿 구조 검증', async ({ page }) => {
-      await page.goto('/services/minu-frame');
-      await page.waitForLoadState('networkidle');
-
-      // RFP 관련 섹션이 있는지 확인
-      const mainContent = page.locator('main').or(page.locator('[role="main"]'));
-      await expect(mainContent.first()).toBeVisible();
-    });
-
-    test('Content 슬라이드 템플릿 구조 검증', async ({ page }) => {
+    test('서비스 페이지 콘텐츠 로드 확인', async ({ page }) => {
       await page.goto('/services/minu-frame');
       await page.waitForLoadState('networkidle');
 

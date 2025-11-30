@@ -275,12 +275,9 @@ export default defineConfig(({ mode }) => ({
             return 'docx-skill';
           }
 
-          // 5. pptx Skill - PowerPoint export functionality (lazy loaded)
-          if (id.includes('node_modules/pptxgenjs')) {
-            return 'pptx-skill';
-          }
+          // 5. pptx Skill - 제거됨 (v2.24.0)
 
-          // 6. jszip Skill - ZIP file generation (used by xlsx/docx/pptx)
+          // 6. jszip Skill - ZIP file generation (used by xlsx/docx)
           if (id.includes('node_modules/jszip')) {
             return 'jszip-skill';
           }

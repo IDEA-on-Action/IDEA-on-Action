@@ -50,7 +50,7 @@ export * from './rag.types'
 // Documents & Export
 // ============================================================================
 export * from './docx.types'
-export * from './pptx.types'
+// pptx.types 제거됨 (v2.24.0) - 미사용 기능
 export * from './xlsx-chart.types'
 export * from './skills.types'
 
