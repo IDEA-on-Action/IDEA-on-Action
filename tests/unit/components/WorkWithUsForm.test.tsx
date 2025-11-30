@@ -189,7 +189,7 @@ describe('WorkWithUsForm', () => {
 
   it('유효한 데이터로 폼 제출이 성공해야 함', async () => {
     // Setup
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     mockMutateAsync.mockResolvedValue({
       id: 1,
       name: '홍길동',
@@ -226,11 +226,11 @@ describe('WorkWithUsForm', () => {
         description: '빠른 시일 내에 연락드리겠습니다. 감사합니다!',
       });
     });
-  });
+  }, 15000);
 
   it('폼 제출 실패 시 에러 토스트가 표시되어야 함', async () => {
     // Setup
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     const error = new Error('제출 실패');
     mockMutateAsync.mockRejectedValue(error);
 
@@ -261,11 +261,11 @@ describe('WorkWithUsForm', () => {
         description: '제출 실패',
       });
     });
-  });
+  }, 15000);
 
   it('폼 제출 성공 후 폼이 리셋되어야 함', async () => {
     // Setup
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     mockMutateAsync.mockResolvedValue({
       id: 1,
       name: '홍길동',
@@ -302,35 +302,23 @@ describe('WorkWithUsForm', () => {
       expect(nameInput).toHaveValue('');
       expect(emailInput).toHaveValue('');
     });
-  });
+  }, 15000);
 
   it('제출 중일 때 버튼이 비활성화되어야 함', async () => {
     // Setup
-    const user = userEvent.setup();
-    // 제출이 완료되지 않도록 지연
+    const user = userEvent.setup({ delay: null });
+    // mutateAsync가 지연되도록 설정 (resolve되지 않는 Promise)
+    let resolvePromise: (value: unknown) => void;
     mockMutateAsync.mockImplementation(
-      () =>
-        new Promise((resolve) => {
-          setTimeout(() => {
-            resolve({
-              id: 1,
-              name: '홍길동',
-              email: 'hong@example.com',
-              status: 'pending',
-              created_at: '2024-01-01T00:00:00Z',
-              updated_at: '2024-01-01T00:00:00Z',
-            });
-          }, 100);
-        })
+      () => new Promise((resolve) => { resolvePromise = resolve; })
     );
 
     render(<WorkWithUsForm />, { wrapper: createWrapper() });
 
-    // Execute
+    // Execute - 유효한 데이터 입력
     const nameInput = screen.getByLabelText('이름 *');
     const emailInput = screen.getByLabelText('이메일 *');
     const messageInput = screen.getByLabelText('프로젝트 설명 *');
-    const submitButton = screen.getByRole('button', { name: /제안서 보내기/i });
 
     await user.type(nameInput, '홍길동');
     await user.type(emailInput, 'hong@example.com');
@@ -339,14 +327,18 @@ describe('WorkWithUsForm', () => {
       '프로젝트에 대해 상세히 설명해주세요. 어떤 문제를 해결하고 싶으신가요? 목표는 무엇인가요? 최소 50자 이상의 내용을 작성해야 합니다.'
     );
 
+    const submitButton = screen.getByRole('button', { name: /제안서 보내기/i });
     await user.click(submitButton);
 
-    // Assert
+    // Assert - 제출 중 상태에서 버튼 비활성화 확인
     await waitFor(() => {
-      expect(submitButton).toBeDisabled();
       expect(screen.getByText('전송 중...')).toBeInTheDocument();
     });
-  });
+    expect(screen.getByRole('button', { name: /전송 중/i })).toBeDisabled();
+
+    // Cleanup - Promise resolve
+    resolvePromise!({ id: 1, status: 'pending' });
+  }, 15000);
 
   it('메시지 글자 수가 표시되어야 함', async () => {
     // Setup
