@@ -7,11 +7,11 @@
  * @module pages/admin/CentralHubDashboard
  */
 
-import { ServiceHealthCard } from '@/components/central-hub/ServiceHealthCard';
 import { EventTimeline } from '@/components/central-hub/EventTimeline';
 import { IssueList } from '@/components/central-hub/IssueList';
 import { StatisticsChart } from '@/components/central-hub/StatisticsChart';
 import { RealtimeAlertPanel } from '@/components/central-hub/RealtimeAlertPanel';
+import { ServiceStatusDashboard } from '@/components/admin/ServiceStatusDashboard';
 import { ExportButton } from '@/components/skills/ExportButton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
@@ -21,15 +21,8 @@ import {
   useConnectionStatusDisplay,
 } from '@/hooks/useRealtimeServiceStatus';
 import { useRealtimeEventStream } from '@/hooks/useRealtimeEventStream';
-import type { ServiceId } from '@/types/central-hub.types';
+import { useServiceHealth } from '@/hooks/useServiceHealth';
 import { cn } from '@/lib/utils';
-
-// ============================================================================
-// 상수
-// ============================================================================
-
-/** Minu 서비스 ID 목록 */
-const SERVICE_IDS: ServiceId[] = ['minu-find', 'minu-frame', 'minu-build', 'minu-keep'];
 
 // ============================================================================
 // 메인 컴포넌트
@@ -48,11 +41,14 @@ const SERVICE_IDS: ServiceId[] = ['minu-find', 'minu-frame', 'minu-build', 'minu
  */
 export default function CentralHubDashboard() {
   // 실시간 서비스 상태 (전역)
-  const { connectionState: serviceConnectionState } = useRealtimeServiceStatus();
+  const { connectionState: serviceConnectionState, isConnected } = useRealtimeServiceStatus();
   const serviceStatusDisplay = useConnectionStatusDisplay(serviceConnectionState);
 
   // 실시간 이벤트 스트림 (알림 카운트용)
   const { unreadCount } = useRealtimeEventStream();
+
+  // 서비스 헬스 데이터 (ServiceStatusDashboard용)
+  const { data: healthData, isLoading, refetch, isRefetching } = useServiceHealth();
 
   return (
     <div className="space-y-6">
@@ -94,13 +90,6 @@ export default function CentralHubDashboard() {
         </div>
       </div>
 
-      {/* 서비스 헬스 카드 그리드 (실시간 업데이트) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {SERVICE_IDS.map((serviceId) => (
-          <ServiceHealthCard key={serviceId} serviceId={serviceId} />
-        ))}
-      </div>
-
       {/* 탭 UI */}
       <Tabs defaultValue="overview" className="space-y-4">
         <TabsList className="grid w-full grid-cols-4 lg:w-[520px]">
@@ -129,6 +118,16 @@ export default function CentralHubDashboard() {
 
         {/* Overview 탭 */}
         <TabsContent value="overview" className="space-y-6">
+          {/* 서비스 상태 대시보드 (2x2 그리드) */}
+          <ServiceStatusDashboard
+            healthData={healthData}
+            isRealtimeConnected={isConnected}
+            lastUpdated={serviceConnectionState.lastConnectedAt?.toISOString()}
+            isLoading={isLoading}
+            onRefresh={() => refetch()}
+            isRefreshing={isRefetching}
+          />
+
           {/* 통계 차트 */}
           <StatisticsChart />
 
