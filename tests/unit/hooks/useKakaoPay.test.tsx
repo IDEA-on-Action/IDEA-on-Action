@@ -319,16 +319,25 @@ describe('useKakaoPay', () => {
             single: singleMock,
           }),
         }),
+        update: vi.fn().mockReturnValue({
+          eq: vi.fn().mockResolvedValue({ data: null, error: null }),
+        }),
       } as any);
 
       // Execute
       const { result } = renderHook(() => useKakaoPay(), { wrapper });
 
-      await expect(
-        act(async () => {
+      let error: Error | undefined;
+      await act(async () => {
+        try {
           await result.current.approveKakaoPay('order-1', 'tid-12345', 'pg-token-456');
-        })
-      ).rejects.toThrow('주문 정보를 찾을 수 없습니다.');
+        } catch (e) {
+          error = e as Error;
+        }
+      });
+
+      expect(error).toBeDefined();
+      expect(error?.message).toBe('주문 정보를 찾을 수 없습니다.');
     });
 
     it('결제 승인 실패 시 주문 상태를 cancelled로 업데이트해야 함', async () => {
@@ -352,14 +361,19 @@ describe('useKakaoPay', () => {
         eq: orderUpdateEqMock,
       });
 
-      vi.mocked(supabase.from).mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            single: singleMock,
-          }),
-        }),
-        update: updateMock,
-      } as any);
+      vi.mocked(supabase.from).mockImplementation((table: string) => {
+        if (table === 'orders') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: singleMock,
+              }),
+            }),
+            update: updateMock,
+          } as any;
+        }
+        return {} as any;
+      });
 
       vi.mocked(kakaoPayLib.approveKakaoPayment).mockRejectedValue(
         new Error('승인 실패')
@@ -368,11 +382,18 @@ describe('useKakaoPay', () => {
       // Execute
       const { result } = renderHook(() => useKakaoPay(), { wrapper });
 
-      await expect(
-        act(async () => {
+      let error: any;
+      try {
+        await act(async () => {
           await result.current.approveKakaoPay('order-1', 'tid-12345', 'pg-token-456');
-        })
-      ).rejects.toThrow('승인 실패');
+        });
+      } catch (e) {
+        error = e;
+      }
+
+      // Assert - 에러가 던져졌는지 확인
+      expect(error).toBeDefined();
+      expect(error.message).toBe('승인 실패');
 
       // Assert - 주문 상태 업데이트
       await waitFor(() => {

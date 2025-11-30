@@ -269,5 +269,5 @@ export const CRITICAL_EVENTS = [
  * 이벤트가 중요한지 확인
  */
 export function isCriticalEvent(eventType: string): boolean {
-  return CRITICAL_EVENTS.includes(eventType as any);
+  return CRITICAL_EVENTS.includes(eventType as (typeof CRITICAL_EVENTS)[number]);
 }

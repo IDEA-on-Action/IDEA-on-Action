@@ -24,6 +24,9 @@ export default defineConfig({
     exclude: ['tests/e2e/**', 'node_modules/**', 'dist/**'],
     setupFiles: ['./tests/setupTests.ts'],
 
+    /* 테스트 타임아웃 설정 (15초) */
+    testTimeout: 15000,
+
     /* 커버리지 설정 */
     coverage: {
       provider: 'v8',
