@@ -1,20 +1,33 @@
 /**
  * Phase 14: 분석 대시보드 페이지
  * 사용자 행동 분석, 퍼널 분석, 이탈률 분석
+ *
+ * v2.24.0: 번들 크기 최적화를 위해 차트 컴포넌트 동적 import
  */
 
-import { useState } from 'react'
+import { useState, Suspense, lazy } from 'react'
 import { useFunnelAnalysis, useBounceRate, useEventCounts } from '@/hooks/useAnalyticsEvents'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
-import { DateRangePicker } from '@/components/analytics/DateRangePicker'
-import { FunnelChart } from '@/components/analytics/FunnelChart'
-import { BounceRateCard } from '@/components/analytics/BounceRateCard'
-import { EventTimeline } from '@/components/analytics/EventTimeline'
 import { Skeleton } from '@/components/ui/skeleton'
 import { BarChart3, TrendingDown, Activity, Clock, Users } from 'lucide-react'
 import { StatsCard, StatsCardGrid } from '@/components/analytics/StatsCard'
 import { formatNumber } from '@/types/analytics'
+
+// 동적 import로 번들 크기 최적화 (v2.24.0)
+const DateRangePicker = lazy(() => import('@/components/analytics/DateRangePicker').then(m => ({ default: m.DateRangePicker })))
+const FunnelChart = lazy(() => import('@/components/analytics/FunnelChart').then(m => ({ default: m.FunnelChart })))
+const BounceRateCard = lazy(() => import('@/components/analytics/BounceRateCard').then(m => ({ default: m.BounceRateCard })))
+const EventTimeline = lazy(() => import('@/components/analytics/EventTimeline').then(m => ({ default: m.EventTimeline })))
+
+// 로딩 폴백 컴포넌트
+const ChartSkeleton = () => (
+  <div className="space-y-2">
+    {[...Array(3)].map((_, i) => (
+      <Skeleton key={i} className="h-24" />
+    ))}
+  </div>
+)
 
 export default function Analytics() {
   // 날짜 범위 (기본: 최근 30일)
@@ -53,7 +66,9 @@ export default function Analytics() {
             사용자 행동 분석 및 비즈니스 인사이트
           </p>
         </div>
-        <DateRangePicker value={dateRange} onChange={setDateRange} />
+        <Suspense fallback={<Skeleton className="h-10 w-64" />}>
+          <DateRangePicker value={dateRange} onChange={setDateRange} />
+        </Suspense>
       </div>
 
       {/* 탭 네비게이션 */}
@@ -81,7 +96,9 @@ export default function Analytics() {
         <TabsContent value="overview" className="space-y-6">
           <StatsCardGrid columns={3}>
             {/* 이탈률 카드 */}
-            <BounceRateCard data={bounceData} loading={bounceLoading} />
+            <Suspense fallback={<ChartSkeleton />}>
+              <BounceRateCard data={bounceData} loading={bounceLoading} />
+            </Suspense>
 
             {/* 총 이벤트 수 */}
             <StatsCard
@@ -148,13 +165,17 @@ export default function Analytics() {
 
         {/* 퍼널 분석 탭 */}
         <TabsContent value="funnel">
-          <FunnelChart data={funnelData} loading={funnelLoading} />
+          <Suspense fallback={<ChartSkeleton />}>
+            <FunnelChart data={funnelData} loading={funnelLoading} />
+          </Suspense>
         </TabsContent>
 
         {/* 사용자 행동 탭 */}
         <TabsContent value="behavior">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <BounceRateCard data={bounceData} loading={bounceLoading} />
+            <Suspense fallback={<ChartSkeleton />}>
+              <BounceRateCard data={bounceData} loading={bounceLoading} />
+            </Suspense>
 
             {/* 평균 세션 시간 (추후 구현) */}
             <Card>
@@ -172,7 +193,9 @@ export default function Analytics() {
 
         {/* 이벤트 타임라인 탭 */}
         <TabsContent value="events">
-          <EventTimeline startDate={dateRange.start} endDate={dateRange.end} />
+          <Suspense fallback={<ChartSkeleton />}>
+            <EventTimeline startDate={dateRange.start} endDate={dateRange.end} />
+          </Suspense>
         </TabsContent>
       </Tabs>
     </div>

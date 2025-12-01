@@ -1,18 +1,32 @@
 /**
  * Phase 14 Week 2: 매출 분석 페이지
  * 일/주/월별 매출, 서비스별 매출, KPI, CSV 내보내기
+ *
+ * v2.24.0: 번들 크기 최적화를 위해 차트 컴포넌트 동적 import
  */
 
-import { useState } from 'react'
+import { useState, Suspense, lazy } from 'react'
 import { useRevenueByDate, useRevenueByService, useKPIs } from '@/hooks/useRevenue'
-import { RevenueChart } from '@/components/analytics/RevenueChart'
-import { ServiceRevenueChart } from '@/components/analytics/ServiceRevenueChart'
-import { OrdersChart } from '@/components/analytics/OrdersChart'
-import { KPIGrid } from '@/components/analytics/KPICard'
-import { DateRangePicker } from '@/components/analytics/DateRangePicker'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
+import { Skeleton } from '@/components/ui/skeleton'
 import { Download, BarChart3, TrendingUp } from 'lucide-react'
+
+// 동적 import로 번들 크기 최적화 (v2.24.0)
+const DateRangePicker = lazy(() => import('@/components/analytics/DateRangePicker').then(m => ({ default: m.DateRangePicker })))
+const RevenueChart = lazy(() => import('@/components/analytics/RevenueChart').then(m => ({ default: m.RevenueChart })))
+const ServiceRevenueChart = lazy(() => import('@/components/analytics/ServiceRevenueChart').then(m => ({ default: m.ServiceRevenueChart })))
+const OrdersChart = lazy(() => import('@/components/analytics/OrdersChart').then(m => ({ default: m.OrdersChart })))
+const KPIGrid = lazy(() => import('@/components/analytics/KPICard').then(m => ({ default: m.KPIGrid })))
+
+// 로딩 폴백 컴포넌트
+const ChartSkeleton = () => (
+  <div className="space-y-2">
+    {[...Array(3)].map((_, i) => (
+      <Skeleton key={i} className="h-24" />
+    ))}
+  </div>
+)
 
 export default function Revenue() {
   // 날짜 범위 상태 (기본: 최근 30일)
@@ -103,17 +117,21 @@ export default function Revenue() {
         </div>
 
         {/* 날짜 범위 선택 */}
-        <DateRangePicker
-          startDate={dateRange.start}
-          endDate={dateRange.end}
-          onDateChange={setDateRange}
-        />
+        <Suspense fallback={<Skeleton className="h-10 w-64" />}>
+          <DateRangePicker
+            startDate={dateRange.start}
+            endDate={dateRange.end}
+            onDateChange={setDateRange}
+          />
+        </Suspense>
       </div>
 
       {/* KPI 카드 그리드 */}
-      {kpis && (
-        <KPIGrid data={kpis} isLoading={kpisLoading} />
-      )}
+      <Suspense fallback={<ChartSkeleton />}>
+        {kpis && (
+          <KPIGrid data={kpis} isLoading={kpisLoading} />
+        )}
+      </Suspense>
 
       {/* 매출 분석 탭 */}
       <Tabs defaultValue="overview" className="space-y-4">
@@ -154,21 +172,27 @@ export default function Revenue() {
         {/* 개요 탭 */}
         <TabsContent value="overview" className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
-            {revenueData && (
-              <RevenueChart
-                data={revenueData}
-                isLoading={revenueLoading}
-                chartType={chartType}
-              />
-            )}
-            {revenueData && (
-              <OrdersChart data={revenueData} isLoading={revenueLoading} />
-            )}
+            <Suspense fallback={<ChartSkeleton />}>
+              {revenueData && (
+                <RevenueChart
+                  data={revenueData}
+                  isLoading={revenueLoading}
+                  chartType={chartType}
+                />
+              )}
+            </Suspense>
+            <Suspense fallback={<ChartSkeleton />}>
+              {revenueData && (
+                <OrdersChart data={revenueData} isLoading={revenueLoading} />
+              )}
+            </Suspense>
           </div>
 
-          {serviceData && (
-            <ServiceRevenueChart data={serviceData} isLoading={serviceLoading} />
-          )}
+          <Suspense fallback={<ChartSkeleton />}>
+            {serviceData && (
+              <ServiceRevenueChart data={serviceData} isLoading={serviceLoading} />
+            )}
+          </Suspense>
         </TabsContent>
 
         {/* 매출 추이 탭 */}
@@ -199,13 +223,15 @@ export default function Revenue() {
             </Button>
           </div>
 
-          {revenueData && (
-            <RevenueChart
-              data={revenueData}
-              isLoading={revenueLoading}
-              chartType={chartType}
-            />
-          )}
+          <Suspense fallback={<ChartSkeleton />}>
+            {revenueData && (
+              <RevenueChart
+                data={revenueData}
+                isLoading={revenueLoading}
+                chartType={chartType}
+              />
+            )}
+          </Suspense>
         </TabsContent>
 
         {/* 서비스별 매출 탭 */}
@@ -217,16 +243,20 @@ export default function Revenue() {
             </Button>
           </div>
 
-          {serviceData && (
-            <ServiceRevenueChart data={serviceData} isLoading={serviceLoading} />
-          )}
+          <Suspense fallback={<ChartSkeleton />}>
+            {serviceData && (
+              <ServiceRevenueChart data={serviceData} isLoading={serviceLoading} />
+            )}
+          </Suspense>
         </TabsContent>
 
         {/* 주문 건수 탭 */}
         <TabsContent value="orders" className="space-y-4">
-          {revenueData && (
-            <OrdersChart data={revenueData} isLoading={revenueLoading} />
-          )}
+          <Suspense fallback={<ChartSkeleton />}>
+            {revenueData && (
+              <OrdersChart data={revenueData} isLoading={revenueLoading} />
+            )}
+          </Suspense>
         </TabsContent>
       </Tabs>
     </div>
