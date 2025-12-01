@@ -288,4 +288,74 @@ describe('useChat', () => {
       expect(result.current.messages).toEqual([]);
     });
   });
+
+  describe('컨텍스트 관리', () => {
+    it('addSystemPrompt가 호출되어야 함', async () => {
+      const { createChatCompletionStream, addSystemPrompt } = await import('@/lib/openai');
+
+      async function* mockStream() {
+        yield '응답';
+      }
+
+      vi.mocked(createChatCompletionStream).mockReturnValue(mockStream());
+
+      const { result } = renderHook(() => useChat(), { wrapper });
+
+      await act(async () => {
+        await result.current.sendMessage('테스트 메시지');
+      });
+
+      await waitFor(() => {
+        expect(result.current.messages.length).toBeGreaterThan(0);
+      });
+
+      expect(addSystemPrompt).toHaveBeenCalled();
+    });
+
+    it('limitContext가 호출되어야 함', async () => {
+      const { createChatCompletionStream, limitContext } = await import('@/lib/openai');
+
+      async function* mockStream() {
+        yield '응답';
+      }
+
+      vi.mocked(createChatCompletionStream).mockReturnValue(mockStream());
+
+      const { result } = renderHook(() => useChat(), { wrapper });
+
+      await act(async () => {
+        await result.current.sendMessage('테스트 메시지');
+      });
+
+      await waitFor(() => {
+        expect(result.current.messages.length).toBeGreaterThan(0);
+      });
+
+      expect(limitContext).toHaveBeenCalled();
+    });
+
+    it('메시지가 OpenAI API 형식으로 변환되어야 함', async () => {
+      const { createChatCompletionStream } = await import('@/lib/openai');
+
+      async function* mockStream() {
+        yield 'AI 응답';
+      }
+
+      vi.mocked(createChatCompletionStream).mockReturnValue(mockStream());
+
+      const { result } = renderHook(() => useChat(), { wrapper });
+
+      await act(async () => {
+        await result.current.sendMessage('사용자 메시지');
+      });
+
+      await waitFor(() => {
+        expect(result.current.messages.length).toBeGreaterThan(0);
+      });
+
+      expect(createChatCompletionStream).toHaveBeenCalledWith({
+        messages: expect.any(Array),
+      });
+    });
+  });
 });

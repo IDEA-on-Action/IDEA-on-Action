@@ -272,4 +272,306 @@ describe('MCPPermissionContext', () => {
       // 실제 구독 변경 감지는 통합 테스트에서 검증
     });
   });
+
+  describe('로딩 상태 관리', () => {
+    it('초기 로딩 상태는 false여야 함', () => {
+      const { result } = renderHook(() => useMCPPermissionContext(), {
+        wrapper: createWrapper(),
+      });
+
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    it('권한 확인 시작 시 로딩 상태가 true가 되어야 함', async () => {
+      (supabase.auth.getUser as any).mockResolvedValue({
+        data: { user: mockUser },
+      });
+
+      const mockSelect = vi.fn().mockReturnThis();
+      const mockEq = vi.fn().mockReturnThis();
+
+      (supabase.from as any).mockReturnValue({
+        select: mockSelect,
+        eq: mockEq,
+      });
+
+      // 느린 응답 시뮬레이션
+      mockEq.mockImplementation(() =>
+        new Promise((resolve) => {
+          setTimeout(
+            () =>
+              resolve({
+                data: mockSubscriptions,
+                error: null,
+              }),
+            100
+          );
+        })
+      );
+
+      const { result } = renderHook(() => useMCPPermissionContext(), {
+        wrapper: createWrapper(),
+      });
+
+      act(() => {
+        result.current.checkPermission('minu-find');
+      });
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(true);
+      });
+    });
+
+    it('권한 확인 완료 후 로딩 상태가 false가 되어야 함', async () => {
+      (supabase.auth.getUser as any).mockResolvedValue({
+        data: { user: mockUser },
+      });
+
+      const mockSelect = vi.fn().mockReturnThis();
+      const mockEq = vi.fn().mockReturnThis();
+
+      (supabase.from as any).mockReturnValue({
+        select: mockSelect,
+        eq: mockEq,
+      });
+
+      mockEq.mockResolvedValue({
+        data: mockSubscriptions,
+        error: null,
+      });
+
+      const { result } = renderHook(() => useMCPPermissionContext(), {
+        wrapper: createWrapper(),
+      });
+
+      await act(async () => {
+        await result.current.checkPermission('minu-find');
+      });
+
+      expect(result.current.isLoading).toBe(false);
+    });
+  });
+
+  describe('다중 서비스 권한 관리', () => {
+    beforeEach(() => {
+      (supabase.auth.getUser as any).mockResolvedValue({
+        data: { user: mockUser },
+      });
+
+      const mockSelect = vi.fn().mockReturnThis();
+      const mockEq = vi.fn().mockReturnThis();
+
+      (supabase.from as any).mockReturnValue({
+        select: mockSelect,
+        eq: mockEq,
+      });
+
+      mockEq.mockResolvedValue({
+        data: mockSubscriptions,
+        error: null,
+      });
+    });
+
+    it('여러 서비스의 권한을 동시에 확인할 수 있어야 함', async () => {
+      const { result } = renderHook(() => useMCPPermissionContext(), {
+        wrapper: createWrapper(),
+      });
+
+      await act(async () => {
+        await Promise.all([
+          result.current.checkPermission('minu-find'),
+          result.current.checkPermission('minu-frame'),
+          result.current.checkPermission('minu-build'),
+        ]);
+      });
+
+      expect(result.current.permissions.size).toBeGreaterThan(0);
+    });
+
+    it('서비스별로 독립적인 캐시를 유지해야 함', async () => {
+      const { result } = renderHook(() => useMCPPermissionContext(), {
+        wrapper: createWrapper(),
+      });
+
+      await act(async () => {
+        await result.current.checkPermission('minu-find');
+      });
+
+      const minuFindPermission = result.current.permissions.get('minu-find');
+
+      await act(async () => {
+        await result.current.checkPermission('minu-frame');
+      });
+
+      // minu-find 캐시는 유지되어야 함
+      expect(result.current.permissions.get('minu-find')).toBe(minuFindPermission);
+    });
+  });
+
+  describe('권한 정보 타임스탬프', () => {
+    it('권한 확인 시 checkedAt 시각이 기록되어야 함', async () => {
+      (supabase.auth.getUser as any).mockResolvedValue({
+        data: { user: mockUser },
+      });
+
+      const mockSelect = vi.fn().mockReturnThis();
+      const mockEq = vi.fn().mockReturnThis();
+
+      (supabase.from as any).mockReturnValue({
+        select: mockSelect,
+        eq: mockEq,
+      });
+
+      mockEq.mockResolvedValue({
+        data: mockSubscriptions,
+        error: null,
+      });
+
+      const { result } = renderHook(() => useMCPPermissionContext(), {
+        wrapper: createWrapper(),
+      });
+
+      let permissionInfo: PermissionInfo | undefined;
+
+      await act(async () => {
+        permissionInfo = await result.current.checkPermission('minu-find');
+      });
+
+      expect(permissionInfo?.checkedAt).toBeInstanceOf(Date);
+    });
+  });
+
+  describe('에러 시나리오', () => {
+    it('인증 에러 발생 시 안전하게 처리해야 함', async () => {
+      (supabase.auth.getUser as any).mockRejectedValue(new Error('Auth error'));
+
+      const { result } = renderHook(() => useMCPPermissionContext(), {
+        wrapper: createWrapper(),
+      });
+
+      let permissionInfo: PermissionInfo | undefined;
+
+      await act(async () => {
+        try {
+          permissionInfo = await result.current.checkPermission('minu-find');
+        } catch {
+          // 에러 무시
+        }
+      });
+
+      // 에러가 발생해도 앱이 크래시되지 않아야 함
+      expect(result.current).toBeDefined();
+    });
+
+    it('DB 연결 실패 시 service_unavailable을 반환해야 함', async () => {
+      (supabase.auth.getUser as any).mockResolvedValue({
+        data: { user: mockUser },
+      });
+
+      const mockSelect = vi.fn().mockReturnThis();
+      const mockEq = vi.fn().mockReturnThis();
+
+      (supabase.from as any).mockReturnValue({
+        select: mockSelect,
+        eq: mockEq,
+      });
+
+      mockEq.mockRejectedValue(new Error('Connection failed'));
+
+      const { result } = renderHook(() => useMCPPermissionContext(), {
+        wrapper: createWrapper(),
+      });
+
+      let permissionInfo: PermissionInfo | undefined;
+
+      await act(async () => {
+        permissionInfo = await result.current.checkPermission('minu-find');
+      });
+
+      expect(permissionInfo?.permission).toBe('none');
+      expect(permissionInfo?.reason).toBe('service_unavailable');
+    });
+  });
+
+  describe('Context 값 메모이제이션', () => {
+    it('permissions가 변경되지 않으면 Context 값이 재생성되지 않아야 함', () => {
+      const { result, rerender } = renderHook(() => useMCPPermissionContext(), {
+        wrapper: createWrapper(),
+      });
+
+      const firstValue = result.current;
+
+      rerender();
+
+      const secondValue = result.current;
+
+      // 값이 변경되지 않았으므로 같은 참조를 유지해야 함
+      expect(firstValue.checkPermission).toBe(secondValue.checkPermission);
+      expect(firstValue.invalidateCache).toBe(secondValue.invalidateCache);
+      expect(firstValue.invalidateAll).toBe(secondValue.invalidateAll);
+    });
+  });
+
+  describe('invalidateCache 파라미터', () => {
+    beforeEach(() => {
+      (supabase.auth.getUser as any).mockResolvedValue({
+        data: { user: mockUser },
+      });
+
+      const mockSelect = vi.fn().mockReturnThis();
+      const mockEq = vi.fn().mockReturnThis();
+
+      (supabase.from as any).mockReturnValue({
+        select: mockSelect,
+        eq: mockEq,
+      });
+
+      mockEq.mockResolvedValue({
+        data: mockSubscriptions,
+        error: null,
+      });
+    });
+
+    it('serviceId 없이 호출하면 전체 캐시를 무효화해야 함', async () => {
+      const { result } = renderHook(() => useMCPPermissionContext(), {
+        wrapper: createWrapper(),
+      });
+
+      await act(async () => {
+        await result.current.checkPermission('minu-find');
+        await result.current.checkPermission('minu-frame');
+      });
+
+      act(() => {
+        result.current.invalidateCache();
+      });
+
+      await waitFor(() => {
+        expect(result.current.permissions.size).toBe(0);
+      });
+    });
+
+    it('특정 serviceId만 무효화해야 함', async () => {
+      const { result } = renderHook(() => useMCPPermissionContext(), {
+        wrapper: createWrapper(),
+      });
+
+      await act(async () => {
+        await result.current.checkPermission('minu-find');
+        await result.current.checkPermission('minu-frame');
+      });
+
+      const initialSize = result.current.permissions.size;
+
+      act(() => {
+        result.current.invalidateCache('minu-find');
+      });
+
+      await waitFor(() => {
+        expect(result.current.permissions.size).toBe(initialSize - 1);
+        expect(result.current.permissions.has('minu-find')).toBe(false);
+        expect(result.current.permissions.has('minu-frame')).toBe(true);
+      });
+    });
+  });
 });

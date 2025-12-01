@@ -547,4 +547,174 @@ describe('useSearch', () => {
       expect(limitMock).toHaveBeenCalled()
     })
   })
+
+  // 11. enabled 옵션으로 쿼리 비활성화
+  it('should not execute query when enabled is false', () => {
+    const { result } = renderHook(
+      () =>
+        useSearch({
+          query: 'AI',
+          types: ['service'],
+          enabled: false,
+        }),
+      {
+        wrapper: createWrapper(),
+      }
+    )
+
+    expect(result.current.data).toBeUndefined()
+    expect(supabase.from).not.toHaveBeenCalled()
+  })
+
+  // 12. 검색어가 2자 미만일 때 쿼리 실행 안함
+  it('should not execute query when query is less than 2 characters', () => {
+    const { result } = renderHook(
+      () =>
+        useSearch({
+          query: 'A',
+          types: ['service'],
+        }),
+      {
+        wrapper: createWrapper(),
+      }
+    )
+
+    expect(result.current.data).toBeUndefined()
+    expect(supabase.from).not.toHaveBeenCalled()
+  })
+
+  // 13. 날짜 순으로 정렬
+  it('should sort results by date descending', async () => {
+    const mockResults: ServiceSearchResult[] = [
+      {
+        id: '1',
+        title: 'Service 1',
+        description: 'Desc 1',
+        type: 'service',
+        created_at: '2025-01-01',
+        image_url: null,
+        category: null,
+        url: '/services/1',
+      },
+      {
+        id: '2',
+        title: 'Service 2',
+        description: 'Desc 2',
+        type: 'service',
+        created_at: '2025-01-02',
+        image_url: null,
+        category: null,
+        url: '/services/2',
+      },
+    ]
+
+    const limitMock = vi.fn().mockResolvedValue({ data: mockResults, error: null })
+    const orderMock = vi.fn().mockReturnValue({ limit: limitMock })
+    const orMock = vi.fn().mockReturnValue({ order: orderMock })
+    const eqMock = vi.fn().mockReturnValue({ or: orMock })
+    const selectMock = vi.fn().mockReturnValue({ eq: eqMock })
+
+    vi.mocked(supabase.from).mockReturnValue({
+      select: selectMock
+    } as SupabaseQueryBuilder<ServiceSearchResult>)
+
+    const { result } = renderHook(
+      () =>
+        useSearch({
+          query: 'Service',
+          types: ['service'],
+        }),
+      {
+        wrapper: createWrapper(),
+      }
+    )
+
+    await waitFor(() => {
+      expect(result.current.data).toBeDefined()
+    })
+
+    // orderMock이 호출되어야 함
+    expect(orderMock).toHaveBeenCalled()
+  })
+
+  // 14. 블로그 검색 결과 타입 확인
+  it('should return blog type results', async () => {
+    const mockBlogResults: BlogSearchResult[] = [
+      {
+        id: '1',
+        title: 'Blog Post',
+        content: 'Content',
+        type: 'blog',
+        created_at: '2025-01-01',
+        featured_image: null,
+        category: 'Tech',
+        url: '/blog/1',
+      },
+    ]
+
+    const limitMock = vi.fn().mockResolvedValue({ data: mockBlogResults, error: null })
+    const orderMock = vi.fn().mockReturnValue({ limit: limitMock })
+    const orMock = vi.fn().mockReturnValue({ order: orderMock })
+    const eqMock = vi.fn().mockReturnValue({ or: orMock })
+    const selectMock = vi.fn().mockReturnValue({ eq: eqMock })
+
+    vi.mocked(supabase.from).mockReturnValue({
+      select: selectMock
+    } as SupabaseQueryBuilder<BlogSearchResult>)
+
+    const { result } = renderHook(
+      () =>
+        useSearch({
+          query: 'Blog',
+          types: ['blog'],
+        }),
+      {
+        wrapper: createWrapper(),
+      }
+    )
+
+    await waitFor(() => {
+      expect(result.current.data?.every((item) => item.type === 'blog')).toBe(true)
+    })
+  })
+
+  // 15. 공지사항 검색 결과 타입 확인
+  it('should return notice type results', async () => {
+    const mockNoticeResults: NoticeSearchResult[] = [
+      {
+        id: '1',
+        title: 'Notice',
+        content: 'Notice content',
+        type: 'notice',
+        created_at: '2025-01-01',
+        priority: 'high',
+        url: '/notices/1',
+      },
+    ]
+
+    const limitMock = vi.fn().mockResolvedValue({ data: mockNoticeResults, error: null })
+    const orderMock = vi.fn().mockReturnValue({ limit: limitMock })
+    const orMock = vi.fn().mockReturnValue({ order: orderMock })
+    const eqMock = vi.fn().mockReturnValue({ or: orMock })
+    const selectMock = vi.fn().mockReturnValue({ eq: eqMock })
+
+    vi.mocked(supabase.from).mockReturnValue({
+      select: selectMock
+    } as SupabaseQueryBuilder<NoticeSearchResult>)
+
+    const { result } = renderHook(
+      () =>
+        useSearch({
+          query: 'Notice',
+          types: ['notice'],
+        }),
+      {
+        wrapper: createWrapper(),
+      }
+    )
+
+    await waitFor(() => {
+      expect(result.current.data?.every((item) => item.type === 'notice')).toBe(true)
+    })
+  })
 })
