@@ -83,100 +83,81 @@ CREATE TRIGGER update_sandbox_test_data_timestamp
   EXECUTE FUNCTION update_sandbox_configs_timestamp();
 
 -- ============================================================================
--- 3. Sandbox OAuth 클라이언트 등록
+-- 3. Sandbox OAuth 클라이언트 등록 (oauth_clients 테이블이 있을 때만 실행)
 -- ============================================================================
 
-INSERT INTO public.oauth_clients (
-  client_id,
-  client_secret,
-  client_name,
-  redirect_uris,
-  client_type,
-  allowed_scopes,
-  require_pkce,
-  is_active,
-  metadata
-) VALUES
--- Minu Find - Sandbox
-(
-  'minu-find-sandbox',
-  'sandbox_secret_find_' || gen_random_uuid()::text,
-  'Minu Find (Sandbox)',
-  ARRAY['http://localhost:3001/auth/callback/sandbox', 'http://127.0.0.1:3001/auth/callback/sandbox']::TEXT[],
-  'confidential',
-  ARRAY['openid', 'profile', 'email', 'offline_access']::TEXT[],
-  true,
-  true,
-  jsonb_build_object(
-    'environment', 'sandbox',
-    'service', 'find',
-    'description', 'Minu Find Sandbox 테스트 환경',
-    'created_at', NOW(),
-    'isolation_enabled', true,
-    'mock_data_enabled', true
-  )
-),
--- Minu Frame - Sandbox
-(
-  'minu-frame-sandbox',
-  'sandbox_secret_frame_' || gen_random_uuid()::text,
-  'Minu Frame (Sandbox)',
-  ARRAY['http://localhost:3002/auth/callback/sandbox', 'http://127.0.0.1:3002/auth/callback/sandbox']::TEXT[],
-  'confidential',
-  ARRAY['openid', 'profile', 'email', 'offline_access']::TEXT[],
-  true,
-  true,
-  jsonb_build_object(
-    'environment', 'sandbox',
-    'service', 'frame',
-    'description', 'Minu Frame Sandbox 테스트 환경',
-    'created_at', NOW(),
-    'isolation_enabled', true,
-    'mock_data_enabled', true
-  )
-),
--- Minu Build - Sandbox
-(
-  'minu-build-sandbox',
-  'sandbox_secret_build_' || gen_random_uuid()::text,
-  'Minu Build (Sandbox)',
-  ARRAY['http://localhost:3003/auth/callback/sandbox', 'http://127.0.0.1:3003/auth/callback/sandbox']::TEXT[],
-  'confidential',
-  ARRAY['openid', 'profile', 'email', 'offline_access']::TEXT[],
-  true,
-  true,
-  jsonb_build_object(
-    'environment', 'sandbox',
-    'service', 'build',
-    'description', 'Minu Build Sandbox 테스트 환경',
-    'created_at', NOW(),
-    'isolation_enabled', true,
-    'mock_data_enabled', true
-  )
-),
--- Minu Keep - Sandbox
-(
-  'minu-keep-sandbox',
-  'sandbox_secret_keep_' || gen_random_uuid()::text,
-  'Minu Keep (Sandbox)',
-  ARRAY['http://localhost:3004/auth/callback/sandbox', 'http://127.0.0.1:3004/auth/callback/sandbox']::TEXT[],
-  'confidential',
-  ARRAY['openid', 'profile', 'email', 'offline_access']::TEXT[],
-  true,
-  true,
-  jsonb_build_object(
-    'environment', 'sandbox',
-    'service', 'keep',
-    'description', 'Minu Keep Sandbox 테스트 환경',
-    'created_at', NOW(),
-    'isolation_enabled', true,
-    'mock_data_enabled', true
-  )
-)
-ON CONFLICT (client_id) DO UPDATE SET
-  is_active = EXCLUDED.is_active,
-  redirect_uris = EXCLUDED.redirect_uris,
-  metadata = EXCLUDED.metadata;
+DO $$
+BEGIN
+  -- oauth_clients 테이블 존재 여부 확인
+  IF EXISTS (
+    SELECT 1 FROM information_schema.tables
+    WHERE table_schema = 'public' AND table_name = 'oauth_clients'
+  ) THEN
+    -- Minu Find - Sandbox
+    INSERT INTO public.oauth_clients (
+      client_id, client_secret, client_name, redirect_uris,
+      client_type, allowed_scopes, require_pkce, is_active, metadata
+    ) VALUES (
+      'minu-find-sandbox',
+      'sandbox_secret_find_' || gen_random_uuid()::text,
+      'Minu Find (Sandbox)',
+      ARRAY['http://localhost:3001/auth/callback/sandbox', 'http://127.0.0.1:3001/auth/callback/sandbox']::TEXT[],
+      'confidential',
+      ARRAY['openid', 'profile', 'email', 'offline_access']::TEXT[],
+      true, true,
+      jsonb_build_object('environment', 'sandbox', 'service', 'find', 'description', 'Minu Find Sandbox 테스트 환경')
+    ) ON CONFLICT (client_id) DO NOTHING;
+
+    -- Minu Frame - Sandbox
+    INSERT INTO public.oauth_clients (
+      client_id, client_secret, client_name, redirect_uris,
+      client_type, allowed_scopes, require_pkce, is_active, metadata
+    ) VALUES (
+      'minu-frame-sandbox',
+      'sandbox_secret_frame_' || gen_random_uuid()::text,
+      'Minu Frame (Sandbox)',
+      ARRAY['http://localhost:3002/auth/callback/sandbox', 'http://127.0.0.1:3002/auth/callback/sandbox']::TEXT[],
+      'confidential',
+      ARRAY['openid', 'profile', 'email', 'offline_access']::TEXT[],
+      true, true,
+      jsonb_build_object('environment', 'sandbox', 'service', 'frame', 'description', 'Minu Frame Sandbox 테스트 환경')
+    ) ON CONFLICT (client_id) DO NOTHING;
+
+    -- Minu Build - Sandbox
+    INSERT INTO public.oauth_clients (
+      client_id, client_secret, client_name, redirect_uris,
+      client_type, allowed_scopes, require_pkce, is_active, metadata
+    ) VALUES (
+      'minu-build-sandbox',
+      'sandbox_secret_build_' || gen_random_uuid()::text,
+      'Minu Build (Sandbox)',
+      ARRAY['http://localhost:3003/auth/callback/sandbox', 'http://127.0.0.1:3003/auth/callback/sandbox']::TEXT[],
+      'confidential',
+      ARRAY['openid', 'profile', 'email', 'offline_access']::TEXT[],
+      true, true,
+      jsonb_build_object('environment', 'sandbox', 'service', 'build', 'description', 'Minu Build Sandbox 테스트 환경')
+    ) ON CONFLICT (client_id) DO NOTHING;
+
+    -- Minu Keep - Sandbox
+    INSERT INTO public.oauth_clients (
+      client_id, client_secret, client_name, redirect_uris,
+      client_type, allowed_scopes, require_pkce, is_active, metadata
+    ) VALUES (
+      'minu-keep-sandbox',
+      'sandbox_secret_keep_' || gen_random_uuid()::text,
+      'Minu Keep (Sandbox)',
+      ARRAY['http://localhost:3004/auth/callback/sandbox', 'http://127.0.0.1:3004/auth/callback/sandbox']::TEXT[],
+      'confidential',
+      ARRAY['openid', 'profile', 'email', 'offline_access']::TEXT[],
+      true, true,
+      jsonb_build_object('environment', 'sandbox', 'service', 'keep', 'description', 'Minu Keep Sandbox 테스트 환경')
+    ) ON CONFLICT (client_id) DO NOTHING;
+
+    RAISE NOTICE 'Sandbox OAuth 클라이언트 등록 완료';
+  ELSE
+    RAISE NOTICE 'oauth_clients 테이블이 없습니다. OAuth 클라이언트 등록을 건너뜁니다.';
+  END IF;
+END $$;
 
 -- ============================================================================
 -- 4. Sandbox 기본 설정 추가
