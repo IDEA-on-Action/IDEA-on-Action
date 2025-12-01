@@ -45,6 +45,7 @@ vite.config.ts.timestamp-*.mjs
 test-results/
 playwright-report/
 coverage/
+coverage-summary.json
 .nyc_output/
 blob-report/
 playwright/.cache/
