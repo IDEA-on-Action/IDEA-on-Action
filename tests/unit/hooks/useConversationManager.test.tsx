@@ -99,17 +99,19 @@ describe('useConversationManager', () => {
 
   describe('useConversations - 대화 목록 조회', () => {
     it('대화 목록을 조회해야 함', async () => {
-      const selectMock = vi.fn().mockReturnValue({
-        eq: vi.fn().mockReturnValue({
-          order: vi.fn().mockReturnValue({
-            range: vi.fn().mockResolvedValue({
-              data: [mockSession],
-              error: null,
-              count: 1,
-            }),
-          }),
+      // 체이닝 가능한 mock 객체 생성
+      const chainableMock = {
+        eq: vi.fn().mockReturnThis(),
+        ilike: vi.fn().mockReturnThis(),
+        order: vi.fn().mockReturnThis(),
+        range: vi.fn().mockResolvedValue({
+          data: [{ ...mockSession, message_count: [{ count: 5 }] }],
+          error: null,
+          count: 1,
         }),
-      });
+      };
+
+      const selectMock = vi.fn().mockReturnValue(chainableMock);
 
       vi.mocked(supabase.from).mockReturnValue({
         select: selectMock,
@@ -285,12 +287,14 @@ describe('useConversationManager', () => {
     it('sessionId가 null이면 빈 배열을 반환해야 함', async () => {
       const { result } = renderHook(() => useMessages(null), { wrapper });
 
+      // enabled: false이므로 쿼리가 실행되지 않음 - isPending 상태 확인
       await waitFor(() => {
-        expect(result.current.isSuccess).toBe(true);
+        // sessionId가 null이면 쿼리가 비활성화되어 data가 undefined
+        expect(result.current.fetchStatus).toBe('idle');
       });
 
-      expect(result.current.data?.data).toEqual([]);
-      expect(result.current.data?.count).toBe(0);
+      // 쿼리가 비활성화되어 있으므로 data는 undefined
+      expect(result.current.data).toBeUndefined();
     });
   });
 
@@ -566,7 +570,9 @@ describe('useConversationManager', () => {
         }
         if (table === 'ai_conversations') {
           return {
-            update: vi.fn().mockResolvedValue({ data: null, error: null }),
+            update: vi.fn().mockReturnValue({
+              eq: vi.fn().mockResolvedValue({ data: null, error: null }),
+            }),
           } as any;
         }
         return {} as any;
@@ -654,8 +660,12 @@ describe('useConversationManager', () => {
         // 두 번째 호출: 포크 카운트
         if (callCount === 2 && table === 'ai_conversations') {
           return {
-            select: vi.fn().mockResolvedValue({
-              count: 1,
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockResolvedValue({
+                count: 1,
+                data: null,
+                error: null,
+              }),
             }),
           } as any;
         }

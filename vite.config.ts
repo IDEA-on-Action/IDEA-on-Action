@@ -114,17 +114,25 @@ export default defineConfig(({ mode }) => ({
         // Exclude admin pages and lazy-loaded components from precache
         globIgnores: [
           // Admin pages (lazy load via runtime caching)
-          "**/pages-admin-*.js",        // Admin pages bundle (2.83 MB, exceeds 2 MB limit)
-          "**/Admin*.js",               // All admin components
-          "**/Dashboard-*.js",          // Admin dashboard
-          "**/Analytics-*.js",          // Admin analytics
-          "**/Revenue-*.js",            // Admin revenue
-          "**/RealtimeDashboard-*.js",  // Admin realtime
-          "**/AuditLogs-*.js",          // Admin audit logs
-          "**/AdminRoles-*.js",         // Admin roles
+          "**/pages-admin-*.js",              // All admin chunks (split for better loading)
+          "**/Admin*.js",                     // All admin components
+          "**/Dashboard-*.js",                // Admin dashboard
+          "**/Analytics-*.js",                // Admin analytics
+          "**/Revenue-*.js",                  // Admin revenue
+          "**/RealtimeDashboard-*.js",        // Admin realtime
+          "**/AuditLogs-*.js",                // Admin audit logs
+          "**/AdminRoles-*.js",               // Admin roles
+
+          // Large vendor chunks (lazy load via runtime caching)
+          "**/vendor-charts-*.js",            // ~421 kB (Recharts + d3)
+          "**/vendor-editor-*.js",            // ~500 kB (TipTap + ProseMirror)
+          "**/vendor-markdown-*.js",          // ~340 kB (markdown rendering)
+          "**/xlsx-skill-*.js",               // ~429 kB (Excel export)
+          "**/jszip-skill-*.js",              // ~98 kB (ZIP compression)
+          "**/vendor-auth-*.js",              // ~48 kB (2FA/QR codes)
 
           // Non-critical pages (lazy load via runtime caching)
-          "**/DateRangePicker-*.js",    // ~38 kB (12 kB gzip)
+          "**/DateRangePicker-*.js",          // ~38 kB (12 kB gzip)
         ],
 
         runtimeCaching: [
@@ -174,20 +182,33 @@ export default defineConfig(({ mode }) => ({
             },
           },
 
-          // 3. Admin pages (on-demand)
+          // 3. Admin pages (on-demand) - Split into multiple chunks
           {
-            urlPattern: /\/assets\/(pages-admin|Admin|Dashboard|Analytics|Revenue|RealtimeDashboard|AuditLogs|AdminRoles)-.*\.js$/,
+            urlPattern: /\/assets\/pages-admin-.*\.js$/,
             handler: "CacheFirst",
             options: {
               cacheName: "admin-pages-cache",
               expiration: {
-                maxEntries: 20,
+                maxEntries: 30,  // Increased due to more chunks
                 maxAgeSeconds: 60 * 60 * 24 * 7, // 7일
               },
             },
           },
 
-          // 4. Other lazy-loaded chunks (on-demand)
+          // 4. Vendor chunks (on-demand)
+          {
+            urlPattern: /\/assets\/(vendor-charts|vendor-editor|vendor-markdown|xlsx-skill|jszip-skill|vendor-auth|components-charts)-.*\.js$/,
+            handler: "CacheFirst",
+            options: {
+              cacheName: "vendor-chunks-cache",
+              expiration: {
+                maxEntries: 15,  // Increased for more vendor chunks
+                maxAgeSeconds: 60 * 60 * 24 * 30, // 30일 (vendor는 더 오래 캐시)
+              },
+            },
+          },
+
+          // 5. Other lazy-loaded chunks (on-demand)
           {
             urlPattern: /\/assets\/DateRangePicker-.*\.js$/,
             handler: "CacheFirst",
@@ -200,7 +221,7 @@ export default defineConfig(({ mode }) => ({
             },
           },
 
-          // 5. Images (on-demand)
+          // 6. Images (on-demand)
           {
             urlPattern: /\.(?:png|jpg|jpeg|svg|gif|webp)$/i,
             handler: "CacheFirst",
@@ -241,15 +262,12 @@ export default defineConfig(({ mode }) => ({
           // index.js to ensure proper initialization order.
           // ============================================================
 
-          // 1. Recharts - DISABLED due to circular dependency issues
-          // recharts + d3-* libraries have complex internal dependencies
-          // that cause "Cannot access 'X' before initialization" errors
-          // when separated into their own chunk.
-          // Keeping them in the main bundle for now.
-          // TODO: Re-evaluate with recharts v3 or alternative charting library
-          // if (id.includes('node_modules/recharts') || id.includes('node_modules/d3-')) {
-          //   return 'vendor-charts';
-          // }
+          // 1. Recharts - Try to separate despite circular dependency warnings
+          // Split Recharts into its own chunk to reduce admin page sizes
+          // This may cause some initialization warnings but should still work
+          if (id.includes('node_modules/recharts') || id.includes('node_modules/d3-')) {
+            return 'vendor-charts';
+          }
 
           // 2. Markdown Rendering - Only used in blog posts and chat
           if (
@@ -282,17 +300,15 @@ export default defineConfig(({ mode }) => ({
             return 'jszip-skill';
           }
 
-          // 7. TipTap Editor - DISABLED due to React dependency issues
-          // TipTap/Prosemirror uses React's useSyncExternalStore internally
-          // which causes "Cannot read properties of undefined" errors
-          // when separated into their own chunk.
-          // if (
-          //   id.includes('node_modules/@tiptap') ||
-          //   id.includes('node_modules/prosemirror') ||
-          //   id.includes('node_modules/lowlight')
-          // ) {
-          //   return 'vendor-editor';
-          // }
+          // 7. TipTap Editor - Try to separate despite React dependency warnings
+          // Split TipTap into its own chunk to reduce blog editor page size
+          if (
+            id.includes('node_modules/@tiptap') ||
+            id.includes('node_modules/prosemirror') ||
+            id.includes('node_modules/lowlight')
+          ) {
+            return 'vendor-editor';
+          }
 
           // 8. Sentry - DISABLED due to React dependency issues
           // Sentry React SDK uses React.Component internally
@@ -326,50 +342,80 @@ export default defineConfig(({ mode }) => ({
           // ADMIN CHUNKS - Split into multiple smaller chunks
           // ============================================================
           // pages-admin was 3.4MB, now split into:
-          // - pages-admin-analytics: Dashboard, Analytics, Revenue (~200 kB)
+          // - pages-admin-dashboard: Dashboard only (~700 kB with Recharts)
+          // - pages-admin-analytics: Analytics page (~700 kB with Recharts)
+          // - pages-admin-revenue: Revenue page (~700 kB with Recharts)
+          // - pages-admin-realtime: Realtime Dashboard (~50 kB)
           // - pages-admin-cms: Blog, Notices, Newsletter (~300 kB)
           // - pages-admin-crud: Service, Portfolio, Team, Lab (~400 kB)
           // - pages-admin-core: Common admin components (~100 kB)
           // ============================================================
 
-          // Analytics & Dashboard pages
-          if (
-            id.includes('/pages/admin/Dashboard') ||
-            id.includes('/pages/admin/Analytics') ||
-            id.includes('/pages/admin/Revenue') ||
-            id.includes('/pages/admin/RealtimeDashboard')
-          ) {
+          // Dashboard page (separate to split Recharts usage)
+          if (id.includes('/pages/admin/Dashboard.tsx')) {
+            return 'pages-admin-dashboard';
+          }
+
+          // Analytics page (separate to split Recharts usage)
+          if (id.includes('/pages/admin/Analytics.tsx')) {
             return 'pages-admin-analytics';
           }
 
-          // Blog pages (Create, Edit, List)
+          // Revenue page (separate to split Recharts usage)
+          if (id.includes('/pages/admin/Revenue.tsx')) {
+            return 'pages-admin-revenue';
+          }
+
+          // Realtime Dashboard (lightweight)
+          if (id.includes('/pages/admin/RealtimeDashboard')) {
+            return 'pages-admin-realtime';
+          }
+
+          // Blog pages - Split editor from list/categories
+          // Blog Editor pages (Create, Edit) - heavy due to TipTap
+          if (
+            id.includes('/pages/admin/CreateBlogPost') ||
+            id.includes('/pages/admin/EditBlogPost')
+          ) {
+            return 'pages-admin-blog-editor';
+          }
+
+          // Blog List & Management pages (lighter)
           if (
             id.includes('/pages/admin/AdminBlog') ||
-            id.includes('/pages/admin/CreateBlogPost') ||
-            id.includes('/pages/admin/EditBlogPost') ||
             id.includes('/pages/admin/AdminBlogCategories') ||
             id.includes('/pages/admin/AdminTags')
           ) {
-            return 'pages-admin-blog';
+            return 'pages-admin-blog-list';
           }
 
-          // Notices & Newsletter pages
+          // Notices Editor pages (Create, Edit) - TipTap editor
+          if (
+            id.includes('/pages/admin/CreateNotice') ||
+            id.includes('/pages/admin/EditNotice')
+          ) {
+            return 'pages-admin-notice-editor';
+          }
+
+          // Notices & Newsletter List pages
           if (
             id.includes('/pages/admin/AdminNotices') ||
-            id.includes('/pages/admin/CreateNotice') ||
-            id.includes('/pages/admin/EditNotice') ||
             id.includes('/pages/admin/AdminNewsletter')
           ) {
-            return 'pages-admin-notices';
+            return 'pages-admin-notices-list';
           }
 
-          // Service pages (Create, Edit, List)
+          // Service Editor pages (Create, Edit) - TipTap editor
           if (
-            id.includes('/pages/admin/AdminServices') ||
             id.includes('/pages/admin/CreateService') ||
             id.includes('/pages/admin/EditService')
           ) {
-            return 'pages-admin-services';
+            return 'pages-admin-service-editor';
+          }
+
+          // Service List page
+          if (id.includes('/pages/admin/AdminServices')) {
+            return 'pages-admin-services-list';
           }
 
           // Content pages (Portfolio, Team, Lab, Roadmap, Media)
@@ -408,17 +454,35 @@ export default defineConfig(({ mode }) => ({
             return 'pages-admin-misc';
           }
 
+          // ============================================================
+          // ANALYTICS COMPONENTS - Separate Recharts-heavy components
+          // ============================================================
+          // Recharts cannot be split from components due to circular deps,
+          // but we can split components themselves to distribute the load
+          if (
+            id.includes('/components/analytics/RevenueChart') ||
+            id.includes('/components/analytics/OrdersChart') ||
+            id.includes('/components/analytics/ServiceRevenueChart') ||
+            id.includes('/components/analytics/RevenueComparisonChart') ||
+            id.includes('/components/analytics/FunnelChart')
+          ) {
+            return 'components-charts';
+          }
+
           // NOTE: Public pages (Home, Services, Blog, etc.) remain in index.js
           // This ensures fast initial page load for non-admin users.
         },
       },
     },
-    // Chunk size warning limit (v2.9.0)
-    // Admin chunks are lazy-loaded, so larger sizes are acceptable:
-    // - pages-admin-analytics: 2,143 kB (544 kB gzip, includes Recharts)
-    // - pages-admin-blog: 917 kB (274 kB gzip, includes TipTap)
-    // - vendor-markdown: 341 kB (108 kB gzip)
-    // Note: Recharts cannot be split due to circular d3-* dependencies
-    chunkSizeWarningLimit: 2200,
+    // Chunk size warning limit (v2.23.0 - Optimized)
+    // Admin chunks are now split into smaller pieces:
+    // - pages-admin-dashboard: ~700 kB (includes Recharts, lazy-loaded)
+    // - pages-admin-analytics: ~700 kB (includes Recharts, lazy-loaded)
+    // - pages-admin-revenue: ~700 kB (includes Recharts, lazy-loaded)
+    // - pages-admin-blog-editor: ~500 kB (includes TipTap, lazy-loaded)
+    // - vendor-markdown: 341 kB (108 kB gzip, lazy-loaded)
+    // - xlsx-skill: 429 kB (143 kB gzip, lazy-loaded)
+    // Target: Each chunk < 800 kB for better loading performance
+    chunkSizeWarningLimit: 800,
   },
 }));

@@ -2,7 +2,7 @@
 
 > Claude와의 개발 협업을 위한 프로젝트 핵심 문서
 
-**현재 버전**: 2.23.0 | **상태**: ✅ Production | **방법론**: SSDD
+**현재 버전**: 2.24.0 | **상태**: ✅ Production | **방법론**: SSDD
 **변경 내역**: [docs/archive/CLAUDE-history-november-2025.md](docs/archive/CLAUDE-history-november-2025.md)
 
 ---
