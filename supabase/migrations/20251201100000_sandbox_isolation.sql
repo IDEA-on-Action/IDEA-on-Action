@@ -190,7 +190,6 @@ CREATE POLICY "Admins can view all sandbox configs"
     EXISTS (
       SELECT 1 FROM public.admins
       WHERE admins.user_id = auth.uid()
-      AND admins.is_active = true
     )
   );
 
@@ -203,7 +202,6 @@ CREATE POLICY "Admins can modify sandbox configs"
     EXISTS (
       SELECT 1 FROM public.admins
       WHERE admins.user_id = auth.uid()
-      AND admins.is_active = true
     )
   );
 
@@ -233,7 +231,6 @@ CREATE POLICY "Admins can view all sandbox test data"
     EXISTS (
       SELECT 1 FROM public.admins
       WHERE admins.user_id = auth.uid()
-      AND admins.is_active = true
     )
   );
 
