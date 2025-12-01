@@ -3,10 +3,52 @@
 > 프로젝트 작업 목록 및 진행 상황 관리
 
 **마지막 업데이트**: 2025-12-01
-**현재 Phase**: v2.24.0 병렬 작업 완료
-**다음 단계**: 마이그레이션 배포, 테스트 커버리지 80% 달성
-**프로젝트 버전**: 2.24.0
+**현재 Phase**: v2.25.0 Central Hub Phase 2 완료
+**다음 단계**: 테스트 커버리지 80% 달성, Claude Skills Phase 2
+**프로젝트 버전**: 2.25.0
 **프로덕션**: https://www.ideaonaction.ai
+
+---
+
+## ✅ 완료: Central Hub Phase 2 (v2.25.0)
+
+**목표**: MCP 권한 시스템 및 대시보드 고도화
+**완료일**: 2025-12-01
+**계획 문서**: [plan/central-hub-phase2.md](plan/central-hub-phase2.md)
+
+### Sprint 2-1 완료: 기반 구축 (4개 병렬 에이전트)
+
+| Agent | 작업 | 산출물 | 상태 |
+|-------|------|--------|------|
+| Agent 1 | MCPProtected HOC | `src/components/mcp/MCPProtected.tsx` | ✅ |
+| Agent 2 | Fallback UI | `MCPLoading.tsx`, `MCPFallback.tsx`, `MCPError.tsx` | ✅ |
+| Agent 3 | useMCPPermission 훅 | `src/hooks/useMCPPermission.ts` | ✅ |
+| Agent 4 | MCPPermissionContext | `src/contexts/MCPPermissionContext.tsx` | ✅ |
+
+### Sprint 2-2 완료: 페이지 적용 (3개 병렬 에이전트)
+
+| Agent | 작업 | 대상 | 상태 |
+|-------|------|------|------|
+| Agent 5 | Minu Find/Frame 적용 | `MinuFindPage.tsx`, `MinuFramePage.tsx` | ✅ |
+| Agent 6 | Minu Build/Keep 적용 | `MinuBuildPage.tsx`, `MinuKeepPage.tsx` | ✅ |
+| Agent 7 | CentralHub 리팩토링 | `CentralHubDashboard.tsx` | ✅ |
+
+### Sprint 2-3 완료: 대시보드 고도화 (3개 병렬 에이전트)
+
+| Agent | 작업 | 산출물 | 상태 |
+|-------|------|--------|------|
+| Agent 8 | 분석 차트 확장 | `UsageChart.tsx`, `TrendChart.tsx` | ✅ |
+| Agent 9 | 필터 고도화 | `EnhancedFilter.tsx` | ✅ |
+| Agent 10 | 알림 센터 UI | `AlertCenter.tsx` | ✅ |
+
+### 품질 지표
+
+| 지표 | 값 |
+|------|-----|
+| 신규 컴포넌트 | 10개 |
+| Central Hub 컴포넌트 | 14개 (기존 8 + 신규 6) |
+| 린트 에러 | 0개 |
+| 번들 크기 | 1545 KB |
 
 ---
 

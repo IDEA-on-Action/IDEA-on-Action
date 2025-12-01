@@ -5,6 +5,10 @@
  * 실시간 동기화 및 알림 패널을 포함합니다.
  *
  * @module pages/admin/CentralHubDashboard
+ *
+ * @security
+ * - AdminLayout에서 관리자 권한 확인됨
+ * - 이 페이지는 관리자 전용 대시보드입니다
  */
 
 import { EventTimeline } from '@/components/central-hub/EventTimeline';
@@ -22,6 +26,7 @@ import {
 } from '@/hooks/useRealtimeServiceStatus';
 import { useRealtimeEventStream } from '@/hooks/useRealtimeEventStream';
 import { useServiceHealth } from '@/hooks/useServiceHealth';
+import { useIsAdmin } from '@/hooks/useIsAdmin';
 import { cn } from '@/lib/utils';
 
 // ============================================================================
@@ -38,8 +43,15 @@ import { cn } from '@/lib/utils';
  * - 탭 기반 뷰 (Overview, Events, Issues, Alerts)
  * - 실시간 알림 패널
  * - Excel 내보내기 기능
+ *
+ * 권한:
+ * - 관리자 전용 페이지
+ * - AdminLayout에서 1차 권한 확인 완료
  */
 export default function CentralHubDashboard() {
+  // 관리자 권한 확인 (AdminLayout에서 이미 확인되지만 명시적 체크)
+  const { data: isAdmin, isLoading: isAdminLoading } = useIsAdmin();
+
   // 실시간 서비스 상태 (전역)
   const { connectionState: serviceConnectionState, isConnected } = useRealtimeServiceStatus();
   const serviceStatusDisplay = useConnectionStatusDisplay(serviceConnectionState);
@@ -49,6 +61,23 @@ export default function CentralHubDashboard() {
 
   // 서비스 헬스 데이터 (ServiceStatusDashboard용)
   const { data: healthData, isLoading, refetch, isRefetching } = useServiceHealth();
+
+  // 관리자 권한 체크 (이중 확인)
+  if (isAdminLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center space-y-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <p className="text-sm text-muted-foreground">권한 확인 중...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // AdminLayout에서 이미 리다이렉트 처리하지만 방어적 코드
+  if (!isAdmin) {
+    return null;
+  }
 
   return (
     <div className="space-y-6">

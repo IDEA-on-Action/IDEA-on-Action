@@ -1,4 +1,3 @@
-import { useMemo } from "react";
 import PageLayout from "@/components/layouts/PageLayout";
 import Section from "@/components/layouts/Section";
 import PlanComparisonTable from "@/components/services-platform/PlanComparisonTable";
@@ -7,69 +6,17 @@ import CTASection from "@/components/services-platform/CTASection";
 import { SEO } from "@/components/shared/SEO";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
 import { minuFindService } from "@/data/services/minu-find";
-import { CheckCircle2, AlertCircle } from "lucide-react";
+import { CheckCircle2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { useMySubscriptions } from "@/hooks/useSubscriptions";
-import { useMinuSubscription } from "@/hooks/useMCPClient";
+import { useMCPServicePermission } from "@/hooks/useMCPPermission";
 import { cn } from "@/lib/utils";
 import type { MonthlyPlan } from "@/types/services";
-import type { SubscriptionWithPlan } from "@/types/subscription.types";
 
 // =====================================================
-// MCP 클라이언트 타입 및 폴백 훅
+// 타입 정의
 // =====================================================
 
-/**
- * MCP 구독 정보 타입 (폴백 호환)
- * MCP 서버 또는 Supabase 폴백에서 반환하는 구독 데이터의 통일된 형태
- */
-interface MCPSubscriptionInfo {
-  planName: string;         // 현재 구독 중인 플랜 이름 (예: "Basic", "Pro", "Enterprise")
-  status: string;           // 구독 상태 (예: "active", "trial", "cancelled")
-  expiresAt?: string;       // 구독 만료일 (ISO 8601 형식)
-  features?: string[];      // 이용 가능한 기능 목록
-}
-
-/**
- * Supabase 구독 데이터를 MCP 형태로 변환하는 폴백 훅
- *
- * MCP 서버 연결 실패 시 Supabase useMySubscriptions 훅의 데이터를
- * MCPSubscriptionInfo 형태로 변환하여 일관된 인터페이스를 제공합니다.
- */
-function useFallbackSubscription(
-  subscriptions: SubscriptionWithPlan[] | undefined
-): MCPSubscriptionInfo | null {
-  return useMemo(() => {
-    if (!subscriptions) return null;
-
-    // Minu Find 서비스에 대한 구독만 필터링
-    const found = subscriptions.find(
-      (sub) =>
-        sub.service?.slug === "find" ||
-        sub.service?.id === "minu-find" ||
-        sub.service?.title?.includes("Minu Find")
-    );
-
-    if (!found) return null;
-
-    // SubscriptionWithPlan을 MCPSubscriptionInfo 형태로 변환
-    return {
-      planName: found.plan?.plan_name || "Unknown",
-      status: found.status || "unknown",
-      expiresAt: found.current_period_end || undefined,
-      features: found.plan?.features
-        ? Object.keys(found.plan.features)
-        : undefined,
-    };
-  }, [subscriptions]);
-}
-
-/**
- * 플랜 상태 타입
- * 각 플랜에 대한 사용자의 구독 상태를 나타냄
- */
 type PlanStatus = "current" | "upgrade" | "downgrade" | "available";
 
 /**
@@ -95,75 +42,14 @@ function getPlanStatus(planName: string, currentPlan: string | null): PlanStatus
 
 export default function MinuFindPage() {
   const service = minuFindService;
+  const { user } = useAuth();
 
-  // =====================================================
-  // 인증 상태 확인
-  // =====================================================
-  const { user, loading: authLoading } = useAuth();
+  // MCP 권한 확인 (useMCPServicePermission 훅 사용)
+  const { subscription, isLoading } = useMCPServicePermission('minu-find');
 
-  // =====================================================
-  // MCP 클라이언트 연동 (실제 MCP 훅 사용)
-  // MCP 서버의 subscription://current 리소스를 조회합니다.
-  // =====================================================
-  const {
-    subscription: mcpData,
-    isLoading: mcpLoading,
-    error: mcpError
-  } = useMinuSubscription();
-
-  // MCP 서버 연결 실패 여부 (에러가 있거나 인증된 사용자인데 데이터가 없을 때)
-  const mcpFailed = !!mcpError;
-
-  // 개발 모드에서만 MCP 연결 실패 로그 출력
-  if (mcpFailed && import.meta.env.DEV) {
-    console.warn('[MinuFindPage] MCP 서버 연결 실패, 폴백 사용:', mcpError);
-  }
-
-  // =====================================================
-  // 폴백: MCP 실패 시 Supabase 직접 조회
-  // =====================================================
-  const {
-    data: fallbackSubscriptions,
-    isLoading: fallbackLoading,
-  } = useMySubscriptions();
-
-  // Supabase 데이터를 MCP 형태로 변환
-  const fallbackData = useFallbackSubscription(fallbackSubscriptions);
-
-  // =====================================================
-  // 최종 구독 데이터 결정
-  // MCP 성공 시 MCP 데이터 사용, 실패 시 폴백 데이터 사용
-  // =====================================================
-  const mcpSubscription = useMemo((): MCPSubscriptionInfo | null => {
-    // MCP 연결 성공하고 데이터가 있으면 MCP 데이터 사용
-    if (!mcpFailed && mcpData) {
-      return {
-        planName: mcpData.planName,
-        status: mcpData.status,
-        expiresAt: mcpData.validUntil,
-        features: mcpData.planFeatures
-          ? Object.keys(mcpData.planFeatures)
-          : undefined,
-      };
-    }
-
-    // MCP 실패 시 폴백 데이터 사용
-    return fallbackData;
-  }, [mcpFailed, mcpData, fallbackData]);
-
-  // =====================================================
-  // 로딩 및 에러 상태 계산
-  // =====================================================
-  // MCP 로딩 중이거나 (MCP 실패 시) 폴백 로딩 중일 때
-  const isLoading = authLoading || (!!user && (mcpLoading || (mcpFailed && fallbackLoading)));
-
-  // 사용자에게 에러를 노출하지 않음 (폴백이 있으므로)
-  // MCP와 폴백 모두 실패한 경우에만 에러 표시
-  const hasError = false; // 폴백이 있으므로 에러 상태를 숨김
-
-  // 현재 플랜 이름 (구독이 없거나 비로그인이면 null)
-  const currentPlanName = user && mcpSubscription?.status === "active"
-    ? mcpSubscription.planName
+  // 현재 플랜 이름 (구독이 없거나 비활성 상태면 null)
+  const currentPlanName = user && subscription?.status === "active"
+    ? subscription.planName
     : null;
 
   // 최저 월 가격 계산
@@ -240,17 +126,17 @@ export default function MinuFindPage() {
       {/* Plan Comparison */}
       <Section title="플랜 비교">
         {/* 구독 상태 안내 (로그인한 사용자) */}
-        {user && !isLoading && mcpSubscription && (
+        {user && !isLoading && subscription && subscription.status === "active" && (
           <div className="mb-6 p-4 bg-primary/5 border border-primary/20 rounded-lg max-w-2xl mx-auto">
             <div className="flex items-center gap-3">
               <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0" />
               <div>
                 <p className="font-medium">
-                  현재 <span className="text-primary">{mcpSubscription.planName}</span> 플랜을 이용 중입니다
+                  현재 <span className="text-primary">{subscription.planName}</span> 플랜을 이용 중입니다
                 </p>
-                {mcpSubscription.expiresAt && (
+                {subscription.validUntil && (
                   <p className="text-sm text-muted-foreground">
-                    다음 결제일: {new Date(mcpSubscription.expiresAt).toLocaleDateString("ko-KR")}
+                    다음 결제일: {new Date(subscription.validUntil).toLocaleDateString("ko-KR")}
                   </p>
                 )}
               </div>
@@ -258,39 +144,20 @@ export default function MinuFindPage() {
           </div>
         )}
 
-        {/* 에러 상태 표시 */}
-        {hasError && (
-          <div className="mb-6 p-4 bg-destructive/5 border border-destructive/20 rounded-lg max-w-2xl mx-auto">
-            <div className="flex items-center gap-3">
-              <AlertCircle className="h-5 w-5 text-destructive flex-shrink-0" />
-              <p className="text-sm text-destructive">
-                구독 정보를 불러오는 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.
-              </p>
-            </div>
-          </div>
-        )}
+        {/* 플랜 카드 그리드 (구독 상태 표시 포함) */}
+        <PlanCardsWithStatus
+          plans={service.pricing.monthly || []}
+          currentPlanName={currentPlanName}
+          isLoggedIn={!!user}
+        />
 
-        {/* 로딩 상태: 플랜 카드 스켈레톤 */}
-        {isLoading ? (
-          <PlanCardsSkeleton />
-        ) : (
-          <>
-            {/* 플랜 카드 그리드 (구독 상태 표시 포함) */}
-            <PlanCardsWithStatus
-              plans={service.pricing.monthly || []}
-              currentPlanName={currentPlanName}
-              isLoggedIn={!!user}
-            />
-
-            {/* 기존 상세 비교 테이블 */}
-            <div className="mt-8">
-              <h3 className="text-lg font-semibold text-center mb-4">상세 기능 비교</h3>
-              {service.pricing.monthly && (
-                <PlanComparisonTable plans={service.pricing.monthly} />
-              )}
-            </div>
-          </>
-        )}
+        {/* 기존 상세 비교 테이블 */}
+        <div className="mt-8">
+          <h3 className="text-lg font-semibold text-center mb-4">상세 기능 비교</h3>
+          {service.pricing.monthly && (
+            <PlanComparisonTable plans={service.pricing.monthly} />
+          )}
+        </div>
       </Section>
 
       {/* Pricing */}
@@ -391,54 +258,6 @@ export default function MinuFindPage() {
         }}
       />
     </PageLayout>
-  );
-}
-
-// =====================================================
-// 내부 컴포넌트: 플랜 카드 스켈레톤 UI
-// =====================================================
-
-/**
- * PlanCardsSkeleton
- *
- * 구독 정보 로딩 중 표시되는 스켈레톤 UI
- * 3개의 플랜 카드 형태로 로딩 애니메이션 표시
- */
-function PlanCardsSkeleton() {
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-      {[1, 2, 3].map((i) => (
-        <div
-          key={i}
-          className="glass-card p-6 rounded-lg space-y-4 animate-pulse"
-        >
-          {/* 플랜 이름 스켈레톤 */}
-          <div className="flex items-center justify-between">
-            <Skeleton className="h-6 w-20" />
-            <Skeleton className="h-5 w-16" />
-          </div>
-
-          {/* 가격 스켈레톤 */}
-          <div className="space-y-2">
-            <Skeleton className="h-8 w-28" />
-            <Skeleton className="h-4 w-20" />
-          </div>
-
-          {/* 기능 목록 스켈레톤 */}
-          <div className="space-y-2 pt-4 border-t">
-            {[1, 2, 3, 4].map((j) => (
-              <div key={j} className="flex items-center gap-2">
-                <Skeleton className="h-4 w-4 rounded-full" />
-                <Skeleton className="h-4 w-full" />
-              </div>
-            ))}
-          </div>
-
-          {/* 버튼 스켈레톤 */}
-          <Skeleton className="h-10 w-full mt-4" />
-        </div>
-      ))}
-    </div>
   );
 }
 

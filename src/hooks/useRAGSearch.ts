@@ -92,15 +92,23 @@ function dbToRAGSearchResult(db: RAGSearchResultDB): RAGSearchResult {
 }
 
 /**
+ * 디바운스 함수 반환 타입
+ */
+interface DebouncedFunction<T extends (...args: unknown[]) => unknown> {
+  (...args: Parameters<T>): void;
+  cancel: () => void;
+}
+
+/**
  * 디바운스 함수
  */
 function debounce<T extends (...args: unknown[]) => unknown>(
   fn: T,
   delay: number
-): (...args: Parameters<T>) => void {
+): DebouncedFunction<T> {
   let timeoutId: NodeJS.Timeout | null = null;
 
-  return (...args: Parameters<T>) => {
+  const debouncedFn = (...args: Parameters<T>) => {
     if (timeoutId) {
       clearTimeout(timeoutId);
     }
@@ -109,6 +117,15 @@ function debounce<T extends (...args: unknown[]) => unknown>(
       fn(...args);
     }, delay);
   };
+
+  debouncedFn.cancel = () => {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+      timeoutId = null;
+    }
+  };
+
+  return debouncedFn;
 }
 
 // ============================================================================
@@ -292,6 +309,16 @@ export function useRAGSearch(options?: UseRAGSearchOptions): UseRAGSearchReturn 
       });
     }
   }, [debouncedQuery, serviceId, limit, threshold, mutation]);
+
+  // ============================================================================
+  // Cleanup - 컴포넌트 언마운트 시 debounce 타이머 취소
+  // ============================================================================
+
+  useEffect(() => {
+    return () => {
+      debouncedSetQuery.cancel();
+    };
+  }, [debouncedSetQuery]);
 
   // ============================================================================
   // 반환

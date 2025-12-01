@@ -1,4 +1,3 @@
-import { useMemo } from "react";
 import PageLayout from "@/components/layouts/PageLayout";
 import Section from "@/components/layouts/Section";
 import PlanComparisonTable from "@/components/services-platform/PlanComparisonTable";
@@ -7,55 +6,26 @@ import CTASection from "@/components/services-platform/CTASection";
 import { SEO } from "@/components/shared/SEO";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
 import { minuBuildService } from "@/data/services/minu-build";
-import { CheckCircle2, AlertCircle } from "lucide-react";
+import { CheckCircle2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { useMySubscriptions } from "@/hooks/useSubscriptions";
-import { useMinuSubscription } from "@/hooks/useMCPClient";
+import { useMCPServicePermission } from "@/hooks/useMCPPermission";
 import { cn } from "@/lib/utils";
 import type { MonthlyPlan } from "@/types/services";
-import type { SubscriptionWithPlan } from "@/types/subscription.types";
 
 // =====================================================
-// MCP 클라이언트 타입 및 폴백 훅
+// 타입 정의
 // =====================================================
-
-interface MCPSubscriptionInfo {
-  planName: string;
-  status: string;
-  expiresAt?: string;
-  features?: string[];
-}
-
-function useFallbackSubscription(
-  subscriptions: SubscriptionWithPlan[] | undefined
-): MCPSubscriptionInfo | null {
-  return useMemo(() => {
-    if (!subscriptions) return null;
-
-    const found = subscriptions.find(
-      (sub) =>
-        sub.service?.slug === "build" ||
-        sub.service?.id === "minu-build" ||
-        sub.service?.title?.includes("Minu Build")
-    );
-
-    if (!found) return null;
-
-    return {
-      planName: found.plan?.plan_name || "Unknown",
-      status: found.status || "unknown",
-      expiresAt: found.current_period_end || undefined,
-      features: found.plan?.features
-        ? Object.keys(found.plan.features)
-        : undefined,
-    };
-  }, [subscriptions]);
-}
 
 type PlanStatus = "current" | "upgrade" | "downgrade" | "available";
 
+/**
+ * 플랜 상태 계산 함수
+ *
+ * @param planName - 비교할 플랜 이름
+ * @param currentPlan - 현재 구독 중인 플랜 이름 (없으면 null)
+ * @returns 플랜 상태
+ */
 function getPlanStatus(planName: string, currentPlan: string | null): PlanStatus {
   if (!currentPlan) return "available";
   if (planName === currentPlan) return "current";
@@ -71,48 +41,14 @@ function getPlanStatus(planName: string, currentPlan: string | null): PlanStatus
 
 export default function MinuBuildPage() {
   const service = minuBuildService;
+  const { user } = useAuth();
 
-  const { user, loading: authLoading } = useAuth();
+  // MCP 권한 확인 (useMCPServicePermission 훅 사용)
+  const { subscription, isLoading } = useMCPServicePermission('minu-build');
 
-  const {
-    subscription: mcpData,
-    isLoading: mcpLoading,
-    error: mcpError
-  } = useMinuSubscription();
-
-  const mcpFailed = !!mcpError;
-
-  if (mcpFailed && import.meta.env.DEV) {
-    console.warn('[MinuBuildPage] MCP 서버 연결 실패, 폴백 사용:', mcpError);
-  }
-
-  const {
-    data: fallbackSubscriptions,
-    isLoading: fallbackLoading,
-  } = useMySubscriptions();
-
-  const fallbackData = useFallbackSubscription(fallbackSubscriptions);
-
-  const mcpSubscription = useMemo((): MCPSubscriptionInfo | null => {
-    if (!mcpFailed && mcpData) {
-      return {
-        planName: mcpData.planName,
-        status: mcpData.status,
-        expiresAt: mcpData.validUntil,
-        features: mcpData.planFeatures
-          ? Object.keys(mcpData.planFeatures)
-          : undefined,
-      };
-    }
-
-    return fallbackData;
-  }, [mcpFailed, mcpData, fallbackData]);
-
-  const isLoading = authLoading || (!!user && (mcpLoading || (mcpFailed && fallbackLoading)));
-  const hasError = false;
-
-  const currentPlanName = user && mcpSubscription?.status === "active"
-    ? mcpSubscription.planName
+  // 현재 플랜 이름 (구독이 없거나 비활성 상태면 null)
+  const currentPlanName = user && subscription?.status === "active"
+    ? subscription.planName
     : null;
 
   const lowestPrice = service.pricing.monthly?.[0]?.price || 0;
@@ -187,17 +123,18 @@ export default function MinuBuildPage() {
 
       {/* Plan Comparison */}
       <Section title="플랜 비교">
-        {user && !isLoading && mcpSubscription && (
+        {/* 구독 상태 안내 (로그인한 사용자) */}
+        {user && !isLoading && subscription && subscription.status === "active" && (
           <div className="mb-6 p-4 bg-primary/5 border border-primary/20 rounded-lg max-w-2xl mx-auto">
             <div className="flex items-center gap-3">
               <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0" />
               <div>
                 <p className="font-medium">
-                  현재 <span className="text-primary">{mcpSubscription.planName}</span> 플랜을 이용 중입니다
+                  현재 <span className="text-primary">{subscription.planName}</span> 플랜을 이용 중입니다
                 </p>
-                {mcpSubscription.expiresAt && (
+                {subscription.validUntil && (
                   <p className="text-sm text-muted-foreground">
-                    다음 결제일: {new Date(mcpSubscription.expiresAt).toLocaleDateString("ko-KR")}
+                    다음 결제일: {new Date(subscription.validUntil).toLocaleDateString("ko-KR")}
                   </p>
                 )}
               </div>
@@ -205,36 +142,20 @@ export default function MinuBuildPage() {
           </div>
         )}
 
-        {hasError && (
-          <div className="mb-6 p-4 bg-destructive/5 border border-destructive/20 rounded-lg max-w-2xl mx-auto">
-            <div className="flex items-center gap-3">
-              <AlertCircle className="h-5 w-5 text-destructive flex-shrink-0" />
-              <p className="text-sm text-destructive">
-                구독 정보를 불러오는 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.
-              </p>
-            </div>
-          </div>
-        )}
+        {/* 플랜 카드 그리드 (구독 상태 표시 포함) */}
+        <PlanCardsWithStatus
+          plans={service.pricing.monthly || []}
+          currentPlanName={currentPlanName}
+          isLoggedIn={!!user}
+          serviceSlug="minu-build"
+        />
 
-        {isLoading ? (
-          <PlanCardsSkeleton />
-        ) : (
-          <>
-            <PlanCardsWithStatus
-              plans={service.pricing.monthly || []}
-              currentPlanName={currentPlanName}
-              isLoggedIn={!!user}
-              serviceSlug="minu-build"
-            />
-
-            <div className="mt-8">
-              <h3 className="text-lg font-semibold text-center mb-4">상세 기능 비교</h3>
-              {service.pricing.monthly && (
-                <PlanComparisonTable plans={service.pricing.monthly} />
-              )}
-            </div>
-          </>
-        )}
+        <div className="mt-8">
+          <h3 className="text-lg font-semibold text-center mb-4">상세 기능 비교</h3>
+          {service.pricing.monthly && (
+            <PlanComparisonTable plans={service.pricing.monthly} />
+          )}
+        </div>
       </Section>
 
       {/* Pricing */}
@@ -293,37 +214,6 @@ export default function MinuBuildPage() {
 // =====================================================
 // 내부 컴포넌트
 // =====================================================
-
-function PlanCardsSkeleton() {
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-      {[1, 2, 3].map((i) => (
-        <div
-          key={i}
-          className="glass-card p-6 rounded-lg space-y-4 animate-pulse"
-        >
-          <div className="flex items-center justify-between">
-            <Skeleton className="h-6 w-20" />
-            <Skeleton className="h-5 w-16" />
-          </div>
-          <div className="space-y-2">
-            <Skeleton className="h-8 w-28" />
-            <Skeleton className="h-4 w-20" />
-          </div>
-          <div className="space-y-2 pt-4 border-t">
-            {[1, 2, 3, 4].map((j) => (
-              <div key={j} className="flex items-center gap-2">
-                <Skeleton className="h-4 w-4 rounded-full" />
-                <Skeleton className="h-4 w-full" />
-              </div>
-            ))}
-          </div>
-          <Skeleton className="h-10 w-full mt-4" />
-        </div>
-      ))}
-    </div>
-  );
-}
 
 interface PlanCardsWithStatusProps {
   plans: MonthlyPlan[];

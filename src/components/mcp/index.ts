@@ -8,6 +8,7 @@
 export { MCPProtected } from './MCPProtected';
 export { MCPLoading } from './MCPLoading';
 export { MCPFallback } from './MCPFallback';
+export { MCPError } from './MCPError';
 export { MCPPermissionProvider } from './MCPPermissionContext';
 
 // 훅 및 HOC (Fast Refresh 분리)
@@ -20,4 +21,6 @@ export {
 } from './MCPPermissionContext.hooks';
 
 // 타입
-export type { FallbackReason } from './MCPFallback';
+export type { FallbackReason, MCPFallbackProps } from './MCPFallback';
+export type { MCPLoadingProps } from './MCPLoading';
+export type { MCPErrorProps } from './MCPError';
