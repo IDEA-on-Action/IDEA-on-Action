@@ -3,7 +3,7 @@
 > 2025-2026 장기 개발 계획 및 마일스톤
 
 **작성일**: 2025-12-02
-**버전**: 2.27.0
+**버전**: 2.29.0
 **관리자**: 서민원 (sinclairseo@gmail.com)
 
 ---
@@ -41,13 +41,14 @@ Claude Skills:
 SDD 문서     ████████████████████ 100% ✅ (완료 - 2025-11-23) 📚
 Phase 1      ████████████████████ 100% ✅ (완료 - 2025-12-01) 📊
 Phase 2      ████████████████████ 100% ✅ (완료 - 2025-12-02) 📝
+Phase 3      ████████████████████ 100% ✅ (완료 - 2025-12-02) 🎨
 ```
 
-**총 진행률**: Claude Skills Phase 2 완료 (docx Skill), 테스트 커버리지 우수
-**최신 버전**: v2.27.0
-**총 테스트**: 1100+ 테스트 케이스 (Unit 971, E2E 172+, Visual 28)
-**Bundle 크기**: ~1545 KiB (27 entries precached)
-**다음 단계**: Central Hub Phase 3, pptx Skill
+**총 진행률**: Claude Skills Phase 3 완료 (pptx Skill), 테스트 커버리지 우수
+**최신 버전**: v2.29.0
+**총 테스트**: 6466+ 테스트 케이스 (Unit 1066, E2E 5400)
+**Bundle 크기**: ~1644 KiB (28 entries precached)
+**다음 단계**: v2.30.0 문서 정리 및 안정화
 
 ---
 
@@ -1193,37 +1194,97 @@ Phase 2      ████████████████████ 100% �
 
 ---
 
-### 📋 Claude Skills Phase 2 (계획 중)
+### ✅ Claude Skills Phase 2 (완료 - 2025-12-02) 📝
 
-**우선순위**: ⭐ 높음
-**예상 기간**: 60시간 (4 Phase)
-**목표**: docx Skill + 허브 통합
+**우선순위**: ⭐ 최고
+**실제 기간**: 1일
+**시작일**: 2025-12-02
+**완료일**: 2025-12-02
+**목표**: docx Skill 구현 및 Central Hub 고도화
 
-#### SDD 문서 현황 ✅
+#### 완료된 작업 항목
 
-**요구사항 분석** (완료)
-- 8개 사용자 스토리 (US-CS-01~US-CS-08)
-- 12개 기능 요구사항
-- 50+ 인수 조건
+**Sprint 1: docx Skill 기반** ✅
+- [x] pptx 타입 정의 (`src/types/pptx.types.ts`)
+- [x] usePptxGenerate 훅 (`src/hooks/usePptxGenerate.ts`)
+- [x] useClaudeStreaming 테스트 36개
+- [x] 번들 최적화 (openai, email, github-api 동적 import)
 
-**아키텍처 설계** (완료)
-- Skills Integration Layer
-- MCP Orchestrator 설계
-- Frontend/API/Data Layer
+**Sprint 2: Central Hub 연동** ✅
+- [x] useAlertSubscriptions 훅
+- [x] AlertSubscriptionManager UI
+- [x] useClaudeSkill 테스트 20개
+- [x] @giscus lazy load
+- [x] Minu Sandbox E2E 테스트 23개
 
-**기술 스택**
-- xlsx (SheetJS) - 엑셀 처리
-- docx - Word 문서 생성
-- pptxgenjs - PowerPoint 생성
-
-**작업 분해** (완료)
-- 5 Phase, 38개 TASK
-- 27개 백로그 항목 (P0~P3)
+#### 성과
+- ✅ docx Skill 구현 완료 (docx@9.5.1)
+- ✅ 테스트 +43개 (총 1012개)
+- ✅ E2E 테스트 +23개 (총 195개)
+- ✅ 린트 에러 0개
 
 #### 상세 문서
 - **명세**: [spec/claude-skills/requirements.md](../../spec/claude-skills/requirements.md)
 - **계획**: [plan/claude-skills/architecture.md](../../plan/claude-skills/architecture.md)
 - **작업**: [tasks/claude-skills/](../../tasks/claude-skills/)
+
+---
+
+### ✅ Claude Skills Phase 3 (완료 - 2025-12-02) 🎨
+
+**우선순위**: ⭐ 최고
+**실제 기간**: 1일
+**시작일**: 2025-12-02
+**완료일**: 2025-12-02
+**목표**: pptx Skill 완성 및 테스트 확장
+
+#### 완료된 작업 항목
+
+**5개 병렬 에이전트 작업** ✅
+
+| Agent | 작업 | 산출물 | 상태 |
+|-------|------|--------|------|
+| Agent 1 | pptx 슬라이드 생성 함수 | 5개 파일 (title, summary, events, issues, index) | ✅ |
+| Agent 2 | pptx Central Hub 통합 | ExportButton 드롭다운 확장 (xlsx/pptx) | ✅ |
+| Agent 3 | useAlertSubscriptions 테스트 | 35개 테스트 케이스 | ✅ |
+| Agent 4 | usePptxGenerate 테스트 | 19개 테스트 케이스 | ✅ |
+| Agent 5 | 번들 최적화 | analytics 청크 -193KB (-17%) | ✅ |
+
+**pptx 슬라이드 생성 함수 (5개)** ✅
+- [x] `src/lib/skills/pptx/titleSlide.ts` - 제목 슬라이드
+- [x] `src/lib/skills/pptx/summarySlide.ts` - KPI 요약 슬라이드
+- [x] `src/lib/skills/pptx/eventsSlide.ts` - 이벤트 현황 슬라이드
+- [x] `src/lib/skills/pptx/issuesSlide.ts` - 이슈 현황 슬라이드
+- [x] `src/lib/skills/pptx/index.ts` - 통합 export
+
+**ExportButton 확장** ✅
+- [x] 드롭다운 메뉴 (xlsx, pptx 선택)
+- [x] CentralHubDashboard 연동
+- [x] 로딩/에러 상태 처리
+
+**테스트 작성** ✅
+- [x] `tests/unit/hooks/useAlertSubscriptions.test.tsx` (35개)
+- [x] `tests/unit/hooks/usePptxGenerate.test.tsx` (19개)
+
+**번들 최적화** ✅
+- [x] `src/pages/admin/analytics/AnalyticsDataProvider.tsx` - 훅 분리
+- [x] `vite.config.ts` - manualChunks 규칙 추가
+- [x] pages-admin-analytics: 1,128KB → 935KB (-193KB, -17%)
+
+#### 성과
+- ✅ pptx Skill 60% → 95% 완성
+- ✅ 테스트 +54개 (유닛 1012 → 1066)
+- ✅ 총 테스트 6466+ (Unit 1066, E2E 5400)
+- ✅ 번들 최적화 -17%
+- ✅ 린트 에러 0개
+
+**기술 스택**
+- pptxgenjs 4.0.1 - PowerPoint 생성
+- React Query - 서버 상태 관리
+- Vitest - 유닛 테스트
+
+#### 상세 문서
+- **작업**: [project-todo.md](../../project-todo.md) - v2.29.0 섹션
 
 ---
 
@@ -1321,6 +1382,33 @@ Phase 2      ████████████████████ 100% �
 ---
 
 ## 📝 변경 이력
+
+### 2025-12-02 (v2.29.0)
+- **Claude Skills Phase 3 완료** 🎨
+  - pptx Skill 95% 구현 (pptxgenjs@4.0.1)
+  - 4개 슬라이드 생성 함수 (제목, 요약, 이벤트, 이슈)
+  - Central Hub ExportButton 확장 (xlsx/pptx 드롭다운)
+  - 테스트 +54개 (useAlertSubscriptions 35개, usePptxGenerate 19개)
+- **번들 최적화**
+  - analytics 청크: 1,128KB → 935KB (-193KB, -17%)
+  - AnalyticsDataProvider 분리
+- **테스트 확장**
+  - 유닛 테스트: 1012개 → 1066개 (+54개)
+  - 총 테스트: 6466+ (Unit 1066, E2E 5400)
+- 버전 v2.29.0 릴리스
+
+### 2025-12-02 (v2.28.0)
+- **Claude Skills Phase 2 완료** 📝
+  - docx Skill 구현 (docx@9.5.1)
+  - usePptxGenerate 훅, pptx 타입 정의
+  - 테스트 +43개 (useClaudeStreaming 36개, useClaudeSkill 20개)
+- **Central Hub 고도화**
+  - useAlertSubscriptions 훅
+  - AlertSubscriptionManager UI
+- **번들 최적화**
+  - openai, email, github-api 동적 import
+  - @giscus lazy load
+- 버전 v2.28.0 릴리스
 
 ### 2025-12-01
 - **Central Hub Phase 2 완료** 🎯

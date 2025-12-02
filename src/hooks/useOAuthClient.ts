@@ -203,39 +203,46 @@ export function useOAuthClient(): UseOAuthClientReturn {
    */
   const refreshToken = useCallback(async () => {
     const refreshTokenValue = localStorage.getItem(OAUTH_STORAGE_KEYS.REFRESH_TOKEN)
+    const clientId = import.meta.env.VITE_OAUTH_CLIENT_ID || 'minu-client'
 
     if (!refreshTokenValue) {
       throw new Error('Refresh token이 없습니다.')
     }
 
     try {
-      // TODO: Edge Function 또는 OAuth 서버 엔드포인트 호출
-      // const { data, error } = await supabase.functions.invoke('oauth/token', {
-      //   body: {
-      //     grant_type: 'refresh_token',
-      //     refresh_token: refreshTokenValue,
-      //   },
-      // })
+      // OAuth Token 엔드포인트 호출 (Supabase Edge Function)
+      const { data, error } = await supabase.functions.invoke('oauth-token', {
+        body: {
+          grant_type: 'refresh_token',
+          refresh_token: refreshTokenValue,
+          client_id: clientId,
+        },
+      })
 
-      // 임시 구현: Supabase Auth 토큰 갱신 사용
-      const { data, error } = await supabase.auth.refreshSession()
+      if (error) {
+        console.error('토큰 갱신 Edge Function 에러:', error)
+        throw error
+      }
 
-      if (error) throw error
-
-      if (data.session) {
-        const expiresAt = Date.now() + (data.session.expires_in || 3600) * 1000
+      if (data && data.access_token) {
+        const expiresAt = Date.now() + (data.expires_in || 3600) * 1000
 
         // 토큰 저장
-        localStorage.setItem(OAUTH_STORAGE_KEYS.ACCESS_TOKEN, data.session.access_token)
-        localStorage.setItem(OAUTH_STORAGE_KEYS.REFRESH_TOKEN, data.session.refresh_token || '')
+        localStorage.setItem(OAUTH_STORAGE_KEYS.ACCESS_TOKEN, data.access_token)
+        if (data.refresh_token) {
+          localStorage.setItem(OAUTH_STORAGE_KEYS.REFRESH_TOKEN, data.refresh_token)
+        }
         localStorage.setItem(OAUTH_STORAGE_KEYS.EXPIRES_AT, expiresAt.toString())
 
         console.log('✅ 토큰 갱신 완료')
+      } else {
+        throw new Error('토큰 갱신 응답이 유효하지 않습니다.')
       }
     } catch (error) {
       console.error('토큰 갱신 실패:', error)
       // 갱신 실패 시 로그아웃
       await logout()
+      throw error
     }
   }, [logout])
 
@@ -259,11 +266,15 @@ export function useOAuthClient(): UseOAuthClientReturn {
         state: state,
         code_challenge: challenge,
         code_challenge_method: 'S256',
-        scope: 'read write',
+        scope: 'profile subscription:read subscription:write',
       })
 
-      // TODO: 실제 OAuth 서버 URL로 변경
-      const authUrl = `${import.meta.env.VITE_OAUTH_AUTHORIZE_URL || '/oauth/authorize'}?${params}`
+      // OAuth Authorization 엔드포인트 URL (Supabase Edge Function)
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+      const authUrl = import.meta.env.VITE_OAUTH_AUTHORIZE_URL ||
+        `${supabaseUrl}/functions/v1/oauth-authorize?${params}`
+
+      console.log('🔐 OAuth 로그인 시작:', authUrl)
       window.location.href = authUrl
     })
   }, [])
@@ -275,6 +286,7 @@ export function useOAuthClient(): UseOAuthClientReturn {
     async (code: string, state: string) => {
       const savedState = localStorage.getItem(OAUTH_STORAGE_KEYS.PKCE_STATE)
       const savedVerifier = localStorage.getItem(OAUTH_STORAGE_KEYS.PKCE_VERIFIER)
+      const clientId = import.meta.env.VITE_OAUTH_CLIENT_ID || 'minu-client'
 
       // State 검증 (CSRF 방지)
       if (state !== savedState) {
@@ -286,49 +298,72 @@ export function useOAuthClient(): UseOAuthClientReturn {
       }
 
       try {
-        // TODO: Edge Function 또는 OAuth 서버 엔드포인트 호출
-        // const { data, error } = await supabase.functions.invoke('oauth/token', {
-        //   body: {
-        //     grant_type: 'authorization_code',
-        //     code,
-        //     redirect_uri: `${window.location.origin}/oauth/callback`,
-        //     code_verifier: savedVerifier,
-        //   },
-        // })
+        // OAuth Token 엔드포인트 호출 (Supabase Edge Function)
+        const { data, error } = await supabase.functions.invoke('oauth-token', {
+          body: {
+            grant_type: 'authorization_code',
+            code,
+            redirect_uri: `${window.location.origin}/oauth/callback`,
+            code_verifier: savedVerifier,
+            client_id: clientId,
+          },
+        })
 
-        // 임시 구현: Supabase Auth 사용
-        const { data, error } = await supabase.auth.exchangeCodeForSession(code)
+        if (error) {
+          console.error('OAuth 토큰 교환 Edge Function 에러:', error)
+          throw error
+        }
 
-        if (error) throw error
-
-        if (data.session) {
-          const expiresAt = Date.now() + (data.session.expires_in || 3600) * 1000
+        if (data && data.access_token) {
+          const expiresAt = Date.now() + (data.expires_in || 3600) * 1000
 
           // 토큰 저장
-          localStorage.setItem(OAUTH_STORAGE_KEYS.ACCESS_TOKEN, data.session.access_token)
-          localStorage.setItem(OAUTH_STORAGE_KEYS.REFRESH_TOKEN, data.session.refresh_token || '')
+          localStorage.setItem(OAUTH_STORAGE_KEYS.ACCESS_TOKEN, data.access_token)
+          localStorage.setItem(OAUTH_STORAGE_KEYS.REFRESH_TOKEN, data.refresh_token || '')
           localStorage.setItem(OAUTH_STORAGE_KEYS.EXPIRES_AT, expiresAt.toString())
 
-          // 사용자 정보 저장
-          const oauthUser: OAuthUser = {
-            id: data.session.user.id,
-            email: data.session.user.email || '',
-            name: data.session.user.user_metadata?.full_name,
-            avatar_url: data.session.user.user_metadata?.avatar_url,
-          }
-          localStorage.setItem(OAUTH_STORAGE_KEYS.USER, JSON.stringify(oauthUser))
+          // JWT에서 사용자 정보 추출 (간단한 디코딩)
+          // 주의: 프로덕션에서는 서버에서 검증된 정보를 사용해야 합니다
+          const tokenParts = data.access_token.split('.')
+          if (tokenParts.length === 3) {
+            const payload = JSON.parse(atob(tokenParts[1]))
 
-          setUser(oauthUser)
-          setIsAuthenticated(true)
+            // 사용자 정보 저장 (JWT payload에서 추출)
+            const oauthUser: OAuthUser = {
+              id: payload.sub || '',
+              email: payload.email || '',
+              name: payload.name,
+              avatar_url: payload.avatar_url,
+            }
+            localStorage.setItem(OAUTH_STORAGE_KEYS.USER, JSON.stringify(oauthUser))
+
+            setUser(oauthUser)
+            setIsAuthenticated(true)
+
+            // 구독 정보가 있으면 저장
+            if (payload.subscription) {
+              setSubscription({
+                id: payload.subscription.plan_id,
+                plan_name: payload.subscription.plan_name,
+                status: payload.subscription.status,
+                current_period_end: payload.subscription.expires_at,
+              })
+            }
+          }
 
           // PKCE 값 클리어
           localStorage.removeItem(OAUTH_STORAGE_KEYS.PKCE_VERIFIER)
           localStorage.removeItem(OAUTH_STORAGE_KEYS.PKCE_STATE)
 
           console.log('✅ OAuth 로그인 완료')
+        } else {
+          throw new Error('OAuth 토큰 응답이 유효하지 않습니다.')
         }
       } catch (error) {
         console.error('OAuth 콜백 처리 실패:', error)
+        // PKCE 값 클리어 (에러 시에도)
+        localStorage.removeItem(OAUTH_STORAGE_KEYS.PKCE_VERIFIER)
+        localStorage.removeItem(OAUTH_STORAGE_KEYS.PKCE_STATE)
         throw error
       }
     },

@@ -113,10 +113,38 @@ export function MCPPermissionProvider({ children }: { children: React.ReactNode 
       }
 
       // 서비스 ID를 기반으로 구독 찾기
-      // 예: 'minu-find' -> service slug에서 'minu-find' 포함
-      // TODO: 실제 서비스 매핑 로직 구현 필요
-      // 현재는 첫 번째 활성 구독 사용 (임시)
-      const relevantSubscription = subscriptions[0];
+      // 서비스 ID는 'minu-find', 'minu-frame', 'minu-build', 'minu-keep' 형식
+      // 각 서비스는 subscription_plans의 features에 feature_key로 매핑됨
+      const serviceToFeaturePrefix: Record<ServiceId, string> = {
+        'minu-find': 'find_',
+        'minu-frame': 'frame_',
+        'minu-build': 'build_',
+        'minu-keep': 'keep_',
+      };
+
+      const featurePrefix = serviceToFeaturePrefix[serviceId];
+
+      // 구독 중 해당 서비스를 지원하는 플랜 찾기
+      // plan.features는 plan_features 테이블의 feature_key를 포함
+      const relevantSubscription = subscriptions.find(sub => {
+        const planFeatures = sub.plan?.features;
+        if (!planFeatures || typeof planFeatures !== 'object') {
+          return false;
+        }
+
+        // features가 배열 형식일 경우
+        if (Array.isArray(planFeatures)) {
+          return planFeatures.some((feature: Record<string, unknown>) =>
+            typeof feature.feature_key === 'string' &&
+            feature.feature_key.startsWith(featurePrefix)
+          );
+        }
+
+        // features가 객체 형식일 경우 (키가 feature_key)
+        return Object.keys(planFeatures).some(key =>
+          key.startsWith(featurePrefix)
+        );
+      }) || subscriptions[0]; // 매칭 실패 시 첫 번째 구독 사용 (폴백)
 
       if (!relevantSubscription) {
         const noSubInfo: PermissionInfo = {
@@ -145,9 +173,25 @@ export function MCPPermissionProvider({ children }: { children: React.ReactNode 
       }
 
       // 권한 결정 (플랜 기반)
-      // TODO: 실제 플랜별 권한 매핑 로직 구현 필요
+      // 플랜 이름을 기준으로 권한 레벨 매핑
+      // Free -> read, Basic -> write, Pro -> admin, Enterprise -> admin
+      const planName = relevantSubscription.plan?.plan_name?.toLowerCase() || '';
+
+      let permission: PermissionInfo['permission'] = 'read'; // 기본값
+
+      if (planName.includes('enterprise')) {
+        permission = 'admin'; // Enterprise: 최고 권한
+      } else if (planName.includes('pro')) {
+        permission = 'admin'; // Pro: 고급 관리 권한
+      } else if (planName.includes('basic')) {
+        permission = 'write'; // Basic: 쓰기 권한
+      } else if (planName.includes('free')) {
+        permission = 'read'; // Free: 읽기 권한만
+      }
+      // 플랜 이름을 매칭하지 못한 경우 기본값 'read' 유지
+
       const permissionInfo: PermissionInfo = {
-        permission: 'read', // 기본 read 권한
+        permission,
         checkedAt: new Date(),
       };
 

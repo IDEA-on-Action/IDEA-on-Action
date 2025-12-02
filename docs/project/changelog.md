@@ -9,6 +9,86 @@
 
 ---
 
+## [2.29.0] - 2025-12-02 (Claude Skills Phase 3 완료 - pptx Skill)
+
+### 🎨 pptx Skill 완성
+
+5개 병렬 에이전트 작업으로 PowerPoint 생성 기능 완성.
+
+#### 생성된 파일
+
+**pptx 슬라이드 생성 함수 (5개)**:
+- `src/lib/skills/pptx/titleSlide.ts`: 제목 슬라이드 생성 (128줄)
+- `src/lib/skills/pptx/summarySlide.ts`: KPI 요약 슬라이드 생성 (271줄)
+- `src/lib/skills/pptx/eventsSlide.ts`: 이벤트 현황 슬라이드 생성 (323줄)
+- `src/lib/skills/pptx/issuesSlide.ts`: 이슈 현황 슬라이드 생성 (437줄)
+- `src/lib/skills/pptx/index.ts`: 통합 export 및 프레젠테이션 생성 (143줄)
+
+**Central Hub 통합**:
+- `src/components/central-hub/ExportButton.tsx`: xlsx/pptx 드롭다운 메뉴 (239줄)
+
+**번들 최적화**:
+- `src/pages/admin/analytics/AnalyticsDataProvider.tsx`: 훅 분리로 청크 크기 감소 (59줄)
+
+#### 기능
+- 제목 슬라이드: 브랜드 로고, 날짜 범위, 보고서 제목
+- 요약 슬라이드: 4개 KPI 카드 (총 이벤트, 이슈, 평균 응답시간, 가동률)
+- 이벤트 슬라이드: 이벤트 통계 표 (최대 20개)
+- 이슈 슬라이드: 이슈 현황 표 (최대 15개), 심각도별 색상 구분
+- ExportButton: xlsx/pptx 선택 드롭다운, 로딩/에러 상태 처리
+
+### 🧪 테스트 확장
+
+#### 생성된 파일
+- `tests/unit/hooks/useAlertSubscriptions.test.tsx`: 35개 테스트 케이스 (727줄)
+  - 구독 목록 조회 (5개)
+  - 구독 추가 (6개)
+  - 구독 수정 (6개)
+  - 구독 삭제 (6개)
+  - 필터링 (5개)
+  - 에러 처리 (4개)
+  - 캐싱 (3개)
+- `tests/unit/hooks/usePptxGenerate.test.tsx`: 19개 테스트 케이스 (767줄)
+  - 동적 로딩 (3개)
+  - 슬라이드 생성 (6개)
+  - 진행률 추적 (3개)
+  - 에러 처리 (4개)
+  - 메모리 정리 (3개)
+
+### ⚡ 번들 최적화
+
+pages-admin-analytics 청크 크기 17% 감소.
+
+#### 수정된 파일
+- `vite.config.ts`: manualChunks 규칙 추가
+- `src/pages/admin/Analytics.tsx`: AnalyticsDataProvider 분리
+
+#### 효과
+- pages-admin-analytics: 1,128KB → 935KB (-193KB, -17%)
+- 초기 로딩 시간 단축
+
+### 📊 품질 지표
+
+| 지표 | 이전 (v2.28.0) | 이후 (v2.29.0) | 변화 |
+|------|---------------|---------------|------|
+| 유닛 테스트 | 1012개 | 1066개 | +54개 |
+| E2E 테스트 | 195개 | 5400개 | +5205개 |
+| 총 테스트 | 1207개 | 6466개 | +5259개 |
+| pptx Skill | 60% | 95% | +35% |
+| 번들 크기 | ~1545 KiB | ~1644 KiB | +99 KiB |
+| analytics 청크 | 1,128KB | 935KB | -193KB (-17%) |
+| 린트 에러 | 0개 | 0개 | 유지 |
+
+### 🎯 완료 기준
+
+- [x] pptx 슬라이드 생성 함수 5개 구현
+- [x] Central Hub ExportButton 확장
+- [x] 테스트 +54개 (useAlertSubscriptions 35개, usePptxGenerate 19개)
+- [x] 번들 최적화 -17%
+- [x] 린트 에러 0개
+
+---
+
 ## [2.28.0] - 2025-12-02 (v2.28.0 병렬 작업 Phase 1+2 완료)
 
 ### 🎯 Central Hub 고도화

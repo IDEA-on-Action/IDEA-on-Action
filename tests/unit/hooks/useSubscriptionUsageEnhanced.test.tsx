@@ -24,8 +24,12 @@ vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
     from: vi.fn(),
     auth: {
-      getUser: vi.fn(),
+      getUser: vi.fn().mockResolvedValue({
+        data: { user: { id: 'user-123', email: 'test@example.com' } },
+        error: null,
+      }),
     },
+    rpc: vi.fn().mockResolvedValue({ data: true, error: null }),
   },
 }));
 
@@ -318,11 +322,28 @@ describe('useSubscriptionUsage - 확장 테스트', () => {
     });
 
     it('성공 시 쿼리를 무효화해야 함', async () => {
+      // 실제 구현이 RPC 함수를 호출하므로 모킹 업데이트
       vi.mocked(supabase.from).mockReturnValue({
-        insert: vi.fn().mockResolvedValue({
-          data: [{ id: 'log-1' }],
-          error: null,
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              order: vi.fn().mockReturnValue({
+                limit: vi.fn().mockReturnValue({
+                  single: vi.fn().mockResolvedValue({
+                    data: { id: 'sub-1' },
+                    error: null,
+                  }),
+                }),
+              }),
+            }),
+          }),
         }),
+      } as any);
+
+      // RPC 함수 모킹 (increment_subscription_usage)
+      vi.mocked(supabase.rpc).mockResolvedValue({
+        data: { success: true, new_count: 1 },
+        error: null,
       } as any);
 
       const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
@@ -389,6 +410,24 @@ describe('useSubscriptionUsage - 확장 테스트', () => {
     });
 
     it('쿼리 무효화가 정확한 user_id로 호출되어야 함', async () => {
+      // 관리자 권한 확인 및 구독 조회를 위한 모킹
+      vi.mocked(supabase.rpc).mockResolvedValue({ data: true, error: null } as any);
+      vi.mocked(supabase.from).mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            eq: vi.fn().mockResolvedValue({
+              data: [{ id: 'sub-1' }],
+              error: null,
+            }),
+          }),
+        }),
+        update: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            match: vi.fn().mockResolvedValue({ data: null, error: null }),
+          }),
+        }),
+      } as any);
+
       const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
 
       const { result } = renderHook(() => useResetUsage(), { wrapper });
@@ -411,6 +450,24 @@ describe('useSubscriptionUsage - 확장 테스트', () => {
     });
 
     it('성공 시 성공 토스트를 표시해야 함', async () => {
+      // 관리자 권한 확인 및 구독 조회를 위한 모킹
+      vi.mocked(supabase.rpc).mockResolvedValue({ data: true, error: null } as any);
+      vi.mocked(supabase.from).mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            eq: vi.fn().mockResolvedValue({
+              data: [{ id: 'sub-1' }],
+              error: null,
+            }),
+          }),
+        }),
+        update: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            match: vi.fn().mockResolvedValue({ data: null, error: null }),
+          }),
+        }),
+      } as any);
+
       const { result } = renderHook(() => useResetUsage(), { wrapper });
 
       await waitFor(() => {

@@ -134,11 +134,19 @@ export function useSubscriptionUsage() {
           }
         }
 
-        // 3. 각 feature별 사용량 조회
-        // TODO: 실제 프로덕션에서는 usage_logs 테이블에서 집계
-        // 현재는 더미 데이터로 시연
+        // 3. 각 feature별 사용량 조회 (subscription_usage 테이블에서 집계)
+        const { data: usageRecords } = await supabase
+          .from('subscription_usage')
+          .select('feature_key, used_count')
+          .eq('subscription_id', subscription.id)
+          .eq('period_start', subscription.current_period_start.split('T')[0]) // DATE 형식으로 비교
+
+        const usageMap = new Map(
+          (usageRecords || []).map((record) => [record.feature_key, record.used_count])
+        )
+
         const usageData: UsageData[] = Object.entries(features).map(([key, limitValue]) => {
-          const used = 0 // TODO: 실제 사용량 조회
+          const used = usageMap.get(key) || 0
           const limit = typeof limitValue === 'number' ? limitValue : null
           const percentage = limit === null ? 0 : Math.round((used / limit) * 100)
 
@@ -204,22 +212,36 @@ export function useIncrementUsage() {
         throw new Error('로그인이 필요합니다.')
       }
 
-      // TODO: 실제 프로덕션에서는 Edge Function 또는 RPC 함수 호출
-      // supabase.functions.invoke('increment-usage', { body: { feature_key, increment_by } })
+      // 활성 구독 조회
+      const { data: subscription, error: subError } = await supabase
+        .from('subscriptions')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('status', 'active')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single()
 
-      // 현재는 클라이언트 사이드에서 usage_logs 테이블에 기록 (예시)
-      const { data, error } = await supabase
-        .from('subscription_payments') // 임시로 payments 테이블 사용
-        .insert({
-          subscription_id: 'temp', // TODO: 실제 subscription_id
-          amount: 0,
-          status: 'success',
-          payment_method: 'usage_log', // 임시 마커
-          // metadata: { feature_key, increment_by }
-        })
+      if (subError || !subscription) {
+        throw new Error('활성 구독을 찾을 수 없습니다.')
+      }
+
+      // increment_subscription_usage RPC 함수 호출 (원자적 업데이트 + 제한 체크)
+      const { data, error } = await supabase.rpc('increment_subscription_usage', {
+        p_subscription_id: subscription.id,
+        p_feature_key: feature_key,
+        p_increment: increment_by,
+      })
 
       if (error) throw error
-      return data
+
+      // 결과 검증
+      const result = Array.isArray(data) ? data[0] : data
+      if (!result?.success) {
+        throw new Error(result?.error_message || '사용량 증가에 실패했습니다.')
+      }
+
+      return result
     },
     onSuccess: () => {
       // 사용량 쿼리 무효화 (리프레시)
@@ -259,12 +281,53 @@ export function useResetUsage() {
 
   const mutation = useMutation({
     mutationFn: async ({ user_id, feature_key }: ResetUsageRequest) => {
-      // TODO: 관리자 권한 확인 로직 추가
-      // TODO: Edge Function 또는 RPC 함수 호출
-      // supabase.functions.invoke('reset-usage', { body: { user_id, feature_key } })
+      // 현재 사용자 정보 조회
+      const {
+        data: { user: currentUser },
+      } = await supabase.auth.getUser()
 
-      console.log('Resetting usage for:', { user_id, feature_key })
-      return { success: true }
+      if (!currentUser) {
+        throw new Error('로그인이 필요합니다.')
+      }
+
+      // 관리자 권한 확인 (is_admin_user RPC 함수 호출)
+      const { data: isAdmin, error: adminError } = await supabase.rpc('is_admin_user', {
+        user_uuid: currentUser.id,
+      })
+
+      if (adminError || !isAdmin) {
+        throw new Error('관리자 권한이 필요합니다.')
+      }
+
+      // 사용자의 구독 조회
+      const { data: subscriptions, error: subError } = await supabase
+        .from('subscriptions')
+        .select('id')
+        .eq('user_id', user_id)
+        .eq('status', 'active')
+
+      if (subError) throw subError
+
+      if (!subscriptions || subscriptions.length === 0) {
+        throw new Error('활성 구독을 찾을 수 없습니다.')
+      }
+
+      // 각 구독별 사용량 초기화
+      for (const subscription of subscriptions) {
+        const { error: resetError } = await supabase
+          .from('subscription_usage')
+          .update({ used_count: 0 })
+          .eq('subscription_id', subscription.id)
+          .match(
+            feature_key
+              ? { feature_key } // 특정 기능만 초기화
+              : {} // 모든 기능 초기화
+          )
+
+        if (resetError) throw resetError
+      }
+
+      return { success: true, message: '사용량이 초기화되었습니다.' }
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: usageKeys.user(variables.user_id) })
