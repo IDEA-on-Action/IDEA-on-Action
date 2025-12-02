@@ -103,7 +103,7 @@ describe('useAllServiceHealth', () => {
 
     vi.mocked(supabase.from).mockReturnValue({
       select: mockSelect,
-    } as any);
+    } as ReturnType<typeof supabase.from>);
   });
 
   describe('초기 상태 확인', () => {
@@ -239,7 +239,7 @@ describe('useServiceHealth', () => {
 
     vi.mocked(supabase.from).mockReturnValue({
       select: mockSelect,
-    } as any);
+    } as ReturnType<typeof supabase.from>);
   });
 
   it('특정 서비스의 헬스 상태를 조회해야 함', async () => {
@@ -258,8 +258,8 @@ describe('useServiceHealth', () => {
   });
 
   it('serviceId가 없으면 쿼리를 비활성화해야 함', () => {
-    // Execute
-    const { result } = renderHook(() => useServiceHealth('' as any), {
+    // Execute - 빈 문자열은 disabled 조건 테스트용
+    const { result } = renderHook(() => useServiceHealth(''), {
       wrapper: createWrapper(),
     });
 
@@ -294,7 +294,7 @@ describe('useSystemHealthSummary', () => {
 
     vi.mocked(supabase.from).mockReturnValue({
       select: mockSelect,
-    } as any);
+    } as ReturnType<typeof supabase.from>);
   });
 
   it('전체 시스템 헬스 요약을 계산해야 함', async () => {
@@ -394,7 +394,7 @@ describe('useServiceConnectionStatus', () => {
 
     vi.mocked(supabase.from).mockReturnValue({
       select: mockSelect,
-    } as any);
+    } as ReturnType<typeof supabase.from>);
   });
 
   it('연결된 서비스는 isConnected가 true여야 함', async () => {

@@ -98,14 +98,24 @@ const mockIssues: ServiceIssue[] = [
   },
 ];
 
+// Mock query 타입 정의
+interface MockIssueQuery {
+  select: ReturnType<typeof vi.fn>;
+  order: ReturnType<typeof vi.fn>;
+  eq: ReturnType<typeof vi.fn>;
+  limit: ReturnType<typeof vi.fn>;
+  range: ReturnType<typeof vi.fn>;
+  then?: ReturnType<typeof vi.fn>;
+}
+
 describe('useServiceIssues', () => {
-  let mockQuery: any;
+  let mockQuery: MockIssueQuery;
 
   beforeEach(() => {
     vi.clearAllMocks();
 
     // 완전한 체이닝 지원하는 mock 객체 생성
-    const createMockQuery = () => {
+    const createMockQuery = (): MockIssueQuery => {
       const query = {
         select: vi.fn(),
         order: vi.fn(),
@@ -122,15 +132,16 @@ describe('useServiceIssues', () => {
       query.range.mockReturnValue(query);
 
       // then을 추가하여 Promise처럼 동작하도록
-      (query as any).then = vi.fn((onFulfilled) => {
+      const queryWithThen = query as MockIssueQuery;
+      queryWithThen.then = vi.fn((onFulfilled) => {
         return Promise.resolve({ data: mockIssues, error: null }).then(onFulfilled);
       });
 
-      return query;
+      return queryWithThen;
     };
 
     mockQuery = createMockQuery();
-    vi.mocked(supabase.from).mockReturnValue(mockQuery);
+    vi.mocked(supabase.from).mockReturnValue(mockQuery as ReturnType<typeof supabase.from>);
   });
 
   describe('초기 상태 확인', () => {
@@ -286,7 +297,7 @@ describe('useServiceIssues', () => {
     it('조회 실패 시 에러를 처리해야 함', async () => {
       // Setup
       const error = new Error('Database error');
-      (mockQuery as any).then = vi.fn((onFulfilled) => {
+      mockQuery.then = vi.fn((onFulfilled) => {
         return Promise.resolve({ data: null, error }).then(onFulfilled);
       });
 
@@ -306,7 +317,7 @@ describe('useServiceIssues', () => {
     it('에러 반환 시 isError 상태가 true여야 함', async () => {
       // Setup
       const error = new Error('Query error');
-      (mockQuery as any).then = vi.fn((onFulfilled, onRejected) => {
+      mockQuery.then = vi.fn((onFulfilled) => {
         const result = { data: null, error };
         return onFulfilled ? onFulfilled(result) : Promise.resolve(result);
       });
@@ -356,8 +367,17 @@ describe('useServiceIssues', () => {
   });
 });
 
+// useOpenIssues용 mock query 타입
+interface MockOpenIssueQuery {
+  select: ReturnType<typeof vi.fn>;
+  in: ReturnType<typeof vi.fn>;
+  eq: ReturnType<typeof vi.fn>;
+  order: ReturnType<typeof vi.fn>;
+  then?: ReturnType<typeof vi.fn>;
+}
+
 describe('useOpenIssues', () => {
-  let mockQuery: any;
+  let mockQuery: MockOpenIssueQuery;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -365,7 +385,7 @@ describe('useOpenIssues', () => {
     const openIssues = mockIssues.filter((issue) => ['open', 'in_progress'].includes(issue.status));
 
     // 완전한 체이닝 지원하는 mock 객체 생성
-    const createMockQuery = () => {
+    const createMockQuery = (): MockOpenIssueQuery => {
       const query = {
         select: vi.fn(),
         in: vi.fn(),
@@ -380,15 +400,16 @@ describe('useOpenIssues', () => {
       query.order.mockReturnValue(query);
 
       // then을 추가하여 Promise처럼 동작하도록
-      (query as any).then = vi.fn((onFulfilled) => {
+      const queryWithThen = query as MockOpenIssueQuery;
+      queryWithThen.then = vi.fn((onFulfilled) => {
         return Promise.resolve({ data: openIssues, error: null }).then(onFulfilled);
       });
 
-      return query;
+      return queryWithThen;
     };
 
     mockQuery = createMockQuery();
-    vi.mocked(supabase.from).mockReturnValue(mockQuery);
+    vi.mocked(supabase.from).mockReturnValue(mockQuery as ReturnType<typeof supabase.from>);
   });
 
   it('열린 이슈만 조회해야 함', async () => {
@@ -449,7 +470,7 @@ describe('useServiceIssue', () => {
 
     vi.mocked(supabase.from).mockReturnValue({
       select: mockSelect,
-    } as any);
+    } as ReturnType<typeof supabase.from>);
   });
 
   it('특정 이슈를 조회해야 함', async () => {
@@ -495,7 +516,7 @@ describe('useServiceIssueStats', () => {
 
     vi.mocked(supabase.from).mockReturnValue({
       select: mockSelect,
-    } as any);
+    } as ReturnType<typeof supabase.from>);
   });
 
   it('이슈 통계를 계산해야 함', async () => {
@@ -576,7 +597,7 @@ describe('useUpdateIssueStatus', () => {
 
     vi.mocked(supabase.from).mockReturnValue({
       update: mockUpdate,
-    } as any);
+    } as ReturnType<typeof supabase.from>);
   });
 
   it('이슈 상태를 업데이트해야 함', async () => {
@@ -657,7 +678,7 @@ describe('useAssignIssue', () => {
 
     vi.mocked(supabase.from).mockReturnValue({
       update: mockUpdate,
-    } as any);
+    } as ReturnType<typeof supabase.from>);
   });
 
   it('이슈 담당자를 할당해야 함', async () => {

@@ -9,6 +9,73 @@
 
 ---
 
+## [2.28.0] - 2025-12-02 (v2.28.0 병렬 작업 Phase 1+2 완료)
+
+### 🎯 Central Hub 고도화
+
+알림 구독 관리 UI 구현.
+
+#### 생성된 파일
+- `src/components/central-hub/AlertSubscriptionManager.tsx`: 알림 구독 관리 컴포넌트
+
+#### 기능
+- 구독 목록 표시 (Card 형태)
+- 추가/수정/삭제 (Dialog + Form)
+- 필터링 (전체/서비스/심각도/이벤트)
+- 로딩/에러/빈 상태 처리
+
+### 📊 pptx Skill 구현
+
+Claude Skills Phase 3로 PowerPoint 생성 기능 추가.
+
+#### 생성된 파일
+- `src/hooks/usePptxGenerate.ts`: pptx 문서 생성 훅 (681줄)
+
+#### 기능
+- 6가지 슬라이드 타입 지원 (Title, Content, TwoColumn, Chart, Image, Quote)
+- pptxgenjs 동적 로딩 (번들 최적화)
+- 진행률 추적 (0-100%)
+- 브랜드 컬러 적용
+
+### 🧪 테스트 강화
+
+#### 생성된 파일
+- `tests/unit/skills/useClaudeSkill.test.tsx`: Claude Skill 훅 테스트 (20개)
+- `tests/e2e/minu/sandbox.spec.ts`: Minu Sandbox E2E 테스트 (23개)
+
+### ⚡ 번들 최적화
+
+Giscus 댓글 컴포넌트 Lazy Load 적용.
+
+#### 수정된 파일
+- `src/components/community/GiscusComments.tsx`: 래퍼 컴포넌트로 변경
+- `src/components/community/GiscusCommentsCore.tsx`: 실제 구현 분리
+- `vite.config.ts`: `components-giscus` 번들 설정 추가
+
+#### 효과
+- 별도 번들 분리: 3.05 KB
+- 초기 로딩 시간 단축
+
+### 🔧 기술 부채 해소
+
+린트 경고 22개 수정 (any 타입 → 명시적 타입).
+
+#### 수정된 파일
+- `tests/unit/hooks/useServiceEvents.test.tsx`
+- `tests/unit/hooks/useServiceHealth.test.tsx`
+- `tests/unit/hooks/useServiceIssues.test.tsx`
+
+### 📊 품질 지표
+
+| 지표 | 이전 | 이후 | 변화 |
+|------|------|------|------|
+| 유닛 테스트 | 992개 | 1012개 | +20개 |
+| E2E 테스트 | 172개 | 195개 | +23개 |
+| 린트 에러 | 0개 | 0개 | 유지 |
+| 린트 경고 | 22개 | 0개 | -22개 |
+
+---
+
 ## [2.27.0] - 2025-12-02 (Claude Skills Phase 2 + 기술 부채 해소)
 
 ### 📝 docx Skill 구현

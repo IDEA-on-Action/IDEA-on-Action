@@ -81,8 +81,20 @@ const mockEvents: ServiceEvent[] = [
   },
 ];
 
+// Mock query 타입 정의
+interface MockQuery {
+  select: ReturnType<typeof vi.fn>;
+  order: ReturnType<typeof vi.fn>;
+  eq: ReturnType<typeof vi.fn>;
+  gte: ReturnType<typeof vi.fn>;
+  lte: ReturnType<typeof vi.fn>;
+  limit: ReturnType<typeof vi.fn>;
+  range: ReturnType<typeof vi.fn>;
+  then?: ReturnType<typeof vi.fn>;
+}
+
 describe('useServiceEvents', () => {
-  let mockQuery: any;
+  let mockQuery: MockQuery;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -109,15 +121,16 @@ describe('useServiceEvents', () => {
       query.range.mockReturnValue(query);
 
       // then을 추가하여 Promise처럼 동작하도록
-      (query as any).then = vi.fn((onFulfilled) => {
+      const queryWithThen = query as MockQuery;
+      queryWithThen.then = vi.fn((onFulfilled) => {
         return Promise.resolve({ data: mockEvents, error: null }).then(onFulfilled);
       });
 
-      return query;
+      return queryWithThen;
     };
 
     mockQuery = createMockQuery();
-    vi.mocked(supabase.from).mockReturnValue(mockQuery);
+    vi.mocked(supabase.from).mockReturnValue(mockQuery as ReturnType<typeof supabase.from>);
   });
 
   describe('초기 상태 확인', () => {
@@ -280,7 +293,7 @@ describe('useServiceEvents', () => {
     it('조회 실패 시 에러를 처리해야 함', async () => {
       // Setup
       const error = new Error('Database error');
-      (mockQuery as any).then = vi.fn((onFulfilled) => {
+      mockQuery.then = vi.fn((onFulfilled) => {
         return Promise.resolve({ data: null, error }).then(onFulfilled);
       });
 
@@ -300,7 +313,7 @@ describe('useServiceEvents', () => {
     it('에러 반환 시 isError 상태가 true여야 함', async () => {
       // Setup
       const error = new Error('Query error');
-      (mockQuery as any).then = vi.fn((onFulfilled, onRejected) => {
+      mockQuery.then = vi.fn((onFulfilled) => {
         const result = { data: null, error };
         return onFulfilled ? onFulfilled(result) : Promise.resolve(result);
       });
@@ -366,7 +379,7 @@ describe('useServiceEventsByService', () => {
 
     vi.mocked(supabase.from).mockReturnValue({
       select: mockSelect,
-    } as any);
+    } as ReturnType<typeof supabase.from>);
   });
 
   it('특정 서비스의 이벤트만 조회해야 함', async () => {
@@ -429,7 +442,7 @@ describe('useServiceEventsByProject', () => {
 
     vi.mocked(supabase.from).mockReturnValue({
       select: mockSelect,
-    } as any);
+    } as ReturnType<typeof supabase.from>);
   });
 
   it('특정 프로젝트의 이벤트만 조회해야 함', async () => {
@@ -477,7 +490,7 @@ describe('useServiceEventStats', () => {
 
     vi.mocked(supabase.from).mockReturnValue({
       select: mockSelect,
-    } as any);
+    } as ReturnType<typeof supabase.from>);
   });
 
   it('이벤트 유형별 통계를 계산해야 함', async () => {

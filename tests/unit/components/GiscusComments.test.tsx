@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
-import { GiscusComments } from '@/components/community/GiscusComments';
+import GiscusCommentsCore from '@/components/community/GiscusCommentsCore';
 import { useTheme } from '@/hooks/useTheme';
 
 type Theme = 'light' | 'dark' | 'system';
@@ -17,7 +17,7 @@ vi.mock('@/hooks/useTheme', () => ({
   useTheme: vi.fn(),
 }));
 
-describe('GiscusComments', () => {
+describe('GiscusCommentsCore', () => {
   const originalCreateElement = document.createElement;
   const originalAppendChild = document.createElement('div').appendChild;
   const originalQuerySelector = document.querySelector;
@@ -54,7 +54,7 @@ describe('GiscusComments', () => {
     } as UseThemeReturn);
 
     // Execute
-    render(<GiscusComments repoId="CONFIGURE_REPO_ID" categoryId="CONFIGURE_CATEGORY_ID" />);
+    render(<GiscusCommentsCore repoId="CONFIGURE_REPO_ID" categoryId="CONFIGURE_CATEGORY_ID" />);
 
     // Assert
     expect(screen.getByText('댓글 시스템 설정 필요')).toBeInTheDocument();
@@ -74,7 +74,7 @@ describe('GiscusComments', () => {
 
     // Execute
     render(
-      <GiscusComments
+      <GiscusCommentsCore
         repo="test-owner/test-repo"
         repoId="test-repo-id"
         category="General"
@@ -108,7 +108,7 @@ describe('GiscusComments', () => {
 
     // Execute
     render(
-      <GiscusComments
+      <GiscusCommentsCore
         repo="test-owner/test-repo"
         repoId="test-repo-id"
         category="General"
@@ -143,7 +143,7 @@ describe('GiscusComments', () => {
 
     // Execute
     render(
-      <GiscusComments
+      <GiscusCommentsCore
         repo="test-owner/test-repo"
         repoId="test-repo-id"
         category="General"
@@ -182,7 +182,7 @@ describe('GiscusComments', () => {
 
     // Execute
     const { unmount } = render(
-      <GiscusComments
+      <GiscusCommentsCore
         repo="test-owner/test-repo"
         repoId="test-repo-id"
         category="General"
@@ -219,7 +219,7 @@ describe('GiscusComments', () => {
     });
 
     // Execute
-    render(<GiscusComments />);
+    render(<GiscusCommentsCore />);
 
     // Assert
     waitFor(() => {
@@ -254,7 +254,7 @@ describe('GiscusComments', () => {
 
     // Execute
     render(
-      <GiscusComments
+      <GiscusCommentsCore
         repo="custom-owner/custom-repo"
         repoId="custom-repo-id"
         category="Custom"

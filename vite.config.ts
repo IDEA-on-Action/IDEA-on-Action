@@ -325,6 +325,11 @@ export default defineConfig(({ mode }) => ({
             return 'vendor-auth';
           }
 
+          // 10. Giscus Comments - Split into separate chunk (lazy loaded)
+          if (id.includes('/components/community/GiscusCommentsCore')) {
+            return 'components-giscus';
+          }
+
           // ============================================================
           // APPLICATION CHUNKS STRATEGY
           // ============================================================
