@@ -7,14 +7,33 @@
  * - 에러 핸들링
  */
 
-import OpenAI from 'openai'
+import type OpenAI from 'openai'
 import { devError } from '@/lib/errors'
 
-// OpenAI 클라이언트 초기화
-export const openai = new OpenAI({
-  apiKey: import.meta.env.VITE_OPENAI_API_KEY,
-  dangerouslyAllowBrowser: true, // 브라우저에서 직접 호출 (프로덕션에서는 백엔드 권장)
-})
+// OpenAI 클라이언트 인스턴스 (동적 로딩)
+let openaiClient: OpenAI | null = null
+
+/**
+ * OpenAI 클라이언트를 반환합니다 (동적 로딩)
+ * 첫 호출 시에만 모듈을 로드하고, 이후에는 캐시된 인스턴스를 반환합니다.
+ */
+async function getOpenAIClient(): Promise<OpenAI> {
+  if (!openaiClient) {
+    const { default: OpenAI } = await import('openai')
+    openaiClient = new OpenAI({
+      apiKey: import.meta.env.VITE_OPENAI_API_KEY,
+      dangerouslyAllowBrowser: true, // 브라우저에서 직접 호출 (프로덕션에서는 백엔드 권장)
+    })
+  }
+  return openaiClient
+}
+
+// 레거시 호환성을 위한 export (사용 금지 권장)
+export const openai = {
+  get chat() {
+    throw new Error('직접 접근 금지: createChatCompletion 또는 createChatCompletionStream 사용')
+  }
+} as OpenAI
 
 // 모델 설정
 export const OPENAI_MODEL = (import.meta.env.VITE_OPENAI_MODEL || 'gpt-3.5-turbo') as string
@@ -70,7 +89,8 @@ export async function createChatCompletion(
   options: ChatCompletionOptions
 ): Promise<string> {
   try {
-    const response = await openai.chat.completions.create({
+    const client = await getOpenAIClient()
+    const response = await client.chat.completions.create({
       model: OPENAI_MODEL,
       messages: options.messages,
       temperature: options.temperature || 0.7,
@@ -92,7 +112,8 @@ export async function* createChatCompletionStream(
   options: ChatCompletionOptions
 ): AsyncGenerator<string, void, unknown> {
   try {
-    const stream = await openai.chat.completions.create({
+    const client = await getOpenAIClient()
+    const stream = await client.chat.completions.create({
       model: OPENAI_MODEL,
       messages: options.messages,
       temperature: options.temperature || 0.7,

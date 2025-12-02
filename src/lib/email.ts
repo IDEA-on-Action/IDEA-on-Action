@@ -7,32 +7,30 @@
  * - 타입 안전 이메일 전송
  */
 
-import { Resend } from 'resend'
+import type { Resend } from 'resend'
 import type { ReactElement } from 'react'
 import { devWarn, devError } from '@/lib/errors'
 
-// Resend 클라이언트 초기화 (API 키가 있을 때만)
-const getResendClient = (): Resend | null => {
-  const apiKey = import.meta.env.VITE_RESEND_API_KEY
-  if (!apiKey) {
-    return null
-  }
-  try {
-    return new Resend(apiKey)
-  } catch (error) {
-    devError(error, { service: 'Email', operation: 'Resend 클라이언트 초기화' })
-    return null
-  }
-}
-
-// Resend 클라이언트 (지연 초기화)
+// Resend 클라이언트 인스턴스 (동적 로딩)
 let resendClient: Resend | null = null
 
-const getResend = (): Resend => {
+/**
+ * Resend 클라이언트를 반환합니다 (동적 로딩)
+ * 첫 호출 시에만 모듈을 로드하고, 이후에는 캐시된 인스턴스를 반환합니다.
+ */
+const getResend = async (): Promise<Resend> => {
   if (!resendClient) {
-    resendClient = getResendClient()
-    if (!resendClient) {
+    const apiKey = import.meta.env.VITE_RESEND_API_KEY
+    if (!apiKey) {
       throw new Error('Resend API key is not configured. Please set VITE_RESEND_API_KEY in your environment variables.')
+    }
+
+    try {
+      const { Resend } = await import('resend')
+      resendClient = new Resend(apiKey)
+    } catch (error) {
+      devError(error, { service: 'Email', operation: 'Resend 클라이언트 초기화' })
+      throw new Error('Resend 클라이언트 초기화 실패')
     }
   }
   return resendClient
@@ -69,7 +67,7 @@ export async function sendEmail(
       }
     }
 
-    const resend = getResend()
+    const resend = await getResend()
     const data = await resend.emails.send({
       from: FROM_EMAIL,
       to: options.to,
@@ -280,7 +278,7 @@ export async function sendWorkWithUsEmail(
       }
     }
 
-    const resend = getResend()
+    const resend = await getResend()
     const result = await resend.emails.send({
       from: FROM_EMAIL,
       to: ['sinclairseo@gmail.com'],
