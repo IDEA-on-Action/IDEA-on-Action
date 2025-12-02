@@ -3,10 +3,53 @@
 > 프로젝트 작업 목록 및 진행 상황 관리
 
 **마지막 업데이트**: 2025-12-02
-**현재 Phase**: v2.28.0 완료
-**다음 단계**: v2.29.0 계획
-**프로젝트 버전**: 2.28.0
+**현재 Phase**: v2.29.0 완료
+**다음 단계**: v2.30.0 계획
+**프로젝트 버전**: 2.29.0
 **프로덕션**: https://www.ideaonaction.ai
+
+---
+
+## ✅ 완료: v2.29.0 병렬 작업 (2025-12-02)
+
+**목표**: pptx Skill 완성, 테스트 확장, 번들 최적화 (SSDD 방식)
+**완료일**: 2025-12-02
+
+### 5개 병렬 에이전트 작업
+
+| Agent | 작업 | 산출물 | 상태 |
+|-------|------|--------|------|
+| Agent 1 | pptx 슬라이드 생성 함수 | `src/lib/skills/pptx/*.ts` (5개 파일) | ✅ |
+| Agent 2 | pptx Central Hub 통합 | `ExportButton.tsx` 확장 (드롭다운) | ✅ |
+| Agent 3 | useAlertSubscriptions 테스트 | 35개 테스트 케이스 | ✅ |
+| Agent 4 | usePptxGenerate 테스트 | 19개 테스트 케이스 | ✅ |
+| Agent 5 | 번들 최적화 | analytics 청크 -193KB (-17%) | ✅ |
+
+### 생성된 파일
+
+**pptx Skill (5개)**:
+- `src/lib/skills/pptx/titleSlide.ts` - 제목 슬라이드
+- `src/lib/skills/pptx/summarySlide.ts` - KPI 요약 슬라이드
+- `src/lib/skills/pptx/eventsSlide.ts` - 이벤트 현황 슬라이드
+- `src/lib/skills/pptx/issuesSlide.ts` - 이슈 현황 슬라이드
+- `src/lib/skills/pptx/index.ts` - 통합 export
+
+**테스트 (2개)**:
+- `tests/unit/hooks/useAlertSubscriptions.test.tsx` (35개)
+- `tests/unit/hooks/usePptxGenerate.test.tsx` (19개)
+
+**번들 최적화**:
+- `src/pages/admin/analytics/AnalyticsDataProvider.tsx` - 훅 분리
+- `vite.config.ts` - manualChunks 규칙 추가
+
+### 품질 지표
+
+| 지표 | 이전 | 이후 | 변화 |
+|------|------|------|------|
+| 유닛 테스트 | 1012개 | 1066개 | +54개 |
+| pptx Skill | 60% | 95% | +35% |
+| analytics 청크 | 1,128KB | 935KB | -193KB (-17%) |
+| 린트 에러 | 0개 | 0개 | 유지 |
 
 ---
 

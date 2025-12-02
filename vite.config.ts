@@ -366,6 +366,11 @@ export default defineConfig(({ mode }) => ({
             return 'pages-admin-analytics';
           }
 
+          // Analytics data provider (hooks and dependencies)
+          if (id.includes('/pages/admin/analytics/')) {
+            return 'pages-admin-analytics-data';
+          }
+
           // Revenue page (separate to split Recharts usage)
           if (id.includes('/pages/admin/Revenue.tsx')) {
             return 'pages-admin-revenue';
@@ -479,10 +484,13 @@ export default defineConfig(({ mode }) => ({
         },
       },
     },
-    // Chunk size warning limit (v2.24.0 - Optimized)
+    // Chunk size warning limit (v2.28.0 - Optimized)
     // Admin chunks are now split into smaller pieces:
-    // - pages-admin-analytics: ~1128 kB (includes Recharts, lazy-loaded)
-    //   → 동적 import로 차트 컴포넌트 분리하여 10% 감소 (1253 → 1128)
+    // - pages-admin-analytics: ~935 kB (187 kB gzip, lazy-loaded)
+    //   → v2.28.0: 훅 분리로 17% 감소 (1128 → 935 kB)
+    //   → v2.24.0: 동적 import로 10% 감소 (1253 → 1128 kB)
+    // - pages-admin-analytics-data: ~191 kB (51 kB gzip, lazy-loaded)
+    //   → 새로 분리: 모든 analytics 훅과 의존성
     // - pages-admin-blog-editor: ~679 kB (includes TipTap, lazy-loaded)
     // - vendor-editor: 541 kB (170 kB gzip, lazy-loaded)
     // - xlsx-skill: 429 kB (143 kB gzip, lazy-loaded)
@@ -491,6 +499,6 @@ export default defineConfig(({ mode }) => ({
     //
     // Note: pages-admin-analytics는 Recharts와 여러 분석 컴포넌트 포함
     // 관리자 페이지로 lazy-load되므로 초기 로딩에 영향 없음
-    chunkSizeWarningLimit: 1200,
+    chunkSizeWarningLimit: 1000,
   },
 }));

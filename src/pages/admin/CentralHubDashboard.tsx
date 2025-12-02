@@ -16,7 +16,7 @@ import { IssueList } from '@/components/central-hub/IssueList';
 import { StatisticsChart } from '@/components/central-hub/StatisticsChart';
 import { RealtimeAlertPanel } from '@/components/central-hub/RealtimeAlertPanel';
 import { ServiceStatusDashboard } from '@/components/admin/ServiceStatusDashboard';
-import { ExportButton } from '@/components/skills/ExportButton';
+import { ExportButton } from '@/components/central-hub/ExportButton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Activity, ListTodo, BarChart3, Bell } from 'lucide-react';
@@ -90,9 +90,7 @@ export default function CentralHubDashboard() {
               Minu 서비스의 상태와 이벤트를 실시간으로 모니터링합니다.
             </p>
           </div>
-          <ExportButton variant="outline" size="default">
-            Excel 내보내기
-          </ExportButton>
+          <ExportButton variant="outline" size="default" />
         </div>
 
         {/* 연결 상태 인디케이터 */}

@@ -6,19 +6,22 @@
  */
 
 import { useState, Suspense, lazy } from 'react'
-import { useFunnelAnalysis, useBounceRate, useEventCounts } from '@/hooks/useAnalyticsEvents'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Skeleton } from '@/components/ui/skeleton'
 import { BarChart3, TrendingDown, Activity, Clock, Users } from 'lucide-react'
-import { StatsCard, StatsCardGrid } from '@/components/analytics/StatsCard'
-import { formatNumber } from '@/types/analytics'
 
-// 동적 import로 번들 크기 최적화 (v2.24.0)
+// 동적 import로 번들 크기 최적화 (v2.28.0)
+// 모든 무거운 컴포넌트와 훅을 동적으로 로드
 const DateRangePicker = lazy(() => import('@/components/analytics/DateRangePicker').then(m => ({ default: m.DateRangePicker })))
 const FunnelChart = lazy(() => import('@/components/analytics/FunnelChart').then(m => ({ default: m.FunnelChart })))
 const BounceRateCard = lazy(() => import('@/components/analytics/BounceRateCard').then(m => ({ default: m.BounceRateCard })))
 const EventTimeline = lazy(() => import('@/components/analytics/EventTimeline').then(m => ({ default: m.EventTimeline })))
+const StatsCard = lazy(() => import('@/components/analytics/StatsCard').then(m => ({ default: m.StatsCard })))
+const StatsCardGrid = lazy(() => import('@/components/analytics/StatsCard').then(m => ({ default: m.StatsCardGrid })))
+
+// 훅을 사용하는 컴포넌트를 동적으로 로드
+const AnalyticsDataProvider = lazy(() => import('./analytics/AnalyticsDataProvider'))
 
 // 로딩 폴백 컴포넌트
 const ChartSkeleton = () => (
@@ -35,23 +38,6 @@ export default function Analytics() {
     start: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
     end: new Date(),
   })
-
-  // 데이터 훅
-  const { data: funnelData, isLoading: funnelLoading } = useFunnelAnalysis(
-    dateRange.start,
-    dateRange.end
-  )
-
-  const { data: bounceData, isLoading: bounceLoading } = useBounceRate(
-    dateRange.start,
-    dateRange.end
-  )
-
-  const { data: eventCounts, isLoading: eventCountsLoading } = useEventCounts(
-    dateRange.start,
-    dateRange.end,
-    10 // 상위 10개
-  )
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -71,8 +57,11 @@ export default function Analytics() {
         </Suspense>
       </div>
 
-      {/* 탭 네비게이션 */}
-      <Tabs defaultValue="overview" className="space-y-6">
+      {/* 데이터 프로바이더로 래핑 */}
+      <Suspense fallback={<ChartSkeleton />}>
+        <AnalyticsDataProvider dateRange={dateRange}>
+          {({ funnelData, funnelLoading, bounceData, bounceLoading, eventCounts, eventCountsLoading }) => (
+            <Tabs defaultValue="overview" className="space-y-6">
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="overview" className="flex items-center gap-2" aria-label="개요">
             <Activity className="h-4 w-4" aria-hidden="true" />
@@ -94,30 +83,32 @@ export default function Analytics() {
 
         {/* 개요 탭 */}
         <TabsContent value="overview" className="space-y-6">
-          <StatsCardGrid columns={3}>
-            {/* 이탈률 카드 */}
-            <Suspense fallback={<ChartSkeleton />}>
-              <BounceRateCard data={bounceData} loading={bounceLoading} />
-            </Suspense>
+          <Suspense fallback={<ChartSkeleton />}>
+            <StatsCardGrid columns={3}>
+              {/* 이탈률 카드 */}
+              <Suspense fallback={<ChartSkeleton />}>
+                <BounceRateCard data={bounceData} loading={bounceLoading} />
+              </Suspense>
 
-            {/* 총 이벤트 수 */}
-            <StatsCard
-              title="총 이벤트"
-              value={formatNumber(eventCounts?.reduce((sum, e) => sum + Number(e.event_count), 0) || 0)}
-              icon={<Activity className="h-5 w-5 text-blue-600" />}
-              description="선택한 기간 동안 발생한 이벤트"
-              loading={eventCountsLoading}
-            />
+              {/* 총 이벤트 수 */}
+              <StatsCard
+                title="총 이벤트"
+                value={String(eventCounts?.reduce((sum, e) => sum + Number(e.event_count), 0) || 0)}
+                icon={<Activity className="h-5 w-5 text-blue-600" />}
+                description="선택한 기간 동안 발생한 이벤트"
+                loading={eventCountsLoading}
+              />
 
-            {/* 고유 사용자 수 */}
-            <StatsCard
-              title="고유 사용자"
-              value={formatNumber(eventCounts?.reduce((sum, e) => sum + Number(e.unique_users), 0) || 0)}
-              icon={<Users className="h-5 w-5 text-purple-600" />}
-              description="활동한 사용자 수"
-              loading={eventCountsLoading}
-            />
-          </StatsCardGrid>
+              {/* 고유 사용자 수 */}
+              <StatsCard
+                title="고유 사용자"
+                value={String(eventCounts?.reduce((sum, e) => sum + Number(e.unique_users), 0) || 0)}
+                icon={<Users className="h-5 w-5 text-purple-600" />}
+                description="활동한 사용자 수"
+                loading={eventCountsLoading}
+              />
+            </StatsCardGrid>
+          </Suspense>
 
           {/* 상위 이벤트 */}
           <Card>
@@ -197,7 +188,10 @@ export default function Analytics() {
             <EventTimeline startDate={dateRange.start} endDate={dateRange.end} />
           </Suspense>
         </TabsContent>
-      </Tabs>
+            </Tabs>
+          )}
+        </AnalyticsDataProvider>
+      </Suspense>
     </div>
   )
 }

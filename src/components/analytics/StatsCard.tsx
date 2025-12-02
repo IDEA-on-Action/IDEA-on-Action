@@ -168,3 +168,6 @@ export function StatsCardGrid({ children, columns = 4, className }: StatsCardGri
     </div>
   )
 }
+
+// Default exports for lazy loading
+export default StatsCard
