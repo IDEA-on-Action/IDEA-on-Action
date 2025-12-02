@@ -159,11 +159,15 @@ export function AIChatWidget({ config }: AIChatWidgetProps) {
         // Claude API 호출
         await claudeSendMessage(content);
 
-        // 로그인한 경우 대화 저장
-        if (user && conversationManager.createConversation) {
-          // TODO: 대화 세션 저장 로직 (선택적)
-          // conversationManager.createConversation({ ... });
-        }
+        // 로그인한 경우 대화 저장 (선택적)
+        // Note: 대화 저장 기능은 사용자 요청 시 활성화 가능
+        // if (user && conversationManager.createConversation) {
+        //   await conversationManager.createConversation({
+        //     title: content.slice(0, 50) + (content.length > 50 ? '...' : ''),
+        //     messages: [...messages, userMessage, assistantMessage],
+        //     context: pageContext,
+        //   });
+        // }
       } catch (err) {
         console.error('AI 채팅 오류:', err);
         // 에러 메시지로 교체
@@ -184,14 +188,16 @@ export function AIChatWidget({ config }: AIChatWidgetProps) {
         });
       }
     },
-    [user, claudeSendMessage, conversationManager]
+    [claudeSendMessage]
   );
 
   // 페이지 변경 시 시스템 프롬프트 업데이트
+  // Note: 현재 useClaudeStreaming은 systemPrompt를 초기화 시점에만 설정합니다.
+  // 동적 업데이트가 필요한 경우 대화를 초기화하거나,
+  // useClaudeStreaming에 setSystemPrompt API를 추가해야 합니다.
   useEffect(() => {
-    // 시스템 프롬프트 재생성
-    const newSystemPrompt = buildSystemPrompt(pageContext, config?.systemPrompt);
-    // TODO: useClaudeStreaming에 setSystemPrompt API가 있다면 업데이트
+    // 페이지 컨텍스트가 변경되면 새 대화 시작 권장
+    // (자동 초기화는 사용자 경험을 해칠 수 있어 수동 초기화 권장)
   }, [pageContext, config?.systemPrompt]);
 
   return (

@@ -235,7 +235,11 @@ export function useBillingPortal(): BillingPortalData & {
         status: payment.status as 'pending' | 'paid' | 'failed' | 'cancelled',
         billing_date: payment.created_at || '',
         paid_at: payment.status === 'success' ? payment.created_at : null,
-        pdf_url: null, // TODO: 인보이스 PDF 생성 URL
+        // PDF URL: Edge Function 또는 PDF 생성 서비스 URL
+        // 예시: `/api/invoices/${payment.id}/pdf` 또는 Supabase Storage URL
+        pdf_url: payment.status === 'success'
+          ? `/api/invoices/${payment.id}/pdf`
+          : null,
         items: [
           {
             description: currentPlan?.plan.plan_name || 'Subscription',
@@ -282,10 +286,19 @@ export function useBillingPortal(): BillingPortalData & {
       return
     }
 
-    // TODO: 토스페이먼츠 빌링키 관리 페이지 열기
-    // const { loadTossPayments } = await import('@tosspayments/payment-sdk')
-    // const tossPayments = await loadTossPayments(clientKey)
-    // await tossPayments.requestBillingAuth(...)
+    // 토스페이먼츠 빌링키 관리 페이지 열기
+    // Note: 실제 구현 시 아래 코드 활성화
+    // const openTossPaymentsBilling = async () => {
+    //   const { loadTossPayments } = await import('@tosspayments/payment-sdk');
+    //   const clientKey = import.meta.env.VITE_TOSS_CLIENT_KEY;
+    //   const tossPayments = await loadTossPayments(clientKey);
+    //   await tossPayments.requestBillingAuth({
+    //     customerKey: user?.id,
+    //     successUrl: `${window.location.origin}/billing/success`,
+    //     failUrl: `${window.location.origin}/billing/fail`,
+    //   });
+    // };
+    // openTossPaymentsBilling();
 
     toast.info('결제 포털 기능은 개발 중입니다.')
     console.log('Opening billing portal for subscription:', currentPlan.id)
@@ -388,10 +401,18 @@ export function useBillingPortal(): BillingPortalData & {
 export function useDownloadInvoice() {
   const mutation = useMutation({
     mutationFn: async (invoiceId: string) => {
-      // TODO: Edge Function 또는 PDF 생성 서비스 호출
+      // Edge Function 또는 PDF 생성 서비스 호출
+      // Note: 실제 구현 시 아래 코드 활성화
       // const { data, error } = await supabase.functions.invoke('generate-invoice-pdf', {
       //   body: { invoice_id: invoiceId },
-      // })
+      // });
+      // if (error) throw error;
+      //
+      // // PDF 다운로드
+      // const link = document.createElement('a');
+      // link.href = data.pdf_url;
+      // link.download = `invoice-${invoiceId}.pdf`;
+      // link.click();
 
       console.log('Downloading invoice:', invoiceId)
       toast.info('인보이스 PDF 생성 기능은 개발 중입니다.')
@@ -433,10 +454,24 @@ export function useAddPaymentMethod() {
         throw new Error('로그인이 필요합니다.')
       }
 
-      // TODO: 토스페이먼츠 빌링키 발급
-      // const { loadTossPayments } = await import('@tosspayments/payment-sdk')
-      // const tossPayments = await loadTossPayments(clientKey)
-      // const result = await tossPayments.requestBillingAuth(...)
+      // 토스페이먼츠 빌링키 발급
+      // Note: 실제 구현 시 아래 코드 활성화
+      // const { loadTossPayments } = await import('@tosspayments/payment-sdk');
+      // const clientKey = import.meta.env.VITE_TOSS_CLIENT_KEY;
+      // const tossPayments = await loadTossPayments(clientKey);
+      // const result = await tossPayments.requestBillingAuth({
+      //   customerKey: user.id,
+      //   successUrl: `${window.location.origin}/billing/payment-method/success`,
+      //   failUrl: `${window.location.origin}/billing/payment-method/fail`,
+      // });
+      //
+      // // 빌링키를 billing_keys 테이블에 저장
+      // await supabase.from('billing_keys').insert({
+      //   user_id: user.id,
+      //   billing_key: result.billingKey,
+      //   card_number: result.card?.number,
+      //   card_type: result.card?.issuerCode,
+      // });
 
       console.log('Adding payment method:', paymentMethodData)
       toast.info('결제 수단 추가 기능은 개발 중입니다.')

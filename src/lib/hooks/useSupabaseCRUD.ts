@@ -18,12 +18,28 @@ import type { PostgrestFilterBuilder } from '@supabase/postgrest-js'
 // Types
 // ===================================================================
 
+/**
+ * PostgrestFilterBuilder 제네릭 타입
+ * Supabase의 쿼리 빌더 타입으로, 테이블 스키마와 독립적으로 사용
+ */
+type FilterBuilder = PostgrestFilterBuilder<
+  Record<string, unknown>,
+  Record<string, unknown>,
+  unknown[]
+>
+
 export interface SupabaseListOptions<T> {
   table: string
   queryKey: (string | number | boolean | undefined)[]
   select?: string
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  filters?: (query: PostgrestFilterBuilder<any, any, any>) => PostgrestFilterBuilder<any, any, any>
+  /**
+   * 쿼리 필터 함수
+   * @param query - Supabase 쿼리 빌더
+   * @returns 필터링된 쿼리 빌더
+   * @example
+   * filters: (q) => q.eq('status', 'active').gte('created_at', '2024-01-01')
+   */
+  filters?: (query: FilterBuilder) => FilterBuilder
   orderBy?: { column: string; ascending?: boolean }
   limit?: number
   enabled?: boolean
