@@ -2,10 +2,10 @@
 
 > 프로젝트 작업 목록 및 진행 상황 관리
 
-**마지막 업데이트**: 2025-12-01
-**현재 Phase**: v2.25.0 Central Hub Phase 2 완료
-**다음 단계**: 테스트 커버리지 80% 달성, Claude Skills Phase 2
-**프로젝트 버전**: 2.25.0
+**마지막 업데이트**: 2025-12-02
+**현재 Phase**: v2.26.0 Claude Skills Phase 1 완료
+**다음 단계**: 테스트 커버리지 향상, Claude Skills Phase 2
+**프로젝트 버전**: 2.26.0
 **프로덕션**: https://www.ideaonaction.ai
 
 ---

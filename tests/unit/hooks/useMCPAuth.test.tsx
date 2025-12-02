@@ -84,6 +84,16 @@ describe('useMCPAuth', () => {
     vi.mocked(mcpAuthLib.calculateTokenExpiresIn).mockReturnValue(3600);
     vi.mocked(mcpAuthLib.needsTokenRefresh).mockReturnValue(false);
     vi.mocked(mcpAuthLib.isMCPAuthError).mockReturnValue(false);
+    // verifyMCPToken이 undefined를 반환하지 않도록 기본값 설정
+    vi.mocked(mcpAuthLib.verifyMCPToken).mockResolvedValue({
+      valid: false,
+      status: 'invalid',
+      expiresAt: null,
+      remainingTime: 0,
+      userId: null,
+      serviceName: null,
+      scopes: [],
+    });
   });
 
   describe('초기화', () => {
@@ -401,6 +411,16 @@ describe('useMCPAuthState', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(mcpAuthLib.getStoredTokenIfValid).mockReturnValue(null);
+    // verifyMCPToken이 undefined를 반환하지 않도록 기본값 설정
+    vi.mocked(mcpAuthLib.verifyMCPToken).mockResolvedValue({
+      valid: false,
+      status: 'invalid',
+      expiresAt: null,
+      remainingTime: 0,
+      userId: null,
+      serviceName: null,
+      scopes: [],
+    });
   });
 
   it('인증 상태만 반환해야 함', () => {
@@ -427,6 +447,16 @@ describe('useMCPServiceAuth', () => {
       expiresAt: new Date(Date.now() + 3600000).toISOString(),
       scopes: ['read'],
       serviceName: 'minu-find',
+    });
+    // verifyMCPToken이 undefined를 반환하지 않도록 기본값 설정
+    vi.mocked(mcpAuthLib.verifyMCPToken).mockResolvedValue({
+      valid: true,
+      status: 'valid',
+      expiresAt: new Date(Date.now() + 3600000).toISOString(),
+      remainingTime: 3600,
+      userId: 'user-123',
+      serviceName: 'minu-find',
+      scopes: ['read'],
     });
   });
 
@@ -481,6 +511,16 @@ describe('useMCPAuthHeaders', () => {
       serviceName: 'minu-find',
     });
     vi.mocked(mcpAuthLib.calculateTokenExpiresIn).mockReturnValue(3600);
+    // verifyMCPToken이 undefined를 반환하지 않도록 기본값 설정
+    vi.mocked(mcpAuthLib.verifyMCPToken).mockResolvedValue({
+      valid: true,
+      status: 'valid',
+      expiresAt: new Date(Date.now() + 3600000).toISOString(),
+      remainingTime: 3600,
+      userId: 'user-123',
+      serviceName: 'minu-find',
+      scopes: ['read'],
+    });
   });
 
   it('유효한 토큰으로 Authorization 헤더를 생성해야 함', () => {
