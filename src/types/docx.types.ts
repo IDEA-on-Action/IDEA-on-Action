@@ -492,3 +492,72 @@ export const RISK_PROBABILITY_LABELS: Record<RiskItem['probability'], string> = 
   medium: '보통',
   high: '높음',
 };
+
+// ============================================================================
+// docx 내보내기 타입 (Central Hub 데이터)
+// ============================================================================
+
+/**
+ * docx 내보내기 설정
+ */
+export interface DocxExportConfig {
+  /** 문서 제목 */
+  title: string;
+  /** 작성자 */
+  author?: string;
+  /** 문서 설명 */
+  description?: string;
+  /** 섹션 목록 */
+  sections: DocxSection[];
+  /** 헤더/푸터 옵션 */
+  headerFooter?: HeaderFooterOptions;
+}
+
+/**
+ * docx 섹션
+ */
+export interface DocxSection {
+  /** 섹션 제목 */
+  heading: string;
+  /** 섹션 콘텐츠 */
+  content: DocxContent[];
+  /** 페이지 구분 여부 */
+  pageBreak?: boolean;
+}
+
+/**
+ * docx 콘텐츠 타입
+ */
+export type DocxContent =
+  | { type: 'paragraph'; text: string; style?: 'normal' | 'heading1' | 'heading2' | 'heading3' }
+  | { type: 'table'; data: string[][]; headers?: string[] }
+  | { type: 'list'; items: string[]; ordered?: boolean }
+  | { type: 'image'; url: string; width?: number; height?: number; caption?: string };
+
+/**
+ * docx 내보내기 옵션
+ */
+export interface UseDocxExportOptions {
+  /** 파일명 (기본값: central-hub-report-YYYY-MM-DD.docx) */
+  filename?: string;
+  /** 날짜 범위 */
+  dateRange?: { from: Date; to: Date };
+  /** 커스텀 설정 */
+  config?: DocxExportConfig;
+  /** 서비스 ID 필터 */
+  serviceId?: string;
+}
+
+/**
+ * docx 내보내기 결과
+ */
+export interface UseDocxExportResult {
+  /** Word 문서 내보내기 실행 */
+  exportDocument: (options?: UseDocxExportOptions) => Promise<void>;
+  /** 내보내기 진행 중 여부 */
+  isExporting: boolean;
+  /** 진행률 (0-100) */
+  progress: number;
+  /** 에러 정보 */
+  error: SkillError | null;
+}
