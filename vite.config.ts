@@ -361,14 +361,31 @@ export default defineConfig(({ mode }) => ({
             return 'pages-admin-dashboard';
           }
 
-          // Analytics page (separate to split Recharts usage)
+          // Analytics page (main page only, without tabs)
           if (id.includes('/pages/admin/Analytics.tsx')) {
             return 'pages-admin-analytics';
           }
 
           // Analytics data provider (hooks and dependencies)
-          if (id.includes('/pages/admin/analytics/')) {
+          if (id.includes('/pages/admin/analytics/AnalyticsDataProvider')) {
             return 'pages-admin-analytics-data';
+          }
+
+          // Analytics tabs (split by tab for better lazy loading)
+          if (id.includes('/pages/admin/analytics/OverviewTab')) {
+            return 'pages-admin-analytics-overview';
+          }
+
+          if (id.includes('/pages/admin/analytics/FunnelTab')) {
+            return 'pages-admin-analytics-funnel';
+          }
+
+          if (id.includes('/pages/admin/analytics/BehaviorTab')) {
+            return 'pages-admin-analytics-behavior';
+          }
+
+          if (id.includes('/pages/admin/analytics/EventsTab')) {
+            return 'pages-admin-analytics-events';
           }
 
           // Revenue page (separate to split Recharts usage)
@@ -469,12 +486,18 @@ export default defineConfig(({ mode }) => ({
           // ============================================================
           // Recharts cannot be split from components due to circular deps,
           // but we can split components themselves to distribute the load
+
+          // FunnelChart - Used in Analytics page (heavy with Recharts)
+          if (id.includes('/components/analytics/FunnelChart')) {
+            return 'components-analytics-funnel';
+          }
+
+          // Revenue/Orders Charts - Used in Dashboard and Revenue pages
           if (
             id.includes('/components/analytics/RevenueChart') ||
             id.includes('/components/analytics/OrdersChart') ||
             id.includes('/components/analytics/ServiceRevenueChart') ||
-            id.includes('/components/analytics/RevenueComparisonChart') ||
-            id.includes('/components/analytics/FunnelChart')
+            id.includes('/components/analytics/RevenueComparisonChart')
           ) {
             return 'components-charts';
           }
@@ -484,20 +507,23 @@ export default defineConfig(({ mode }) => ({
         },
       },
     },
-    // Chunk size warning limit (v2.28.0 - Optimized)
+    // Chunk size warning limit (v2.30.0 - Optimized)
     // Admin chunks are now split into smaller pieces:
-    // - pages-admin-analytics: ~935 kB (187 kB gzip, lazy-loaded)
+    // - pages-admin-analytics: Main analytics page shell (~50 kB, lazy-loaded)
+    //   → v2.30.0: 탭별 분리로 95% 감소 (935 → ~50 kB)
     //   → v2.28.0: 훅 분리로 17% 감소 (1128 → 935 kB)
-    //   → v2.24.0: 동적 import로 10% 감소 (1253 → 1128 kB)
-    // - pages-admin-analytics-data: ~191 kB (51 kB gzip, lazy-loaded)
-    //   → 새로 분리: 모든 analytics 훅과 의존성
+    // - pages-admin-analytics-overview: Overview tab (~200 kB, lazy-loaded)
+    // - pages-admin-analytics-funnel: Funnel tab (~100 kB, lazy-loaded)
+    // - pages-admin-analytics-behavior: Behavior tab (~50 kB, lazy-loaded)
+    // - pages-admin-analytics-events: Events tab (~150 kB, lazy-loaded)
+    // - pages-admin-analytics-data: Analytics hooks (~192 kB, lazy-loaded)
     // - pages-admin-blog-editor: ~679 kB (includes TipTap, lazy-loaded)
     // - vendor-editor: 541 kB (170 kB gzip, lazy-loaded)
     // - xlsx-skill: 429 kB (143 kB gzip, lazy-loaded)
     // - vendor-charts: 421 kB (111 kB gzip, lazy-loaded)
     // - vendor-markdown: 341 kB (108 kB gzip, lazy-loaded)
     //
-    // Note: pages-admin-analytics는 Recharts와 여러 분석 컴포넌트 포함
+    // Note: Analytics 탭은 사용자가 클릭할 때만 로드됨
     // 관리자 페이지로 lazy-load되므로 초기 로딩에 영향 없음
     chunkSizeWarningLimit: 1000,
   },

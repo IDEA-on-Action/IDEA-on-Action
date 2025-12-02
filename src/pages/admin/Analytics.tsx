@@ -2,26 +2,23 @@
  * Phase 14: 분석 대시보드 페이지
  * 사용자 행동 분석, 퍼널 분석, 이탈률 분석
  *
- * v2.24.0: 번들 크기 최적화를 위해 차트 컴포넌트 동적 import
+ * v2.30.0: 번들 크기 최적화를 위해 탭별 컴포넌트 동적 import
+ * - 각 탭을 별도 청크로 분리하여 초기 로딩 성능 개선
  */
 
 import { useState, Suspense, lazy } from 'react'
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Skeleton } from '@/components/ui/skeleton'
-import { BarChart3, TrendingDown, Activity, Clock, Users } from 'lucide-react'
+import { BarChart3, TrendingDown, Activity, Clock } from 'lucide-react'
 
-// 동적 import로 번들 크기 최적화 (v2.28.0)
-// 모든 무거운 컴포넌트와 훅을 동적으로 로드
+// 동적 import로 번들 크기 최적화 (v2.30.0)
+// 각 탭을 별도 컴포넌트로 분리하여 lazy loading
 const DateRangePicker = lazy(() => import('@/components/analytics/DateRangePicker').then(m => ({ default: m.DateRangePicker })))
-const FunnelChart = lazy(() => import('@/components/analytics/FunnelChart').then(m => ({ default: m.FunnelChart })))
-const BounceRateCard = lazy(() => import('@/components/analytics/BounceRateCard').then(m => ({ default: m.BounceRateCard })))
-const EventTimeline = lazy(() => import('@/components/analytics/EventTimeline').then(m => ({ default: m.EventTimeline })))
-const StatsCard = lazy(() => import('@/components/analytics/StatsCard').then(m => ({ default: m.StatsCard })))
-const StatsCardGrid = lazy(() => import('@/components/analytics/StatsCard').then(m => ({ default: m.StatsCardGrid })))
-
-// 훅을 사용하는 컴포넌트를 동적으로 로드
 const AnalyticsDataProvider = lazy(() => import('./analytics/AnalyticsDataProvider'))
+const OverviewTab = lazy(() => import('./analytics/OverviewTab'))
+const FunnelTab = lazy(() => import('./analytics/FunnelTab'))
+const BehaviorTab = lazy(() => import('./analytics/BehaviorTab'))
+const EventsTab = lazy(() => import('./analytics/EventsTab'))
 
 // 로딩 폴백 컴포넌트
 const ChartSkeleton = () => (
@@ -60,134 +57,54 @@ export default function Analytics() {
       {/* 데이터 프로바이더로 래핑 */}
       <Suspense fallback={<ChartSkeleton />}>
         <AnalyticsDataProvider dateRange={dateRange}>
-          {({ funnelData, funnelLoading, bounceData, bounceLoading, eventCounts, eventCountsLoading }) => (
+          {(analyticsData) => (
             <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="overview" className="flex items-center gap-2" aria-label="개요">
-            <Activity className="h-4 w-4" aria-hidden="true" />
-            <span className="hidden sm:inline">개요</span>
-          </TabsTrigger>
-          <TabsTrigger value="funnel" className="flex items-center gap-2" aria-label="퍼널 분석">
-            <TrendingDown className="h-4 w-4" aria-hidden="true" />
-            <span className="hidden sm:inline">퍼널 분석</span>
-          </TabsTrigger>
-          <TabsTrigger value="behavior" className="flex items-center gap-2" aria-label="사용자 행동">
-            <BarChart3 className="h-4 w-4" aria-hidden="true" />
-            <span className="hidden sm:inline">사용자 행동</span>
-          </TabsTrigger>
-          <TabsTrigger value="events" className="flex items-center gap-2" aria-label="이벤트 로그">
-            <Clock className="h-4 w-4" aria-hidden="true" />
-            <span className="hidden sm:inline">이벤트 로그</span>
-          </TabsTrigger>
-        </TabsList>
+              <TabsList className="grid w-full grid-cols-4">
+                <TabsTrigger value="overview" className="flex items-center gap-2" aria-label="개요">
+                  <Activity className="h-4 w-4" aria-hidden="true" />
+                  <span className="hidden sm:inline">개요</span>
+                </TabsTrigger>
+                <TabsTrigger value="funnel" className="flex items-center gap-2" aria-label="퍼널 분석">
+                  <TrendingDown className="h-4 w-4" aria-hidden="true" />
+                  <span className="hidden sm:inline">퍼널 분석</span>
+                </TabsTrigger>
+                <TabsTrigger value="behavior" className="flex items-center gap-2" aria-label="사용자 행동">
+                  <BarChart3 className="h-4 w-4" aria-hidden="true" />
+                  <span className="hidden sm:inline">사용자 행동</span>
+                </TabsTrigger>
+                <TabsTrigger value="events" className="flex items-center gap-2" aria-label="이벤트 로그">
+                  <Clock className="h-4 w-4" aria-hidden="true" />
+                  <span className="hidden sm:inline">이벤트 로그</span>
+                </TabsTrigger>
+              </TabsList>
 
-        {/* 개요 탭 */}
-        <TabsContent value="overview" className="space-y-6">
-          <Suspense fallback={<ChartSkeleton />}>
-            <StatsCardGrid columns={3}>
-              {/* 이탈률 카드 */}
-              <Suspense fallback={<ChartSkeleton />}>
-                <BounceRateCard data={bounceData} loading={bounceLoading} />
-              </Suspense>
+              {/* 개요 탭 */}
+              <TabsContent value="overview">
+                <Suspense fallback={<ChartSkeleton />}>
+                  <OverviewTab data={analyticsData} />
+                </Suspense>
+              </TabsContent>
 
-              {/* 총 이벤트 수 */}
-              <StatsCard
-                title="총 이벤트"
-                value={String(eventCounts?.reduce((sum, e) => sum + Number(e.event_count), 0) || 0)}
-                icon={<Activity className="h-5 w-5 text-blue-600" />}
-                description="선택한 기간 동안 발생한 이벤트"
-                loading={eventCountsLoading}
-              />
+              {/* 퍼널 분석 탭 */}
+              <TabsContent value="funnel">
+                <Suspense fallback={<ChartSkeleton />}>
+                  <FunnelTab data={analyticsData} />
+                </Suspense>
+              </TabsContent>
 
-              {/* 고유 사용자 수 */}
-              <StatsCard
-                title="고유 사용자"
-                value={String(eventCounts?.reduce((sum, e) => sum + Number(e.unique_users), 0) || 0)}
-                icon={<Users className="h-5 w-5 text-purple-600" />}
-                description="활동한 사용자 수"
-                loading={eventCountsLoading}
-              />
-            </StatsCardGrid>
-          </Suspense>
+              {/* 사용자 행동 탭 */}
+              <TabsContent value="behavior">
+                <Suspense fallback={<ChartSkeleton />}>
+                  <BehaviorTab data={analyticsData} />
+                </Suspense>
+              </TabsContent>
 
-          {/* 상위 이벤트 */}
-          <Card>
-            <CardHeader>
-              <CardTitle>상위 이벤트</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {eventCountsLoading ? (
-                <div className="space-y-2">
-                  {[...Array(5)].map((_, i) => (
-                    <Skeleton key={i} className="h-12" />
-                  ))}
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {eventCounts?.map((event, index) => (
-                    <div
-                      key={event.event_name}
-                      className="flex items-center justify-between p-3 rounded-lg bg-accent"
-                    >
-                      <div className="flex items-center gap-3">
-                        <span className="text-2xl font-bold text-muted-foreground">
-                          #{index + 1}
-                        </span>
-                        <div>
-                          <p className="font-semibold">{event.event_name}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {Number(event.unique_sessions).toLocaleString()} 세션
-                          </p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-xl font-bold">
-                          {Number(event.event_count).toLocaleString()}
-                        </p>
-                        <p className="text-xs text-muted-foreground">발생 횟수</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* 퍼널 분석 탭 */}
-        <TabsContent value="funnel">
-          <Suspense fallback={<ChartSkeleton />}>
-            <FunnelChart data={funnelData} loading={funnelLoading} />
-          </Suspense>
-        </TabsContent>
-
-        {/* 사용자 행동 탭 */}
-        <TabsContent value="behavior">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Suspense fallback={<ChartSkeleton />}>
-              <BounceRateCard data={bounceData} loading={bounceLoading} />
-            </Suspense>
-
-            {/* 평균 세션 시간 (추후 구현) */}
-            <Card>
-              <CardHeader>
-                <CardTitle>평균 세션 시간</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground text-center py-8">
-                  Week 2에서 구현 예정
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-
-        {/* 이벤트 타임라인 탭 */}
-        <TabsContent value="events">
-          <Suspense fallback={<ChartSkeleton />}>
-            <EventTimeline startDate={dateRange.start} endDate={dateRange.end} />
-          </Suspense>
-        </TabsContent>
+              {/* 이벤트 타임라인 탭 */}
+              <TabsContent value="events">
+                <Suspense fallback={<ChartSkeleton />}>
+                  <EventsTab dateRange={dateRange} />
+                </Suspense>
+              </TabsContent>
             </Tabs>
           )}
         </AnalyticsDataProvider>
