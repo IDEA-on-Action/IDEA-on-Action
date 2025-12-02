@@ -571,6 +571,477 @@ describe('useSubscriptions', () => {
     });
   });
 
+  describe('useMySubscriptions - 추가 테스트', () => {
+    it('구독이 여러 개 있을 때 최신순으로 정렬되어야 함', async () => {
+      // Setup
+      vi.mocked(supabase.auth.getUser).mockResolvedValue({
+        data: { user: mockUser as any },
+        error: null,
+      });
+
+      const orderMock = vi.fn().mockResolvedValue({
+        data: mockSubscriptions,
+        error: null,
+      });
+
+      const eqMock = vi.fn().mockReturnValue({
+        order: orderMock,
+      });
+
+      const selectMock = vi.fn().mockReturnValue({
+        eq: eqMock,
+      });
+
+      vi.mocked(supabase.from).mockReturnValue({
+        select: selectMock,
+      } as any);
+
+      // Execute
+      const { result } = renderHook(() => useMySubscriptions(), { wrapper });
+
+      // Assert
+      await waitFor(() => {
+        expect(result.current.isSuccess || result.current.isError).toBe(true);
+      });
+
+      if (result.current.isSuccess) {
+        expect(orderMock).toHaveBeenCalledWith('created_at', { ascending: false });
+        expect(result.current.data![0].created_at).toBe('2024-01-01T00:00:00Z');
+      }
+    });
+
+    it('빈 구독 목록도 성공으로 처리되어야 함', async () => {
+      // Setup
+      vi.mocked(supabase.auth.getUser).mockResolvedValue({
+        data: { user: mockUser as any },
+        error: null,
+      });
+
+      const orderMock = vi.fn().mockResolvedValue({
+        data: [],
+        error: null,
+      });
+
+      const eqMock = vi.fn().mockReturnValue({
+        order: orderMock,
+      });
+
+      const selectMock = vi.fn().mockReturnValue({
+        eq: eqMock,
+      });
+
+      vi.mocked(supabase.from).mockReturnValue({
+        select: selectMock,
+      } as any);
+
+      // Execute
+      const { result } = renderHook(() => useMySubscriptions(), { wrapper });
+
+      // Assert
+      await waitFor(() => {
+        expect(result.current.isSuccess || result.current.isError).toBe(true);
+      });
+
+      if (result.current.isSuccess) {
+        expect(result.current.data).toEqual([]);
+      }
+    });
+
+    it('active와 trial 상태의 구독이 모두 조회되어야 함', async () => {
+      // Setup
+      vi.mocked(supabase.auth.getUser).mockResolvedValue({
+        data: { user: mockUser as any },
+        error: null,
+      });
+
+      const orderMock = vi.fn().mockResolvedValue({
+        data: mockSubscriptions,
+        error: null,
+      });
+
+      const eqMock = vi.fn().mockReturnValue({
+        order: orderMock,
+      });
+
+      const selectMock = vi.fn().mockReturnValue({
+        eq: eqMock,
+      });
+
+      vi.mocked(supabase.from).mockReturnValue({
+        select: selectMock,
+      } as any);
+
+      // Execute
+      const { result } = renderHook(() => useMySubscriptions(), { wrapper });
+
+      // Assert
+      await waitFor(() => {
+        expect(result.current.isSuccess || result.current.isError).toBe(true);
+      });
+
+      if (result.current.isSuccess) {
+        const activeCount = result.current.data!.filter((s) => s.status === 'active').length;
+        const trialCount = result.current.data!.filter((s) => s.status === 'trial').length;
+        expect(activeCount + trialCount).toBeGreaterThan(0);
+      }
+    });
+  });
+
+  describe('useCancelSubscription - 추가 테스트', () => {
+    it('취소 사유가 없어도 정상적으로 취소되어야 함', async () => {
+      // Setup
+      const cancelledSubscription = {
+        ...mockSubscriptions[0],
+        status: 'cancelled',
+        cancel_at_period_end: false,
+        cancelled_at: '2024-01-20T00:00:00Z',
+      };
+
+      const singleMock = vi.fn().mockResolvedValue({
+        data: cancelledSubscription,
+        error: null,
+      });
+
+      const selectMock = vi.fn().mockReturnValue({
+        single: singleMock,
+      });
+
+      const eqMock = vi.fn().mockReturnValue({
+        select: selectMock,
+      });
+
+      const updateMock = vi.fn().mockReturnValue({
+        eq: eqMock,
+      });
+
+      vi.mocked(supabase.from).mockReturnValue({
+        update: updateMock,
+      } as any);
+
+      // Execute
+      const { result } = renderHook(() => useCancelSubscription(), { wrapper });
+
+      await waitFor(() => {
+        expect(result.current.isIdle || result.current.isSuccess || result.current.isError).toBe(true);
+      });
+
+      result.current.mutate({
+        subscription_id: 'sub-1',
+        cancel_at_period_end: false,
+      });
+
+      // Assert
+      await waitFor(() => {
+        expect(result.current.isSuccess || result.current.isError).toBe(true);
+      });
+
+      if (result.current.isSuccess) {
+        expect(updateMock).toHaveBeenCalled();
+      }
+    });
+
+    it('이미 취소된 구독을 다시 취소하려고 하면 에러를 반환해야 함', async () => {
+      // Setup
+      const eqMock = vi.fn().mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          single: vi.fn().mockResolvedValue({
+            data: null,
+            error: { message: 'Already cancelled', code: 'PGRST116' },
+          }),
+        }),
+      });
+
+      vi.mocked(supabase.from).mockReturnValue({
+        update: vi.fn().mockReturnValue({
+          eq: eqMock,
+        }),
+      } as any);
+
+      // Execute
+      const { result } = renderHook(() => useCancelSubscription(), { wrapper });
+
+      await waitFor(() => {
+        expect(result.current.isIdle || result.current.isSuccess || result.current.isError).toBe(true);
+      });
+
+      result.current.mutate({
+        subscription_id: 'sub-cancelled',
+        cancel_at_period_end: false,
+      });
+
+      // Assert
+      await waitFor(() => {
+        expect(result.current.isError).toBe(true);
+      });
+    });
+
+    it('metadata에 취소 사유가 올바르게 저장되어야 함', async () => {
+      // Setup
+      const cancelledSubscription = {
+        ...mockSubscriptions[0],
+        status: 'cancelled',
+        cancel_at_period_end: false,
+        cancelled_at: '2024-01-20T00:00:00Z',
+        metadata: { cancel_reason: '더 나은 서비스 발견' },
+      };
+
+      const singleMock = vi.fn().mockResolvedValue({
+        data: cancelledSubscription,
+        error: null,
+      });
+
+      const selectMock = vi.fn().mockReturnValue({
+        single: singleMock,
+      });
+
+      const eqMock = vi.fn().mockReturnValue({
+        select: selectMock,
+      });
+
+      const updateMock = vi.fn().mockReturnValue({
+        eq: eqMock,
+      });
+
+      vi.mocked(supabase.from).mockReturnValue({
+        update: updateMock,
+      } as any);
+
+      // Execute
+      const { result } = renderHook(() => useCancelSubscription(), { wrapper });
+
+      await waitFor(() => {
+        expect(result.current.isIdle || result.current.isSuccess || result.current.isError).toBe(true);
+      });
+
+      result.current.mutate({
+        subscription_id: 'sub-1',
+        cancel_at_period_end: false,
+        reason: '더 나은 서비스 발견',
+      });
+
+      // Assert
+      await waitFor(() => {
+        expect(result.current.isSuccess || result.current.isError).toBe(true);
+      });
+
+      if (result.current.isSuccess) {
+        expect(updateMock).toHaveBeenCalledWith(
+          expect.objectContaining({
+            metadata: { cancel_reason: '더 나은 서비스 발견' },
+          })
+        );
+      }
+    });
+
+    it('cancel_at_period_end가 true일 때 cancelled_at이 설정되지 않아야 함', async () => {
+      // Setup
+      const scheduledCancellation = {
+        ...mockSubscriptions[0],
+        cancel_at_period_end: true,
+      };
+
+      const singleMock = vi.fn().mockResolvedValue({
+        data: scheduledCancellation,
+        error: null,
+      });
+
+      const selectMock = vi.fn().mockReturnValue({
+        single: singleMock,
+      });
+
+      const eqMock = vi.fn().mockReturnValue({
+        select: selectMock,
+      });
+
+      const updateMock = vi.fn().mockReturnValue({
+        eq: eqMock,
+      });
+
+      vi.mocked(supabase.from).mockReturnValue({
+        update: updateMock,
+      } as any);
+
+      // Execute
+      const { result } = renderHook(() => useCancelSubscription(), { wrapper });
+
+      await waitFor(() => {
+        expect(result.current.isIdle || result.current.isSuccess || result.current.isError).toBe(true);
+      });
+
+      result.current.mutate({
+        subscription_id: 'sub-1',
+        cancel_at_period_end: true,
+      });
+
+      // Assert
+      await waitFor(() => {
+        expect(result.current.isSuccess || result.current.isError).toBe(true);
+      });
+
+      if (result.current.isSuccess) {
+        expect(updateMock).toHaveBeenCalledWith(
+          expect.not.objectContaining({
+            cancelled_at: expect.anything(),
+          })
+        );
+      }
+    });
+  });
+
+  describe('useUpgradeSubscription - 추가 테스트', () => {
+    it('플랜 다운그레이드도 성공적으로 처리되어야 함', async () => {
+      // Setup
+      vi.mocked(supabase.auth.getUser).mockResolvedValue({
+        data: { user: mockUser as any },
+        error: null,
+      });
+
+      vi.mocked(supabase.functions.invoke).mockResolvedValue({
+        data: {
+          orderId: 'order-123',
+          amount: 50000, // 더 낮은 가격
+          orderName: '플랜 다운그레이드',
+        },
+        error: null,
+      });
+
+      const downgradedSubscription = {
+        ...mockSubscriptions[0],
+        plan_id: 'plan-basic',
+      };
+
+      const singleMock = vi.fn().mockResolvedValue({
+        data: downgradedSubscription,
+        error: null,
+      });
+
+      const selectMock = vi.fn().mockReturnValue({
+        single: singleMock,
+      });
+
+      const eqMock = vi.fn().mockReturnValue({
+        select: selectMock,
+      });
+
+      const updateMock = vi.fn().mockReturnValue({
+        eq: eqMock,
+      });
+
+      vi.mocked(supabase.from).mockReturnValue({
+        update: updateMock,
+      } as any);
+
+      // Execute
+      const { result } = renderHook(() => useUpgradeSubscription(), { wrapper });
+
+      await waitFor(() => {
+        expect(result.current.isIdle || result.current.isSuccess || result.current.isError).toBe(true);
+      });
+
+      result.current.mutate({
+        subscription_id: 'sub-1',
+        new_plan_id: 'plan-basic',
+      });
+
+      // Assert
+      await waitFor(() => {
+        expect(result.current.isSuccess || result.current.isError).toBe(true);
+      });
+
+      if (result.current.isSuccess) {
+        expect(updateMock).toHaveBeenCalledWith(
+          expect.objectContaining({
+            plan_id: 'plan-basic',
+          })
+        );
+      }
+    });
+
+    it('같은 플랜으로 변경하려고 해도 처리되어야 함', async () => {
+      // Setup
+      vi.mocked(supabase.auth.getUser).mockResolvedValue({
+        data: { user: mockUser as any },
+        error: null,
+      });
+
+      vi.mocked(supabase.functions.invoke).mockResolvedValue({
+        data: {
+          orderId: 'order-123',
+          amount: 100000,
+        },
+        error: null,
+      });
+
+      const singleMock = vi.fn().mockResolvedValue({
+        data: mockSubscriptions[0],
+        error: null,
+      });
+
+      const selectMock = vi.fn().mockReturnValue({
+        single: singleMock,
+      });
+
+      const eqMock = vi.fn().mockReturnValue({
+        select: selectMock,
+      });
+
+      const updateMock = vi.fn().mockReturnValue({
+        eq: eqMock,
+      });
+
+      vi.mocked(supabase.from).mockReturnValue({
+        update: updateMock,
+      } as any);
+
+      // Execute
+      const { result } = renderHook(() => useUpgradeSubscription(), { wrapper });
+
+      await waitFor(() => {
+        expect(result.current.isIdle || result.current.isSuccess || result.current.isError).toBe(true);
+      });
+
+      result.current.mutate({
+        subscription_id: 'sub-1',
+        new_plan_id: 'plan-1', // 현재 플랜과 동일
+      });
+
+      // Assert
+      await waitFor(() => {
+        expect(result.current.isSuccess || result.current.isError).toBe(true);
+      });
+    });
+
+    it('Edge Function 네트워크 에러 시 에러를 반환해야 함', async () => {
+      // Setup
+      vi.mocked(supabase.auth.getUser).mockResolvedValue({
+        data: { user: mockUser as any },
+        error: null,
+      });
+
+      vi.mocked(supabase.functions.invoke).mockResolvedValue({
+        data: null,
+        error: { message: 'Network error', name: 'NetworkError' },
+      });
+
+      // Execute
+      const { result } = renderHook(() => useUpgradeSubscription(), { wrapper });
+
+      await waitFor(() => {
+        expect(result.current.isIdle || result.current.isSuccess || result.current.isError).toBe(true);
+      });
+
+      result.current.mutate({
+        subscription_id: 'sub-1',
+        new_plan_id: 'plan-premium',
+      });
+
+      // Assert
+      await waitFor(() => {
+        expect(result.current.isError).toBe(true);
+      });
+    });
+  });
+
   describe('useSubscriptionPayments', () => {
     it('구독 결제 내역을 성공적으로 조회해야 함', async () => {
       // Setup

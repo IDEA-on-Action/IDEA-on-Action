@@ -717,6 +717,81 @@ export type Database = {
         }
         Relationships: []
       }
+      rag_documents: {
+        Row: {
+          category: string | null
+          chunk_count: number | null
+          content: string
+          created_at: string | null
+          embedding_status: string
+          id: string
+          is_public: boolean | null
+          metadata: Json | null
+          project_id: string | null
+          service_id: string | null
+          source_type: string
+          source_url: string | null
+          status: string
+          tags: string[] | null
+          title: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          category?: string | null
+          chunk_count?: number | null
+          content: string
+          created_at?: string | null
+          embedding_status?: string
+          id?: string
+          is_public?: boolean | null
+          metadata?: Json | null
+          project_id?: string | null
+          service_id?: string | null
+          source_type: string
+          source_url?: string | null
+          status?: string
+          tags?: string[] | null
+          title: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          category?: string | null
+          chunk_count?: number | null
+          content?: string
+          created_at?: string | null
+          embedding_status?: string
+          id?: string
+          is_public?: boolean | null
+          metadata?: Json | null
+          project_id?: string | null
+          service_id?: string | null
+          source_type?: string
+          source_url?: string | null
+          status?: string
+          tags?: string[] | null
+          title?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rag_documents_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rag_documents_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "app_user"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product: {
         Row: {
           brand: string | null

@@ -26,6 +26,9 @@ interface TestEntity extends BaseEntity {
   value: number
 }
 
+// Supabase 쿼리 빌더 모킹 타입
+type MockQueryBuilder = ReturnType<typeof supabase.from>
+
 describe('useCRUD', () => {
   let queryClient: QueryClient
   let wrapper: React.FC<{ children: React.ReactNode }>
@@ -72,7 +75,7 @@ describe('useCRUD', () => {
         count: 2,
       })
 
-      vi.mocked(supabase.from).mockReturnValue(mockChain as any)
+      vi.mocked(supabase.from).mockReturnValue(mockChain as unknown as MockQueryBuilder)
 
       const { result } = renderHook(
         () => {
@@ -111,7 +114,7 @@ describe('useCRUD', () => {
         }),
       }
 
-      vi.mocked(supabase.from).mockReturnValue(queryMock as any)
+      vi.mocked(supabase.from).mockReturnValue(queryMock as unknown as MockQueryBuilder)
 
       const { result } = renderHook(
         () => {
@@ -142,7 +145,7 @@ describe('useCRUD', () => {
         }),
       }
 
-      vi.mocked(supabase.from).mockReturnValue(queryMock as any)
+      vi.mocked(supabase.from).mockReturnValue(queryMock as unknown as MockQueryBuilder)
 
       const { result } = renderHook(
         () => {
@@ -176,7 +179,7 @@ describe('useCRUD', () => {
         range: rangeMock,
       }
 
-      vi.mocked(supabase.from).mockReturnValue(queryMock as any)
+      vi.mocked(supabase.from).mockReturnValue(queryMock as unknown as MockQueryBuilder)
 
       const { result } = renderHook(
         () => {
@@ -206,7 +209,7 @@ describe('useCRUD', () => {
         }),
       }
 
-      vi.mocked(supabase.from).mockReturnValue(mockChain as any)
+      vi.mocked(supabase.from).mockReturnValue(mockChain as unknown as MockQueryBuilder)
 
       const { result } = renderHook(
         () => {
@@ -239,7 +242,7 @@ describe('useCRUD', () => {
         }),
       }
 
-      vi.mocked(supabase.from).mockReturnValue(queryMock as any)
+      vi.mocked(supabase.from).mockReturnValue(queryMock as unknown as MockQueryBuilder)
 
       const { result } = renderHook(
         () => {
@@ -284,7 +287,7 @@ describe('useCRUD', () => {
         }),
       }
 
-      vi.mocked(supabase.from).mockReturnValue(queryMock as any)
+      vi.mocked(supabase.from).mockReturnValue(queryMock as unknown as MockQueryBuilder)
 
       const { result } = renderHook(
         () => {
@@ -317,7 +320,7 @@ describe('useCRUD', () => {
         }),
       }
 
-      vi.mocked(supabase.from).mockReturnValue(queryMock as any)
+      vi.mocked(supabase.from).mockReturnValue(queryMock as unknown as MockQueryBuilder)
 
       const { result } = renderHook(
         () => {
@@ -348,7 +351,7 @@ describe('useCRUD', () => {
         }),
       }
 
-      vi.mocked(supabase.from).mockReturnValue(queryMock as any)
+      vi.mocked(supabase.from).mockReturnValue(queryMock as unknown as MockQueryBuilder)
 
       const invalidateQueriesSpy = vi.spyOn(queryClient, 'invalidateQueries')
 
@@ -385,7 +388,7 @@ describe('useCRUD', () => {
         }),
       }
 
-      vi.mocked(supabase.from).mockReturnValue(queryMock as any)
+      vi.mocked(supabase.from).mockReturnValue(queryMock as unknown as MockQueryBuilder)
 
       const { result } = renderHook(
         () => {
@@ -423,7 +426,7 @@ describe('useCRUD', () => {
         }),
       }
 
-      vi.mocked(supabase.from).mockReturnValue(mockChain as any)
+      vi.mocked(supabase.from).mockReturnValue(mockChain as unknown as MockQueryBuilder)
 
       const { result } = renderHook(
         () => {
@@ -459,7 +462,7 @@ describe('useCRUD', () => {
         }),
       }
 
-      vi.mocked(supabase.from).mockReturnValue(queryMock as any)
+      vi.mocked(supabase.from).mockReturnValue(queryMock as unknown as MockQueryBuilder)
 
       const { result } = renderHook(
         () => {
@@ -491,7 +494,7 @@ describe('useCRUD', () => {
         }),
       }
 
-      vi.mocked(supabase.from).mockReturnValue(queryMock as any)
+      vi.mocked(supabase.from).mockReturnValue(queryMock as unknown as MockQueryBuilder)
 
       const { result } = renderHook(
         () => {

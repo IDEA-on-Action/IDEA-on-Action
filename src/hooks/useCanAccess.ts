@@ -160,9 +160,17 @@ export function useCanAccess(featureKey: string): CanAccessResult {
           }
         }
 
-        // 3. 현재 사용량 조회 (subscription_payments 테이블에서 추정 가능)
-        // 실제 프로덕션에서는 별도 usage_logs 테이블 권장
-        const usedCount = 0 // TODO: 실제 사용량 조회 로직 추가
+        // 3. 현재 사용량 조회 (subscription_usage 테이블에서 조회)
+        // get_current_usage 함수를 사용하여 현재 기간의 사용량 조회
+        const { data: usageData, error: usageError } = await supabase
+          .rpc('get_current_usage', {
+            p_subscription_id: subscription.id,
+            p_feature_key: featureKey,
+          })
+          .single()
+
+        // 사용량 조회 실패 시 0으로 처리 (제한은 유지)
+        const usedCount = usageError ? 0 : (usageData?.used_count ?? 0)
 
         // 4. 접근 가능 여부 계산
         const limit = limitValue === null ? null : limitValue

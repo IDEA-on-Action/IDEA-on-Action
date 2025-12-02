@@ -37,6 +37,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 import {
   useRealtimeEventStream,
   type StreamItem,
@@ -802,23 +803,68 @@ export function AlertCenter({
   };
 
   // 선택 항목 삭제
-  const handleDeleteSelected = () => {
+  const handleDeleteSelected = async () => {
     if (selectedItems.size === 0) return;
 
-    // 실제로는 DB 삭제가 필요하지만, 여기서는 로컬에서만 제거
-    // TODO: DB 삭제 로직 구현
-    selectedItems.forEach((itemId) => {
-      // clearStream은 전체 삭제이므로 개별 삭제 로직이 필요함
-      // 임시로 읽음 처리
-      markAsRead(itemId);
-    });
+    try {
+      // 선택된 항목들을 이벤트와 이슈로 분리
+      const eventsToDelete: string[] = [];
+      const issuesToDelete: string[] = [];
 
-    setSelectedItems(new Set());
+      filteredItems.forEach((item) => {
+        if (selectedItems.has(item.id)) {
+          if (item.type === 'event') {
+            const event = getEventFromStreamItem(item);
+            if (event?.id) eventsToDelete.push(event.id);
+          } else if (item.type === 'issue') {
+            const issue = getIssueFromStreamItem(item);
+            if (issue?.id) issuesToDelete.push(issue.id);
+          }
+        }
+      });
 
-    toast({
-      title: '삭제 완료',
-      description: `${selectedItems.size}개 항목이 삭제되었습니다.`,
-    });
+      // DB에서 삭제 (병렬 처리)
+      const deletePromises: Promise<unknown>[] = [];
+
+      if (eventsToDelete.length > 0) {
+        deletePromises.push(
+          supabase
+            .from('service_events')
+            .delete()
+            .in('id', eventsToDelete)
+        );
+      }
+
+      if (issuesToDelete.length > 0) {
+        deletePromises.push(
+          supabase
+            .from('service_issues')
+            .delete()
+            .in('id', issuesToDelete)
+        );
+      }
+
+      await Promise.all(deletePromises);
+
+      // 로컬 상태에서 제거 (읽음 처리로 필터링)
+      selectedItems.forEach((itemId) => {
+        markAsRead(itemId);
+      });
+
+      setSelectedItems(new Set());
+
+      toast({
+        title: '삭제 완료',
+        description: `${selectedItems.size}개 항목이 삭제되었습니다.`,
+      });
+    } catch (error) {
+      console.error('Failed to delete selected items:', error);
+      toast({
+        title: '삭제 실패',
+        description: '항목 삭제 중 오류가 발생했습니다.',
+        variant: 'destructive',
+      });
+    }
   };
 
   // 아이템 클릭
