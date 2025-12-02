@@ -2,7 +2,7 @@
 
 > Claude와의 개발 협업을 위한 프로젝트 핵심 문서
 
-**현재 버전**: 2.26.0 | **상태**: ✅ Production | **방법론**: SSDD
+**현재 버전**: 2.27.0 | **상태**: ✅ Production | **방법론**: SSDD
 **변경 내역**: [docs/archive/CLAUDE-history-november-2025.md](docs/archive/CLAUDE-history-november-2025.md)
 
 ---
@@ -152,7 +152,7 @@ VITE_SUPABASE_ANON_KEY=[YOUR_KEY]
 
 ## 📊 현재 상태
 
-- **총 테스트**: 1069개+ (Unit 869, E2E 172+, Visual 28)
+- **총 테스트**: 1100개+ (Unit 971, E2E 172+, Visual 28)
 - **린트 경고**: 0개
 - **번들 크기**: ~1545 kB (PWA 27 entries)
 

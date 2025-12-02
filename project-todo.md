@@ -3,9 +3,9 @@
 > 프로젝트 작업 목록 및 진행 상황 관리
 
 **마지막 업데이트**: 2025-12-02
-**현재 Phase**: v2.26.0 Claude Skills Phase 2 진행 중
-**다음 단계**: docx Skill 고도화, Central Hub Phase 3
-**프로젝트 버전**: 2.26.0
+**현재 Phase**: v2.27.0 Claude Skills Phase 2 완료
+**다음 단계**: Central Hub Phase 3, pptx Skill
+**프로젝트 버전**: 2.27.0
 **프로덕션**: https://www.ideaonaction.ai
 
 ---
