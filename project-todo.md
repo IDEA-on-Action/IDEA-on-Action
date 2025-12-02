@@ -3,10 +3,33 @@
 > 프로젝트 작업 목록 및 진행 상황 관리
 
 **마지막 업데이트**: 2025-12-02
-**현재 Phase**: v2.26.0 Claude Skills Phase 1 완료
-**다음 단계**: 테스트 커버리지 향상, Claude Skills Phase 2
+**현재 Phase**: v2.26.0 Claude Skills Phase 2 진행 중
+**다음 단계**: docx Skill 고도화, Central Hub Phase 3
 **프로젝트 버전**: 2.26.0
 **프로덕션**: https://www.ideaonaction.ai
+
+---
+
+## ✅ 완료: v2.27.0 Sprint (2025-12-02)
+
+**목표**: Claude Skills Phase 2, Central Hub 테스트, 기술 부채 해소
+**완료일**: 2025-12-02
+
+### 완료된 작업
+
+| Task | 산출물 | 테스트 |
+|------|--------|--------|
+| ✅ 이슈 수정 | eslint, project-todo, useMCPAuth 수정 | - |
+| ✅ docx Skill | useDocxExport 훅, 타입 정의 | 8개 |
+| ✅ Central Hub 테스트 | useServiceEvents/Issues/Health | 94개 |
+| ✅ 기술 부채 해소 | TODO 5개, any 1개 수정 | - |
+
+### 품질 지표
+
+| 지표 | 이전 | 이후 | 변화 |
+|------|------|------|------|
+| 유닛 테스트 | 869개 | 971개 | +102개 |
+| 린트 에러 | 0개 | 0개 | 유지 |
 
 ---
 
