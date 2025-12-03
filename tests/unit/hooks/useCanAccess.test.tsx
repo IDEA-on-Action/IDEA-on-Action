@@ -983,7 +983,7 @@ describe('useCanAccess', () => {
       expect(result.current.remaining).toBe(1000);
     });
 
-    it.skip('유료 플랜의 team_members는 플랜 제한을 반환해야 함 (supabase.rpc 모킹 필요)', async () => {
+    it('유료 플랜의 team_members는 플랜 제한을 반환해야 함', async () => {
       // Setup
       const singleMock = vi.fn().mockResolvedValue({
         data: mockSubscriptionWithPlan,
@@ -1014,6 +1014,16 @@ describe('useCanAccess', () => {
         select: selectMock,
       } as any);
 
+      // Mock supabase.rpc
+      const rpcSingleMock = vi.fn().mockResolvedValue({
+        data: { used_count: 0 },
+        error: null,
+      });
+
+      vi.mocked(supabase.rpc).mockReturnValue({
+        single: rpcSingleMock,
+      } as any);
+
       // Execute
       const { result } = renderHook(() => useCanAccess('team_members'), { wrapper });
 
@@ -1027,7 +1037,7 @@ describe('useCanAccess', () => {
       expect(result.current.remaining).toBe(5);
     });
 
-    it.skip('프로젝트 카운트 제한 초과 시 canAccess가 false여야 함 (supabase.rpc 모킹 필요)', async () => {
+    it('프로젝트 카운트 제한 초과 시 canAccess가 false여야 함', async () => {
       // Setup
       const exhaustedPlan = {
         id: 'sub-exhausted',
@@ -1035,7 +1045,7 @@ describe('useCanAccess', () => {
           id: 'plan-exhausted',
           plan_name: 'Exhausted',
           features: {
-            project_count: 0,
+            project_count: 5,
           },
         },
       };
@@ -1069,6 +1079,16 @@ describe('useCanAccess', () => {
         select: selectMock,
       } as any);
 
+      // Mock supabase.rpc - 사용량이 제한에 도달
+      const rpcSingleMock = vi.fn().mockResolvedValue({
+        data: { used_count: 5 }, // 5/5 사용
+        error: null,
+      });
+
+      vi.mocked(supabase.rpc).mockReturnValue({
+        single: rpcSingleMock,
+      } as any);
+
       // Execute
       const { result } = renderHook(() => useCanAccess('project_count'), { wrapper });
 
@@ -1078,11 +1098,11 @@ describe('useCanAccess', () => {
       });
 
       expect(result.current.canAccess).toBe(false);
-      expect(result.current.limit).toBe(0);
+      expect(result.current.limit).toBe(5);
       expect(result.current.remaining).toBe(0);
     });
 
-    it.skip('React Query 캐싱이 올바르게 작동해야 함 (supabase.rpc 모킹 필요)', async () => {
+    it('React Query 캐싱이 올바르게 작동해야 함', async () => {
       // Setup
       const singleMock = vi.fn().mockResolvedValue({
         data: mockSubscriptionWithPlan,
@@ -1113,6 +1133,16 @@ describe('useCanAccess', () => {
         select: selectMock,
       } as any);
 
+      // Mock supabase.rpc
+      const rpcSingleMock = vi.fn().mockResolvedValue({
+        data: { used_count: 0 },
+        error: null,
+      });
+
+      vi.mocked(supabase.rpc).mockReturnValue({
+        single: rpcSingleMock,
+      } as any);
+
       // Execute - 같은 기능을 두 번 조회
       const { result: result1 } = renderHook(() => useCanAccess('ai_chat_messages'), { wrapper });
       const { result: result2 } = renderHook(() => useCanAccess('ai_chat_messages'), { wrapper });
@@ -1123,13 +1153,13 @@ describe('useCanAccess', () => {
         expect(result2.current.isLoading).toBe(false);
       });
 
-      // 두 결과가 동일해야 함
+      // 두 결과가 동일해야 함 (캐싱 덕분)
       expect(result1.current.limit).toBe(result2.current.limit);
       expect(result1.current.remaining).toBe(result2.current.remaining);
       expect(result1.current.canAccess).toBe(result2.current.canAccess);
     });
 
-    it.skip('사용자가 변경되면 쿼리가 다시 실행되어야 함 (supabase.rpc 모킹 필요)', async () => {
+    it('사용자가 변경되면 쿼리가 다시 실행되어야 함', async () => {
       // Setup - 첫 번째 사용자
       vi.mocked(useAuth).mockReturnValue({
         user: mockUser,
@@ -1164,6 +1194,16 @@ describe('useCanAccess', () => {
         select: selectMock,
       } as any);
 
+      // Mock supabase.rpc
+      const rpcSingleMock = vi.fn().mockResolvedValue({
+        data: { used_count: 0 },
+        error: null,
+      });
+
+      vi.mocked(supabase.rpc).mockReturnValue({
+        single: rpcSingleMock,
+      } as any);
+
       // Execute
       const { result, rerender } = renderHook(() => useCanAccess('ai_chat_messages'), { wrapper });
 
@@ -1189,7 +1229,7 @@ describe('useCanAccess', () => {
       expect(eqUserMock).toHaveBeenCalled();
     });
 
-    it.skip('구독이 trial 상태일 때도 활성으로 처리되어야 함 (supabase.rpc 모킹 필요)', async () => {
+    it('구독이 trial 상태일 때도 활성으로 처리되어야 함', async () => {
       // Setup
       const trialSubscription = {
         id: 'sub-trial',
@@ -1231,6 +1271,16 @@ describe('useCanAccess', () => {
 
       vi.mocked(supabase.from).mockReturnValue({
         select: selectMock,
+      } as any);
+
+      // Mock supabase.rpc
+      const rpcSingleMock = vi.fn().mockResolvedValue({
+        data: { used_count: 0 },
+        error: null,
+      });
+
+      vi.mocked(supabase.rpc).mockReturnValue({
+        single: rpcSingleMock,
       } as any);
 
       // Execute

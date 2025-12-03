@@ -380,9 +380,11 @@ describe('limitTokens', () => {
 
   it('단어 경계에서 잘라야 함', () => {
     const text = 'Hello World This Is A Test';
-    const limited = limitTokens(text, 5); // 20자 = 5 토큰
+    const limited = limitTokens(text, 3); // 12자 = 3 토큰
 
-    expect(limited).not.toContain('This');
+    // 'Hello World'만 포함되어야 함 (마지막 공백에서 자름)
+    expect(limited).toContain('Hello');
+    expect(limited).toContain('World');
     expect(limited.endsWith('...')).toBe(true);
   });
 

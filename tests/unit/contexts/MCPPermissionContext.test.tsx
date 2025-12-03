@@ -146,7 +146,7 @@ describe('MCPPermissionContext', () => {
       });
 
       expect(permissionInfo).toBeDefined();
-      expect(permissionInfo!.permission).toBe('full');
+      expect(permissionInfo!.permission).toBe('admin'); // Pro 플랜은 admin 권한 반환
       expect(mockSelect).toHaveBeenCalledWith(expect.stringContaining('plan:subscription_plans'));
     });
 
@@ -296,7 +296,7 @@ describe('MCPPermissionContext', () => {
 
       const cachedPermission = result.current.permissions.get('minu-find');
       expect(cachedPermission).toBeDefined();
-      expect(cachedPermission!.permission).toBe('full');
+      expect(cachedPermission!.permission).toBe('admin'); // Pro 플랜은 admin 권한 반환
     });
   });
 

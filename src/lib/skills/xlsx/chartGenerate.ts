@@ -13,10 +13,8 @@ import type {
   BarChartOptions,
   LineChartOptions,
   PieChartOptions,
-  DEFAULT_CHART_COLORS,
-  DEFAULT_CHART_SIZE,
-  DEFAULT_CHART_MARGIN,
 } from '@/types/xlsx-chart.types';
+import { DEFAULT_CHART_COLORS } from '@/types/xlsx-chart.types';
 
 // ============================================================================
 // 차트 생성 헬퍼 함수
@@ -144,7 +142,9 @@ function drawBarChart(
   width: number,
   height: number
 ): void {
-  const margin = DEFAULT_CHART_MARGIN as typeof DEFAULT_CHART_MARGIN;
+  // 기본 차트 여백
+  const DEFAULT_MARGIN = { top: 40, right: 40, bottom: 40, left: 40 };
+  const margin = DEFAULT_MARGIN;
   const chartWidth = width - margin.left - margin.right;
   const chartHeight = height - margin.top - margin.bottom;
 
@@ -237,7 +237,9 @@ function drawLineChart(
   width: number,
   height: number
 ): void {
-  const margin = DEFAULT_CHART_MARGIN as typeof DEFAULT_CHART_MARGIN;
+  // 기본 차트 여백
+  const DEFAULT_MARGIN = { top: 40, right: 40, bottom: 40, left: 40 };
+  const margin = DEFAULT_MARGIN;
   const chartWidth = width - margin.left - margin.right;
   const chartHeight = height - margin.top - margin.bottom;
 
@@ -346,7 +348,9 @@ function drawPieChart(
   width: number,
   height: number
 ): void {
-  const margin = DEFAULT_CHART_MARGIN as typeof DEFAULT_CHART_MARGIN;
+  // 기본 차트 여백
+  const DEFAULT_MARGIN = { top: 40, right: 40, bottom: 40, left: 40 };
+  const margin = DEFAULT_MARGIN;
 
   // 배경 채우기
   ctx.fillStyle = '#ffffff';
@@ -455,8 +459,12 @@ export async function generateBarChartImage(
   data: ChartData,
   options: BarChartOptions = {}
 ): Promise<ChartGenerateResult> {
-  const width = options.width || (DEFAULT_CHART_SIZE as typeof DEFAULT_CHART_SIZE).width;
-  const height = options.height || (DEFAULT_CHART_SIZE as typeof DEFAULT_CHART_SIZE).height;
+  // 기본 차트 크기
+  const DEFAULT_WIDTH = 800;
+  const DEFAULT_HEIGHT = 400;
+
+  const width = options.width || DEFAULT_WIDTH;
+  const height = options.height || DEFAULT_HEIGHT;
 
   const canvas = document.createElement('canvas');
   canvas.width = width;
@@ -486,8 +494,12 @@ export async function generateLineChartImage(
   data: ChartData,
   options: LineChartOptions = {}
 ): Promise<ChartGenerateResult> {
-  const width = options.width || (DEFAULT_CHART_SIZE as typeof DEFAULT_CHART_SIZE).width;
-  const height = options.height || (DEFAULT_CHART_SIZE as typeof DEFAULT_CHART_SIZE).height;
+  // 기본 차트 크기
+  const DEFAULT_WIDTH = 800;
+  const DEFAULT_HEIGHT = 400;
+
+  const width = options.width || DEFAULT_WIDTH;
+  const height = options.height || DEFAULT_HEIGHT;
 
   const canvas = document.createElement('canvas');
   canvas.width = width;
@@ -517,8 +529,12 @@ export async function generatePieChartImage(
   data: ChartData,
   options: PieChartOptions = {}
 ): Promise<ChartGenerateResult> {
-  const width = options.width || (DEFAULT_CHART_SIZE as typeof DEFAULT_CHART_SIZE).width;
-  const height = options.height || (DEFAULT_CHART_SIZE as typeof DEFAULT_CHART_SIZE).height;
+  // 기본 차트 크기
+  const DEFAULT_WIDTH = 800;
+  const DEFAULT_HEIGHT = 400;
+
+  const width = options.width || DEFAULT_WIDTH;
+  const height = options.height || DEFAULT_HEIGHT;
 
   const canvas = document.createElement('canvas');
   canvas.width = width;

@@ -11,7 +11,6 @@ import type {
   ChartInsertOptions,
   ChartPosition,
   ChartSize,
-  DEFAULT_CHART_SIZE,
 } from '@/types/xlsx-chart.types';
 
 // ============================================================================
@@ -113,9 +112,12 @@ function calculatePosition(position: ChartPosition): { row: number; col: number 
  * 차트 크기 계산 (픽셀을 Excel 단위로 변환)
  */
 function calculateSize(size?: ChartSize): { width: number; height: number } {
-  const defaultSize = DEFAULT_CHART_SIZE as typeof DEFAULT_CHART_SIZE;
-  const width = size?.width || defaultSize.width;
-  const height = size?.height || defaultSize.height;
+  // 기본 차트 크기 (xlsx-chart.types.ts의 ChartConfig 기본값과 동일)
+  const DEFAULT_WIDTH = 800;
+  const DEFAULT_HEIGHT = 400;
+
+  const width = size?.width || DEFAULT_WIDTH;
+  const height = size?.height || DEFAULT_HEIGHT;
 
   // Excel에서 1 행 높이 ≈ 15 픽셀, 1 열 너비 ≈ 8.43 픽셀
   // 여기서는 간단히 픽셀 값을 그대로 사용
