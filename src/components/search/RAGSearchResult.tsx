@@ -9,7 +9,6 @@
  */
 
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { FileText, Calendar, ExternalLink, TrendingUp } from 'lucide-react';
 import type { RAGSearchResult as RAGSearchResultType } from '@/types/rag.types';
@@ -125,11 +124,12 @@ export function RAGSearchResult({
 
         {/* 관련성 프로그레스 바 */}
         <div className="mt-3">
-          <Progress
-            value={similarityPercent}
-            className="h-2"
-            indicatorClassName={getProgressColor(result.similarity)}
-          />
+          <div className="relative h-2 w-full overflow-hidden rounded-full bg-secondary">
+            <div
+              className={`h-full transition-all ${getProgressColor(result.similarity)}`}
+              style={{ width: `${similarityPercent}%` }}
+            />
+          </div>
         </div>
       </CardHeader>
 

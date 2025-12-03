@@ -238,7 +238,10 @@ async function verifyOAuthClients() {
   allClients
     .filter(c => EXPECTED_CLIENTS.some(e => e.client_id === c.client_id))
     .forEach(client => {
-      const envVarName = `MINU_${client.metadata?.service?.toUpperCase()}_CLIENT_SECRET`;
+      // description에서 service 추출 (예: "service: find" → "find")
+      const serviceMatch = client.description?.match(/service:\s*(\w+)/i);
+      const service = serviceMatch ? serviceMatch[1] : 'unknown';
+      const envVarName = `MINU_${service.toUpperCase()}_SANDBOX_CLIENT_SECRET`;
       console.log(`${envVarName}=${client.client_secret}`);
     });
 
