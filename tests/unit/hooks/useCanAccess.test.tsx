@@ -249,7 +249,7 @@ describe('useCanAccess', () => {
       } as any);
     });
 
-    it.skip('플랜 features에서 제한을 조회하고 적용해야 함 (supabase.rpc 모킹 필요)', async () => {
+    it('플랜 features에서 제한을 조회하고 적용해야 함', async () => {
       // Setup
       const singleMock = vi.fn().mockResolvedValue({
         data: mockSubscriptionWithPlan,
@@ -278,6 +278,16 @@ describe('useCanAccess', () => {
 
       vi.mocked(supabase.from).mockReturnValue({
         select: selectMock,
+      } as any);
+
+      // Mock supabase.rpc for get_current_usage
+      const rpcSingleMock = vi.fn().mockResolvedValue({
+        data: { used_count: 0 },
+        error: null,
+      });
+
+      vi.mocked(supabase.rpc).mockReturnValue({
+        single: rpcSingleMock,
       } as any);
 
       // Execute
@@ -387,21 +397,21 @@ describe('useCanAccess', () => {
       expect(result.current.remaining).toBe(0);
     });
 
-    it.skip('사용량이 제한에 도달하면 canAccess가 false여야 함 (supabase.rpc 모킹 필요)', async () => {
-      // Setup - 제한이 0인 플랜
-      const exhaustedPlan = {
-        id: 'sub-exhausted',
+    it('사용량이 제한에 도달하면 canAccess가 false여야 함', async () => {
+      // Setup - 제한이 10이지만 사용량이 10인 경우
+      const limitedPlan = {
+        id: 'sub-limited',
         plan: {
-          id: 'plan-exhausted',
-          plan_name: 'Exhausted',
+          id: 'plan-limited',
+          plan_name: 'Limited',
           features: {
-            ai_chat_messages: 0, // 제한 소진
+            ai_chat_messages: 10, // 제한 10
           },
         },
       };
 
       const singleMock = vi.fn().mockResolvedValue({
-        data: exhaustedPlan,
+        data: limitedPlan,
         error: null,
       });
 
@@ -429,6 +439,16 @@ describe('useCanAccess', () => {
         select: selectMock,
       } as any);
 
+      // Mock supabase.rpc - 사용량이 제한에 도달
+      const rpcSingleMock = vi.fn().mockResolvedValue({
+        data: { used_count: 10 }, // 10/10 사용
+        error: null,
+      });
+
+      vi.mocked(supabase.rpc).mockReturnValue({
+        single: rpcSingleMock,
+      } as any);
+
       // Execute
       const { result } = renderHook(() => useCanAccess('ai_chat_messages'), { wrapper });
 
@@ -438,11 +458,11 @@ describe('useCanAccess', () => {
       });
 
       expect(result.current.canAccess).toBe(false);
-      expect(result.current.limit).toBe(0);
+      expect(result.current.limit).toBe(10);
       expect(result.current.remaining).toBe(0);
     });
 
-    it.skip('여러 기능에 대해 각각 다른 제한값을 반환해야 함 (supabase.rpc 모킹 필요)', async () => {
+    it('여러 기능에 대해 각각 다른 제한값을 반환해야 함', async () => {
       // Setup
       const singleMock = vi.fn().mockResolvedValue({
         data: mockSubscriptionWithPlan,
@@ -471,6 +491,16 @@ describe('useCanAccess', () => {
 
       vi.mocked(supabase.from).mockReturnValue({
         select: selectMock,
+      } as any);
+
+      // Mock supabase.rpc for different features
+      const rpcSingleMock = vi.fn().mockResolvedValue({
+        data: { used_count: 0 },
+        error: null,
+      });
+
+      vi.mocked(supabase.rpc).mockReturnValue({
+        single: rpcSingleMock,
       } as any);
 
       // Execute - 여러 기능 순차 테스트
@@ -647,7 +677,7 @@ describe('useCanAccess', () => {
       expect(result.current).toEqual({});
     });
 
-    it.skip('로그인 사용자의 여러 기능 확인 시 플랜별 제한을 반환해야 함 (supabase.rpc 모킹 필요)', async () => {
+    it('로그인 사용자의 여러 기능 확인 시 플랜별 제한을 반환해야 함', async () => {
       // Setup
       vi.mocked(useAuth).mockReturnValue({
         user: mockUser,
@@ -680,6 +710,16 @@ describe('useCanAccess', () => {
 
       vi.mocked(supabase.from).mockReturnValue({
         select: selectMock,
+      } as any);
+
+      // Mock supabase.rpc
+      const rpcSingleMock = vi.fn().mockResolvedValue({
+        data: { used_count: 0 },
+        error: null,
+      });
+
+      vi.mocked(supabase.rpc).mockReturnValue({
+        single: rpcSingleMock,
       } as any);
 
       // Execute
@@ -889,7 +929,7 @@ describe('useCanAccess', () => {
       expect(result.current.remaining).toBe(1);
     });
 
-    it.skip('유료 플랜의 storage_mb는 플랜 제한을 반환해야 함 (supabase.rpc 모킹 필요)', async () => {
+    it('유료 플랜의 storage_mb는 플랜 제한을 반환해야 함', async () => {
       // Setup
       const singleMock = vi.fn().mockResolvedValue({
         data: mockSubscriptionWithPlan,
@@ -918,6 +958,16 @@ describe('useCanAccess', () => {
 
       vi.mocked(supabase.from).mockReturnValue({
         select: selectMock,
+      } as any);
+
+      // Mock supabase.rpc
+      const rpcSingleMock = vi.fn().mockResolvedValue({
+        data: { used_count: 0 },
+        error: null,
+      });
+
+      vi.mocked(supabase.rpc).mockReturnValue({
+        single: rpcSingleMock,
       } as any);
 
       // Execute

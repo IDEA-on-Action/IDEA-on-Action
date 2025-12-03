@@ -115,14 +115,75 @@ describe('MCPPermissionContext', () => {
       expect(permissionInfo!.reason).toBe('subscription_required');
     });
 
-    it.skip('활성 구독이 있으면 권한을 반환한다 (TODO: Mock 체이닝 수정 필요)', async () => {
-      // Supabase 체이닝 mock이 복잡하여 skip
-      // 실제 권한 로직은 통합 테스트에서 검증
+    it('활성 구독이 있으면 권한을 반환한다', async () => {
+      (supabase.auth.getUser as any).mockResolvedValue({
+        data: { user: mockUser },
+      });
+
+      const mockEq = vi.fn().mockResolvedValue({
+        data: mockSubscriptions,
+        error: null,
+      });
+
+      const mockSelect = vi.fn().mockReturnValue({
+        eq: vi.fn().mockReturnValue({
+          eq: mockEq,
+        }),
+      });
+
+      (supabase.from as any).mockReturnValue({
+        select: mockSelect,
+      });
+
+      const { result } = renderHook(() => useMCPPermissionContext(), {
+        wrapper: createWrapper(),
+      });
+
+      let permissionInfo: PermissionInfo | undefined;
+
+      await act(async () => {
+        permissionInfo = await result.current.checkPermission('minu-find');
+      });
+
+      expect(permissionInfo).toBeDefined();
+      expect(permissionInfo!.permission).toBe('full');
+      expect(mockSelect).toHaveBeenCalledWith(expect.stringContaining('plan:subscription_plans'));
     });
 
-    it.skip('만료된 구독의 경우 expired 사유를 반환한다 (TODO: Mock 체이닝 수정 필요)', async () => {
-      // Supabase 체이닝 mock이 복잡하여 skip
-      // 실제 권한 로직은 통합 테스트에서 검증
+    it('만료된 구독의 경우 expired 사유를 반환한다', async () => {
+      (supabase.auth.getUser as any).mockResolvedValue({
+        data: { user: mockUser },
+      });
+
+      // 만료된 구독 데이터 (status가 'active'가 아님)
+      const mockEq = vi.fn().mockResolvedValue({
+        data: [], // 활성 구독이 없음 (쿼리에서 .eq('status', 'active')로 필터링됨)
+        error: null,
+      });
+
+      const mockSelect = vi.fn().mockReturnValue({
+        eq: vi.fn().mockReturnValue({
+          eq: mockEq,
+        }),
+      });
+
+      (supabase.from as any).mockReturnValue({
+        select: mockSelect,
+      });
+
+      const { result } = renderHook(() => useMCPPermissionContext(), {
+        wrapper: createWrapper(),
+      });
+
+      let permissionInfo: PermissionInfo | undefined;
+
+      await act(async () => {
+        permissionInfo = await result.current.checkPermission('minu-find');
+      });
+
+      expect(permissionInfo).toBeDefined();
+      expect(permissionInfo!.permission).toBe('none');
+      expect(permissionInfo!.reason).toBe('subscription_required');
     });
 
     it('DB 오류 시 service_unavailable 사유를 반환한다', async () => {
@@ -200,9 +261,42 @@ describe('MCPPermissionContext', () => {
       expect(secondCallCount).toBe(firstCallCount);
     });
 
-    it.skip('permissions Map에 캐시된 정보가 있다 (TODO: Mock 체이닝 수정 필요)', async () => {
-      // Supabase 체이닝 mock이 복잡하여 skip
-      // 실제 권한 로직은 통합 테스트에서 검증
+    it('permissions Map에 캐시된 정보가 있다', async () => {
+      (supabase.auth.getUser as any).mockResolvedValue({
+        data: { user: mockUser },
+      });
+
+      const mockEq = vi.fn().mockResolvedValue({
+        data: mockSubscriptions,
+        error: null,
+      });
+
+      const mockSelect = vi.fn().mockReturnValue({
+        eq: vi.fn().mockReturnValue({
+          eq: mockEq,
+        }),
+      });
+
+      (supabase.from as any).mockReturnValue({
+        select: mockSelect,
+      });
+
+      const { result } = renderHook(() => useMCPPermissionContext(), {
+        wrapper: createWrapper(),
+      });
+
+      // 첫 번째 권한 체크
+      await act(async () => {
+        await result.current.checkPermission('minu-find');
+      });
+
+      // permissions Map에 캐시되었는지 확인
+      expect(result.current.permissions.size).toBeGreaterThan(0);
+      expect(result.current.permissions.has('minu-find')).toBe(true);
+
+      const cachedPermission = result.current.permissions.get('minu-find');
+      expect(cachedPermission).toBeDefined();
+      expect(cachedPermission!.permission).toBe('full');
     });
   });
 
@@ -267,9 +361,47 @@ describe('MCPPermissionContext', () => {
   });
 
   describe('구독 변경 감지', () => {
-    it.skip('구독 쿼리 변경 시 캐시가 자동으로 무효화된다 (TODO: Mock 체이닝 수정 필요)', async () => {
-      // Supabase 체이닝 mock이 복잡하여 skip
-      // 실제 구독 변경 감지는 통합 테스트에서 검증
+    it('구독 쿼리 변경 시 캐시가 자동으로 무효화된다', async () => {
+      (supabase.auth.getUser as any).mockResolvedValue({
+        data: { user: mockUser },
+      });
+
+      const mockEq = vi.fn().mockResolvedValue({
+        data: mockSubscriptions,
+        error: null,
+      });
+
+      const mockSelect = vi.fn().mockReturnValue({
+        eq: vi.fn().mockReturnValue({
+          eq: mockEq,
+        }),
+      });
+
+      (supabase.from as any).mockReturnValue({
+        select: mockSelect,
+      });
+
+      const { result } = renderHook(() => useMCPPermissionContext(), {
+        wrapper: createWrapper(),
+      });
+
+      // 첫 번째 권한 체크
+      await act(async () => {
+        await result.current.checkPermission('minu-find');
+      });
+
+      // 캐시 확인
+      expect(result.current.permissions.size).toBeGreaterThan(0);
+
+      // 캐시 무효화
+      await act(async () => {
+        result.current.invalidateAll();
+      });
+
+      // 캐시가 비워졌는지 확인
+      await waitFor(() => {
+        expect(result.current.permissions.size).toBe(0);
+      });
     });
   });
 
