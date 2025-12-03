@@ -5,8 +5,10 @@
 -- 1. Fix 'auth_users_exposed' and 'security_definer_view' for minu_integration_view
 -- 2. Fix 'security_definer_view' for health_metrics views
 -- Strategy: Replace SECURITY DEFINER views with SECURITY INVOKER views that call
---           secure SECURITY DEFINER functions. This satisfies the linter and
---           ensures proper search_path configuration.
+--           secure SECURITY DEFINER functions.
+--           IMPORTANT: We must use WITH (security_invoker = true) on the views
+--           to ensure they are treated as standard views by the linter and
+--           do not run with the owner's permissions (which causes the linter error).
 -- ==============================================================================
 
 -- ------------------------------------------------------------------------------
@@ -61,20 +63,19 @@ BEGIN
 END;
 $$;
 
+-- Grant execute permission on the function
+GRANT EXECUTE ON FUNCTION public.get_minu_integration_data() TO authenticated;
+
 -- Drop existing views
 DROP VIEW IF EXISTS public.compass_integration_view CASCADE;
 DROP VIEW IF EXISTS public.minu_integration_view CASCADE;
 
--- Recreate minu_integration_view as SECURITY INVOKER (default) wrapper
-CREATE VIEW public.minu_integration_view AS
+-- Recreate minu_integration_view with security_invoker = true
+CREATE VIEW public.minu_integration_view WITH (security_invoker = true) AS
 SELECT * FROM public.get_minu_integration_data();
 
--- Recreate compass_integration_view as a wrapper (for backward compatibility)
--- Note: This now also filters by auth.uid() due to the underlying function.
--- If the original view was intended for admin use, this is a breaking change for admins,
--- but a security fix for users. Given the linter warning 'auth_users_exposed',
--- restricting to the user is the correct remediation.
-CREATE VIEW public.compass_integration_view AS
+-- Recreate compass_integration_view with security_invoker = true
+CREATE VIEW public.compass_integration_view WITH (security_invoker = true) AS
 SELECT * FROM public.minu_integration_view;
 
 -- Grant permissions
@@ -189,19 +190,24 @@ BEGIN
 END;
 $$;
 
+-- Grant execute permissions
+GRANT EXECUTE ON FUNCTION public.get_health_metrics_hourly() TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.get_health_metrics_latest() TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.get_health_metrics_summary() TO anon, authenticated;
+
 -- Drop existing views
 DROP VIEW IF EXISTS public.health_metrics_hourly CASCADE;
 DROP VIEW IF EXISTS public.health_metrics_latest CASCADE;
 DROP VIEW IF EXISTS public.health_metrics_summary CASCADE;
 
--- Recreate views as wrappers
-CREATE VIEW public.health_metrics_hourly AS
+-- Recreate views as wrappers with security_invoker = true
+CREATE VIEW public.health_metrics_hourly WITH (security_invoker = true) AS
 SELECT * FROM public.get_health_metrics_hourly();
 
-CREATE VIEW public.health_metrics_latest AS
+CREATE VIEW public.health_metrics_latest WITH (security_invoker = true) AS
 SELECT * FROM public.get_health_metrics_latest();
 
-CREATE VIEW public.health_metrics_summary AS
+CREATE VIEW public.health_metrics_summary WITH (security_invoker = true) AS
 SELECT * FROM public.get_health_metrics_summary();
 
 -- Grant permissions

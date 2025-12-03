@@ -6,6 +6,15 @@
 
 import { describe, it, expect } from 'vitest';
 import { calculateImageSize } from '@/lib/skills/docx-image';
+import {
+  mapAlignmentType,
+  DEFAULT_IMAGE_WIDTH,
+  DEFAULT_IMAGE_HEIGHT,
+  DEFAULT_CHART_WIDTH,
+  DEFAULT_CHART_HEIGHT,
+  SUPPORTED_IMAGE_TYPES,
+} from '@/types/docx-image.types';
+import { AlignmentType } from 'docx';
 
 describe('docx-image 유틸리티 함수', () => {
   describe('calculateImageSize', () => {
@@ -49,6 +58,71 @@ describe('docx-image 유틸리티 함수', () => {
       expect(result.width).toBeCloseTo(600, 0);
       expect(result.height).toBeCloseTo(30, 0);
     });
+
+    it('세로로 긴 이미지(2:3 비율)를 올바르게 처리', () => {
+      const result = calculateImageSize(400, 600, 600, 400);
+
+      // 높이 제한에 맞춰 조정
+      expect(result.width).toBeCloseTo(267, 0);
+      expect(result.height).toBe(400);
+    });
+
+    it('극단적인 비율(1:10) 이미지를 올바르게 처리', () => {
+      const result = calculateImageSize(100, 1000, 600, 400);
+
+      // 높이 제한에 맞춰 조정
+      expect(result.width).toBe(40);
+      expect(result.height).toBe(400);
+    });
+  });
+});
+
+describe('docx-image 타입 변환 함수', () => {
+  describe('mapAlignmentType', () => {
+    it('left를 AlignmentType.LEFT로 변환', () => {
+      const result = mapAlignmentType('left');
+      expect(result).toBe(AlignmentType.LEFT);
+    });
+
+    it('center를 AlignmentType.CENTER로 변환', () => {
+      const result = mapAlignmentType('center');
+      expect(result).toBe(AlignmentType.CENTER);
+    });
+
+    it('right를 AlignmentType.RIGHT로 변환', () => {
+      const result = mapAlignmentType('right');
+      expect(result).toBe(AlignmentType.RIGHT);
+    });
+
+    it('undefined는 기본값 CENTER로 변환', () => {
+      const result = mapAlignmentType(undefined);
+      expect(result).toBe(AlignmentType.CENTER);
+    });
+  });
+});
+
+describe('docx-image 기본값 상수', () => {
+  it('DEFAULT_IMAGE_WIDTH가 400으로 정의됨', () => {
+    expect(DEFAULT_IMAGE_WIDTH).toBe(400);
+  });
+
+  it('DEFAULT_IMAGE_HEIGHT가 300으로 정의됨', () => {
+    expect(DEFAULT_IMAGE_HEIGHT).toBe(300);
+  });
+
+  it('DEFAULT_CHART_WIDTH가 600으로 정의됨', () => {
+    expect(DEFAULT_CHART_WIDTH).toBe(600);
+  });
+
+  it('DEFAULT_CHART_HEIGHT가 400으로 정의됨', () => {
+    expect(DEFAULT_CHART_HEIGHT).toBe(400);
+  });
+
+  it('SUPPORTED_IMAGE_TYPES에 PNG, JPEG가 포함됨', () => {
+    expect(SUPPORTED_IMAGE_TYPES).toContain('image/png');
+    expect(SUPPORTED_IMAGE_TYPES).toContain('image/jpeg');
+    expect(SUPPORTED_IMAGE_TYPES).toContain('image/jpg');
+    expect(SUPPORTED_IMAGE_TYPES).toHaveLength(3);
   });
 });
 
@@ -83,5 +157,39 @@ describe('docx-image 타입 체크', () => {
     expect(options.width).toBe(400);
     expect(options.height).toBe(300);
     expect(options.caption).toBe('테스트 이미지');
+  });
+
+  it('DocxChartConfig 타입 검증', () => {
+    const chartConfig = {
+      type: 'line' as const,
+      title: '매출 추이',
+      datasets: [
+        {
+          name: '2025년',
+          data: [
+            { label: '1월', value: 100 },
+            { label: '2월', value: 150 },
+          ],
+          color: '#3b82f6',
+        },
+      ],
+      width: 600,
+      height: 400,
+    };
+
+    expect(chartConfig.type).toBe('line');
+    expect(chartConfig.title).toBe('매출 추이');
+    expect(chartConfig.datasets).toHaveLength(1);
+    expect(chartConfig.datasets[0].data).toHaveLength(2);
+  });
+
+  it('DocxImageSize 타입 검증', () => {
+    const size = {
+      width: 600,
+      height: 400,
+    };
+
+    expect(size.width).toBe(600);
+    expect(size.height).toBe(400);
   });
 });

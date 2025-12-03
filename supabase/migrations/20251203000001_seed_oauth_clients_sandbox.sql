@@ -3,33 +3,30 @@
 -- 목적: 4개 Minu 서비스 Sandbox 환경 OAuth 클라이언트 등록
 -- 참조: plan/minu-sandbox-setup.md
 
+-- ⚠️ 주의: 실제 스키마와 매칭되도록 컬럼명 조정
+-- - client_name → name
+-- - allowed_scopes → scopes
+-- - client_type, require_pkce 컬럼은 현재 스키마에 없음 (제거)
+-- - metadata 컬럼은 없으므로 description으로 대체
+
 -- Minu Find - Sandbox
 INSERT INTO public.oauth_clients (
   client_id,
   client_secret,
-  client_name,
+  name,
   redirect_uris,
-  client_type,
-  allowed_scopes,
-  require_pkce,
+  scopes,
   is_active,
-  metadata
+  description
 ) VALUES
 (
   'minu-find-sandbox',
   'sandbox_secret_find_' || gen_random_uuid()::text,
   'Minu Find (Sandbox)',
   ARRAY['https://sandbox.find.minu.best/auth/callback']::TEXT[],
-  'confidential',
   ARRAY['openid', 'profile', 'email', 'offline_access', 'subscription:read']::TEXT[],
   true,
-  true,
-  jsonb_build_object(
-    'environment', 'sandbox',
-    'service', 'find',
-    'description', 'Minu Find Sandbox 테스트 환경',
-    'created_at', NOW()
-  )
+  'Minu Find Sandbox 테스트 환경 (environment: sandbox, service: find)'
 ),
 
 -- Minu Frame - Sandbox
@@ -38,16 +35,9 @@ INSERT INTO public.oauth_clients (
   'sandbox_secret_frame_' || gen_random_uuid()::text,
   'Minu Frame (Sandbox)',
   ARRAY['https://sandbox.frame.minu.best/auth/callback']::TEXT[],
-  'confidential',
   ARRAY['openid', 'profile', 'email', 'offline_access', 'subscription:read']::TEXT[],
   true,
-  true,
-  jsonb_build_object(
-    'environment', 'sandbox',
-    'service', 'frame',
-    'description', 'Minu Frame Sandbox 테스트 환경',
-    'created_at', NOW()
-  )
+  'Minu Frame Sandbox 테스트 환경 (environment: sandbox, service: frame)'
 ),
 
 -- Minu Build - Sandbox
@@ -56,16 +46,9 @@ INSERT INTO public.oauth_clients (
   'sandbox_secret_build_' || gen_random_uuid()::text,
   'Minu Build (Sandbox)',
   ARRAY['https://sandbox.build.minu.best/auth/callback']::TEXT[],
-  'confidential',
   ARRAY['openid', 'profile', 'email', 'offline_access', 'subscription:read']::TEXT[],
   true,
-  true,
-  jsonb_build_object(
-    'environment', 'sandbox',
-    'service', 'build',
-    'description', 'Minu Build Sandbox 테스트 환경',
-    'created_at', NOW()
-  )
+  'Minu Build Sandbox 테스트 환경 (environment: sandbox, service: build)'
 ),
 
 -- Minu Keep - Sandbox
@@ -74,31 +57,26 @@ INSERT INTO public.oauth_clients (
   'sandbox_secret_keep_' || gen_random_uuid()::text,
   'Minu Keep (Sandbox)',
   ARRAY['https://sandbox.keep.minu.best/auth/callback']::TEXT[],
-  'confidential',
   ARRAY['openid', 'profile', 'email', 'offline_access', 'subscription:read']::TEXT[],
   true,
-  true,
-  jsonb_build_object(
-    'environment', 'sandbox',
-    'service', 'keep',
-    'description', 'Minu Keep Sandbox 테스트 환경',
-    'created_at', NOW()
-  )
+  'Minu Keep Sandbox 테스트 환경 (environment: sandbox, service: keep)'
 )
 
 ON CONFLICT (client_id) DO UPDATE SET
   is_active = EXCLUDED.is_active,
   redirect_uris = EXCLUDED.redirect_uris,
-  metadata = EXCLUDED.metadata;
+  description = EXCLUDED.description;
 
 -- 검증
 DO $$
 DECLARE
   sandbox_clients_count INTEGER;
 BEGIN
+  -- description 필드에 'sandbox'가 포함된 클라이언트 카운트
   SELECT COUNT(*) INTO sandbox_clients_count
   FROM public.oauth_clients
-  WHERE metadata->>'environment' = 'sandbox';
+  WHERE description ILIKE '%sandbox%'
+    OR client_id LIKE '%-sandbox';
 
   RAISE NOTICE '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━';
   RAISE NOTICE '✅ Sandbox OAuth 클라이언트 등록 완료!';

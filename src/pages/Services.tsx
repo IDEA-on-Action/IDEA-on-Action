@@ -91,15 +91,20 @@ export default function Services() {
               {categoriesLoading ? (
                 <div className="flex gap-2" aria-label="카테고리 로딩 중">
                   {[...Array(4)].map((_, i) => (
-                    <Skeleton key={i} className="h-10 w-24" />
+                    <Skeleton key={i} className="h-10 w-24" aria-hidden="true" />
                   ))}
                 </div>
               ) : (
                 <Tabs value={selectedCategory} onValueChange={setSelectedCategory} aria-labelledby="category-label">
-                  <TabsList className="flex-wrap h-auto">
-                    <TabsTrigger value="all">전체</TabsTrigger>
+                  <TabsList className="flex-wrap h-auto" role="tablist">
+                    <TabsTrigger value="all" role="tab" aria-label="모든 카테고리 보기">전체</TabsTrigger>
                     {categories?.map((category) => (
-                      <TabsTrigger key={category.id} value={category.id}>
+                      <TabsTrigger
+                        key={category.id}
+                        value={category.id}
+                        role="tab"
+                        aria-label={`${category.name} 카테고리 보기`}
+                      >
                         {category.name}
                       </TabsTrigger>
                     ))}

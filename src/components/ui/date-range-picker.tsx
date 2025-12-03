@@ -1,5 +1,6 @@
 import * as React from "react";
-import { addDays, format } from "date-fns";
+import { format } from "date-fns";
+import { ko } from "date-fns/locale";
 import { Calendar as CalendarIcon } from "lucide-react";
 import { DateRange } from "react-day-picker";
 
@@ -8,71 +9,103 @@ import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
-interface DateRangePickerProps extends React.HTMLAttributes<HTMLDivElement> {
+export interface DateRangePickerProps extends React.HTMLAttributes<HTMLDivElement> {
   /**
-   * The selected date range
+   * 선택된 날짜 범위
    */
-  date?: DateRange;
+  value?: DateRange;
   /**
-   * Callback when date range changes
+   * 날짜 범위 변경 핸들러
    */
-  onDateChange?: (date: DateRange | undefined) => void;
+  onChange?: (date: DateRange | undefined) => void;
   /**
-   * Placeholder text when no date is selected
+   * 프리셋 버튼 표시 여부
+   */
+  showPresets?: boolean;
+  /**
+   * 비활성화 여부
+   */
+  disabled?: boolean;
+  /**
+   * 플레이스홀더 텍스트
    */
   placeholder?: string;
   /**
-   * Disable future dates
+   * 미래 날짜 비활성화 여부
    */
   disableFutureDates?: boolean;
 }
 
+export type DateRangePreset = "today" | "last7days" | "last30days" | "thisMonth" | "lastMonth";
+
 const presets = [
-  { label: "오늘", days: 0 },
-  { label: "지난 7일", days: 7 },
-  { label: "지난 30일", days: 30 },
-  { label: "지난 90일", days: 90 },
-  { label: "전체", days: null },
+  { label: "오늘", value: "today" as DateRangePreset },
+  { label: "지난 7일", value: "last7days" as DateRangePreset },
+  { label: "지난 30일", value: "last30days" as DateRangePreset },
+  { label: "이번 달", value: "thisMonth" as DateRangePreset },
+  { label: "지난 달", value: "lastMonth" as DateRangePreset },
 ] as const;
 
 export function DateRangePicker({
   className,
-  date,
-  onDateChange,
+  value,
+  onChange,
+  showPresets = true,
+  disabled = false,
   placeholder = "날짜 범위 선택",
   disableFutureDates = false,
   ...props
 }: DateRangePickerProps) {
-  const [selectedRange, setSelectedRange] = React.useState<DateRange | undefined>(date);
+  const [selectedRange, setSelectedRange] = React.useState<DateRange | undefined>(value);
 
   // Sync internal state with external prop
   React.useEffect(() => {
-    setSelectedRange(date);
-  }, [date]);
+    setSelectedRange(value);
+  }, [value]);
 
   const handleDateChange = React.useCallback(
     (range: DateRange | undefined) => {
       setSelectedRange(range);
-      onDateChange?.(range);
+      onChange?.(range);
     },
-    [onDateChange],
+    [onChange],
   );
 
-  const handlePresetClick = React.useCallback(
-    (days: number | null) => {
-      if (days === null) {
-        // "전체" preset - clear date range
-        handleDateChange(undefined);
-      } else if (days === 0) {
-        // "오늘" preset - today only
-        const today = new Date();
-        handleDateChange({ from: today, to: today });
-      } else {
-        // Calculate date range
-        const to = new Date();
-        const from = addDays(to, -days + 1); // Include today
-        handleDateChange({ from, to });
+  const applyPreset = React.useCallback(
+    (preset: DateRangePreset) => {
+      const today = new Date();
+      const from = new Date();
+      let to = today;
+
+      switch (preset) {
+        case "today":
+          from.setHours(0, 0, 0, 0);
+          to = new Date(from);
+          to.setHours(23, 59, 59, 999);
+          break;
+        case "last7days":
+          from.setDate(today.getDate() - 6);
+          from.setHours(0, 0, 0, 0);
+          break;
+        case "last30days":
+          from.setDate(today.getDate() - 29);
+          from.setHours(0, 0, 0, 0);
+          break;
+        case "thisMonth":
+          from.setDate(1);
+          from.setHours(0, 0, 0, 0);
+          break;
+        case "lastMonth":
+          from.setMonth(today.getMonth() - 1);
+          from.setDate(1);
+          from.setHours(0, 0, 0, 0);
+          to = new Date(from.getFullYear(), from.getMonth() + 1, 0);
+          to.setHours(23, 59, 59, 999);
+          break;
       }
+
+      const range = { from, to };
+      handleDateChange(range);
     },
     [handleDateChange],
   );
@@ -82,10 +115,10 @@ export function DateRangePicker({
     if (!range.from) return placeholder;
 
     if (range.to) {
-      return `${format(range.from, "MMM dd, yyyy")} - ${format(range.to, "MMM dd, yyyy")}`;
+      return `${format(range.from, "yyyy년 MM월 dd일", { locale: ko })} - ${format(range.to, "yyyy년 MM월 dd일", { locale: ko })}`;
     }
 
-    return format(range.from, "MMM dd, yyyy");
+    return format(range.from, "yyyy년 MM월 dd일", { locale: ko });
   }, [placeholder]);
 
   return (
@@ -95,8 +128,9 @@ export function DateRangePicker({
           <Button
             id="date-range-picker"
             variant="outline"
+            disabled={disabled}
             className={cn(
-              "w-full justify-start text-left font-normal",
+              "w-[300px] justify-start text-left font-normal",
               !selectedRange && "text-muted-foreground",
             )}
             aria-label="날짜 범위 선택"
@@ -105,64 +139,37 @@ export function DateRangePicker({
             {formatDateRange(selectedRange)}
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-auto p-0" align="end">
-          <div className="border-b p-3">
-            <div className="flex flex-wrap gap-2">
-              {presets.map((preset) => {
-                const isSelected = (() => {
-                  // "전체" preset - highlight when no date selected
-                  if (preset.days === null && !selectedRange) return true;
-
-                  if (!selectedRange?.from || !selectedRange?.to) return false;
-
-                  // "오늘" preset - highlight when from and to are the same day
-                  if (preset.days === 0) {
-                    return selectedRange.from.toDateString() === selectedRange.to.toDateString() &&
-                           selectedRange.from.toDateString() === new Date().toDateString();
-                  }
-
-                  // Other presets - check day difference
-                  const daysDiff = Math.floor(
-                    (selectedRange.to.getTime() - selectedRange.from.getTime()) / (1000 * 60 * 60 * 24)
-                  );
-                  return daysDiff === preset.days - 1;
-                })();
-
-                return (
+        <PopoverContent className="w-auto p-0" align="start">
+          <div className="flex">
+            {showPresets && (
+              <div className="flex flex-col gap-2 border-r p-3">
+                <div className="text-xs font-medium text-muted-foreground mb-1">프리셋</div>
+                {presets.map((preset) => (
                   <Button
-                    key={preset.label}
-                    variant="outline"
+                    key={preset.value}
+                    variant="ghost"
                     size="sm"
-                    onClick={() => handlePresetClick(preset.days)}
-                    className={cn(
-                      "text-xs",
-                      isSelected && "bg-primary text-primary-foreground",
-                    )}
-                    aria-label={`${preset.label} 선택`}
+                    className="justify-start font-normal"
+                    onClick={() => applyPreset(preset.value)}
                   >
                     {preset.label}
                   </Button>
-                );
-              })}
+                ))}
+              </div>
+            )}
+            <div className="p-3">
+              <Calendar
+                initialFocus
+                mode="range"
+                defaultMonth={selectedRange?.from}
+                selected={selectedRange}
+                onSelect={handleDateChange}
+                numberOfMonths={2}
+                disabled={disableFutureDates ? { after: new Date() } : undefined}
+                locale={ko}
+              />
             </div>
           </div>
-          <Calendar
-            initialFocus
-            mode="range"
-            defaultMonth={selectedRange?.from}
-            selected={selectedRange}
-            onSelect={handleDateChange}
-            numberOfMonths={2}
-            disabled={disableFutureDates ? { after: new Date() } : undefined}
-            className="p-3"
-          />
-          {selectedRange?.from && (
-            <div className="border-t p-3 text-center text-sm text-muted-foreground">
-              {selectedRange.to
-                ? `${format(selectedRange.from, "PPP")} - ${format(selectedRange.to, "PPP")}`
-                : format(selectedRange.from, "PPP")}
-            </div>
-          )}
         </PopoverContent>
       </Popover>
     </div>
