@@ -256,3 +256,225 @@ export const PPTX_BRAND_COLORS = {
   danger: '#EF4444',
   info: '#06B6D4',
 } as const;
+
+// ============================================================================
+// Core 슬라이드 레이아웃
+// ============================================================================
+
+/**
+ * 슬라이드 레이아웃 타입
+ */
+export enum SlideLayout {
+  /** 제목 슬라이드 */
+  TITLE = 'title',
+  /** 콘텐츠 슬라이드 */
+  CONTENT = 'content',
+  /** 2단 레이아웃 */
+  TWO_COLUMN = 'twoColumn',
+  /** 이미지 전용 */
+  IMAGE_ONLY = 'imageOnly',
+  /** 차트 슬라이드 */
+  CHART = 'chart',
+  /** 인용 슬라이드 */
+  QUOTE = 'quote',
+}
+
+/**
+ * 위치 정보
+ */
+export interface Position {
+  /** X 좌표 (인치) */
+  x: number;
+  /** Y 좌표 (인치) */
+  y: number;
+  /** 너비 (인치) */
+  w: number;
+  /** 높이 (인치) */
+  h: number;
+}
+
+/**
+ * 텍스트 스타일
+ */
+export interface TextStyle {
+  /** 폰트 크기 (pt) */
+  fontSize?: number;
+  /** 폰트 패밀리 */
+  fontFace?: string;
+  /** 텍스트 색상 (hex) */
+  color?: string;
+  /** 볼드 여부 */
+  bold?: boolean;
+  /** 이탤릭 여부 */
+  italic?: boolean;
+  /** 밑줄 여부 */
+  underline?: boolean;
+  /** 정렬 */
+  align?: 'left' | 'center' | 'right' | 'justify';
+}
+
+/**
+ * 슬라이드 요소 타입
+ */
+export type SlideElementType = 'text' | 'image' | 'chart' | 'table';
+
+/**
+ * 텍스트 요소
+ */
+export interface TextElement {
+  /** 요소 타입 */
+  type: 'text';
+  /** 텍스트 내용 */
+  text: string;
+  /** 위치 */
+  position: Position;
+  /** 스타일 */
+  style?: TextStyle;
+}
+
+/**
+ * 이미지 요소
+ */
+export interface ImageElement {
+  /** 요소 타입 */
+  type: 'image';
+  /** 이미지 데이터 (URL 또는 Base64) */
+  imageData: string;
+  /** 위치 */
+  position: Position;
+  /** 대체 텍스트 */
+  altText?: string;
+}
+
+/**
+ * 차트 요소
+ */
+export interface ChartElement {
+  /** 요소 타입 */
+  type: 'chart';
+  /** 차트 데이터 */
+  chartData: PptxChartData;
+  /** 위치 */
+  position: Position;
+  /** 범례 표시 여부 */
+  showLegend?: boolean;
+  /** 데이터 레이블 표시 여부 */
+  showDataLabels?: boolean;
+}
+
+/**
+ * 테이블 요소
+ */
+export interface TableElement {
+  /** 요소 타입 */
+  type: 'table';
+  /** 테이블 데이터 */
+  tableData: string[][];
+  /** 위치 */
+  position: Position;
+  /** 헤더 행 여부 */
+  hasHeader?: boolean;
+}
+
+/**
+ * 슬라이드 요소 (Union Type)
+ */
+export type SlideElement = TextElement | ImageElement | ChartElement | TableElement;
+
+/**
+ * 슬라이드 인터페이스
+ */
+export interface Slide {
+  /** 슬라이드 ID */
+  id: string;
+  /** 슬라이드 레이아웃 */
+  layout: SlideLayout;
+  /** 슬라이드 제목 (선택) */
+  title?: string;
+  /** 슬라이드 요소 목록 */
+  elements: SlideElement[];
+  /** 배경색 */
+  backgroundColor?: string;
+  /** 발표자 노트 */
+  notes?: string;
+}
+
+/**
+ * 프레젠테이션 인터페이스
+ */
+export interface Presentation {
+  /** 프레젠테이션 ID */
+  id: string;
+  /** 메타데이터 */
+  metadata: PresentationMetadata;
+  /** 슬라이드 목록 */
+  slides: Slide[];
+  /** 스타일 옵션 */
+  styles?: PptxStyleOptions;
+}
+
+/**
+ * 프레젠테이션 생성 옵션 (Core)
+ */
+export interface CreatePresentationOptions {
+  /** 메타데이터 */
+  metadata?: Partial<PresentationMetadata>;
+  /** 스타일 옵션 */
+  styles?: PptxStyleOptions;
+}
+
+/**
+ * 슬라이드 추가 옵션
+ */
+export interface AddSlideOptions {
+  /** 슬라이드 레이아웃 */
+  layout: SlideLayout;
+  /** 슬라이드 제목 */
+  title?: string;
+  /** 슬라이드 콘텐츠 */
+  content?: SlideContent;
+  /** 배경색 */
+  backgroundColor?: string;
+  /** 발표자 노트 */
+  notes?: string;
+}
+
+/**
+ * 텍스트 박스 추가 옵션
+ */
+export interface AddTextBoxOptions {
+  /** 텍스트 내용 */
+  text: string;
+  /** 위치 */
+  position: Position;
+  /** 스타일 */
+  style?: TextStyle;
+}
+
+/**
+ * 이미지 추가 옵션
+ */
+export interface AddImageOptions {
+  /** 이미지 데이터 */
+  imageData: string;
+  /** 위치 */
+  position: Position;
+  /** 대체 텍스트 */
+  altText?: string;
+}
+
+/**
+ * 프레젠테이션 내보내기 결과
+ */
+export interface ExportPresentationResult {
+  /** 성공 여부 */
+  success: boolean;
+  /** Blob 객체 */
+  blob?: Blob;
+  /** 파일명 */
+  fileName: string;
+  /** 파일 크기 (bytes) */
+  fileSize?: number;
+  /** 에러 메시지 */
+  error?: string;
+}
