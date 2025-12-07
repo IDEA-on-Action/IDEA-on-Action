@@ -71,3 +71,19 @@ export {
   createPieChart,
 } from './chart/chart-utils';
 export { generateEventReportWithChart } from './generators/eventReportWithChart';
+
+// ============================================================================
+// xlsx Import 기능
+// ============================================================================
+
+export {
+  parseExcelFile,
+  validateData,
+  mapColumns,
+  importToSupabase,
+  batchImport,
+  importExcelToDatabase,
+} from '../../lib/skills/xlsx/import';
+
+export { useXlsxImport } from '../../hooks/useXlsxImport';
+export type { UseXlsxImportResult, UseXlsxImportOptions } from '../../hooks/useXlsxImport';
