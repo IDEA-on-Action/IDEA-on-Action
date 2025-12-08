@@ -1,7 +1,7 @@
 {
   "name": "vite_react_shadcn_ts",
   "private": true,
-  "version": "2.34.0",
+  "version": "2.35.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -29,6 +29,7 @@
     "release:patch": "standard-version --release-as patch",
     "release:dry": "standard-version --dry-run",
     "release:first": "standard-version --first-release",
+    "release:auto": "npx tsx scripts/release/auto-release.ts",
     "generate:sitemap": "npx tsx scripts/deploy/generate-sitemap.ts",
     "generate:rss": "npx tsx scripts/deploy/generate-rss.ts",
     "generate:screenshots": "node scripts/testing/capture-payment-screenshots.js",
@@ -38,6 +39,8 @@
     "cancel:workflows": "node scripts/deploy/cancel-non-deployment-workflows.js",
     "docs:archive": "node scripts/deploy/archive-completed-todos.js",
     "docs:check": "node scripts/analytics/check-docs-size.js",
+    "docs:generate-types": "npx tsx scripts/docs/generate-api-types.ts",
+    "docs:generate-changelog": "npx tsx scripts/docs/generate-changelog.ts",
     "env:backup": "node scripts/env/backup-env.js",
     "env:restore": "node scripts/env/restore-env.js",
     "env:export:csv": "node scripts/env/export-env-to-csv.js",

@@ -299,8 +299,8 @@ describe('Lazy Loader', () => {
       const state = getXlsxLoadingState();
 
       // 반환된 객체를 수정해도 내부 상태에 영향이 없어야 함
-      (state as any).loading = true;
-      (state as any).module = {} as any;
+      (state as unknown as { loading: boolean }).loading = true;
+      (state as unknown as { module: object }).module = {};
 
       const newState = getXlsxLoadingState();
       expect(newState.loading).toBe(false);

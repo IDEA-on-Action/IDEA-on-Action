@@ -68,7 +68,7 @@ describe('useNewsletter', () => {
 
       vi.mocked(supabase.from).mockReturnValue({
         insert: vi.fn().mockReturnValue(mockChain),
-      } as any)
+      } as ReturnType<typeof supabase.from>)
 
       const { result } = renderHook(() => useSubscribeNewsletter(), {
         wrapper: createWrapper(),
@@ -111,7 +111,7 @@ describe('useNewsletter', () => {
 
       vi.mocked(supabase.from).mockReturnValue({
         insert: vi.fn().mockReturnValue(mockChain),
-      } as any)
+      } as ReturnType<typeof supabase.from>)
 
       const { result } = renderHook(() => useSubscribeNewsletter(), {
         wrapper: createWrapper(),
@@ -144,7 +144,7 @@ describe('useNewsletter', () => {
 
       vi.mocked(supabase.from).mockReturnValue({
         update: vi.fn().mockReturnValue(mockChain),
-      } as any)
+      } as ReturnType<typeof supabase.from>)
 
       const { result } = renderHook(() => useConfirmNewsletter(), {
         wrapper: createWrapper(),
@@ -174,7 +174,7 @@ describe('useNewsletter', () => {
 
       vi.mocked(supabase.from).mockReturnValue({
         update: vi.fn().mockReturnValue(mockChain),
-      } as any)
+      } as ReturnType<typeof supabase.from>)
 
       const { result } = renderHook(() => useConfirmNewsletter(), {
         wrapper: createWrapper(),
@@ -207,7 +207,7 @@ describe('useNewsletter', () => {
 
       vi.mocked(supabase.from).mockReturnValue({
         update: vi.fn().mockReturnValue(mockChain),
-      } as any)
+      } as ReturnType<typeof supabase.from>)
 
       const { result } = renderHook(() => useUnsubscribeNewsletter(), {
         wrapper: createWrapper(),
@@ -237,7 +237,7 @@ describe('useNewsletter', () => {
 
       vi.mocked(supabase.from).mockReturnValue({
         update: vi.fn().mockReturnValue(mockChain),
-      } as any)
+      } as ReturnType<typeof supabase.from>)
 
       const { result } = renderHook(() => useUnsubscribeNewsletter(), {
         wrapper: createWrapper(),
@@ -266,7 +266,7 @@ describe('useNewsletter', () => {
 
       vi.mocked(supabase.from).mockReturnValue({
         select: vi.fn().mockResolvedValue({ data: mockData, error: null }),
-      } as any)
+      } as ReturnType<typeof supabase.from>)
 
       const { result } = renderHook(() => useNewsletterStats(), {
         wrapper: createWrapper(),
@@ -287,7 +287,7 @@ describe('useNewsletter', () => {
     it('빈 데이터는 0으로 통계를 계산해야 함', async () => {
       vi.mocked(supabase.from).mockReturnValue({
         select: vi.fn().mockResolvedValue({ data: [], error: null }),
-      } as any)
+      } as ReturnType<typeof supabase.from>)
 
       const { result } = renderHook(() => useNewsletterStats(), {
         wrapper: createWrapper(),
@@ -311,7 +311,7 @@ describe('useNewsletter', () => {
           data: null,
           error: { message: 'Database error' },
         }),
-      } as any)
+      } as ReturnType<typeof supabase.from>)
 
       const { result } = renderHook(() => useNewsletterStats(), {
         wrapper: createWrapper(),

@@ -255,6 +255,6 @@ docs/
 
 ---
 
-**Last Updated**: 2025-11-19
-**Project Version**: 2.0.1
-**주요 업데이트**: 문서 및 SQL 관리 규칙 추가, 서비스 플랫폼 가이드 추가
+**Last Updated**: 2025-12-09
+**Project Version**: 2.35.0
+**주요 업데이트**: v2.35.0 RAG 검색 고도화, Minu Sandbox, 테스트 확장, 문서 자동화, 성능 최적화

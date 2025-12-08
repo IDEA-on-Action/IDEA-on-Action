@@ -3,10 +3,61 @@
 > 프로젝트 작업 목록 및 진행 상황 관리
 
 **마지막 업데이트**: 2025-12-09
-**현재 Phase**: v2.34.0 완료
-**다음 단계**: v2.35.0 계획
-**프로젝트 버전**: 2.34.0
+**현재 Phase**: v2.35.0 완료
+**다음 단계**: v2.36.0 계획
+**프로젝트 버전**: 2.35.0
 **프로덕션**: https://www.ideaonaction.ai
+
+---
+
+## ✅ 완료: v2.35.0 병렬 작업 Sprint (2025-12-09)
+
+**목표**: RAG 검색 고도화, Minu Sandbox, 테스트 확장, 문서 자동화, 성능 최적화
+**완료일**: 2025-12-09
+
+### 작업 개요 (5개 병렬 Sprint)
+
+| Sprint | 작업 | 상태 | 산출물 |
+|--------|------|------|--------|
+| Sprint 1 | RAG 검색 고도화 | ✅ | hybrid-search.ts, ranking.ts (TF-IDF, BM25, MMR) |
+| Sprint 2 | Minu Sandbox 환경 | ✅ | sandbox-client.ts, useMinuSandbox, minu-sandbox.ts |
+| Sprint 3 | 테스트 커버리지 확장 | ✅ | 134개 신규 테스트 (8개 파일) |
+| Sprint 4 | 문서 자동화 | ✅ | generate-api-types.ts, generate-changelog.ts, auto-release.ts |
+| Sprint 5 | 성능 최적화 | ✅ | image-optimizer.ts, Terser 압축, Tree-shaking |
+
+### 품질 지표
+
+| 지표 | 이전 (v2.34.0) | 결과 (v2.35.0) | 상태 |
+|------|---------------|---------------|------|
+| 유닛 테스트 | 1746개 | 1880개+ | ✅ +134개 |
+| E2E 테스트 | 5429개 | 5429개 | ✅ 유지 |
+| 총 테스트 | 7175개 | 7309개+ | ✅ +134개 |
+| 린트 경고 | 12개 | 0개 | ✅ 해결 |
+| 번들 크기 | 1644 KB | 1636 KB | ✅ -0.5% |
+
+### 신규 파일
+
+**RAG 검색** (src/lib/rag/):
+- `hybrid-search.ts` - 하이브리드 검색 (키워드 + 시맨틱)
+- `ranking.ts` - TF-IDF, BM25, MMR 랭킹 알고리즘
+
+**Minu Sandbox** (src/lib/minu/, src/hooks/, src/config/):
+- `sandbox-client.ts` - Sandbox API 클라이언트
+- `useMinuSandbox.ts` - Sandbox 모드 관리 훅
+- `minu-sandbox.ts` - Sandbox 환경 설정
+
+**문서 자동화** (scripts/):
+- `docs/generate-api-types.ts` - OpenAPI → TypeScript 타입 생성
+- `docs/generate-changelog.ts` - Git 커밋 기반 Changelog 생성
+- `release/auto-release.ts` - 버전 릴리스 자동화
+
+**성능 최적화** (src/lib/):
+- `image-optimizer.ts` - WebP 변환, Lazy loading, 압축
+
+**테스트** (tests/unit/):
+- `lib/rag/hybrid-search.test.ts` - 60개 테스트
+- `lib/minu/sandbox-client.test.ts` - 45개 테스트
+- 기타 8개 테스트 파일 - 29개 테스트
 
 ---
 

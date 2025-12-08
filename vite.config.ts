@@ -248,6 +248,29 @@ export default defineConfig(({ mode }) => ({
     },
   },
   build: {
+    // ============================================================
+    // BUILD OPTIMIZATION (Sprint 5)
+    // ============================================================
+    // Target: ES2020 for better tree-shaking and smaller output
+    target: 'es2020',
+    // Minification: Use terser for better compression
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        drop_console: true, // Remove console.log in production
+        drop_debugger: true,
+        pure_funcs: ['console.log', 'console.debug', 'console.trace'],
+      },
+      format: {
+        comments: false, // Remove comments
+      },
+    },
+    // CSS code splitting
+    cssCodeSplit: true,
+    // Source maps (disable in production for smaller bundle)
+    sourcemap: false,
+    // Chunk size warnings
+    chunkSizeWarningLimit: 1000,
     rollupOptions: {
       output: {
         manualChunks: (id) => {
@@ -518,25 +541,12 @@ export default defineConfig(({ mode }) => ({
           // This ensures fast initial page load for non-admin users.
         },
       },
+      // Tree-shaking optimization
+      treeshake: {
+        moduleSideEffects: 'no-external',
+        propertyReadSideEffects: false,
+        unknownGlobalSideEffects: false,
+      },
     },
-    // Chunk size warning limit (v2.30.0 - Optimized)
-    // Admin chunks are now split into smaller pieces:
-    // - pages-admin-analytics: Main analytics page shell (~50 kB, lazy-loaded)
-    //   → v2.30.0: 탭별 분리로 95% 감소 (935 → ~50 kB)
-    //   → v2.28.0: 훅 분리로 17% 감소 (1128 → 935 kB)
-    // - pages-admin-analytics-overview: Overview tab (~200 kB, lazy-loaded)
-    // - pages-admin-analytics-funnel: Funnel tab (~100 kB, lazy-loaded)
-    // - pages-admin-analytics-behavior: Behavior tab (~50 kB, lazy-loaded)
-    // - pages-admin-analytics-events: Events tab (~150 kB, lazy-loaded)
-    // - pages-admin-analytics-data: Analytics hooks (~192 kB, lazy-loaded)
-    // - pages-admin-blog-editor: ~679 kB (includes TipTap, lazy-loaded)
-    // - vendor-editor: 541 kB (170 kB gzip, lazy-loaded)
-    // - xlsx-skill: 429 kB (143 kB gzip, lazy-loaded)
-    // - vendor-charts: 421 kB (111 kB gzip, lazy-loaded)
-    // - vendor-markdown: 341 kB (108 kB gzip, lazy-loaded)
-    //
-    // Note: Analytics 탭은 사용자가 클릭할 때만 로드됨
-    // 관리자 페이지로 lazy-load되므로 초기 로딩에 영향 없음
-    chunkSizeWarningLimit: 1000,
   },
 }));

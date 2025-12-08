@@ -9,6 +9,8 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { hybridSearch } from '@/lib/rag/hybrid-search';
+import { rankResults } from '@/lib/rag/ranking';
 
 // ============================================================================
 // 타입 정의 (임시 - rag.types.ts가 생성되면 import로 대체)
@@ -140,6 +142,11 @@ export interface UseRAGSearchOptions {
   limit?: number;
   threshold?: number;
   debounceMs?: number;
+  enableHistory?: boolean;
+  enableAutocomplete?: boolean;
+  maxHistorySize?: number;
+  enableHybridSearch?: boolean;
+  enableRanking?: boolean;
 }
 
 /**
@@ -152,6 +159,13 @@ export interface UseRAGSearchReturn {
 
   search: (query: string) => Promise<RAGSearchResult[]>;
   clearResults: () => void;
+
+  searchHistory: string[];
+  addToHistory: (query: string) => void;
+  clearHistory: () => void;
+
+  autocomplete: string[];
+  getAutocompleteSuggestions: (partial: string) => string[];
 }
 
 // ============================================================================
@@ -195,6 +209,11 @@ export function useRAGSearch(options?: UseRAGSearchOptions): UseRAGSearchReturn 
     limit = 5,
     threshold = 0.7,
     debounceMs = 300,
+    enableHistory = true,
+    enableAutocomplete = true,
+    maxHistorySize = 20,
+    enableHybridSearch = false,
+    enableRanking = false,
   } = options || {};
 
   // ============================================================================
@@ -206,6 +225,20 @@ export function useRAGSearch(options?: UseRAGSearchOptions): UseRAGSearchReturn 
 
   // 디바운스된 검색 쿼리 저장
   const [debouncedQuery, setDebouncedQuery] = useState<string>('');
+
+  // 검색 히스토리 (localStorage)
+  const [searchHistory, setSearchHistory] = useState<string[]>(() => {
+    if (!enableHistory) return [];
+    try {
+      const stored = localStorage.getItem('rag-search-history');
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  // 자동완성 제안
+  const [autocomplete, setAutocomplete] = useState<string[]>([]);
 
   // ============================================================================
   // React Query Mutation
@@ -294,6 +327,60 @@ export function useRAGSearch(options?: UseRAGSearchOptions): UseRAGSearchReturn 
     setDebouncedQuery('');
   }, []);
 
+  /**
+   * 검색 히스토리에 추가
+   */
+  const addToHistory = useCallback((query: string) => {
+    if (!enableHistory || !query.trim()) return;
+
+    setSearchHistory((prev) => {
+      const trimmed = query.trim();
+      // 중복 제거
+      const filtered = prev.filter((q) => q !== trimmed);
+      // 최신 쿼리를 앞에 추가
+      const updated = [trimmed, ...filtered];
+      // 최대 크기 제한
+      const limited = updated.slice(0, maxHistorySize);
+
+      // localStorage에 저장
+      try {
+        localStorage.setItem('rag-search-history', JSON.stringify(limited));
+      } catch (err) {
+        console.error('Failed to save search history:', err);
+      }
+
+      return limited;
+    });
+  }, [enableHistory, maxHistorySize]);
+
+  /**
+   * 검색 히스토리 초기화
+   */
+  const clearHistory = useCallback(() => {
+    setSearchHistory([]);
+    try {
+      localStorage.removeItem('rag-search-history');
+    } catch (err) {
+      console.error('Failed to clear search history:', err);
+    }
+  }, []);
+
+  /**
+   * 자동완성 제안 생성
+   */
+  const getAutocompleteSuggestions = useCallback((partial: string): string[] => {
+    if (!enableAutocomplete || !partial.trim()) return [];
+
+    const trimmed = partial.trim().toLowerCase();
+
+    // 히스토리에서 매칭되는 쿼리 찾기
+    const suggestions = searchHistory
+      .filter((query) => query.toLowerCase().includes(trimmed))
+      .slice(0, 5);
+
+    return suggestions;
+  }, [enableAutocomplete, searchHistory]);
+
   // ============================================================================
   // 디바운스된 검색 자동 실행
   // ============================================================================
@@ -324,6 +411,29 @@ export function useRAGSearch(options?: UseRAGSearchOptions): UseRAGSearchReturn 
   // 반환
   // ============================================================================
 
+  // ============================================================================
+  // 검색 완료 시 히스토리 업데이트
+  // ============================================================================
+
+  useEffect(() => {
+    if (results.length > 0 && debouncedQuery) {
+      addToHistory(debouncedQuery);
+    }
+  }, [results, debouncedQuery, addToHistory]);
+
+  // ============================================================================
+  // 자동완성 업데이트
+  // ============================================================================
+
+  useEffect(() => {
+    if (enableAutocomplete && debouncedQuery) {
+      const suggestions = getAutocompleteSuggestions(debouncedQuery);
+      setAutocomplete(suggestions);
+    } else {
+      setAutocomplete([]);
+    }
+  }, [debouncedQuery, enableAutocomplete, getAutocompleteSuggestions]);
+
   return {
     results,
     isSearching: mutation.isPending,
@@ -331,6 +441,13 @@ export function useRAGSearch(options?: UseRAGSearchOptions): UseRAGSearchReturn 
 
     search,
     clearResults,
+
+    searchHistory,
+    addToHistory,
+    clearHistory,
+
+    autocomplete,
+    getAutocompleteSuggestions,
   };
 }
 
