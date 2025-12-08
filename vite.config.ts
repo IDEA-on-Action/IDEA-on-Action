@@ -127,7 +127,9 @@ export default defineConfig(({ mode }) => ({
           "**/vendor-charts-*.js",            // ~421 kB (Recharts + d3)
           "**/vendor-editor-*.js",            // ~500 kB (TipTap + ProseMirror)
           "**/vendor-markdown-*.js",          // ~340 kB (markdown rendering)
-          "**/xlsx-skill-*.js",               // ~429 kB (Excel export)
+          "**/xlsx-skill-*.js",               // ~429 kB (Excel export, v2.34.0 동적 로딩)
+          "**/docx-skill-*.js",               // ~350 kB (Word export, v2.34.0 동적 로딩)
+          "**/pptx-skill-*.js",               // ~200 kB (PowerPoint export, v2.34.0 동적 로딩)
           "**/jszip-skill-*.js",              // ~98 kB (ZIP compression)
           "**/vendor-auth-*.js",              // ~48 kB (2FA/QR codes)
 
@@ -197,12 +199,12 @@ export default defineConfig(({ mode }) => ({
 
           // 4. Vendor chunks (on-demand)
           {
-            urlPattern: /\/assets\/(vendor-charts|vendor-editor|vendor-markdown|xlsx-skill|jszip-skill|vendor-auth|components-charts)-.*\.js$/,
+            urlPattern: /\/assets\/(vendor-charts|vendor-editor|vendor-markdown|xlsx-skill|docx-skill|pptx-skill|jszip-skill|vendor-auth|components-charts)-.*\.js$/,
             handler: "CacheFirst",
             options: {
               cacheName: "vendor-chunks-cache",
               expiration: {
-                maxEntries: 15,  // Increased for more vendor chunks
+                maxEntries: 20,  // Increased for xlsx/docx/pptx skill chunks (v2.34.0)
                 maxAgeSeconds: 60 * 60 * 24 * 30, // 30일 (vendor는 더 오래 캐시)
               },
             },
@@ -284,21 +286,31 @@ export default defineConfig(({ mode }) => ({
           }
 
           // 3. xlsx Skill - Excel export functionality (lazy loaded)
+          // v2.34.0: 동적 로딩 최적화로 별도 청크 분리
           if (id.includes('node_modules/xlsx')) {
             return 'xlsx-skill';
           }
 
           // 4. docx Skill - Word document export functionality (lazy loaded)
+          // v2.34.0: 동적 로딩 최적화로 별도 청크 분리
           if (id.includes('node_modules/docx')) {
             return 'docx-skill';
           }
 
-          // 5. pptx Skill - 제거됨 (v2.24.0)
+          // 5. pptxgenjs Skill - PowerPoint export functionality (lazy loaded)
+          // v2.34.0: devDependencies에서 동적 로딩으로 전환
+          if (id.includes('node_modules/pptxgenjs')) {
+            return 'pptx-skill';
+          }
 
           // 6. jszip Skill - ZIP file generation (used by xlsx/docx)
           if (id.includes('node_modules/jszip')) {
             return 'jszip-skill';
           }
+
+          // 7. Lazy Loader - Skill 라이브러리 동적 로딩 (v2.34.0)
+          // lazy-loader는 매우 작은 모듈이므로 별도 청크 불필요
+          // index.js에 포함되어도 무방 (gzip 후 ~3kB)
 
           // 7. TipTap Editor - Try to separate despite React dependency warnings
           // Split TipTap into its own chunk to reduce blog editor page size

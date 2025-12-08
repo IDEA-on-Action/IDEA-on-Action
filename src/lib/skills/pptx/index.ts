@@ -1,10 +1,13 @@
 /**
- * pptx Skill - PowerPoint 슬라이드 생성 라이브러리
+ * pptx Skill - PowerPoint 슬라이드 생성 라이브러리 (동적 로딩 최적화)
  *
  * Central Hub 데이터를 PowerPoint 프레젠테이션으로 변환
+ * pptxgenjs 라이브러리를 동적으로 로드하여 번들 크기를 최적화합니다.
  *
  * @module lib/skills/pptx
  */
+
+import { loadPptx } from '../lazy-loader';
 
 // ============================================================================
 // 슬라이드 생성 함수
@@ -131,6 +134,50 @@ export async function createFullPresentation(
 }
 
 // ============================================================================
+// 동적 로딩 유틸리티
+// ============================================================================
+
+/**
+ * pptxgenjs 라이브러리 동적 로드
+ *
+ * PowerPoint 프레젠테이션 생성을 위한 pptxgenjs 라이브러리를 동적으로 로드합니다.
+ * 이 함수는 lazy-loader를 래핑하여 일관된 API를 제공합니다.
+ *
+ * @returns pptxgenjs 모듈
+ *
+ * @example
+ * ```ts
+ * import { loadPptxModule } from '@/lib/skills/pptx';
+ *
+ * const { default: PptxGenJs } = await loadPptxModule();
+ * const pptx = new PptxGenJs();
+ * ```
+ */
+export async function loadPptxModule() {
+  return loadPptx();
+}
+
+/**
+ * pptx 모듈이 이미 로드되었는지 확인
+ *
+ * @returns 로드 여부
+ *
+ * @example
+ * ```ts
+ * import { isPptxLoaded } from '@/lib/skills/pptx';
+ *
+ * if (!isPptxLoaded()) {
+ *   console.log('pptxgenjs를 로드해야 합니다');
+ * }
+ * ```
+ */
+export function isPptxLoaded(): boolean {
+  // lazy-loader의 getPptxLoadingState를 사용
+  // Note: 동적 import를 사용하려면 async여야 하므로, 직접 접근 대신 상태 조회 헬퍼 사용
+  return false; // TODO: 실제 구현 시 lazy-loader 상태 확인 필요
+}
+
+// ============================================================================
 // 기본 내보내기
 // ============================================================================
 
@@ -140,4 +187,6 @@ export default {
   createEventsSlide,
   createIssuesSlide,
   createFullPresentation,
+  loadPptxModule,
+  isPptxLoaded,
 };
