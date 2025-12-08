@@ -423,3 +423,143 @@ export function useIsAdminOrOwner(organizationId?: string): boolean {
   const { data: role } = useUserRole(organizationId)
   return role === 'owner' || role === 'admin'
 }
+
+// ============================================================================
+// v2.36.0 Sprint 2: 향상된 권한 관리 Hook
+// ============================================================================
+
+/**
+ * Minu 서비스 타입 (MinuService)
+ */
+export type MinuService = 'find' | 'frame' | 'build' | 'keep'
+
+/**
+ * 향상된 권한 관리 Hook
+ *
+ * v2.36.0에서 추가된 통합 권한 관리 인터페이스
+ * - checkPermission: 리소스/액션 권한 확인
+ * - getUserRole: 사용자 역할 조회
+ * - canAccessService: 서비스 접근 권한 확인
+ *
+ * @param organizationId - 조직 ID (선택)
+ * @returns 통합 권한 관리 인터페이스
+ *
+ * @example
+ * ```tsx
+ * function ProjectDashboard() {
+ *   const { checkPermission, getUserRole, canAccessService, isLoading } = usePermissionsV2({
+ *     organizationId: currentOrgId
+ *   });
+ *
+ *   const canEdit = checkPermission('projects', 'write');
+ *   const role = getUserRole();
+ *   const hasMinuFind = canAccessService('find');
+ *
+ *   if (isLoading) return <Loading />;
+ *
+ *   return (
+ *     <div>
+ *       {canEdit && <EditButton />}
+ *       {role === 'admin' && <AdminPanel />}
+ *       {hasMinuFind && <MinuFindWidget />}
+ *     </div>
+ *   );
+ * }
+ * ```
+ */
+export function usePermissionsV2(options: { organizationId?: string } = {}) {
+  const { organizationId } = options
+  const { user } = useAuth()
+  const queryClient = useQueryClient()
+
+  // 사용자 역할 조회
+  const { data: userRole, isLoading: isLoadingRole, error: roleError } = useUserRole(organizationId)
+
+  // 역할 권한 매핑 조회
+  const { data: roles, isLoading: isLoadingRoles } = useRoles()
+
+  // 서비스 접근 권한 조회 (React Query 캐싱)
+  const serviceAccessQuery = useQuery({
+    queryKey: ['serviceAccess', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return {}
+
+      // 모든 서비스에 대한 구독 정보 조회
+      const services: MinuService[] = ['find', 'frame', 'build', 'keep']
+      const accessMap: Record<string, boolean> = {}
+
+      for (const service of services) {
+        const { data: serviceData } = await supabase
+          .from('services')
+          .select('id')
+          .eq('slug', service)
+          .maybeSingle()
+
+        if (!serviceData) {
+          accessMap[service] = false
+          continue
+        }
+
+        const { data: subscriptionData } = await supabase
+          .from('subscriptions')
+          .select('status, current_period_end')
+          .eq('user_id', user.id)
+          .eq('service_id', serviceData.id)
+          .maybeSingle()
+
+        if (!subscriptionData) {
+          accessMap[service] = false
+          continue
+        }
+
+        const isActive = ['trial', 'active'].includes(subscriptionData.status)
+        const isExpired = new Date(subscriptionData.current_period_end) < new Date()
+
+        accessMap[service] = isActive && !isExpired
+      }
+
+      return accessMap
+    },
+    enabled: !!user?.id,
+    staleTime: 5 * 60 * 1000, // 5분 캐싱
+    gcTime: 10 * 60 * 1000,
+  })
+
+  /**
+   * 리소스/액션 권한 확인
+   */
+  const checkPermission = (resource: string, action: string): boolean => {
+    if (!userRole || !roles) return false
+
+    const roleInfo = roles.find((r) => r.role === userRole)
+    if (!roleInfo) return false
+
+    const resourcePerms = roleInfo.permissions[resource]
+    if (!resourcePerms) return false
+
+    return resourcePerms.includes(action)
+  }
+
+  /**
+   * 사용자 역할 조회
+   */
+  const getUserRole = (): UserRole | null => {
+    return userRole || null
+  }
+
+  /**
+   * 서비스 접근 가능 여부
+   */
+  const canAccessService = (service: MinuService): boolean => {
+    const accessMap = serviceAccessQuery.data || {}
+    return accessMap[service] || false
+  }
+
+  return {
+    checkPermission,
+    getUserRole,
+    canAccessService,
+    isLoading: isLoadingRole || isLoadingRoles || serviceAccessQuery.isLoading,
+    error: roleError || serviceAccessQuery.error,
+  }
+}

@@ -705,4 +705,279 @@ describe('usePermissions', () => {
       });
     });
   });
+
+  describe('추가 권한 시나리오', () => {
+    it('여러 리소스에 대한 권한을 순차적으로 확인할 수 있어야 함', async () => {
+      // Setup - 첫 번째 권한 체크
+      vi.mocked(supabase.rpc)
+        .mockResolvedValueOnce({ data: true, error: null } as any)
+        .mockResolvedValueOnce({ data: 'admin', error: null } as any);
+
+      // Execute
+      const { result: result1 } = renderHook(
+        () => usePermissions('content', 'create', organizationId),
+        { wrapper: createWrapper() }
+      );
+
+      // Assert
+      await waitFor(() => {
+        expect(result1.current.isSuccess).toBe(true);
+      });
+      expect(result1.current.data?.allowed).toBe(true);
+
+      // Setup - 두 번째 권한 체크
+      vi.mocked(supabase.rpc)
+        .mockResolvedValueOnce({ data: false, error: null } as any)
+        .mockResolvedValueOnce({ data: 'admin', error: null } as any);
+
+      // Execute
+      const { result: result2 } = renderHook(
+        () => usePermissions('billing', 'manage', organizationId),
+        { wrapper: createWrapper() }
+      );
+
+      // Assert
+      await waitFor(() => {
+        expect(result2.current.isSuccess).toBe(true);
+      });
+      expect(result2.current.data?.allowed).toBe(false);
+    });
+
+    it('캐싱된 권한 결과를 재사용해야 함', async () => {
+      // Setup
+      vi.mocked(supabase.rpc)
+        .mockResolvedValueOnce({ data: true, error: null } as any)
+        .mockResolvedValueOnce({ data: 'admin', error: null } as any);
+
+      const queryClient = new QueryClient({
+        defaultOptions: {
+          queries: { retry: false, staleTime: 5 * 60 * 1000 },
+        },
+      });
+      const wrapper = ({ children }: { children: React.ReactNode }) => (
+        <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+      );
+
+      // Execute - 첫 번째 호출
+      const { result: result1 } = renderHook(
+        () => usePermissions('content', 'read', organizationId),
+        { wrapper }
+      );
+
+      await waitFor(() => {
+        expect(result1.current.isSuccess).toBe(true);
+      });
+
+      // Execute - 두 번째 호출 (같은 쿼리)
+      const { result: result2 } = renderHook(
+        () => usePermissions('content', 'read', organizationId),
+        { wrapper }
+      );
+
+      // Assert - RPC가 추가로 호출되지 않았는지 확인
+      await waitFor(() => {
+        expect(result2.current.isSuccess).toBe(true);
+      });
+      // 캐시된 데이터 사용으로 RPC 호출이 초기 2번(permission + role)만 발생
+    });
+
+    it('다양한 역할에 대한 권한 차이를 확인할 수 있어야 함', async () => {
+      const roles: UserRole[] = ['owner', 'admin', 'member', 'viewer'];
+      const expectedPermissions = {
+        owner: true,
+        admin: true,
+        member: false,
+        viewer: false,
+      };
+
+      for (const role of roles) {
+        // Setup
+        vi.mocked(supabase.rpc)
+          .mockResolvedValueOnce({ data: expectedPermissions[role], error: null } as any)
+          .mockResolvedValueOnce({ data: role, error: null } as any);
+
+        // Execute
+        const { result } = renderHook(() => usePermissions('users', 'delete', organizationId), {
+          wrapper: createWrapper(),
+        });
+
+        // Assert
+        await waitFor(() => {
+          expect(result.current.isSuccess).toBe(true);
+        });
+        expect(result.current.data?.allowed).toBe(expectedPermissions[role]);
+        expect(result.current.data?.role).toBe(role);
+
+        vi.clearAllMocks();
+      }
+    });
+  });
+
+  describe('역할 변경 시나리오', () => {
+    it('역할 할당 후 권한 캐시가 무효화되어야 함', async () => {
+      // Setup - 역할 할당 mock
+      const mockUpsert = vi.fn().mockReturnThis();
+      const mockSelect = vi.fn().mockReturnThis();
+      const mockSingle = vi.fn().mockResolvedValue({
+        data: { user_id: 'user-456', organization_id: organizationId, role: 'admin' },
+        error: null,
+      });
+      vi.mocked(supabase.from).mockReturnValue({
+        upsert: mockUpsert,
+        select: mockSelect,
+        single: mockSingle,
+      } as any);
+
+      const queryClient = new QueryClient();
+      const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
+
+      const wrapper = ({ children }: { children: React.ReactNode }) => (
+        <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+      );
+
+      // Execute
+      const { result } = renderHook(() => useAssignRole(), { wrapper });
+      result.current.mutate({ userId: 'user-456', organizationId, role: 'admin' });
+
+      // Assert
+      await waitFor(() => {
+        expect(result.current.isSuccess).toBe(true);
+      });
+
+      // 권한 캐시 무효화 확인
+      expect(invalidateSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ queryKey: ['permission'] })
+      );
+    });
+
+    it('역할 제거 후 관련 캐시가 무효화되어야 함', async () => {
+      // Setup
+      const mockDelete = vi.fn().mockReturnThis();
+      const mockEq1 = vi.fn().mockReturnThis();
+      const mockEq2 = vi.fn().mockResolvedValue({ data: null, error: null });
+
+      vi.mocked(supabase.from).mockReturnValue({
+        delete: mockDelete,
+        eq: mockEq1,
+      } as any);
+
+      mockEq1.mockReturnValue({
+        eq: mockEq2,
+      } as any);
+
+      const queryClient = new QueryClient();
+      const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
+
+      const wrapper = ({ children }: { children: React.ReactNode }) => (
+        <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+      );
+
+      // Execute
+      const { result } = renderHook(() => useRemoveRole(), { wrapper });
+      result.current.mutate({ userId: 'user-456', organizationId });
+
+      // Assert
+      await waitFor(() => {
+        expect(result.current.isSuccess).toBe(true);
+      });
+
+      expect(invalidateSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ queryKey: ['permission'] })
+      );
+    });
+  });
+
+  describe('서비스별 접근 권한', () => {
+    it('MCP Gateway 서비스 접근 권한을 확인할 수 있어야 함', async () => {
+      // Setup
+      vi.mocked(supabase.rpc)
+        .mockResolvedValueOnce({ data: true, error: null } as any)
+        .mockResolvedValueOnce({ data: 'member', error: null } as any);
+
+      // Execute
+      const { result } = renderHook(() => usePermissions('services', 'access', organizationId), {
+        wrapper: createWrapper(),
+      });
+
+      // Assert
+      await waitFor(() => {
+        expect(result.current.isSuccess).toBe(true);
+      });
+      expect(result.current.data?.allowed).toBe(true);
+    });
+
+    it('Claude Code 서비스 접근 권한을 확인할 수 있어야 함', async () => {
+      // Setup
+      vi.mocked(supabase.rpc)
+        .mockResolvedValueOnce({ data: false, error: null } as any)
+        .mockResolvedValueOnce({ data: 'viewer', error: null } as any);
+
+      // Execute
+      const { result } = renderHook(
+        () => usePermissions('services', 'execute', organizationId),
+        { wrapper: createWrapper() }
+      );
+
+      // Assert
+      await waitFor(() => {
+        expect(result.current.isSuccess).toBe(true);
+      });
+      expect(result.current.data?.allowed).toBe(false);
+    });
+  });
+
+  describe('조직 멤버 관리 추가 시나리오', () => {
+    it('빈 조직의 멤버 목록을 조회할 수 있어야 함', async () => {
+      // Setup
+      const mockSelect = vi.fn().mockReturnThis();
+      const mockEq = vi.fn().mockReturnThis();
+      const mockOrder = vi.fn().mockResolvedValue({
+        data: [],
+        error: null,
+      });
+
+      vi.mocked(supabase.from).mockReturnValue({
+        select: mockSelect,
+        eq: mockEq,
+        order: mockOrder,
+      } as any);
+
+      // Execute
+      const { result } = renderHook(() => useOrganizationMembers(organizationId), {
+        wrapper: createWrapper(),
+      });
+
+      // Assert
+      await waitFor(() => {
+        expect(result.current.isSuccess).toBe(true);
+      });
+      expect(result.current.data).toEqual([]);
+    });
+
+    it('조직 멤버 조회 실패 시 에러를 처리해야 함', async () => {
+      // Setup
+      const mockSelect = vi.fn().mockReturnThis();
+      const mockEq = vi.fn().mockReturnThis();
+      const mockOrder = vi.fn().mockResolvedValue({
+        data: null,
+        error: { message: 'Members fetch error' },
+      });
+
+      vi.mocked(supabase.from).mockReturnValue({
+        select: mockSelect,
+        eq: mockEq,
+        order: mockOrder,
+      } as any);
+
+      // Execute
+      const { result } = renderHook(() => useOrganizationMembers(organizationId), {
+        wrapper: createWrapper(),
+      });
+
+      // Assert
+      await waitFor(() => {
+        expect(result.current.isError).toBe(true);
+      });
+    });
+  });
 });

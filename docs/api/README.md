@@ -2,7 +2,7 @@
 
 > Minu 서비스 연동을 위한 공식 API 문서
 
-**API 버전**: 1.0.0
+**API 버전**: 2.36.0
 **OpenAPI 스펙**: [openapi.yaml](./openapi.yaml)
 **베이스 URL**: `https://zykjdneewbzyazfukzyg.supabase.co/functions/v1`
 
@@ -277,22 +277,101 @@ await fetch('https://zykjdneewbzyazfukzyg.supabase.co/functions/v1/subscription-
 
 | 메서드 | 엔드포인트 | 설명 | 인증 필요 |
 |--------|-----------|------|-----------|
-| GET | `/api-v1-health` | 서비스 상태 조회 | ❌ |
+| GET | `/api-v1-health` | 기본 헬스체크 (빠른 응답) | ❌ |
+| GET | `/api-v1-health/detailed` | 상세 컴포넌트 상태 | ❌ |
+| GET | `/api-v1-health/metrics` | 성능 메트릭 조회 | ❌ |
+| GET | `/api-v1-health/ready` | Kubernetes Readiness Probe | ❌ |
+| GET | `/api-v1-health/live` | Kubernetes Liveness Probe | ❌ |
 
-**응답 예시**:
+**응답 예시** (기본):
 ```json
 {
   "status": "healthy",
-  "version": "1.0.0",
+  "version": "2.36.0",
   "timestamp": "2025-11-30T12:00:00Z",
   "components": {
     "database": {
       "status": "healthy",
-      "latency_ms": 45,
-      "message": "데이터베이스 정상"
+      "latency_ms": 45
     }
   },
   "response_time_ms": 52
+}
+```
+
+**응답 예시** (상세):
+```json
+{
+  "status": "healthy",
+  "version": "2.36.0",
+  "timestamp": "2025-11-30T12:00:00Z",
+  "uptime_seconds": 86400,
+  "components": {
+    "database": {
+      "status": "healthy",
+      "latency_ms": 45,
+      "details": {
+        "last_migration": "20251201000005"
+      }
+    },
+    "auth": {
+      "status": "healthy",
+      "latency_ms": 120
+    },
+    "storage": {
+      "status": "healthy",
+      "latency_ms": 180
+    },
+    "edge_functions": {
+      "status": "healthy",
+      "latency_ms": 0,
+      "details": {
+        "active_count": 22
+      }
+    }
+  },
+  "checks": {
+    "oauth_token": {
+      "status": "pass",
+      "latency_ms": 35
+    },
+    "subscription_api": {
+      "status": "pass",
+      "latency_ms": 42
+    }
+  },
+  "response_time_ms": 278
+}
+```
+
+**응답 예시** (메트릭):
+```json
+{
+  "timestamp": "2025-11-30T12:00:00Z",
+  "period": "1h",
+  "requests": {
+    "total": 15420,
+    "success": 15234,
+    "error": 186,
+    "success_rate": 98.8
+  },
+  "latency": {
+    "p50_ms": 120,
+    "p95_ms": 450,
+    "p99_ms": 820,
+    "avg_ms": 156
+  },
+  "rate_limits": {
+    "total_blocked": 23,
+    "top_blocked_ips": ["1.2.3.4", "5.6.7.8"]
+  },
+  "errors": {
+    "by_code": {
+      "401": 145,
+      "429": 23,
+      "500": 18
+    }
+  }
 }
 ```
 
