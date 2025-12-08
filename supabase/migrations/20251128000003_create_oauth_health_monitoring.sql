@@ -216,9 +216,8 @@ CREATE POLICY "Admin access to oauth_health_metrics"
   FOR ALL
   USING (
     EXISTS (
-      SELECT 1 FROM public.profiles
-      WHERE id = auth.uid()
-      AND (metadata->>'role' = 'admin' OR metadata->>'role' = 'superadmin')
+      SELECT 1 FROM public.admins
+      WHERE user_id = auth.uid()
     )
   );
 
@@ -227,9 +226,8 @@ CREATE POLICY "Admin access to oauth_alert_rules"
   FOR ALL
   USING (
     EXISTS (
-      SELECT 1 FROM public.profiles
-      WHERE id = auth.uid()
-      AND (metadata->>'role' = 'admin' OR metadata->>'role' = 'superadmin')
+      SELECT 1 FROM public.admins
+      WHERE user_id = auth.uid()
     )
   );
 
@@ -238,9 +236,8 @@ CREATE POLICY "Admin access to oauth_alert_history"
   FOR ALL
   USING (
     EXISTS (
-      SELECT 1 FROM public.profiles
-      WHERE id = auth.uid()
-      AND (metadata->>'role' = 'admin' OR metadata->>'role' = 'superadmin')
+      SELECT 1 FROM public.admins
+      WHERE user_id = auth.uid()
     )
   );
 

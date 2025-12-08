@@ -140,9 +140,8 @@ CREATE POLICY "dlq_admin_select"
   TO authenticated
   USING (
     EXISTS (
-      SELECT 1 FROM public.profiles
-      WHERE profiles.id = auth.uid()
-      AND profiles.role IN ('admin', 'super_admin')
+      SELECT 1 FROM public.admins
+      WHERE admins.user_id = auth.uid()
     )
   );
 
@@ -154,16 +153,14 @@ CREATE POLICY "dlq_admin_update"
   TO authenticated
   USING (
     EXISTS (
-      SELECT 1 FROM public.profiles
-      WHERE profiles.id = auth.uid()
-      AND profiles.role IN ('admin', 'super_admin')
+      SELECT 1 FROM public.admins
+      WHERE admins.user_id = auth.uid()
     )
   )
   WITH CHECK (
     EXISTS (
-      SELECT 1 FROM public.profiles
-      WHERE profiles.id = auth.uid()
-      AND profiles.role IN ('admin', 'super_admin')
+      SELECT 1 FROM public.admins
+      WHERE admins.user_id = auth.uid()
     )
   );
 

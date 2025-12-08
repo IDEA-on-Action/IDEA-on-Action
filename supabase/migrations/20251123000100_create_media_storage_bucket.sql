@@ -98,20 +98,16 @@ USING (
 );
 
 -- =====================================================
--- POLICY COMMENTS
+-- POLICY COMMENTS (Skipped - requires storage object ownership)
 -- =====================================================
-
-COMMENT ON POLICY "Public media access" ON storage.objects IS
-  'CMS Phase 5: Allow public read access to media-library bucket';
-
-COMMENT ON POLICY "Authenticated users can upload" ON storage.objects IS
-  'CMS Phase 5: Allow authenticated users to upload media files';
-
-COMMENT ON POLICY "Admins can update media" ON storage.objects IS
-  'CMS Phase 5: Allow admins to update media file metadata';
-
-COMMENT ON POLICY "Admins can delete media" ON storage.objects IS
-  'CMS Phase 5: Allow admins to delete media files';
+-- Note: COMMENT ON POLICY for storage.objects requires superuser or
+-- storage schema owner privileges, which are not available in local dev.
+-- The comments are provided here for documentation purposes only:
+--
+-- "Public media access": CMS Phase 5 - Allow public read access to media-library bucket
+-- "Authenticated users can upload": CMS Phase 5 - Allow authenticated users to upload media files
+-- "Admins can update media": CMS Phase 5 - Allow admins to update media file metadata
+-- "Admins can delete media": CMS Phase 5 - Allow admins to delete media files
 
 -- =====================================================
 -- HELPER FUNCTION: Get Media Public URL

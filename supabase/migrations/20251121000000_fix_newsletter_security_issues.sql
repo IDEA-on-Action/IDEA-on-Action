@@ -3,71 +3,117 @@
 -- Issue 2: Security Definer - Remove SECURITY DEFINER and use proper RLS
 
 -- ============================================
--- STEP 1: Drop existing view
+-- STEP 1-2: Drop and recreate view (conditional)
 -- ============================================
-DROP VIEW IF EXISTS public.newsletter_subscribers;
+DO $$
+BEGIN
+  -- Check if user_profiles table exists with newsletter_email column
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public'
+    AND table_name = 'user_profiles'
+    AND column_name = 'newsletter_email'
+  ) THEN
+    -- Drop existing view
+    DROP VIEW IF EXISTS public.newsletter_subscribers;
+
+    -- Create secure view WITHOUT auth.users exposure
+    EXECUTE '
+      CREATE OR REPLACE VIEW public.newsletter_subscribers
+      WITH (security_invoker = true)
+      AS
+      SELECT
+        id,
+        user_id,
+        newsletter_email as email,
+        display_name,
+        newsletter_subscribed_at as subscribed_at,
+        created_at
+      FROM public.user_profiles
+      WHERE newsletter_subscribed = true
+        AND newsletter_email IS NOT NULL
+    ';
+
+    -- Grant permissions
+    GRANT SELECT ON public.newsletter_subscribers TO authenticated;
+    REVOKE SELECT ON public.newsletter_subscribers FROM anon;
+
+    RAISE NOTICE 'newsletter_subscribers view created successfully';
+  ELSE
+    RAISE NOTICE 'Skipping newsletter_subscribers view - user_profiles.newsletter_email column not found';
+  END IF;
+END $$;
 
 -- ============================================
--- STEP 2: Create secure view WITHOUT auth.users exposure
+-- STEP 3: Add RLS policies for the view (conditional)
 -- ============================================
--- This view ONLY exposes data from user_profiles table
--- and uses SECURITY INVOKER (default for views in PostgreSQL 15+)
--- Note: We explicitly set security_invoker = true to ensure RLS is enforced
-CREATE OR REPLACE VIEW public.newsletter_subscribers
-WITH (security_invoker = true)
-AS
-SELECT
-  id,
-  user_id,
-  newsletter_email as email,  -- Use ONLY newsletter_email from user_profiles
-  display_name,
-  newsletter_subscribed_at as subscribed_at,
-  created_at
-FROM public.user_profiles
-WHERE newsletter_subscribed = true
-  AND newsletter_email IS NOT NULL;  -- Ensure email exists
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM pg_tables
+    WHERE schemaname = 'public'
+    AND tablename = 'user_profiles'
+  ) THEN
+    -- Enable RLS on user_profiles if not already enabled
+    ALTER TABLE public.user_profiles ENABLE ROW LEVEL SECURITY;
+  END IF;
+END $$;
 
--- ============================================
--- STEP 3: Add RLS policies for the view
--- ============================================
--- Enable RLS on user_profiles if not already enabled
-ALTER TABLE public.user_profiles ENABLE ROW LEVEL SECURITY;
+-- Policies are created conditionally in a DO block
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM pg_tables
+    WHERE schemaname = 'public'
+    AND tablename = 'user_profiles'
+  ) THEN
+    -- Policy 1: Admins can view all newsletter subscribers
+    DROP POLICY IF EXISTS "Admins can view newsletter subscribers" ON public.user_profiles;
 
--- Policy 1: Admins can view all newsletter subscribers
-DROP POLICY IF EXISTS "Admins can view newsletter subscribers" ON public.user_profiles;
-CREATE POLICY "Admins can view newsletter subscribers"
-ON public.user_profiles
-FOR SELECT
-TO authenticated
-USING (
-  -- User is admin (check via roles table)
-  EXISTS (
-    SELECT 1
-    FROM public.user_roles ur
-    JOIN public.roles r ON ur.role_id = r.id
-    WHERE ur.user_id = auth.uid()
-    AND r.name IN ('admin', 'super_admin')
-  )
-  -- OR viewing own profile
-  OR user_id = auth.uid()
-);
+    -- Check if user_roles and roles tables exist before creating admin policy
+    IF EXISTS (
+      SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'user_roles'
+    ) AND EXISTS (
+      SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'roles'
+    ) THEN
+      CREATE POLICY "Admins can view newsletter subscribers"
+      ON public.user_profiles
+      FOR SELECT
+      TO authenticated
+      USING (
+        EXISTS (
+          SELECT 1
+          FROM public.user_roles ur
+          JOIN public.roles r ON ur.role_id = r.id
+          WHERE ur.user_id = auth.uid()
+          AND r.name IN ('admin', 'super_admin')
+        )
+        OR user_id = auth.uid()
+      );
+    END IF;
 
--- Policy 2: Users can only view their own newsletter subscription
-DROP POLICY IF EXISTS "Users can view own newsletter subscription" ON public.user_profiles;
-CREATE POLICY "Users can view own newsletter subscription"
-ON public.user_profiles
-FOR SELECT
-TO authenticated
-USING (user_id = auth.uid());
+    -- Policy 2: Users can only view their own newsletter subscription
+    DROP POLICY IF EXISTS "Users can view own newsletter subscription" ON public.user_profiles;
+    CREATE POLICY "Users can view own newsletter subscription"
+    ON public.user_profiles
+    FOR SELECT
+    TO authenticated
+    USING (user_id = auth.uid());
 
--- Policy 3: Users can update their own newsletter subscription
-DROP POLICY IF EXISTS "Users can update own newsletter subscription" ON public.user_profiles;
-CREATE POLICY "Users can update own newsletter subscription"
-ON public.user_profiles
-FOR UPDATE
-TO authenticated
-USING (user_id = auth.uid())
-WITH CHECK (user_id = auth.uid());
+    -- Policy 3: Users can update their own newsletter subscription
+    DROP POLICY IF EXISTS "Users can update own newsletter subscription" ON public.user_profiles;
+    CREATE POLICY "Users can update own newsletter subscription"
+    ON public.user_profiles
+    FOR UPDATE
+    TO authenticated
+    USING (user_id = auth.uid())
+    WITH CHECK (user_id = auth.uid());
+
+    RAISE NOTICE 'RLS policies created successfully';
+  ELSE
+    RAISE NOTICE 'Skipping RLS policies - user_profiles table not found';
+  END IF;
+END $$;
 
 -- ============================================
 -- STEP 4: Update subscribe_to_newsletter function
@@ -227,33 +273,39 @@ $$ LANGUAGE plpgsql
 SECURITY INVOKER;
 
 -- ============================================
--- STEP 7: Add comments
+-- STEP 7-8: Add comments and permissions (conditional)
 -- ============================================
-COMMENT ON VIEW public.newsletter_subscribers IS
-'Secure view of newsletter subscribers - does NOT expose auth.users data';
+DO $$
+BEGIN
+  -- Comments and permissions for view (if exists)
+  IF EXISTS (
+    SELECT 1 FROM pg_views
+    WHERE schemaname = 'public'
+    AND viewname = 'newsletter_subscribers'
+  ) THEN
+    COMMENT ON VIEW public.newsletter_subscribers IS
+    'Secure view of newsletter subscribers - does NOT expose auth.users data';
+    GRANT SELECT ON public.newsletter_subscribers TO authenticated;
+    REVOKE SELECT ON public.newsletter_subscribers FROM anon;
+  END IF;
 
-COMMENT ON FUNCTION subscribe_to_newsletter(TEXT) IS
-'Subscribe current user to newsletter (SECURITY INVOKER - uses RLS)';
+  -- Comments and permissions for functions
+  COMMENT ON FUNCTION subscribe_to_newsletter(TEXT) IS
+  'Subscribe current user to newsletter (SECURITY INVOKER - uses RLS)';
 
-COMMENT ON FUNCTION unsubscribe_from_newsletter() IS
-'Unsubscribe current user from newsletter (SECURITY INVOKER - uses RLS)';
+  COMMENT ON FUNCTION unsubscribe_from_newsletter() IS
+  'Unsubscribe current user from newsletter (SECURITY INVOKER - uses RLS)';
 
-COMMENT ON FUNCTION get_newsletter_subscribers() IS
-'Admin-only function to get all newsletter subscribers with proper auth check';
+  COMMENT ON FUNCTION get_newsletter_subscribers() IS
+  'Admin-only function to get all newsletter subscribers with proper auth check';
 
--- ============================================
--- STEP 8: Grant permissions
--- ============================================
--- Grant SELECT on view to authenticated users
-GRANT SELECT ON public.newsletter_subscribers TO authenticated;
+  GRANT EXECUTE ON FUNCTION subscribe_to_newsletter(TEXT) TO authenticated;
+  GRANT EXECUTE ON FUNCTION unsubscribe_from_newsletter() TO authenticated;
+  GRANT EXECUTE ON FUNCTION get_newsletter_subscribers() TO authenticated;
 
--- Grant EXECUTE on functions to authenticated users
-GRANT EXECUTE ON FUNCTION subscribe_to_newsletter(TEXT) TO authenticated;
-GRANT EXECUTE ON FUNCTION unsubscribe_from_newsletter() TO authenticated;
-GRANT EXECUTE ON FUNCTION get_newsletter_subscribers() TO authenticated;
+  REVOKE EXECUTE ON FUNCTION subscribe_to_newsletter(TEXT) FROM anon;
+  REVOKE EXECUTE ON FUNCTION unsubscribe_from_newsletter() FROM anon;
+  REVOKE EXECUTE ON FUNCTION get_newsletter_subscribers() FROM anon;
 
--- Revoke from anon (anonymous users should not access newsletter data)
-REVOKE SELECT ON public.newsletter_subscribers FROM anon;
-REVOKE EXECUTE ON FUNCTION subscribe_to_newsletter(TEXT) FROM anon;
-REVOKE EXECUTE ON FUNCTION unsubscribe_from_newsletter() FROM anon;
-REVOKE EXECUTE ON FUNCTION get_newsletter_subscribers() FROM anon;
+  RAISE NOTICE 'Newsletter security fixes applied successfully';
+END $$;

@@ -94,19 +94,17 @@ INSERT INTO auth.users (
 ON CONFLICT (id) DO NOTHING;
 
 -- =====================================================
--- 2. 프로필 생성 (public.profiles)
+-- 2. 프로필 생성 (public.user_profiles)
 -- =====================================================
-INSERT INTO public.profiles (
-  id,
-  email,
-  full_name,
+INSERT INTO public.user_profiles (
+  user_id,
+  display_name,
   avatar_url,
   created_at,
   updated_at
 ) VALUES
   (
     'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'::uuid,
-    'test-free@ideaonaction.ai',
     'Test Free User',
     NULL,
     NOW(),
@@ -114,7 +112,6 @@ INSERT INTO public.profiles (
   ),
   (
     'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'::uuid,
-    'test-basic@ideaonaction.ai',
     'Test Basic User',
     NULL,
     NOW(),
@@ -122,7 +119,6 @@ INSERT INTO public.profiles (
   ),
   (
     'cccccccc-cccc-cccc-cccc-cccccccccccc'::uuid,
-    'test-pro@ideaonaction.ai',
     'Test Pro User',
     NULL,
     NOW(),
@@ -130,7 +126,6 @@ INSERT INTO public.profiles (
   ),
   (
     'dddddddd-dddd-dddd-dddd-dddddddddddd'::uuid,
-    'test-expired@ideaonaction.ai',
     'Test Expired User',
     NULL,
     NOW(),
@@ -138,14 +133,13 @@ INSERT INTO public.profiles (
   ),
   (
     'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee'::uuid,
-    'test-enterprise@ideaonaction.ai',
     'Test Enterprise Admin',
     NULL,
     NOW(),
     NOW()
   )
 
-ON CONFLICT (id) DO NOTHING;
+ON CONFLICT (user_id) DO NOTHING;
 
 -- =====================================================
 -- 3. 구독 데이터 생성 (public.subscriptions)
@@ -279,8 +273,14 @@ BEGIN
   WHERE email LIKE 'test-%@ideaonaction.ai';
 
   SELECT COUNT(*) INTO profiles_count
-  FROM public.profiles
-  WHERE email LIKE 'test-%@ideaonaction.ai';
+  FROM public.user_profiles
+  WHERE user_id IN (
+    'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+    'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
+    'cccccccc-cccc-cccc-cccc-cccccccccccc',
+    'dddddddd-dddd-dddd-dddd-dddddddddddd',
+    'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee'
+  );
 
   SELECT COUNT(*) INTO subscriptions_count
   FROM public.subscriptions

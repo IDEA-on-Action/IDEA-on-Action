@@ -60,9 +60,8 @@ USING (
   reported_by = auth.uid()
   OR assigned_to = auth.uid()
   OR EXISTS (
-    SELECT 1 FROM profiles
-    WHERE profiles.id = auth.uid()
-    AND profiles.role IN ('admin', 'super_admin')
+    SELECT 1 FROM public.admins
+    WHERE admins.user_id = auth.uid()
   )
 );
 
@@ -72,9 +71,8 @@ ON service_issues FOR UPDATE
 TO authenticated
 USING (
   EXISTS (
-    SELECT 1 FROM profiles
-    WHERE profiles.id = auth.uid()
-    AND profiles.role IN ('admin', 'super_admin')
+    SELECT 1 FROM public.admins
+    WHERE admins.user_id = auth.uid()
   )
 );
 

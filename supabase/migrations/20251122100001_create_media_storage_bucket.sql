@@ -93,20 +93,16 @@ USING (
 );
 
 -- =====================================================
--- COMMENTS
+-- COMMENTS (Skipped - requires storage object ownership)
 -- =====================================================
-
-COMMENT ON POLICY "Public can view media files" ON storage.objects IS
-  'Allow anyone to view/download files from media-library bucket';
-
-COMMENT ON POLICY "Authenticated users can upload media" ON storage.objects IS
-  'Allow authenticated users to upload image files (jpg, png, gif, svg, webp, avif)';
-
-COMMENT ON POLICY "Admins can update media files" ON storage.objects IS
-  'Only admins can update file metadata in media-library bucket';
-
-COMMENT ON POLICY "Admins can delete media files" ON storage.objects IS
-  'Only admins can delete files from media-library bucket';
+-- Note: COMMENT ON POLICY for storage.objects requires superuser or
+-- storage schema owner privileges, which are not available in local dev.
+-- The comments are provided here for documentation purposes only:
+--
+-- "Public can view media files": Allow anyone to view/download files from media-library bucket
+-- "Authenticated users can upload media": Allow authenticated users to upload image files
+-- "Admins can update media files": Only admins can update file metadata
+-- "Admins can delete media files": Only admins can delete files
 
 -- =====================================================
 -- BUCKET CONFIGURATION (Reference Only)

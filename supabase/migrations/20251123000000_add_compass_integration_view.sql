@@ -2,7 +2,10 @@
 -- Date: 2025-11-23
 -- Description: Creates a view to expose user and subscription data for Compass Navigator MCP Server.
 
-CREATE OR REPLACE VIEW public.compass_integration_view AS
+-- Drop existing view first to avoid column mismatch errors
+DROP VIEW IF EXISTS public.compass_integration_view;
+
+CREATE VIEW public.compass_integration_view AS
 SELECT
     u.id AS user_id,
     u.email,
