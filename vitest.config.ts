@@ -56,12 +56,16 @@ export default defineConfig({
       reportsDirectory: './coverage',
     },
 
-    /* 병렬 실행 */
+    /* 병렬 실행 - 메모리 최적화 */
     poolOptions: {
       threads: {
         singleThread: false,
+        maxThreads: 4,
+        minThreads: 1,
       },
     },
+    /* 테스트 격리로 메모리 누수 방지 */
+    isolate: true,
   },
   resolve: {
     alias: {
