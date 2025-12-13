@@ -31,6 +31,7 @@ export default function SubscriptionSuccess() {
 
   // URL 파라미터
   const serviceId = searchParams.get('service_id')
+  const planId = searchParams.get('plan_id')
   const customerKey = searchParams.get('customerKey')
   const authKey = searchParams.get('authKey') // 빌링키
 
@@ -39,12 +40,46 @@ export default function SubscriptionSuccess() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    // sessionStorage에서 플랜 정보 가져오기
+    // 1. sessionStorage에서 플랜 정보 가져오기 (우선)
     const savedPlanInfo = sessionStorage.getItem('subscription_plan_info')
     if (savedPlanInfo) {
       setPlanInfo(JSON.parse(savedPlanInfo))
+      return
     }
-  }, [])
+
+    // 2. sessionStorage에 없으면 DB에서 플랜 정보 조회
+    const fetchPlanInfo = async () => {
+      if (!planId || !serviceId) return
+
+      try {
+        const { data: plan, error: planError } = await supabase
+          .from('service_plans')
+          .select('id, name, price, billing_cycle')
+          .eq('id', planId)
+          .single()
+
+        const { data: service, error: serviceError } = await supabase
+          .from('services')
+          .select('title')
+          .eq('id', serviceId)
+          .single()
+
+        if (plan && service) {
+          setPlanInfo({
+            plan_id: plan.id,
+            plan_name: plan.name,
+            service_title: service.title,
+            billing_cycle: plan.billing_cycle,
+            price: plan.price,
+          })
+        }
+      } catch (err) {
+        console.error('플랜 정보 조회 실패:', err)
+      }
+    }
+
+    fetchPlanInfo()
+  }, [planId, serviceId])
 
   // 빌링키 발급 성공 확인
   const isSuccess = authKey && authKey.startsWith('bln_')

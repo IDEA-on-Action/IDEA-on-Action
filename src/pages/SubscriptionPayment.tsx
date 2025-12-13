@@ -26,6 +26,7 @@ export default function SubscriptionPayment() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const serviceId = searchParams.get('service_id')
+  const planId = searchParams.get('plan_id')
   const { user } = useAuth()
   const { data: service } = useServiceDetail(serviceId!)
 
@@ -69,10 +70,13 @@ export default function SubscriptionPayment() {
 
       // 토스페이먼츠 빌링키 발급 (정기결제용)
       // requestBillingAuth(): 카드 정보만 등록하고 빌링키 발급 (첫 결제 X)
+      // plan_id를 successUrl에 포함 (SubscriptionSuccess에서 구독 생성 시 필요)
+      const planIdParam = planId ? `&plan_id=${planId}` : ''
+
       await tossPaymentsRef.current.requestBillingAuth('카드', {
         customerKey: user.id, // 사용자 고유 ID (Supabase UID)
-        successUrl: `${window.location.origin}/subscription/success?service_id=${service.id}`,
-        failUrl: `${window.location.origin}/subscription/fail?service_id=${service.id}`,
+        successUrl: `${window.location.origin}/subscription/success?service_id=${service.id}${planIdParam}`,
+        failUrl: `${window.location.origin}/subscription/fail?service_id=${service.id}${planIdParam}`,
         customerEmail,
         customerName,
       })
