@@ -20,7 +20,10 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { AlertCircle, ArrowLeft, Shield, Info } from 'lucide-react'
 
 const TOSS_CLIENT_KEY = import.meta.env.VITE_TOSS_CLIENT_KEY || 'test_ck_D5GePWvyJnrK0W0k6q8gLzN97Eoq'
-const TOSS_CUSTOMER_KEY = 'CUSTOMER_KEY_FOR_BILLING' // 실제로는 사용자 ID 기반
+
+// 디버그: 현재 사용 중인 키 확인
+console.log('🔑 토스페이먼츠 클라이언트 키:', TOSS_CLIENT_KEY.substring(0, 15) + '...')
+console.log('🔑 키 타입:', TOSS_CLIENT_KEY.startsWith('live_') ? 'LIVE' : 'TEST')
 
 export default function SubscriptionPayment() {
   const navigate = useNavigate()
@@ -73,15 +76,27 @@ export default function SubscriptionPayment() {
       // plan_id를 successUrl에 포함 (SubscriptionSuccess에서 구독 생성 시 필요)
       const planIdParam = planId ? `&plan_id=${planId}` : ''
 
+      const successUrl = `${window.location.origin}/subscription/success?service_id=${service.id}${planIdParam}`
+      const failUrl = `${window.location.origin}/subscription/fail?service_id=${service.id}${planIdParam}`
+
+      console.log('🚀 토스페이먼츠 빌링키 발급 요청:', {
+        customerKey: user.id,
+        successUrl,
+        failUrl,
+        customerEmail,
+        customerName,
+      })
+
       await tossPaymentsRef.current.requestBillingAuth('카드', {
         customerKey: user.id, // 사용자 고유 ID (Supabase UID)
-        successUrl: `${window.location.origin}/subscription/success?service_id=${service.id}${planIdParam}`,
-        failUrl: `${window.location.origin}/subscription/fail?service_id=${service.id}${planIdParam}`,
+        successUrl,
+        failUrl,
         customerEmail,
         customerName,
       })
     } catch (error) {
-      console.error('구독 시작 실패:', error)
+      console.error('🔴 구독 시작 실패:', error)
+      console.error('🔴 에러 상세:', JSON.stringify(error, null, 2))
       alert('구독 시작에 실패했습니다. 프로덕션 환경에서 다시 시도해주세요.')
     }
   }
