@@ -53,8 +53,8 @@ export default function SubscriptionSuccess() {
 
       try {
         const { data: plan, error: planError } = await supabase
-          .from('service_plans')
-          .select('id, name, price, billing_cycle')
+          .from('subscription_plans')
+          .select('id, plan_name, price, billing_cycle')
           .eq('id', planId)
           .single()
 
@@ -67,7 +67,7 @@ export default function SubscriptionSuccess() {
         if (plan && service) {
           setPlanInfo({
             plan_id: plan.id,
-            plan_name: plan.name,
+            plan_name: plan.plan_name,
             service_title: service.title,
             billing_cycle: plan.billing_cycle,
             price: plan.price,
