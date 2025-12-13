@@ -26,7 +26,8 @@ export function useMySubscriptions() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('로그인이 필요합니다.')
 
-      const { data, error } = await supabase
+      // 먼저 구독 정보 조회 (billing_keys 조인 제외)
+      const { data: subscriptionsData, error: subsError } = await supabase
         .from('subscriptions')
         .select(`
           *,
@@ -42,15 +43,44 @@ export function useMySubscriptions() {
             billing_cycle,
             price,
             features
-          ),
-          billing_key:billing_keys (
-            *
           )
         `)
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
 
-      if (error) throw error
+      if (subsError) throw subsError
+
+      // 구독이 없으면 빈 배열 반환
+      if (!subscriptionsData || subscriptionsData.length === 0) {
+        return [] as SubscriptionWithPlan[]
+      }
+
+      // billing_key_id가 있는 구독들의 billing_key 조회
+      const billingKeyIds = subscriptionsData
+        .map(sub => sub.billing_key_id)
+        .filter((id): id is string => id !== null)
+
+      let billingKeysMap: Record<string, unknown> = {}
+
+      if (billingKeyIds.length > 0) {
+        const { data: billingKeys } = await supabase
+          .from('billing_keys')
+          .select('*')
+          .in('id', billingKeyIds)
+
+        if (billingKeys) {
+          billingKeysMap = billingKeys.reduce((acc, key) => {
+            acc[key.id] = key
+            return acc
+          }, {} as Record<string, unknown>)
+        }
+      }
+
+      // 구독 데이터에 billing_key 매핑
+      const data = subscriptionsData.map(sub => ({
+        ...sub,
+        billing_key: sub.billing_key_id ? billingKeysMap[sub.billing_key_id] || null : null
+      }))
 
       // 타입 캐스팅 (Supabase 조인 쿼리 결과 매핑)
       return data as unknown as SubscriptionWithPlan[]
