@@ -38,6 +38,7 @@ export default function SubscriptionSuccess() {
   const [planInfo, setPlanInfo] = useState<PlanInfo | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [isComplete, setIsComplete] = useState(false) // 저장 완료 여부
 
   useEffect(() => {
     // 1. sessionStorage에서 플랜 정보 가져오기 (우선)
@@ -87,13 +88,26 @@ export default function SubscriptionSuccess() {
   // 빌링키 저장 및 구독 생성
   useEffect(() => {
     const saveBillingKeyAndCreateSubscription = async () => {
+      // 디버그 로그
+      console.log('🔍 saveBillingKeyAndCreateSubscription 실행:', {
+        authKey: authKey ? `${authKey.substring(0, 10)}...` : null,
+        customerKey: customerKey ? `${customerKey.substring(0, 10)}...` : null,
+        serviceId,
+        userId: user?.id,
+        planInfo: planInfo ? { plan_id: planInfo.plan_id, plan_name: planInfo.plan_name } : null,
+        isProcessing,
+        isComplete,
+      })
+
       // 필수 조건 확인
       if (!authKey || !customerKey || !serviceId || !user || !planInfo) {
+        console.log('❌ 필수 조건 미충족 - 대기 중')
         return
       }
 
       // 이미 처리 중이거나 완료된 경우 스킵
-      if (isProcessing || error) {
+      if (isProcessing || isComplete) {
+        console.log('⏭️ 이미 처리 중이거나 완료됨')
         return
       }
 
@@ -101,6 +115,8 @@ export default function SubscriptionSuccess() {
       setError(null)
 
       try {
+        console.log('📝 빌링키 저장 시도...')
+
         // 1. 빌링키 저장
         const { data: billingKey, error: billingKeyError } = await supabase
           .from('billing_keys')
@@ -114,8 +130,11 @@ export default function SubscriptionSuccess() {
           .single()
 
         if (billingKeyError) {
+          console.error('❌ 빌링키 저장 에러:', billingKeyError)
           throw new Error(`빌링키 저장 실패: ${billingKeyError.message}`)
         }
+
+        console.log('✅ 빌링키 저장 성공:', billingKey.id)
 
         // 2. 구독 생성 (14일 무료 체험)
         const trialEndDate = new Date()
@@ -131,7 +150,9 @@ export default function SubscriptionSuccess() {
           currentPeriodEnd.setFullYear(currentPeriodEnd.getFullYear() + 1)
         }
 
-        const { error: subscriptionError } = await supabase
+        console.log('📝 구독 생성 시도...')
+
+        const { data: subscription, error: subscriptionError } = await supabase
           .from('subscriptions')
           .insert({
             user_id: user.id,
@@ -145,17 +166,24 @@ export default function SubscriptionSuccess() {
             next_billing_date: trialEndDate.toISOString(), // 14일 후 첫 결제
             cancel_at_period_end: false,
           })
+          .select()
+          .single()
 
         if (subscriptionError) {
+          console.error('❌ 구독 생성 에러:', subscriptionError)
           throw new Error(`구독 생성 실패: ${subscriptionError.message}`)
         }
+
+        console.log('✅ 구독 생성 성공:', subscription.id)
 
         // 3. sessionStorage 정리
         sessionStorage.removeItem('subscription_plan_info')
 
-        console.log('✅ 빌링키 저장 및 구독 생성 완료')
+        // 4. 완료 표시
+        setIsComplete(true)
+        console.log('🎉 빌링키 저장 및 구독 생성 완료')
       } catch (err) {
-        console.error('구독 생성 중 에러:', err)
+        console.error('💥 구독 생성 중 에러:', err)
         setError(err instanceof Error ? err.message : '구독 생성에 실패했습니다.')
       } finally {
         setIsProcessing(false)
@@ -163,7 +191,7 @@ export default function SubscriptionSuccess() {
     }
 
     saveBillingKeyAndCreateSubscription()
-  }, [authKey, customerKey, serviceId, user, planInfo, isProcessing, error])
+  }, [authKey, customerKey, serviceId, user, planInfo, isProcessing, isComplete])
 
   return (
     <>
@@ -203,7 +231,29 @@ export default function SubscriptionSuccess() {
               {error && (
                 <Alert variant="destructive">
                   <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>{error}</AlertDescription>
+                  <AlertDescription>
+                    {error}
+                    <Button
+                      variant="link"
+                      className="ml-2 p-0 h-auto"
+                      onClick={() => {
+                        setError(null)
+                        // isComplete는 그대로 두어 재시도 가능하게 함
+                      }}
+                    >
+                      다시 시도
+                    </Button>
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {/* 저장 완료 상태 */}
+              {isComplete && !error && (
+                <Alert className="border-green-200 bg-green-50 dark:bg-green-900/20">
+                  <CheckCircle2 className="h-4 w-4 text-green-600" />
+                  <AlertDescription className="text-green-700 dark:text-green-300">
+                    빌링키와 구독이 성공적으로 저장되었습니다.
+                  </AlertDescription>
                 </Alert>
               )}
 
