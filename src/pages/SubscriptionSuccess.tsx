@@ -128,6 +128,10 @@ export default function SubscriptionSuccess() {
 
       try {
         console.log('📝 빌링키 저장 시도...')
+        console.log('🔑 현재 환경:', {
+          url: window.location.href,
+          timestamp: new Date().toISOString(),
+        })
 
         // 0. Supabase 세션 명시적 재설정 (auth 헤더 보장)
         const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession()
@@ -148,6 +152,12 @@ export default function SubscriptionSuccess() {
         })
 
         // 1. 빌링키 저장
+        console.log('📤 billing_keys INSERT 요청:', {
+          user_id: currentSession.user.id,
+          billing_key: authKey.substring(0, 10) + '...',
+          customer_key: customerKey.substring(0, 10) + '...',
+        })
+
         const { data: billingKey, error: billingKeyError } = await supabase
           .from('billing_keys')
           .insert({
@@ -161,6 +171,7 @@ export default function SubscriptionSuccess() {
 
         if (billingKeyError) {
           console.error('❌ 빌링키 저장 에러:', billingKeyError)
+          console.error('❌ 에러 상세:', JSON.stringify(billingKeyError, null, 2))
           throw new Error(`빌링키 저장 실패: ${billingKeyError.message}`)
         }
 
