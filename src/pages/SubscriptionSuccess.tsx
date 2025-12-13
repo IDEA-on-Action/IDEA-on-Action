@@ -27,7 +27,7 @@ interface PlanInfo {
 export default function SubscriptionSuccess() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const { user } = useAuth()
+  const { user, loading, session } = useAuth()
 
   // URL 파라미터
   const serviceId = searchParams.get('service_id')
@@ -98,6 +98,18 @@ export default function SubscriptionSuccess() {
         isProcessing,
         isComplete,
       })
+
+      // 인증 로딩 중이면 대기
+      if (loading) {
+        console.log('⏳ 인증 로딩 중...')
+        return
+      }
+
+      // 세션이 없으면 대기 (auth 헤더 준비 보장)
+      if (!session) {
+        console.log('⏳ 세션 대기 중...')
+        return
+      }
 
       // 필수 조건 확인
       if (!authKey || !customerKey || !serviceId || !user || !planInfo) {
@@ -191,7 +203,7 @@ export default function SubscriptionSuccess() {
     }
 
     saveBillingKeyAndCreateSubscription()
-  }, [authKey, customerKey, serviceId, user, planInfo, isProcessing, isComplete])
+  }, [authKey, customerKey, serviceId, user, session, loading, planInfo, isProcessing, isComplete])
 
   return (
     <>
