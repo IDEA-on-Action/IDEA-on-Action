@@ -129,11 +129,29 @@ export default function SubscriptionSuccess() {
       try {
         console.log('📝 빌링키 저장 시도...')
 
+        // 0. Supabase 세션 명시적 재설정 (auth 헤더 보장)
+        const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession()
+        if (sessionError || !currentSession) {
+          console.error('❌ Supabase 세션 확인 실패:', sessionError)
+          throw new Error('세션이 만료되었습니다. 페이지를 새로고침해주세요.')
+        }
+
+        // 세션 토큰 명시적 설정 (auth 헤더 강제 갱신)
+        await supabase.auth.setSession({
+          access_token: currentSession.access_token,
+          refresh_token: currentSession.refresh_token,
+        })
+
+        console.log('✅ Supabase 세션 설정 완료:', {
+          user_id: currentSession.user.id,
+          expires_at: currentSession.expires_at,
+        })
+
         // 1. 빌링키 저장
         const { data: billingKey, error: billingKeyError } = await supabase
           .from('billing_keys')
           .insert({
-            user_id: user.id,
+            user_id: currentSession.user.id, // session에서 직접 user_id 사용
             billing_key: authKey,
             customer_key: customerKey,
             is_active: true,
@@ -167,7 +185,7 @@ export default function SubscriptionSuccess() {
         const { data: subscription, error: subscriptionError } = await supabase
           .from('subscriptions')
           .insert({
-            user_id: user.id,
+            user_id: currentSession.user.id, // session에서 직접 user_id 사용
             service_id: serviceId,
             plan_id: planInfo.plan_id,
             billing_key_id: billingKey.id,
