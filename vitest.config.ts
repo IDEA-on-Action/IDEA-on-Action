@@ -60,14 +60,14 @@ export default defineConfig({
     pool: 'forks',
     poolOptions: {
       forks: {
-        singleFork: false,
-        /* 메모리 최적화: 워커 수 제한 */
-        maxForks: 2,
-        minForks: 1,
+        /* 메모리 최적화: 단일 워커 사용으로 heap 문제 방지 */
+        singleFork: true,
       },
     },
     /* 테스트 격리로 메모리 누수 방지 */
     isolate: true,
+    /* 파일 병렬 처리 비활성화 - 메모리 최적화 */
+    fileParallelism: false,
   },
   resolve: {
     alias: {
