@@ -56,12 +56,14 @@ export default defineConfig({
       reportsDirectory: './coverage',
     },
 
-    /* 병렬 실행 - 메모리 최적화 */
+    /* 병렬 실행 - 메모리 최적화 (forks로 변경하여 NODE_OPTIONS 상속) */
+    pool: 'forks',
     poolOptions: {
-      threads: {
-        singleThread: false,
-        maxThreads: 4,
-        minThreads: 1,
+      forks: {
+        singleFork: false,
+        /* 메모리 최적화: 워커 수 제한 */
+        maxForks: 2,
+        minForks: 1,
       },
     },
     /* 테스트 격리로 메모리 누수 방지 */

@@ -246,6 +246,8 @@ export default defineConfig(({ mode }) => ({
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
+    // React 중복 인스턴스 방지 (recharts, tiptap 등 별도 청크에서 React 사용 시 필수)
+    dedupe: ['react', 'react-dom', 'react-is'],
   },
   build: {
     // ============================================================
@@ -287,12 +289,13 @@ export default defineConfig(({ mode }) => ({
           // index.js to ensure proper initialization order.
           // ============================================================
 
-          // 1. Recharts - Try to separate despite circular dependency warnings
-          // Split Recharts into its own chunk to reduce admin page sizes
-          // This may cause some initialization warnings but should still work
-          if (id.includes('node_modules/recharts') || id.includes('node_modules/d3-')) {
-            return 'vendor-charts';
-          }
+          // 1. Recharts - DISABLED: React 중복 인스턴스 문제 발생
+          // recharts는 React 내부 API(__SECRET_INTERNALS)에 의존하므로
+          // 별도 청크로 분리하면 React 인스턴스 충돌 오류 발생
+          // index.js에 포함시켜 단일 React 인스턴스 유지
+          // if (id.includes('node_modules/recharts') || id.includes('node_modules/d3-')) {
+          //   return 'vendor-charts';
+          // }
 
           // 2. Markdown Rendering - Only used in blog posts and chat
           if (
@@ -522,20 +525,20 @@ export default defineConfig(({ mode }) => ({
           // Recharts cannot be split from components due to circular deps,
           // but we can split components themselves to distribute the load
 
-          // FunnelChart - Used in Analytics page (heavy with Recharts)
-          if (id.includes('/components/analytics/FunnelChart')) {
-            return 'components-analytics-funnel';
-          }
-
-          // Revenue/Orders Charts - Used in Dashboard and Revenue pages
-          if (
-            id.includes('/components/analytics/RevenueChart') ||
-            id.includes('/components/analytics/OrdersChart') ||
-            id.includes('/components/analytics/ServiceRevenueChart') ||
-            id.includes('/components/analytics/RevenueComparisonChart')
-          ) {
-            return 'components-charts';
-          }
+          // FunnelChart, RevenueChart 등 - DISABLED: recharts 의존성으로 인한 React 충돌
+          // recharts 컴포넌트는 별도 청크로 분리하면 React 인스턴스 중복 문제 발생
+          // 해당 페이지 청크에 포함시켜 단일 React 인스턴스 유지
+          // if (id.includes('/components/analytics/FunnelChart')) {
+          //   return 'components-analytics-funnel';
+          // }
+          // if (
+          //   id.includes('/components/analytics/RevenueChart') ||
+          //   id.includes('/components/analytics/OrdersChart') ||
+          //   id.includes('/components/analytics/ServiceRevenueChart') ||
+          //   id.includes('/components/analytics/RevenueComparisonChart')
+          // ) {
+          //   return 'components-charts';
+          // }
 
           // NOTE: Public pages (Home, Services, Blog, etc.) remain in index.js
           // This ensures fast initial page load for non-admin users.
