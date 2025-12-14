@@ -93,16 +93,32 @@ export default function SubscriptionPayment() {
         customerName,
       })
 
-      await tossPaymentsRef.current.requestBillingAuth('카드', {
+      // Promise 방식으로 호출하여 에러 캐치
+      tossPaymentsRef.current.requestBillingAuth('카드', {
         customerKey: user.id, // 사용자 고유 ID (Supabase UID)
         successUrl,
         failUrl,
         customerEmail,
         customerName,
       })
+      .then(() => {
+        // 이 로그가 출력되면 리다이렉트가 실패한 것 (정상적으로는 여기까지 오지 않음)
+        console.warn('⚠️ requestBillingAuth 완료 후 리다이렉트되지 않음')
+      })
+      .catch((error: { code?: string; message?: string }) => {
+        console.error('🔴 requestBillingAuth 에러:', error)
+        console.error('🔴 에러 코드:', error.code)
+        console.error('🔴 에러 메시지:', error.message)
 
-      // 이 로그가 출력되면 리다이렉트가 실패한 것
-      console.warn('⚠️ requestBillingAuth 완료 후 리다이렉트되지 않음')
+        if (error.code === 'USER_CANCEL') {
+          // 사용자가 결제창을 닫았을 때
+          console.log('사용자가 결제창을 닫았습니다.')
+        } else if (error.code === 'INVALID_CARD_COMPANY') {
+          alert('유효하지 않은 카드입니다.')
+        } else {
+          alert(`카드 등록 실패: ${error.message || '알 수 없는 오류'}`)
+        }
+      })
     } catch (error) {
       console.error('🔴 구독 시작 실패:', error)
 
