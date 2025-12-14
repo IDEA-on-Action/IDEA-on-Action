@@ -9,6 +9,54 @@
 
 ---
 
+## [2.37.0] - 2025-12-14 (문서 정리, 자체 블로그, 성능 최적화)
+
+### 📚 문서 구조 개선
+
+루트 폴더 정리 및 문서 관리 규칙 강화.
+
+#### 변경 사항
+
+| 항목 | 설명 | 상태 |
+|-----|------|------|
+| 루트 정리 | 구현 기록 파일 2개 → docs/archive/ 이동 | ✅ |
+| CHANGELOG 통합 | 루트 삭제, docs/project/changelog.md로 단일화 | ✅ |
+| 링크 업데이트 | versioning, deployment 문서 링크 수정 | ✅ |
+| 문서 관리 규칙 | DOCUMENT_MANAGEMENT.md 강화 | ✅ |
+
+### 📝 자체 블로그 구축
+
+WordPress → Supabase 자체 블로그 시스템 전환.
+
+#### 주요 기능
+
+| 기능 | 파일 | 설명 |
+|-----|------|------|
+| post_type 컬럼 | `20251214000001_add_post_type_column.sql` | blog, changelog, devlog, announcement |
+| 새 카테고리 | DB | 개발 일지, 릴리즈 노트 |
+| Blog.tsx 전환 | `src/pages/Blog.tsx` | WordPress → Supabase |
+| Changelog DB 연동 | `src/pages/stories/Changelog.tsx` | 하드코딩 제거 |
+| 훅 확장 | `useBlogPosts.ts` | post_type, tag_id 필터 추가 |
+
+### ⚡ 성능 최적화
+
+번들 크기 감소 및 로딩 성능 개선.
+
+#### 최적화 항목
+
+| 항목 | 설명 | 효과 |
+|-----|------|------|
+| Dashboard 차트 | lazy loading 적용 | 초기 번들 감소 |
+| Sentry 조건부 로딩 | 프로덕션만 로드 | 개발 환경 성능 개선 |
+| PWA Precache | vendor, skill 청크 제외 | 캐시 크기 최적화 |
+
+#### 생성된 파일
+
+- `src/components/admin/charts/DailyRevenueChart.tsx`
+- `src/components/admin/charts/PaymentMethodChart.tsx`
+
+---
+
 ## [2.36.1] - 2025-12-14 (토스페이먼츠 빌링키 디버깅)
 
 ### 💳 결제 시스템
