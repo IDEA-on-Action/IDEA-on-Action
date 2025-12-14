@@ -56,13 +56,61 @@
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://www.ideaonaction.ai/stories/blog/getting-started-with-ai</loc>
-    <lastmod>2025-11-15</lastmod>
+    <loc>https://www.ideaonaction.ai/stories/blog/v2-28-0-release-notes</loc>
+    <lastmod>2025-12-14</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.ideaonaction.ai/stories/blog/v2-30-0-release-notes</loc>
+    <lastmod>2025-12-14</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.ideaonaction.ai/stories/blog/v2-29-0-release-notes</loc>
+    <lastmod>2025-12-14</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.ideaonaction.ai/stories/blog/v2-37-0-release-notes</loc>
+    <lastmod>2025-12-14</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.ideaonaction.ai/stories/blog/v2-36-1-release-notes</loc>
+    <lastmod>2025-12-14</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.ideaonaction.ai/stories/blog/v2-36-0-release-notes</loc>
+    <lastmod>2025-12-14</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.ideaonaction.ai/stories/blog/v2-35-0-release-notes</loc>
+    <lastmod>2025-12-14</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.ideaonaction.ai/stories/blog/v2-34-1-release-notes</loc>
+    <lastmod>2025-12-14</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://www.ideaonaction.ai/stories/blog/10-productivity-hacks-remote-workers</loc>
+    <lastmod>2025-11-15</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.ideaonaction.ai/stories/blog/getting-started-with-ai</loc>
     <lastmod>2025-11-15</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
