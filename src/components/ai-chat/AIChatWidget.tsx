@@ -4,7 +4,9 @@ import { AIChatWindow } from './AIChatWindow';
 import { AIChatToolStatus } from './AIChatToolStatus';
 import { useClaudeStreaming } from '@/hooks/useClaudeStreaming';
 import { useClaudeTools } from '@/hooks/useClaudeTools';
-import { useConversationManager } from '@/hooks/useConversationManager';
+// useConversationManager 제거 - 현재 사용하지 않으며 불필요한 API 호출 발생
+// TODO: 대화 저장 기능 활성화 시 조건부로 다시 추가
+// import { useConversationManager } from '@/hooks/useConversationManager';
 import { useAuth } from '@/hooks/useAuth';
 import { usePageContext } from '@/hooks/usePageContext';
 import type { AIChatMessage, AIChatConfig } from '@/types/ai-chat-widget.types';
@@ -113,8 +115,9 @@ export function AIChatWidget({ config }: AIChatWidgetProps) {
     },
   });
 
-  // Conversation Manager (로그인 시)
-  const conversationManager = useConversationManager();
+  // Conversation Manager 비활성화 - 403 오류 방지 (ai_conversations RLS)
+  // TODO: 대화 저장 기능 활성화 시 조건부로 다시 추가
+  // const conversationManager = useConversationManager();
 
   // 버튼 클릭
   const handleToggle = useCallback(() => {
