@@ -1,5 +1,6 @@
 -- Changelog 포스트 삽입 (최신 8개 버전)
 -- v2.37.0 ~ v2.28.0
+-- author_id: 첫 번째 사용자 (관리자) 또는 시스템 계정 사용
 
 INSERT INTO blog_posts (
   title,
@@ -10,7 +11,8 @@ INSERT INTO blog_posts (
   status,
   published_at,
   meta_title,
-  category_id
+  category_id,
+  author_id
 )
 VALUES
 -- v2.37.0
@@ -65,7 +67,8 @@ WordPress → Supabase 자체 블로그 시스템 전환.
   'published',
   '2025-12-14 00:00:00+00',
   'v2.37.0',
-  (SELECT id FROM post_categories WHERE slug = 'release-notes')
+  (SELECT id FROM post_categories WHERE slug = 'release-notes'),
+  (SELECT id FROM auth.users ORDER BY created_at ASC LIMIT 1)
 ),
 
 -- v2.36.1
@@ -96,7 +99,8 @@ WordPress → Supabase 자체 블로그 시스템 전환.
   'published',
   '2025-12-14 00:00:00+00',
   'v2.36.1',
-  (SELECT id FROM post_categories WHERE slug = 'release-notes')
+  (SELECT id FROM post_categories WHERE slug = 'release-notes'),
+  (SELECT id FROM auth.users ORDER BY created_at ASC LIMIT 1)
 ),
 
 -- v2.36.0
@@ -122,7 +126,8 @@ Minu 서비스와의 통합을 위한 핵심 인프라 구축으로 안전하고
   'published',
   '2025-12-09 00:00:00+00',
   'v2.36.0',
-  (SELECT id FROM post_categories WHERE slug = 'release-notes')
+  (SELECT id FROM post_categories WHERE slug = 'release-notes'),
+  (SELECT id FROM auth.users ORDER BY created_at ASC LIMIT 1)
 ),
 
 -- v2.35.0
@@ -167,7 +172,8 @@ Sandbox 환경 구축 및 API 클라이언트.
   'published',
   '2025-12-09 00:00:00+00',
   'v2.35.0',
-  (SELECT id FROM post_categories WHERE slug = 'release-notes')
+  (SELECT id FROM post_categories WHERE slug = 'release-notes'),
+  (SELECT id FROM auth.users ORDER BY created_at ASC LIMIT 1)
 ),
 
 -- v2.34.1
@@ -206,7 +212,8 @@ Sandbox 환경 구축 및 API 클라이언트.
   'published',
   '2025-12-09 00:00:00+00',
   'v2.34.1',
-  (SELECT id FROM post_categories WHERE slug = 'release-notes')
+  (SELECT id FROM post_categories WHERE slug = 'release-notes'),
+  (SELECT id FROM auth.users ORDER BY created_at ASC LIMIT 1)
 ),
 
 -- v2.30.0
@@ -265,7 +272,8 @@ TODO 주석 11개 구현 완료로 코드 품질 개선.
   'published',
   '2025-12-02 00:00:00+00',
   'v2.30.0',
-  (SELECT id FROM post_categories WHERE slug = 'release-notes')
+  (SELECT id FROM post_categories WHERE slug = 'release-notes'),
+  (SELECT id FROM auth.users ORDER BY created_at ASC LIMIT 1)
 ),
 
 -- v2.29.0
@@ -356,7 +364,8 @@ pages-admin-analytics 청크 크기 17% 감소.
   'published',
   '2025-12-02 00:00:00+00',
   'v2.29.0',
-  (SELECT id FROM post_categories WHERE slug = 'release-notes')
+  (SELECT id FROM post_categories WHERE slug = 'release-notes'),
+  (SELECT id FROM auth.users ORDER BY created_at ASC LIMIT 1)
 ),
 
 -- v2.28.0
@@ -423,5 +432,6 @@ Giscus 댓글 컴포넌트 Lazy Load 적용.
   'published',
   '2025-12-02 00:00:00+00',
   'v2.28.0',
-  (SELECT id FROM post_categories WHERE slug = 'release-notes')
+  (SELECT id FROM post_categories WHERE slug = 'release-notes'),
+  (SELECT id FROM auth.users ORDER BY created_at ASC LIMIT 1)
 );
