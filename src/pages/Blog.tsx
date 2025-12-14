@@ -7,8 +7,9 @@
 
 import { useState } from 'react'
 import { Helmet } from 'react-helmet-async'
-import { Search, Filter, X, ExternalLink } from 'lucide-react'
-import { useWordPressPosts, useWordPressCategories, useWordPressTags } from '@/hooks/useWordPressPosts'
+import { Search, Filter, X } from 'lucide-react'
+import { useBlogPosts, useCategories, useTags } from '@/hooks/useBlogPosts'
+import type { BlogPostSortBy } from '@/types/blog'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -16,6 +17,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
 import { formatDistanceToNow } from 'date-fns'
+import { Link } from 'react-router-dom'
 import {
   Select,
   SelectContent,
@@ -25,38 +27,42 @@ import {
 } from '@/components/ui/select'
 
 export default function Blog() {
-  const [category, setCategory] = useState<string>('')
-  const [tag, setTag] = useState<string>('')
+  const [categoryId, setCategoryId] = useState<string>('')
+  const [tagId, setTagId] = useState<string>('')
   const [search, setSearch] = useState('')
-  const [sortBy, setSortBy] = useState<'date' | 'modified' | 'title' | 'comment_count'>('date')
+  const [sortBy, setSortBy] = useState<BlogPostSortBy>('published_at')
 
-  const { data: posts, isLoading, error } = useWordPressPosts({
-    category: category || undefined,
-    tag: tag || undefined,
-    search: search || undefined,
-    orderBy: sortBy,
-    order: 'DESC',
-    number: 20,
+  const { data: posts, isLoading, error } = useBlogPosts({
+    filters: {
+      status: 'published',
+      post_type: 'blog',
+      category_id: categoryId || undefined,
+      tag_id: tagId || undefined,
+      search: search || undefined,
+    },
+    sortBy,
+    sortOrder: 'desc',
+    limit: 20,
   })
 
-  const { data: categories } = useWordPressCategories()
-  const { data: tags } = useWordPressTags()
+  const { data: categories } = useCategories()
+  const { data: tags } = useTags()
 
   const handleCategoryChange = (value: string) => {
-    setCategory(value === 'all' ? '' : value)
+    setCategoryId(value === 'all' ? '' : value)
   }
 
-  const handleTagClick = (tagSlug: string) => {
-    setTag(tag === tagSlug ? '' : tagSlug)
+  const handleTagClick = (tagClickedId: string) => {
+    setTagId(tagId === tagClickedId ? '' : tagClickedId)
   }
 
   const clearFilters = () => {
-    setCategory('')
-    setTag('')
+    setCategoryId('')
+    setTagId('')
     setSearch('')
   }
 
-  const hasActiveFilters = category || tag || search
+  const hasActiveFilters = categoryId || tagId || search
 
   return (
     <>
@@ -102,7 +108,7 @@ export default function Blog() {
               <div className="flex flex-wrap gap-2 items-center">
                 {/* Category Filter */}
                 <Select
-                  value={category || 'all'}
+                  value={categoryId || 'all'}
                   onValueChange={handleCategoryChange}
                 >
                   <SelectTrigger className="w-[180px]" aria-label="카테고리 필터">
@@ -112,8 +118,8 @@ export default function Blog() {
                   <SelectContent>
                     <SelectItem value="all">All Categories</SelectItem>
                     {categories?.map(cat => (
-                      <SelectItem key={cat.slug} value={cat.slug}>
-                        {cat.name} ({cat.count})
+                      <SelectItem key={cat.id} value={cat.id}>
+                        {cat.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -122,14 +128,14 @@ export default function Blog() {
                 {/* Sort By */}
                 <Select
                   value={sortBy}
-                  onValueChange={(value) => setSortBy(value as typeof sortBy)}
+                  onValueChange={(value) => setSortBy(value as BlogPostSortBy)}
                 >
                   <SelectTrigger className="w-[180px]" aria-label="정렬 기준">
                     <SelectValue placeholder="Sort by" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="date">Latest</SelectItem>
-                    <SelectItem value="comment_count">Most Comments</SelectItem>
+                    <SelectItem value="published_at">Latest</SelectItem>
+                    <SelectItem value="view_count">Most Views</SelectItem>
                     <SelectItem value="title">Title (A-Z)</SelectItem>
                   </SelectContent>
                 </Select>
@@ -149,12 +155,12 @@ export default function Blog() {
               <div className="flex flex-wrap gap-2 mt-4">
                 {tags.map(t => (
                   <Badge
-                    key={t.slug}
-                    variant={tag === t.slug ? 'default' : 'outline'}
+                    key={t.id}
+                    variant={tagId === t.id ? 'default' : 'outline'}
                     className="cursor-pointer hover:bg-primary/10 transition-colors"
-                    onClick={() => handleTagClick(t.slug)}
+                    onClick={() => handleTagClick(t.id)}
                   >
-                    {t.name} ({t.count})
+                    {t.name}
                   </Badge>
                 ))}
               </div>
@@ -201,10 +207,10 @@ export default function Blog() {
                 {posts.map(post => (
                   <Card key={post.id} className="group hover-lift h-full flex flex-col">
                     {/* Featured Image */}
-                    {post.featuredImage && (
+                    {post.featured_image && (
                       <div className="relative w-full h-48 overflow-hidden rounded-t-lg">
                         <img
-                          src={post.featuredImage}
+                          src={post.featured_image}
                           alt={post.title}
                           className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                           loading="lazy"
@@ -216,41 +222,37 @@ export default function Blog() {
 
                     <CardHeader>
                       {/* Category Badge */}
-                      {post.categories.length > 0 && (
+                      {post.category && (
                         <Badge variant="outline" className="w-fit mb-2">
-                          {post.categories[0]}
+                          {post.category.name}
                         </Badge>
                       )}
 
                       {/* Title */}
                       <CardTitle className="line-clamp-2">
-                        <a
-                          href={post.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="hover:text-primary transition-colors flex items-center gap-2"
+                        <Link
+                          to={`/blog/${post.slug}`}
+                          className="hover:text-primary transition-colors"
                         >
-                          <span dangerouslySetInnerHTML={{ __html: post.title }} />
-                          <ExternalLink className="w-4 h-4 flex-shrink-0" />
-                        </a>
+                          {post.title}
+                        </Link>
                       </CardTitle>
 
                       {/* Excerpt */}
                       {post.excerpt && (
-                        <CardDescription
-                          className="line-clamp-3 mt-2"
-                          dangerouslySetInnerHTML={{ __html: post.excerpt }}
-                        />
+                        <CardDescription className="line-clamp-3 mt-2">
+                          {post.excerpt}
+                        </CardDescription>
                       )}
                     </CardHeader>
 
                     <CardContent className="flex-1">
                       {/* Tags */}
-                      {post.tags.length > 0 && (
+                      {post.tags && post.tags.length > 0 && (
                         <div className="flex flex-wrap gap-2">
-                          {post.tags.slice(0, 3).map(tagName => (
-                            <Badge key={tagName} variant="secondary" className="text-xs">
-                              {tagName}
+                          {post.tags.slice(0, 3).map(tag => (
+                            <Badge key={tag.id} variant="secondary" className="text-xs">
+                              {tag.name}
                             </Badge>
                           ))}
                           {post.tags.length > 3 && (
@@ -264,19 +266,23 @@ export default function Blog() {
 
                     <CardFooter className="flex flex-wrap gap-4 text-sm text-muted-foreground">
                       {/* Author */}
-                      <div className="flex items-center gap-1">
-                        <span>{post.author.name}</span>
-                      </div>
+                      {post.author && (
+                        <div className="flex items-center gap-1">
+                          <span>{post.author.display_name || 'Anonymous'}</span>
+                        </div>
+                      )}
 
                       {/* Published Date */}
-                      <div className="flex items-center gap-1">
-                        <span>{formatDistanceToNow(post.publishedAt, { addSuffix: true })}</span>
-                      </div>
-
-                      {/* Comment Count */}
-                      {post.commentCount !== undefined && post.commentCount > 0 && (
+                      {post.published_at && (
                         <div className="flex items-center gap-1">
-                          <span>{post.commentCount} comments</span>
+                          <span>{formatDistanceToNow(new Date(post.published_at), { addSuffix: true })}</span>
+                        </div>
+                      )}
+
+                      {/* View Count */}
+                      {post.view_count > 0 && (
+                        <div className="flex items-center gap-1">
+                          <span>{post.view_count} views</span>
                         </div>
                       )}
                     </CardFooter>

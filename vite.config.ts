@@ -112,6 +112,7 @@ export default defineConfig(({ mode }) => ({
         navigateFallbackDenylist: [/^\/api/, /^\/auth/],
 
         // Exclude admin pages and lazy-loaded components from precache
+        // Phase 3: PWA Precache 최적화 - 번들 크기 목표 < 600 KB
         globIgnores: [
           // Admin pages (lazy load via runtime caching)
           "**/pages-admin-*.js",              // All admin chunks (split for better loading)
@@ -123,7 +124,9 @@ export default defineConfig(({ mode }) => ({
           "**/AuditLogs-*.js",                // Admin audit logs
           "**/AdminRoles-*.js",               // Admin roles
 
-          // Large vendor chunks (lazy load via runtime caching)
+          // Large vendor chunks (lazy load via runtime caching) - Phase 3
+          "**/vendor-*.js",                   // 모든 vendor 청크 (charts, editor, markdown, auth 등)
+          "**/skill-*.js",                    // 모든 skill 청크 (xlsx, docx, pptx, jszip 등)
           "**/vendor-charts-*.js",            // ~421 kB (Recharts + d3)
           "**/vendor-editor-*.js",            // ~500 kB (TipTap + ProseMirror)
           "**/vendor-markdown-*.js",          // ~340 kB (markdown rendering)
@@ -135,6 +138,10 @@ export default defineConfig(({ mode }) => ({
 
           // Non-critical pages (lazy load via runtime caching)
           "**/DateRangePicker-*.js",          // ~38 kB (12 kB gzip)
+
+          // Chart components (Phase 3: Recharts 동적 로딩)
+          "**/DailyRevenueChart-*.js",        // Dashboard 차트
+          "**/PaymentMethodChart-*.js",       // Dashboard 차트
         ],
 
         runtimeCaching: [

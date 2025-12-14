@@ -16,7 +16,6 @@ import { CommandPalette } from "./components/CommandPalette";
 
 // Lazy load AIChatWidget (AI-powered chat with Claude integration)
 const AIChatWidget = lazy(() => import("./components/ai-chat").then(m => ({ default: m.AIChatWidget })));
-import { initSentry } from "./lib/sentry";
 import { trackPageView } from "./lib/analytics";
 import { initWebVitals } from "./lib/web-vitals";
 import * as Sentry from "@sentry/react";
@@ -174,8 +173,10 @@ const AdminIntegrations = lazy(() => import("./pages/admin/AdminIntegrations"));
 const CentralHubDashboard = lazy(() => import("./pages/admin/CentralHubDashboard"));
 const AdminPromptTemplates = lazy(() => import("./pages/admin/AdminPromptTemplates"));
 
-// Sentry 초기화
-initSentry();
+// Sentry 초기화 - Phase 3: 프로덕션 환경에서만 동적 로딩
+if (import.meta.env.PROD) {
+  import('./lib/sentry').then(m => m.initSentry())
+}
 
 // Web Vitals 측정 초기화 (TASK-075)
 initWebVitals();

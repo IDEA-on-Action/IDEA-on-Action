@@ -243,7 +243,7 @@ https://www.ideaonaction.ai/login
 
 ### 프로젝트 문서
 - [CLAUDE.md](CLAUDE.md) - 프로젝트 메인 문서
-- [CHANGELOG.md](CHANGELOG.md) - 전체 변경 이력
+- [CHANGELOG.md](../../project/changelog.md) - 전체 변경 이력
 - [docs/project/roadmap.md](docs/project/roadmap.md) - 로드맵
 
 ---

@@ -5,6 +5,8 @@
  * - 통계 요약
  * - 최근 서비스
  * - 빠른 액션
+ *
+ * Phase 3: Recharts 동적 로딩으로 번들 크기 최적화
  */
 
 import { Helmet } from 'react-helmet-async'
@@ -14,11 +16,24 @@ import { supabase } from '@/integrations/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Package, FileText, Users, TrendingUp, Plus, ArrowRight, DollarSign, ShoppingCart } from 'lucide-react'
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts'
+import { Suspense, lazy } from 'react'
+import { Skeleton } from '@/components/ui/skeleton'
 import { format, subDays, startOfDay } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import { StatsCard, StatsCardGrid } from '@/components/analytics/StatsCard'
 import { formatKoreanCurrency } from '@/types/analytics'
+
+// 동적 import로 Recharts 로딩 최적화 (Phase 3)
+// 차트 컴포넌트를 별도로 분리하여 lazy loading
+const DailyRevenueChart = lazy(() => import('@/components/admin/charts/DailyRevenueChart'))
+const PaymentMethodChart = lazy(() => import('@/components/admin/charts/PaymentMethodChart'))
+
+// 로딩 폴백 컴포넌트
+const ChartSkeleton = () => (
+  <div className="h-[300px] flex items-center justify-center">
+    <Skeleton className="h-full w-full" />
+  </div>
+)
 
 export default function Dashboard() {
   // 통계 데이터
@@ -185,18 +200,9 @@ export default function Dashboard() {
               <CardDescription>날짜별 매출 추이</CardDescription>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={stats?.dailyRevenue || []}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="dateStr" />
-                  <YAxis />
-                  <Tooltip
-                    formatter={(value: number) => `₩${value.toLocaleString()}`}
-                    labelFormatter={(label) => `날짜: ${label}`}
-                  />
-                  <Bar dataKey="revenue" fill="#3b82f6" name="매출" />
-                </BarChart>
-              </ResponsiveContainer>
+              <Suspense fallback={<ChartSkeleton />}>
+                <DailyRevenueChart data={stats?.dailyRevenue || []} />
+              </Suspense>
             </CardContent>
           </Card>
 
@@ -208,30 +214,9 @@ export default function Dashboard() {
             </CardHeader>
             <CardContent>
               {stats?.paymentMethodChart && stats.paymentMethodChart.length > 0 ? (
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie
-                      data={stats.paymentMethodChart}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                      outerRadius={80}
-                      fill="#8884d8"
-                      dataKey="value"
-                    >
-                      {stats.paymentMethodChart.map((_, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      formatter={(value: number, name: string, props: { payload: { amount: number } }) =>
-                        `${value}건 (₩${props.payload.amount.toLocaleString()})`
-                      }
-                    />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
+                <Suspense fallback={<ChartSkeleton />}>
+                  <PaymentMethodChart data={stats.paymentMethodChart} colors={COLORS} />
+                </Suspense>
               ) : (
                 <div className="h-[300px] flex items-center justify-center text-muted-foreground">
                   결제 데이터가 없습니다

@@ -70,8 +70,20 @@ export function useBlogPosts(options: UsePostsOptions = {}) {
       if (filters.status) {
         query = query.eq('status', filters.status)
       }
+      if (filters.post_type) {
+        query = query.eq('post_type', filters.post_type)
+      }
       if (filters.category_id) {
         query = query.eq('category_id', filters.category_id)
+      }
+      if (filters.tag_id) {
+        // Filter by tag using join
+        query = query.in('id',
+          supabase
+            .from('post_tag_relations')
+            .select('post_id')
+            .eq('tag_id', filters.tag_id)
+        )
       }
       if (filters.author_id) {
         query = query.eq('author_id', filters.author_id)

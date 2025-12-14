@@ -93,17 +93,23 @@ idea-on-action/
 
 ### 2. 문서 위치 규칙
 
-#### 루트 레벨 (최소화)
+#### 루트 레벨 (최소화 - 4개만 허용)
+
 - **CLAUDE.md**: 프로젝트 개발 현황, 최신 업데이트, 히스토리
 - **constitution.md**: 프로젝트 헌법 (협상 불가능한 원칙)
 - **README.md**: 프로젝트 소개, 빠른 시작
 - **project-todo.md**: 할 일 목록
 
+**⚠️ 중요**: 루트 레벨에는 위 4개 파일만 허용됩니다. 다른 모든 문서는 `docs/` 하위에 위치해야 합니다.
+
 #### docs/ 아래 (모든 문서 통합)
+
 - **docs/README.md**: 📌 **필수 확인** - 모든 문서의 인덱스
 - **docs/guides/**: 실무 가이드 (개발자가 자주 참조)
 - **docs/project/**: 프로젝트 문서 (changelog, roadmap)
+  - **docs/project/changelog.md**: 단일 변경 로그 소스 (SSoT)
 - **docs/archive/**: 히스토리 보관 (완료된 작업, 보고서)
+  - **구현 보고서**: 완료된 기능 구현 보고서는 `docs/archive/YYYY-MM-DD/`로 이동
 - **docs/api/**: API 문서
 - **docs/reports/**: 분석 리포트
 
@@ -425,7 +431,10 @@ const greeting: string = "Hello";
 2. **루트에 문서 추가**
    ```
    ❌ my-guide.md (루트)
+   ❌ AI_CHAT_WIDGET_IMPLEMENTATION.md (루트)
+   ❌ CHANGELOG.md (루트 - docs/project/changelog.md와 중복)
    ✅ docs/guides/my-guide.md
+   ✅ docs/archive/2025-12-14/AI_CHAT_WIDGET_IMPLEMENTATION.md
    ```
 
 3. **의미 없는 이름**

@@ -282,4 +282,4 @@ git reset --hard HEAD~1
 **관련 문서**:
 - [version-roadmap-mapping.md](./version-roadmap-mapping.md) - 버전-로드맵 매핑
 - [CLAUDE.md](../../CLAUDE.md) - 프로젝트 메인 문서
-- [CHANGELOG.md](../../CHANGELOG.md) - 변경 로그
+- [CHANGELOG.md](../../project/changelog.md) - 변경 로그

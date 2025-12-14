@@ -183,4 +183,4 @@ v6.x.x  ░░░░░░░░░░░░░░░░░░░░ Phase 12 �
 - [버전 관리 가이드](./README.md) - Semantic Versioning 규칙
 - [CLAUDE.md](../../CLAUDE.md) - 프로젝트 메인 문서
 - [roadmap.md](../project/roadmap.md) - 상세 로드맵
-- [CHANGELOG.md](../../CHANGELOG.md) - 변경 로그
+- [CHANGELOG.md](../../project/changelog.md) - 변경 로그

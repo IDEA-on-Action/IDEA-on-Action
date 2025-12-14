@@ -18,6 +18,9 @@ export type PostTagInsert = Database['public']['Tables']['post_tags']['Insert']
 
 export type PostTagRelation = Database['public']['Tables']['post_tag_relations']['Row']
 
+// Post type enumeration
+export type BlogPostType = 'blog' | 'changelog' | 'devlog' | 'announcement'
+
 // Extended types with relations
 export interface BlogPostWithRelations extends BlogPost {
   author?: {
@@ -47,6 +50,7 @@ export interface BlogPostFormData {
 // Filter/Sort types
 export interface BlogPostFilters {
   status?: 'draft' | 'published' | 'archived'
+  post_type?: BlogPostType
   category_id?: string
   tag_id?: string
   author_id?: string
