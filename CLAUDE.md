@@ -61,6 +61,39 @@
 
 ---
 
+## 🔄 Continuous Claude (자율 개발 루프)
+
+Claude Code를 반복 실행하며 자동 PR 생성 → CI 체크 → 병합하는 자율 개발 방식
+**참고**: [Continuous Claude](https://github.com/AnandChowdhary/continuous-claude)
+
+### 컨텍스트 연속성
+
+- **[.github/SHARED_TASK_NOTES.md](.github/SHARED_TASK_NOTES.md)**: 반복 간 진행 상황 전달
+  - 완료된 작업, 실패한 시도, 다음 우선순위 기록
+  - "시도했지만 실패: X → 다음에 Y 시도" 형식
+
+### 적용 시나리오
+
+| 시나리오 | 설정 | 예시 |
+|----------|------|------|
+| 테스트 커버리지 증가 | `--max-duration 8h` | 80% 달성까지 테스트 추가 |
+| 의존성 업데이트 | `--max-cost 25.00` | npm 패키지 업데이트 + 호환성 수정 |
+| 대규모 리팩토링 | `--worktree` | 여러 모듈 병렬 현대화 |
+
+### 제약 조건
+
+- **비용 제한**: 단일 세션 $10 이하 권장
+- **시간 제한**: 최대 6시간 (CI 부하 고려)
+- **반복 제한**: 10회 이하 권장
+- **병합 전략**: squash (커밋 히스토리 정리)
+
+### 브랜치 네이밍
+
+- 접두어: `claude/` (예: `claude/add-unit-tests`)
+- 자동 생성 브랜치와 수동 브랜치 구분
+
+---
+
 ## 🔢 버전 관리
 
 **형식**: Major.Minor.Patch (Semantic Versioning)
