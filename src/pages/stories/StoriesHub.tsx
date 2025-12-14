@@ -8,16 +8,17 @@
 import { BookOpen, Mail, FileText, Bell } from "lucide-react";
 import { StoriesSection, type StoriesSectionItem } from "@/components/stories/StoriesSection";
 import { PageLayout } from "@/components/layouts";
-import { useWordPressPosts } from "@/hooks/useWordPressPosts";
+import { useBlogPosts } from "@/hooks/useBlogPosts";
 import { useNotices } from "@/hooks/useNotices";
-import { useChangelog } from "@/hooks/useChangelog";
 import { useNewsletterArchive } from "@/hooks/useNewsletterArchive";
 
 export default function StoriesHub() {
-  // WordPress 블로그 포스트 가져오기 (최신 3개)
-  const { data: wpPosts, isLoading: blogLoading } = useWordPressPosts({
-    number: 3,
-    order: "DESC",
+  // 블로그 포스트 가져오기 (최신 3개, post_type: 'blog')
+  const { data: blogPosts, isLoading: blogLoading } = useBlogPosts({
+    filters: { status: "published", post_type: "blog" },
+    sortBy: "published_at",
+    sortOrder: "desc",
+    limit: 3,
   });
 
   // 뉴스레터 아카이브 가져오기 (최신 3개)
@@ -25,8 +26,11 @@ export default function StoriesHub() {
     limit: 3,
   });
 
-  // 변경사항 가져오기 (최신 3개)
-  const { data: changelog, isLoading: changelogLoading } = useChangelog({
+  // 변경사항 가져오기 (최신 3개, post_type: 'changelog')
+  const { data: changelogPosts, isLoading: changelogLoading } = useBlogPosts({
+    filters: { status: "published", post_type: "changelog" },
+    sortBy: "published_at",
+    sortOrder: "desc",
     limit: 3,
   });
 
@@ -38,13 +42,13 @@ export default function StoriesHub() {
     sortOrder: "desc",
   });
 
-  // WordPress 블로그 데이터를 StoriesSectionItem 형태로 변환
+  // 블로그 데이터를 StoriesSectionItem 형태로 변환
   const blogItems: StoriesSectionItem[] =
-    wpPosts?.map((post) => ({
+    blogPosts?.map((post) => ({
       id: post.id,
       title: post.title,
       excerpt: post.excerpt || undefined,
-      published_at: post.publishedAt.toISOString(),
+      published_at: post.published_at || post.created_at,
     })) || [];
 
   // 뉴스레터 데이터를 StoriesSectionItem 형태로 변환
@@ -58,11 +62,11 @@ export default function StoriesHub() {
 
   // 변경사항 데이터를 StoriesSectionItem 형태로 변환
   const changelogItems: StoriesSectionItem[] =
-    changelog?.map((entry) => ({
-      id: entry.id,
-      title: `${entry.version} - ${entry.title}`,
-      excerpt: entry.description || undefined,
-      published_at: entry.released_at,
+    changelogPosts?.map((post) => ({
+      id: post.id,
+      title: post.title,
+      excerpt: post.excerpt || undefined,
+      published_at: post.published_at || post.created_at,
     })) || [];
 
   // 공지사항 데이터를 StoriesSectionItem 형태로 변환
