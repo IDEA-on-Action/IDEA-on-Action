@@ -2,13 +2,13 @@
  * Subscription Payment Page
  *
  * 토스페이먼츠 빌링키 발급 페이지
- * Payment Widget을 사용하여 카드 등록
+ * SDK V2를 사용하여 카드 등록
  */
 
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
-import { loadTossPayments, type TossPaymentsInstance } from '@tosspayments/payment-sdk'
+import { loadTossPayments } from '@tosspayments/tosspayments-sdk'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
 import { useAuth } from '@/hooks/useAuth'
@@ -25,6 +25,17 @@ const TOSS_CLIENT_KEY = import.meta.env.VITE_TOSS_CLIENT_KEY || 'test_ck_D5GePWv
 console.log('🔑 토스페이먼츠 클라이언트 키:', TOSS_CLIENT_KEY.substring(0, 15) + '...')
 console.log('🔑 키 타입:', TOSS_CLIENT_KEY.startsWith('live_') ? 'LIVE' : 'TEST')
 
+// Payment 인스턴스 타입 정의
+interface PaymentInstance {
+  requestBillingAuth: (params: {
+    method: 'CARD'
+    successUrl: string
+    failUrl: string
+    customerEmail?: string
+    customerName?: string
+  }) => Promise<void>
+}
+
 export default function SubscriptionPayment() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
@@ -33,17 +44,23 @@ export default function SubscriptionPayment() {
   const { user } = useAuth()
   const { data: service } = useServiceDetail(serviceId!)
 
-  const tossPaymentsRef = useRef<TossPaymentsInstance | null>(null)
+  const paymentRef = useRef<PaymentInstance | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
-  // Toss Payments SDK 초기화
+  // Toss Payments SDK V2 초기화
   useEffect(() => {
     const initializeTossPayments = async () => {
-      try {
-        // Toss Payments SDK 로드
-        const tossPayments = await loadTossPayments(TOSS_CLIENT_KEY)
-        tossPaymentsRef.current = tossPayments
+      if (!user) return
 
+      try {
+        // Toss Payments SDK V2 로드
+        const tossPayments = await loadTossPayments(TOSS_CLIENT_KEY)
+
+        // payment() 메서드로 결제창 인스턴스 생성 (customerKey 필수)
+        const payment = tossPayments.payment({ customerKey: user.id })
+        paymentRef.current = payment as PaymentInstance
+
+        console.log('✅ 토스페이먼츠 SDK V2 초기화 완료')
         setIsLoading(false)
       } catch (error) {
         console.error('Toss Payments SDK 초기화 실패:', error)
@@ -53,11 +70,11 @@ export default function SubscriptionPayment() {
     }
 
     initializeTossPayments()
-  }, [])
+  }, [user])
 
-  // 구독 시작 (빌링키 발급)
+  // 구독 시작 (빌링키 발급) - SDK V2 방식
   const handleSubscribe = async () => {
-    if (!tossPaymentsRef.current || !service || !user) {
+    if (!paymentRef.current || !service || !user) {
       alert('Toss Payments SDK가 초기화되지 않았습니다. 페이지를 새로고침하거나 프로덕션 환경에서 시도해주세요.')
       return
     }
@@ -82,57 +99,46 @@ export default function SubscriptionPayment() {
       console.log('🔑 현재 환경:', {
         origin: window.location.origin,
         clientKeyType: TOSS_CLIENT_KEY.startsWith('live_') ? 'LIVE' : 'TEST',
+        sdkVersion: 'V2',
         timestamp: new Date().toISOString(),
       })
 
-      console.log('🚀 토스페이먼츠 빌링키 발급 요청:', {
-        customerKey: user.id,
+      console.log('🚀 토스페이먼츠 V2 빌링키 발급 요청:', {
+        method: 'CARD',
         successUrl,
         failUrl,
         customerEmail,
         customerName,
       })
 
-      // Promise 방식으로 호출하여 에러 캐치
-      tossPaymentsRef.current.requestBillingAuth('카드', {
-        customerKey: user.id, // 사용자 고유 ID (Supabase UID)
+      // SDK V2 방식: payment 인스턴스의 requestBillingAuth 호출
+      // customerKey는 이미 payment 인스턴스 생성 시 전달됨
+      await paymentRef.current.requestBillingAuth({
+        method: 'CARD',
         successUrl,
         failUrl,
         customerEmail,
         customerName,
       })
-      .then(() => {
-        // 이 로그가 출력되면 리다이렉트가 실패한 것 (정상적으로는 여기까지 오지 않음)
-        console.warn('⚠️ requestBillingAuth 완료 후 리다이렉트되지 않음')
-      })
-      .catch((error: { code?: string; message?: string }) => {
-        console.error('🔴 requestBillingAuth 에러:', error)
-        console.error('🔴 에러 코드:', error.code)
-        console.error('🔴 에러 메시지:', error.message)
 
-        if (error.code === 'USER_CANCEL') {
-          // 사용자가 결제창을 닫았을 때
-          console.log('사용자가 결제창을 닫았습니다.')
-        } else if (error.code === 'INVALID_CARD_COMPANY') {
-          alert('유효하지 않은 카드입니다.')
-        } else {
-          alert(`카드 등록 실패: ${error.message || '알 수 없는 오류'}`)
-        }
-      })
+      // 이 로그가 출력되면 리다이렉트가 실패한 것 (정상적으로는 여기까지 오지 않음)
+      console.warn('⚠️ requestBillingAuth 완료 후 리다이렉트되지 않음')
     } catch (error) {
       console.error('🔴 구독 시작 실패:', error)
 
       // 에러 객체 상세 분석
-      if (error && typeof error === 'object') {
-        const errorObj = error as Record<string, unknown>
-        console.error('🔴 에러 코드:', errorObj.code)
-        console.error('🔴 에러 메시지:', errorObj.message)
-        console.error('🔴 전체 에러:', JSON.stringify(error, null, 2))
-      }
+      const errorObj = error as { code?: string; message?: string }
+      console.error('🔴 에러 코드:', errorObj?.code)
+      console.error('🔴 에러 메시지:', errorObj?.message)
 
-      // 사용자에게 더 구체적인 메시지 표시
-      const errorMessage = (error as { message?: string })?.message || '알 수 없는 오류'
-      alert(`구독 시작 실패: ${errorMessage}`)
+      if (errorObj?.code === 'USER_CANCEL') {
+        // 사용자가 결제창을 닫았을 때
+        console.log('사용자가 결제창을 닫았습니다.')
+      } else if (errorObj?.code === 'INVALID_CARD_COMPANY') {
+        alert('유효하지 않은 카드입니다.')
+      } else {
+        alert(`카드 등록 실패: ${errorObj?.message || '알 수 없는 오류'}`)
+      }
     }
   }
 
