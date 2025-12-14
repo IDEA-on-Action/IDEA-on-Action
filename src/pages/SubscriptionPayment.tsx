@@ -79,6 +79,12 @@ export default function SubscriptionPayment() {
       const successUrl = `${window.location.origin}/subscription/success?service_id=${service.id}${planIdParam}`
       const failUrl = `${window.location.origin}/subscription/fail?service_id=${service.id}${planIdParam}`
 
+      console.log('🔑 현재 환경:', {
+        origin: window.location.origin,
+        clientKeyType: TOSS_CLIENT_KEY.startsWith('live_') ? 'LIVE' : 'TEST',
+        timestamp: new Date().toISOString(),
+      })
+
       console.log('🚀 토스페이먼츠 빌링키 발급 요청:', {
         customerKey: user.id,
         successUrl,
@@ -94,10 +100,23 @@ export default function SubscriptionPayment() {
         customerEmail,
         customerName,
       })
+
+      // 이 로그가 출력되면 리다이렉트가 실패한 것
+      console.warn('⚠️ requestBillingAuth 완료 후 리다이렉트되지 않음')
     } catch (error) {
       console.error('🔴 구독 시작 실패:', error)
-      console.error('🔴 에러 상세:', JSON.stringify(error, null, 2))
-      alert('구독 시작에 실패했습니다. 프로덕션 환경에서 다시 시도해주세요.')
+
+      // 에러 객체 상세 분석
+      if (error && typeof error === 'object') {
+        const errorObj = error as Record<string, unknown>
+        console.error('🔴 에러 코드:', errorObj.code)
+        console.error('🔴 에러 메시지:', errorObj.message)
+        console.error('🔴 전체 에러:', JSON.stringify(error, null, 2))
+      }
+
+      // 사용자에게 더 구체적인 메시지 표시
+      const errorMessage = (error as { message?: string })?.message || '알 수 없는 오류'
+      alert(`구독 시작 실패: ${errorMessage}`)
     }
   }
 

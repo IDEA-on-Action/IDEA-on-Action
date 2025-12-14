@@ -82,8 +82,8 @@ export default function SubscriptionSuccess() {
     fetchPlanInfo()
   }, [planId, serviceId])
 
-  // 빌링키 발급 성공 확인
-  const isSuccess = authKey && authKey.startsWith('bln_')
+  // 빌링키 발급 성공 확인 (authKey와 customerKey 존재 여부 확인)
+  const isSuccess = !!authKey && !!customerKey
 
   // 빌링키 저장 및 구독 생성
   useEffect(() => {
@@ -151,10 +151,36 @@ export default function SubscriptionSuccess() {
           expires_at: currentSession.expires_at,
         })
 
-        // 1. 빌링키 저장
+        // 1. Edge Function을 통해 실제 billingKey 발급
+        console.log('🔄 Edge Function으로 빌링키 발급 요청...', {
+          authKey: authKey.substring(0, 10) + '...',
+          customerKey: customerKey.substring(0, 10) + '...',
+        })
+
+        const { data: billingKeyData, error: functionError } = await supabase.functions.invoke('issue-billing-key', {
+          body: { authKey, customerKey },
+        })
+
+        if (functionError) {
+          console.error('❌ Edge Function 에러:', functionError)
+          throw new Error(`빌링키 발급 실패: ${functionError.message}`)
+        }
+
+        if (!billingKeyData?.success) {
+          console.error('❌ 빌링키 발급 실패:', billingKeyData)
+          throw new Error(billingKeyData?.error?.message || '빌링키 발급에 실패했습니다.')
+        }
+
+        console.log('✅ 빌링키 발급 성공:', {
+          billingKey: billingKeyData.billingKey?.substring(0, 10) + '...',
+          cardCompany: billingKeyData.cardCompany,
+          cardNumber: billingKeyData.cardNumber,
+        })
+
+        // 2. 빌링키 저장
         console.log('📤 billing_keys INSERT 요청:', {
           user_id: currentSession.user.id,
-          billing_key: authKey.substring(0, 10) + '...',
+          billing_key: billingKeyData.billingKey.substring(0, 10) + '...',
           customer_key: customerKey.substring(0, 10) + '...',
         })
 
@@ -162,8 +188,10 @@ export default function SubscriptionSuccess() {
           .from('billing_keys')
           .insert({
             user_id: currentSession.user.id, // session에서 직접 user_id 사용
-            billing_key: authKey,
+            billing_key: billingKeyData.billingKey, // 실제 빌링키 사용
             customer_key: customerKey,
+            card_type: billingKeyData.cardCompany, // 카드사명 추가
+            card_number: billingKeyData.cardNumber, // 카드번호 추가
             is_active: true,
           })
           .select()
@@ -177,7 +205,7 @@ export default function SubscriptionSuccess() {
 
         console.log('✅ 빌링키 저장 성공:', billingKey.id)
 
-        // 2. 구독 생성 (14일 무료 체험)
+        // 3. 구독 생성 (14일 무료 체험)
         const trialEndDate = new Date()
         trialEndDate.setDate(trialEndDate.getDate() + 14) // 14일 후
 
@@ -217,10 +245,10 @@ export default function SubscriptionSuccess() {
 
         console.log('✅ 구독 생성 성공:', subscription.id)
 
-        // 3. sessionStorage 정리
+        // 4. sessionStorage 정리
         sessionStorage.removeItem('subscription_plan_info')
 
-        // 4. 완료 표시
+        // 5. 완료 표시
         setIsComplete(true)
         console.log('🎉 빌링키 저장 및 구독 생성 완료')
       } catch (err) {

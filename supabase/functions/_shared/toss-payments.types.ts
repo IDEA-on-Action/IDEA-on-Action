@@ -226,3 +226,47 @@ export interface ProjectActivity {
   learning_count: number
   decision_count: number
 }
+
+/**
+ * 빌링키 발급 요청
+ */
+export interface IssueBillingKeyRequest {
+  authKey: string
+  customerKey: string
+}
+
+/**
+ * 빌링키 발급 응답 (토스페이먼츠 API)
+ */
+export interface TossBillingKeyResponse {
+  mId: string
+  customerKey: string
+  authenticatedAt: string
+  method: string
+  billingKey: string
+  cardCompany: string
+  cardNumber: string
+  card?: {
+    issuerCode: string
+    acquirerCode: string
+    number: string
+    cardType: 'CREDIT' | 'DEBIT' | 'GIFT'
+    ownerType: 'PERSONAL' | 'CORPORATE'
+  }
+}
+
+/**
+ * 빌링키 발급 결과 (Edge Function 응답)
+ */
+export interface IssueBillingKeyResult {
+  success: boolean
+  billingKey?: string
+  customerKey?: string
+  cardCompany?: string
+  cardNumber?: string
+  authenticatedAt?: string
+  error?: {
+    code: string
+    message: string
+  }
+}
