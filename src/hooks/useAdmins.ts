@@ -39,7 +39,7 @@ export function useAdmins() {
     queryFn: async () => {
       return await supabaseQuery(
         async () => {
-          // auth.users 테이블과 JOIN하여 email 가져오기
+          // admins 테이블에서 email 포함하여 조회
           const { data: admins, error } = await supabase
             .from('admins')
             .select('*')
@@ -49,22 +49,7 @@ export function useAdmins() {
             return { data: null, error }
           }
 
-          if (!admins || admins.length === 0) {
-            return { data: [], error: null }
-          }
-
-          // 각 admin의 user_id로 auth.users에서 email 조회
-          const adminsWithEmail = await Promise.all(
-            admins.map(async (admin) => {
-              const { data: userData } = await supabase.auth.admin.getUserById(admin.user_id)
-              return {
-                ...admin,
-                email: userData?.user?.email,
-              } as AdminWithEmail
-            })
-          )
-
-          return { data: adminsWithEmail, error: null }
+          return { data: (admins || []) as AdminWithEmail[], error: null }
         },
         {
           table: 'admins',
@@ -99,20 +84,7 @@ export function useAdmin(userId: string) {
             return { data: null, error }
           }
 
-          if (!admin) {
-            return { data: null, error: null }
-          }
-
-          // auth.users에서 email 조회
-          const { data: userData } = await supabase.auth.admin.getUserById(admin.user_id)
-
-          return {
-            data: {
-              ...admin,
-              email: userData?.user?.email,
-            } as AdminWithEmail,
-            error: null,
-          }
+          return { data: admin as AdminWithEmail | null, error: null }
         },
         {
           table: 'admins',
@@ -148,22 +120,7 @@ export function useAdminsByRole(role: AdminRole) {
             return { data: null, error }
           }
 
-          if (!admins || admins.length === 0) {
-            return { data: [], error: null }
-          }
-
-          // 각 admin의 user_id로 auth.users에서 email 조회
-          const adminsWithEmail = await Promise.all(
-            admins.map(async (admin) => {
-              const { data: userData } = await supabase.auth.admin.getUserById(admin.user_id)
-              return {
-                ...admin,
-                email: userData?.user?.email,
-              } as AdminWithEmail
-            })
-          )
-
-          return { data: adminsWithEmail, error: null }
+          return { data: (admins || []) as AdminWithEmail[], error: null }
         },
         {
           table: 'admins',

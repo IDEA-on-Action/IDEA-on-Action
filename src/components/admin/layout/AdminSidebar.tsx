@@ -39,6 +39,14 @@ import {
   ChevronRight,
   User as UserIcon,
   Mail,
+  Bell,
+  Package,
+  ShoppingCart,
+  Shield,
+  Activity,
+  DollarSign,
+  Plug,
+  MessageSquare,
 } from 'lucide-react';
 import logoSymbol from '@/assets/logo-symbol.png';
 import { cn } from '@/lib/utils';
@@ -62,8 +70,16 @@ const MENU_SECTIONS: { title: string; items: AdminMenuItem[] }[] = [
     ],
   },
   {
+    title: 'Services',
+    items: [
+      { label: '서비스 관리', path: '/admin/services', icon: Package, permission: 'service:read' },
+      { label: '주문 관리', path: '/admin/orders', icon: ShoppingCart, permission: 'order:read' },
+    ],
+  },
+  {
     title: 'Content Management',
     items: [
+      { label: '공지사항', path: '/admin/notices', icon: Bell, permission: 'notice:read' },
       { label: 'Portfolio', path: '/admin/portfolio', icon: Briefcase, permission: 'service:read' },
       { label: 'Lab', path: '/admin/lab', icon: FlaskConical, permission: 'service:read' },
       { label: 'Team', path: '/admin/team', icon: Users, permission: 'user:read' },
@@ -79,12 +95,23 @@ const MENU_SECTIONS: { title: string; items: AdminMenuItem[] }[] = [
     ],
   },
   {
+    title: 'Analytics',
+    items: [
+      { label: '분석', path: '/admin/analytics', icon: Activity, permission: 'system:read' },
+      { label: '매출', path: '/admin/revenue', icon: DollarSign, permission: 'order:read' },
+      { label: '실시간', path: '/admin/realtime', icon: BarChart3, permission: 'system:read' },
+    ],
+  },
+  {
     title: 'System',
     items: [
+      { label: '사용자 관리', path: '/admin/users', icon: Users, permission: 'user:manage' },
+      { label: '역할 관리', path: '/admin/roles', icon: Shield, permission: 'user:manage' },
       { label: 'Media Library', path: '/admin/media', icon: Image, permission: 'system:read' },
       { label: 'Newsletter', path: '/admin/newsletter', icon: Mail, permission: 'system:read' },
+      { label: '연동 관리', path: '/admin/integrations', icon: Plug, permission: 'system:manage' },
+      { label: '프롬프트 템플릿', path: '/admin/prompt-templates', icon: MessageSquare, permission: 'system:manage' },
       { label: 'Activity Logs', path: '/admin/audit-logs', icon: History, permission: 'system:manage' },
-      { label: 'Settings', path: '/admin/settings', icon: Settings, permission: 'system:manage' },
     ],
   },
 ];

@@ -218,7 +218,8 @@ export interface Admin {
   updated_at: string;
 }
 
-// Admin with user email (from auth.users join)
+// Admin with user email and name (from admins table)
 export interface AdminWithEmail extends Admin {
   email?: string;
+  name?: string;
 }

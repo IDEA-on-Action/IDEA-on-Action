@@ -170,6 +170,7 @@ export default function AdminUsers() {
     const matchesSearch =
       !search ||
       item.email?.toLowerCase().includes(search.toLowerCase()) ||
+      item.name?.toLowerCase().includes(search.toLowerCase()) ||
       item.role.toLowerCase().includes(search.toLowerCase())
     const matchesRole = roleFilter === 'all' || item.role === roleFilter
     return matchesSearch && matchesRole
@@ -365,6 +366,7 @@ export default function AdminUsers() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead>이름</TableHead>
                   <TableHead>이메일</TableHead>
                   <TableHead>역할</TableHead>
                   <TableHead>생성일</TableHead>
@@ -374,7 +376,8 @@ export default function AdminUsers() {
               <TableBody>
                 {filteredItems.map((item) => (
                   <TableRow key={item.id}>
-                    <TableCell className="font-medium">{item.email || '-'}</TableCell>
+                    <TableCell className="font-medium">{item.name || '-'}</TableCell>
+                    <TableCell>{item.email || '-'}</TableCell>
                     <TableCell>{getRoleBadge(item.role)}</TableCell>
                     <TableCell>{formatDate(item.created_at)}</TableCell>
                     <TableCell className="text-right">
