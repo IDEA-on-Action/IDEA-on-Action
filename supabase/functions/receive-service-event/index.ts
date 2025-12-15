@@ -17,9 +17,10 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { getCorsHeaders } from '../_shared/cors.ts'
+import { updateUsageCount } from '../_shared/usage-tracker.ts'
 
 // 유효한 서비스 ID 목록
-const VALID_SERVICE_IDS = ['minu-find', 'minu-frame', 'minu-build', 'minu-keep']
+const VALID_SERVICE_IDS = ['minu-find', 'minu-frame', 'minu-build', 'minu-keep', 'minu-portal']
 
 // 타임스탬프 유효 기간 (5분)
 const TIMESTAMP_TOLERANCE_MS = 5 * 60 * 1000
@@ -241,7 +242,8 @@ serve(async (req) => {
         break
       }
 
-      case 'service.health': {
+      case 'service.health':
+      case 'system.health_check': {
         // 헬스 상태 업데이트
         const { error: healthError } = await supabase
           .from('service_health')
@@ -265,6 +267,44 @@ serve(async (req) => {
             '서비스가 unhealthy 상태입니다. 확인이 필요합니다.'
           )
         }
+        break
+      }
+
+      // 사용량 이벤트 (Minu 서비스 → ideaonaction.ai)
+      case 'api.usage_reported':
+      case 'agent.executed':
+      case 'opportunity.searched': {
+        // 사용량 집계 업데이트 (subscription_usage)
+        if (payload.metadata?.userId) {
+          await updateUsageCount(supabase, payload.metadata.userId, payload.event_type, serviceId)
+        }
+        break
+      }
+
+      // 시스템 이벤트
+      case 'source.synced': {
+        // 소스 동기화 완료 알림 (partial/failed 상태만)
+        if (['partial', 'failed'].includes(payload.payload?.status)) {
+          await createNotification(
+            supabase,
+            `[${serviceId}] 소스 동기화 ${payload.payload?.status}`,
+            `${payload.payload?.sourceName}: ${payload.payload?.errorMessage || '동기화 문제 발생'}`
+          )
+        }
+        break
+      }
+
+      case 'opportunity.ingested': {
+        // 기회 수집 이벤트는 로그만 저장
+        break
+      }
+
+      // 사용자 활동 이벤트 (user.*)
+      case 'user.opportunity_viewed':
+      case 'user.filter_created':
+      case 'user.briefing_shared':
+      case 'user.favorite_added': {
+        // 사용자 활동 이벤트는 service_events에 저장 (기본 처리)
         break
       }
 

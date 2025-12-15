@@ -24,7 +24,7 @@ import { getCorsHeaders } from '../_shared/cors.ts'
 /**
  * 서비스 ID 타입
  */
-type ServiceId = 'minu-find' | 'minu-frame' | 'minu-build' | 'minu-keep' | 'central-hub';
+type ServiceId = 'minu-find' | 'minu-frame' | 'minu-build' | 'minu-keep' | 'minu-portal' | 'central-hub';
 
 /**
  * 이벤트 우선순위
@@ -115,7 +115,7 @@ interface RouterStatus {
 /**
  * 유효한 서비스 ID 목록
  */
-const VALID_SERVICE_IDS: ServiceId[] = ['minu-find', 'minu-frame', 'minu-build', 'minu-keep', 'central-hub'];
+const VALID_SERVICE_IDS: ServiceId[] = ['minu-find', 'minu-frame', 'minu-build', 'minu-keep', 'minu-portal', 'central-hub'];
 
 /**
  * 우선순위별 처리 지연 시간 (ms)
@@ -145,6 +145,19 @@ const ROUTING_RULES: RoutingRule[] = [
       status: payload.status || 'healthy',
       last_ping: new Date().toISOString(),
       metrics: payload.metrics || {},
+    }),
+    notify: false,
+  },
+
+  // 시스템 헬스 체크 (Minu 서비스용)
+  {
+    event_pattern: /^system\.health_check$/,
+    target_table: 'service_health',
+    transform: (payload, sourceService) => ({
+      service_id: sourceService,
+      status: payload.status || 'healthy',
+      last_ping: new Date().toISOString(),
+      metrics: payload.details || {},
     }),
     notify: false,
   },
@@ -208,7 +221,122 @@ const ROUTING_RULES: RoutingRule[] = [
     notify: true,
   },
 
-  // 사용자 활동 로그
+  // === Minu 서비스 Outbound 이벤트 (events-package-spec.md 기준) ===
+
+  // 사용량 이벤트: API 사용량 보고
+  {
+    event_pattern: /^api\.usage_reported$/,
+    target_table: 'service_events',
+    transform: (payload, sourceService) => ({
+      service_id: sourceService,
+      event_type: 'api.usage_reported',
+      user_id: payload.metadata?.userId,
+      payload: {
+        endpoint: payload.endpoint,
+        method: payload.method,
+        statusCode: payload.statusCode,
+        responseTimeMs: payload.responseTimeMs,
+        requestSize: payload.requestSize,
+        responseSize: payload.responseSize,
+      },
+    }),
+    notify: false,
+  },
+
+  // 사용량 이벤트: Agent 실행
+  {
+    event_pattern: /^agent\.executed$/,
+    target_table: 'service_events',
+    transform: (payload, sourceService) => ({
+      service_id: sourceService,
+      event_type: 'agent.executed',
+      user_id: payload.metadata?.userId,
+      payload: {
+        agentType: payload.agentType,
+        action: payload.action,
+        executionTimeMs: payload.executionTimeMs,
+        tokenUsage: payload.tokenUsage,
+        status: payload.status,
+        errorCode: payload.errorCode,
+      },
+    }),
+    notify: false,
+  },
+
+  // 사용량 이벤트: 기회 검색
+  {
+    event_pattern: /^opportunity\.searched$/,
+    target_table: 'service_events',
+    transform: (payload, sourceService) => ({
+      service_id: sourceService,
+      event_type: 'opportunity.searched',
+      user_id: payload.metadata?.userId,
+      payload: {
+        query: payload.query,
+        filters: payload.filters,
+        resultCount: payload.resultCount,
+        searchType: payload.searchType,
+        responseTimeMs: payload.responseTimeMs,
+      },
+    }),
+    notify: false,
+  },
+
+  // 시스템 이벤트: 소스 동기화
+  {
+    event_pattern: /^source\.synced$/,
+    target_table: 'service_events',
+    transform: (payload, sourceService) => ({
+      service_id: sourceService,
+      event_type: 'source.synced',
+      payload: {
+        sourceId: payload.sourceId,
+        sourceName: payload.sourceName,
+        sourceType: payload.sourceType,
+        recordsIngested: payload.recordsIngested,
+        recordsUpdated: payload.recordsUpdated,
+        recordsSkipped: payload.recordsSkipped,
+        durationMs: payload.durationMs,
+        status: payload.status,
+        errorMessage: payload.errorMessage,
+      },
+    }),
+    notify: true, // 동기화 실패 시 알림
+    priority_threshold: 'normal',
+  },
+
+  // 시스템 이벤트: 기회 수집
+  {
+    event_pattern: /^opportunity\.ingested$/,
+    target_table: 'service_events',
+    transform: (payload, sourceService) => ({
+      service_id: sourceService,
+      event_type: 'opportunity.ingested',
+      payload: {
+        opportunityId: payload.opportunityId,
+        sourceId: payload.sourceId,
+        isNew: payload.isNew,
+        category: payload.category,
+        domain: payload.domain,
+      },
+    }),
+    notify: false,
+  },
+
+  // 사용자 활동 이벤트 (user.* 와일드카드)
+  {
+    event_pattern: /^user\..+$/,
+    target_table: 'service_events',
+    transform: (payload, sourceService) => ({
+      service_id: sourceService,
+      event_type: payload.type || 'user.activity',
+      user_id: payload.metadata?.userId,
+      payload: payload.data || payload,
+    }),
+    notify: false,
+  },
+
+  // 사용자 활동 로그 (기존 user.action)
   {
     event_pattern: /^user\.action$/,
     target_table: 'service_events',
