@@ -22,7 +22,8 @@ import { getCorsHeaders } from '../_shared/cors.ts'
 // 상수 정의
 // ============================================================================
 
-// CORS 헤더는 getCorsHeaders()로 동적 생성 (삭제됨)
+// 기본 CORS 헤더 (errorResponse/successResponse에서 사용)
+const corsHeaders = getCorsHeaders(null)
 
 // 유효한 서비스 ID 목록
 const VALID_SERVICE_IDS = ['minu-find', 'minu-frame', 'minu-build', 'minu-keep'] as const

@@ -3,7 +3,7 @@
 > 반복 간 진행 상황 전달을 위한 공유 메모
 
 **마지막 업데이트**: 2025-12-15
-**현재 버전**: v2.37.5
+**현재 버전**: v2.37.6
 
 ---
 
@@ -14,6 +14,15 @@ v2.38.0 준비 - Newsletter 고도화 및 컨텐츠 버전 관리
 ---
 
 ## 완료된 작업
+
+### v2.37.6 (2025-12-15)
+
+- [x] MCP Auth 서비스 토큰 시스템 설정
+  - Supabase Secrets 설정: WEBHOOK_SECRET_MINU_FIND, MCP_JWT_SECRET
+  - service_tokens, mcp_audit_log 테이블 생성
+  - mcp-auth Edge Function CORS 버그 수정 및 재배포
+  - 서비스 토큰 발급 스크립트 생성 (scripts/generate-service-token.cjs)
+  - .env.example, .env.local 환경 변수 문서화
 
 ### v2.37.5 (2025-12-15)
 
@@ -50,7 +59,6 @@ v2.38.0 준비 - Newsletter 고도화 및 컨텐츠 버전 관리
 1. Newsletter 자동 발송 스케줄링 (Edge Function)
 2. 컨텐츠 버전 관리 시스템 (content_versions 테이블)
 3. 구독자 세그멘테이션
-4. Supabase Secret 설정: WEBHOOK_SECRET_MINU_PORTAL (운영팀에서 설정 필요)
 
 ---
 
@@ -59,4 +67,4 @@ v2.38.0 준비 - Newsletter 고도화 및 컨텐츠 버전 관리
 - project-todo.md 참조하여 우선순위 높은 항목 처리
 - 린트 에러 0개, 빌드 성공 유지 필수
 - 테스트 커버리지 확대 지속
-- Minu Portal webhook secret은 Supabase Dashboard에서 직접 설정 필요
+- Minu Find 서비스 토큰 발급 완료 - Vercel 환경 변수 설정 필요
