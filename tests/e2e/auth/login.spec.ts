@@ -28,8 +28,8 @@ test.describe('인증: 로그인', () => {
     const passwordInput = page.locator('input[type="password"]').first();
     await expect(passwordInput).toBeVisible();
 
-    // 로그인 버튼 확인
-    const loginButton = page.getByRole('button', { name: /로그인|Sign In|Login/i });
+    // 로그인 버튼 확인 (제출 버튼)
+    const loginButton = page.locator('button[type="submit"]');
     await expect(loginButton).toBeVisible();
   });
 
@@ -51,7 +51,7 @@ test.describe('인증: 로그인', () => {
 
   test('빈 폼 제출 시 검증 오류', async ({ page }) => {
     // 로그인 버튼 클릭 (빈 폼)
-    const loginButton = page.getByRole('button', { name: /로그인|Sign In|Login/i });
+    const loginButton = page.locator('button[type="submit"]');
     await loginButton.click();
 
     // 오류 메시지 또는 HTML5 validation 확인
@@ -65,7 +65,7 @@ test.describe('인증: 로그인', () => {
     await page.locator('input[type="text"], input[type="email"]').first().fill('nonexistent@test.com');
     await page.locator('input[type="password"]').first().fill('wrongpassword');
 
-    const loginButton = page.getByRole('button', { name: /로그인|Sign In|Login/i });
+    const loginButton = page.locator('button[type="submit"]');
     await loginButton.click();
 
     // 오류 메시지 확인 (toast, alert, inline error 등)
@@ -88,7 +88,7 @@ test.describe('인증: 로그인', () => {
     }
 
     // 오류 메시지가 있거나 여전히 로그인 페이지에 있음
-    const stillOnLoginPage = await page.url().then(url => url.includes('/login'));
+    const stillOnLoginPage = page.url().includes('/login');
     expect(errorFound || stillOnLoginPage).toBeTruthy();
   });
 

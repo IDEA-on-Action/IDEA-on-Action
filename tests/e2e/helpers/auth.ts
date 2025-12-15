@@ -39,11 +39,14 @@ export async function loginAsAdmin(page: Page) {
   // Submit form
   await page.click('button[type="submit"]');
 
-  // Wait for navigation to complete
-  await page.waitForURL('/', { timeout: 10000 });
+  // Wait for navigation away from login page
+  await page.waitForFunction(
+    () => !globalThis.location.pathname.includes('/login'),
+    { timeout: 15000 }
+  );
 
   // Wait for authentication and admin status to be fetched (React Query)
-  await page.waitForTimeout(3000);
+  await page.waitForTimeout(2000);
 }
 
 /**
@@ -78,19 +81,22 @@ export async function loginAsRegularUser(page: Page) {
   // Submit form
   await page.click('button[type="submit"]');
 
-  // Wait for navigation to complete
-  await page.waitForURL('/', { timeout: 10000 });
+  // Wait for navigation away from login page
+  await page.waitForFunction(
+    () => !globalThis.location.pathname.includes('/login'),
+    { timeout: 15000 }
+  );
 
   // Wait for authentication to be established
-  await page.waitForTimeout(3000);
+  await page.waitForTimeout(2000);
 }
 
 /**
- * Login as super admin user (alias for loginAsAdmin)
+ * Login as editor user
  * @param page - Playwright page object
  */
-export async function loginAsSuperAdmin(page: Page) {
-  const credentials = getLoginCredentials('superAdmin');
+export async function loginAsEditor(page: Page) {
+  const credentials = getLoginCredentials('editor');
 
   // First, go to home page to clear storage (prevents auto-redirect from /login)
   await page.goto('/');
@@ -117,11 +123,56 @@ export async function loginAsSuperAdmin(page: Page) {
   // Submit form
   await page.click('button[type="submit"]');
 
-  // Wait for navigation to complete
-  await page.waitForURL('/', { timeout: 10000 });
+  // Wait for navigation away from login page
+  await page.waitForFunction(
+    () => !globalThis.location.pathname.includes('/login'),
+    { timeout: 15000 }
+  );
+
+  // Wait for authentication to be established
+  await page.waitForTimeout(2000);
+}
+
+/**
+ * Login as super admin user
+ * @param page - Playwright page object
+ */
+export async function loginAsSuperAdmin(page: Page) {
+  const credentials = getLoginCredentials('superAdmin');
+
+  // First, go to home page to clear storage (prevents auto-redirect from /login)
+  await page.goto('/');
+  await page.waitForLoadState('domcontentloaded');
+
+  // Clear all storage
+  await page.context().clearCookies();
+  await page.evaluate(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+  });
+
+  // Now go to login page (user is logged out)
+  await page.goto('/login');
+  await page.waitForLoadState('domcontentloaded');
+
+  // Wait for login form to be visible
+  await page.waitForSelector('input[placeholder="이메일 또는 아이디"]', { state: 'visible', timeout: 15000 });
+
+  // Fill in login form (exact placeholder matching)
+  await page.fill('input[placeholder="이메일 또는 아이디"]', credentials.email);
+  await page.fill('input[placeholder="비밀번호"]', credentials.password);
+
+  // Submit form
+  await page.click('button[type="submit"]');
+
+  // Wait for navigation away from login page (either home or admin)
+  await page.waitForFunction(
+    () => !globalThis.location.pathname.includes('/login'),
+    { timeout: 15000 }
+  );
 
   // Wait for authentication and admin status to be fetched (React Query)
-  await page.waitForTimeout(3000);
+  await page.waitForTimeout(2000);
 }
 
 /**

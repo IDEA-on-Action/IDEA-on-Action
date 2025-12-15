@@ -3,24 +3,43 @@
  *
  * IMPORTANT: Before running tests, create test users in Supabase
  * See: docs/guides/testing/test-user-setup.md
+ *
+ * 환경 변수로 테스트 계정 설정 가능:
+ * - E2E_SUPER_ADMIN_EMAIL, E2E_SUPER_ADMIN_PASSWORD
+ * - E2E_ADMIN_EMAIL, E2E_ADMIN_PASSWORD
+ * - E2E_EDITOR_EMAIL, E2E_EDITOR_PASSWORD
+ * - E2E_USER_EMAIL, E2E_USER_PASSWORD
  */
 
+// 환경 변수에서 테스트 계정 정보 읽기
+const env = typeof process !== 'undefined' ? process.env : {};
+
 export const testUsers = {
+  // super_admin 역할 - 환경 변수 또는 기본값 사용
   superAdmin: {
-    email: 'admin@ideaonaction.local',
-    password: 'demian00',
-    username: 'admin',
-    role: 'admin'
+    email: env.E2E_SUPER_ADMIN_EMAIL || 'sinclairseo@gmail.com',
+    password: env.E2E_SUPER_ADMIN_PASSWORD || 'test1234!',
+    username: 'sinclairseo',
+    role: 'super_admin'
   },
+  // admin 역할 - 환경 변수 또는 기본값 사용
   admin: {
-    email: 'admin@ideaonaction.local',
-    password: 'demian00',
+    email: env.E2E_ADMIN_EMAIL || 'admin@ideaonaction.local',
+    password: env.E2E_ADMIN_PASSWORD || 'Admin123!',
     username: 'admin',
     role: 'admin'
   },
+  // editor 역할 - 환경 변수 또는 기본값 사용
+  editor: {
+    email: env.E2E_EDITOR_EMAIL || 'editor@ideaonaction.local',
+    password: env.E2E_EDITOR_PASSWORD || 'Editor123!',
+    username: 'editor',
+    role: 'editor'
+  },
+  // 일반 사용자 - 환경 변수 또는 기본값 사용
   regularUser: {
-    email: 'test-user@ideaonaction.local',
-    password: 'TestUser123!',
+    email: env.E2E_USER_EMAIL || 'test-user@ideaonaction.local',
+    password: env.E2E_USER_PASSWORD || 'TestUser123!',
     username: 'test-user',
     role: 'user'
   },

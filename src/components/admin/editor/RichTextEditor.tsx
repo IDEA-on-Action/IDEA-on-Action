@@ -5,7 +5,7 @@
  * WYSIWYG editor with markdown toggle support using Tiptap
  */
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState, type CSSProperties } from 'react'
 import { EditorContent } from '@tiptap/react'
 import { useRichTextEditor } from '@/hooks/useRichTextEditor'
 import { EditorToolbar } from './EditorToolbar'
@@ -173,12 +173,16 @@ export function RichTextEditor({
               '[&_.ProseMirror_p.is-editor-empty:first-child::before]:float-left',
               '[&_.ProseMirror_p.is-editor-empty:first-child::before]:h-0',
               '[&_.ProseMirror_p.is-editor-empty:first-child::before]:pointer-events-none',
+              'min-h-[var(--editor-min-height)]',
+              'max-h-[var(--editor-max-height)]',
+              'overflow-y-auto'
             )}
-            style={{
-              minHeight: `${minHeight}px`,
-              maxHeight: `${maxHeight}px`,
-              overflowY: 'auto',
-            }}
+            style={
+              {
+                '--editor-min-height': `${minHeight}px`,
+                '--editor-max-height': `${maxHeight}px`,
+              } as CSSProperties
+            }
           >
             <EditorContent editor={editor} />
           </div>
@@ -191,11 +195,15 @@ export function RichTextEditor({
             className={cn(
               'rounded-none rounded-b-lg border-0 resize-none font-mono text-sm',
               'focus-visible:ring-0 focus-visible:ring-offset-0',
+              'min-h-[var(--editor-min-height)]',
+              'max-h-[var(--editor-max-height)]'
             )}
-            style={{
-              minHeight: `${minHeight}px`,
-              maxHeight: `${maxHeight}px`,
-            }}
+            style={
+              {
+                '--editor-min-height': `${minHeight}px`,
+                '--editor-max-height': `${maxHeight}px`,
+              } as CSSProperties
+            }
           />
         )}
       </div>

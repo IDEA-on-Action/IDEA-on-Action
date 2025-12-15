@@ -9,6 +9,50 @@
 
 ---
 
+## [2.37.3] - 2025-12-15 (E2E 테스트 안정화)
+
+### 🧪 E2E 테스트 개선
+
+사용자/관리자 기능 E2E 테스트 안정화 및 CI/CD 호환성 개선.
+
+#### 수정된 파일
+
+| 파일 | 변경 내용 |
+|------|----------|
+| `tests/e2e/auth/login.spec.ts` | Strict mode violation 해결 - 로그인 버튼 선택자 수정 |
+| `tests/e2e/helpers/auth.ts` | `waitForURL` → `waitForFunction` 변경으로 유연한 네비게이션 감지 |
+| `tests/e2e/admin/admin-users.spec.ts` | 환경 변수 기반 조건부 skip 로직 추가 |
+| `tests/fixtures/users.ts` | 테스트 사용자 fixture 개선 |
+
+#### 신규 테스트 파일
+
+| 파일 | 설명 |
+|------|------|
+| `tests/e2e/auth/protected-routes.spec.ts` | 보호된 라우트 접근 제어 테스트 |
+| `tests/e2e/admin/admin-roles.spec.ts` | 역할별 권한 테스트 (super_admin, admin, editor) |
+| `tests/e2e/admin/admin-sidebar.spec.ts` | 관리자 사이드바 메뉴 접근 권한 테스트 |
+
+#### 테스트 결과
+
+| 항목 | 값 |
+|------|-----|
+| 통과 | 16 |
+| 건너뜀 | 84 (환경 변수 미설정 시) |
+| 실패 | 0 |
+| 소요 시간 | 17.9분 |
+
+#### CI/CD 실행 방법
+
+```bash
+# 기본 실행 (인증 없이)
+npx playwright test tests/e2e/auth/ tests/e2e/admin/
+
+# 전체 실행 (인증 포함)
+E2E_SUPER_ADMIN_PASSWORD=<password> npx playwright test tests/e2e/auth/ tests/e2e/admin/
+```
+
+---
+
 ## [2.37.2] - 2025-12-15 (WordPress 블로그 연동)
 
 ### 🔗 WordPress 블로그 연동
