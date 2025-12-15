@@ -9,6 +9,38 @@
 
 ---
 
+## [2.37.5] - 2025-12-15 (Minu Inbound 이벤트 시스템)
+
+### ✨ 신규 기능
+
+Minu 서비스(Find, Frame, Build, Keep, Portal)에서 발송하는 Outbound 이벤트를 수신하는 Inbound 이벤트 시스템 구현.
+
+#### 수정된 파일
+
+| 파일 | 변경 내용 |
+|------|----------|
+| `supabase/functions/receive-service-event/index.ts` | minu-portal 서비스 추가, 9개 이벤트 타입 라우팅 |
+| `supabase/functions/mcp-router/index.ts` | minu-portal 서비스 추가, 8개 라우팅 규칙 추가 |
+
+#### 신규 파일
+
+| 파일 | 설명 |
+|------|------|
+| `src/types/inbound-events.types.ts` | Inbound 이벤트 타입 정의 (명세 기반) |
+| `supabase/functions/_shared/usage-tracker.ts` | 사용량 집계 헬퍼 |
+| `spec/events-package-spec.md` | @idea-on-action/events 패키지 명세 |
+| `spec/outbound-events-spec.md` | Minu Find Outbound 이벤트 명세 |
+
+#### 지원 이벤트 타입
+
+| 카테고리 | 이벤트 타입 |
+|---------|------------|
+| 사용량 | `api.usage_reported`, `agent.executed`, `opportunity.searched` |
+| 사용자 활동 | `user.opportunity_viewed`, `user.filter_created`, `user.briefing_shared`, `user.favorite_added` |
+| 시스템 | `source.synced`, `opportunity.ingested`, `system.health_check` |
+
+---
+
 ## [2.37.4] - 2025-12-15 (WordPress HTML 엔티티 수정)
 
 ### 🐛 버그 수정
