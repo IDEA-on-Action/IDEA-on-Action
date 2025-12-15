@@ -97,21 +97,44 @@ export interface UnifiedBlogPost {
 }
 
 /**
+ * HTML 엔티티 디코딩 헬퍼 함수
+ * WordPress API가 반환하는 HTML 엔티티(&#8211;, &amp; 등)를 실제 문자로 변환
+ */
+function decodeHtmlEntities(text: string): string {
+  if (typeof document !== 'undefined') {
+    const textarea = document.createElement('textarea')
+    textarea.innerHTML = text
+    return textarea.value
+  }
+  // SSR 환경을 위한 기본 디코딩
+  return text
+    .replace(/&#(\d+);/g, (_, dec) => String.fromCharCode(dec))
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#039;/g, "'")
+    .replace(/&ndash;/g, '–')
+    .replace(/&mdash;/g, '—')
+    .replace(/&nbsp;/g, ' ')
+}
+
+/**
  * Helper function to convert WordPress post to unified format
  */
 export function wordpressToUnified(wp: WordPressPost): UnifiedBlogPost {
-  const categories = Object.values(wp.categories || {}).map(cat => cat.name)
-  const tags = Object.keys(wp.tags || {})
+  const categories = Object.values(wp.categories || {}).map(cat => decodeHtmlEntities(cat.name))
+  const tags = Object.keys(wp.tags || {}).map(tag => decodeHtmlEntities(tag))
 
   return {
     id: `wp-${wp.ID}`,
     source: 'wordpress',
-    title: wp.title,
+    title: decodeHtmlEntities(wp.title),
     excerpt: wp.excerpt,
     content: wp.content,
     publishedAt: new Date(wp.date),
     author: {
-      name: wp.author.name,
+      name: decodeHtmlEntities(wp.author.name),
       avatar: wp.author.avatar_URL,
     },
     categories,
