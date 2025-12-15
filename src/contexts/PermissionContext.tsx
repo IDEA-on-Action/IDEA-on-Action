@@ -8,18 +8,14 @@
  * - 권한 확인 헬퍼 함수 제공
  */
 
-import { createContext, useContext, useMemo, type FC, type ReactNode } from 'react'
+import { useMemo, type FC, type ReactNode } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
 import { useAuth } from '@/hooks/useAuth'
+import { PermissionContext } from '@/contexts/permissionContextValue'
 import type { Permission } from '@/types/rbac'
 import type { AdminRole } from '@/types/cms.types'
 import type { PermissionContext as PermissionContextType } from '@/types/permission.types'
-
-/**
- * 권한 컨텍스트
- */
-const PermissionContext = createContext<PermissionContextType | null>(null)
 
 /**
  * 권한 프로바이더 속성
@@ -131,15 +127,4 @@ export const PermissionProvider: FC<PermissionProviderProps> = ({ children }) =>
   }, [permissions, adminData, isLoadingPermissions, isLoadingAdmin, refetchPermissions, refetchAdmin])
 
   return <PermissionContext.Provider value={contextValue}>{children}</PermissionContext.Provider>
-}
-
-/**
- * 권한 컨텍스트 훅
- */
-export const usePermissionContext = (): PermissionContextType => {
-  const context = useContext(PermissionContext)
-  if (!context) {
-    throw new Error('usePermissionContext는 PermissionProvider 내부에서 사용해야 합니다')
-  }
-  return context
 }
