@@ -347,6 +347,7 @@ export function DataTable<T>({
             size="sm"
             onClick={() => table.setPageIndex(0)}
             disabled={!table.getCanPreviousPage()}
+            aria-label="첫 페이지로 이동"
           >
             <ChevronsLeft className="h-4 w-4" />
           </Button>
@@ -355,6 +356,7 @@ export function DataTable<T>({
             size="sm"
             onClick={() => table.previousPage()}
             disabled={!table.getCanPreviousPage()}
+            aria-label="이전 페이지"
           >
             <ChevronLeft className="h-4 w-4" />
           </Button>
@@ -363,6 +365,7 @@ export function DataTable<T>({
             size="sm"
             onClick={() => table.nextPage()}
             disabled={!table.getCanNextPage()}
+            aria-label="다음 페이지"
           >
             <ChevronRight className="h-4 w-4" />
           </Button>
@@ -371,6 +374,7 @@ export function DataTable<T>({
             size="sm"
             onClick={() => table.setPageIndex(table.getPageCount() - 1)}
             disabled={!table.getCanNextPage()}
+            aria-label="마지막 페이지로 이동"
           >
             <ChevronsRight className="h-4 w-4" />
           </Button>

@@ -1,15 +1,14 @@
 /**
  * Blog List Page
- * Phase 11 Week 1: Blog System
+ * WordPress 연동 버전
  *
- * Displays all published blog posts
+ * WordPress.com API를 통해 블로그 포스트 표시
  */
 
 import { useState } from 'react'
 import { Helmet } from 'react-helmet-async'
 import { Search, Filter, X } from 'lucide-react'
-import { useBlogPosts, useCategories, useTags } from '@/hooks/useBlogPosts'
-import type { BlogPostSortBy } from '@/types/blog'
+import { useWordPressPosts, useWordPressCategories, useWordPressTags } from '@/hooks/useWordPressPosts'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -26,43 +25,41 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 
-export default function Blog() {
-  const [categoryId, setCategoryId] = useState<string>('')
-  const [tagId, setTagId] = useState<string>('')
-  const [search, setSearch] = useState('')
-  const [sortBy, setSortBy] = useState<BlogPostSortBy>('published_at')
+type WordPressSortBy = 'date' | 'modified' | 'title' | 'comment_count'
 
-  const { data: posts, isLoading, error } = useBlogPosts({
-    filters: {
-      status: 'published',
-      post_type: 'blog',
-      category_id: categoryId || undefined,
-      tag_id: tagId || undefined,
-      search: search || undefined,
-    },
-    sortBy,
-    sortOrder: 'desc',
-    limit: 20,
+export default function Blog() {
+  const [category, setCategory] = useState<string>('')
+  const [tag, setTag] = useState<string>('')
+  const [search, setSearch] = useState('')
+  const [sortBy, setSortBy] = useState<WordPressSortBy>('date')
+
+  const { data: posts, isLoading, error } = useWordPressPosts({
+    category: category || undefined,
+    tag: tag || undefined,
+    search: search || undefined,
+    orderBy: sortBy,
+    order: 'DESC',
+    number: 20,
   })
 
-  const { data: categories } = useCategories()
-  const { data: tags } = useTags()
+  const { data: categories } = useWordPressCategories()
+  const { data: tags } = useWordPressTags()
 
   const handleCategoryChange = (value: string) => {
-    setCategoryId(value === 'all' ? '' : value)
+    setCategory(value === 'all' ? '' : value)
   }
 
-  const handleTagClick = (tagClickedId: string) => {
-    setTagId(tagId === tagClickedId ? '' : tagClickedId)
+  const handleTagClick = (tagSlug: string) => {
+    setTag(tag === tagSlug ? '' : tagSlug)
   }
 
   const clearFilters = () => {
-    setCategoryId('')
-    setTagId('')
+    setCategory('')
+    setTag('')
     setSearch('')
   }
 
-  const hasActiveFilters = categoryId || tagId || search
+  const hasActiveFilters = category || tag || search
 
   return (
     <>
@@ -108,7 +105,7 @@ export default function Blog() {
               <div className="flex flex-wrap gap-2 items-center">
                 {/* Category Filter */}
                 <Select
-                  value={categoryId || 'all'}
+                  value={category || 'all'}
                   onValueChange={handleCategoryChange}
                 >
                   <SelectTrigger className="w-[180px]" aria-label="카테고리 필터">
@@ -118,8 +115,8 @@ export default function Blog() {
                   <SelectContent>
                     <SelectItem value="all">All Categories</SelectItem>
                     {categories?.map(cat => (
-                      <SelectItem key={cat.id} value={cat.id}>
-                        {cat.name}
+                      <SelectItem key={cat.slug} value={cat.slug}>
+                        {cat.name} ({cat.count})
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -128,14 +125,14 @@ export default function Blog() {
                 {/* Sort By */}
                 <Select
                   value={sortBy}
-                  onValueChange={(value) => setSortBy(value as BlogPostSortBy)}
+                  onValueChange={(value) => setSortBy(value as WordPressSortBy)}
                 >
                   <SelectTrigger className="w-[180px]" aria-label="정렬 기준">
                     <SelectValue placeholder="Sort by" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="published_at">Latest</SelectItem>
-                    <SelectItem value="view_count">Most Views</SelectItem>
+                    <SelectItem value="date">Latest</SelectItem>
+                    <SelectItem value="comment_count">Most Comments</SelectItem>
                     <SelectItem value="title">Title (A-Z)</SelectItem>
                   </SelectContent>
                 </Select>
@@ -155,12 +152,12 @@ export default function Blog() {
               <div className="flex flex-wrap gap-2 mt-4">
                 {tags.map(t => (
                   <Badge
-                    key={t.id}
-                    variant={tagId === t.id ? 'default' : 'outline'}
+                    key={t.slug}
+                    variant={tag === t.slug ? 'default' : 'outline'}
                     className="cursor-pointer hover:bg-primary/10 transition-colors"
-                    onClick={() => handleTagClick(t.id)}
+                    onClick={() => handleTagClick(t.slug)}
                   >
-                    {t.name}
+                    {t.name} ({t.count})
                   </Badge>
                 ))}
               </div>
@@ -207,10 +204,10 @@ export default function Blog() {
                 {posts.map(post => (
                   <Card key={post.id} className="group hover-lift h-full flex flex-col">
                     {/* Featured Image */}
-                    {post.featured_image && (
+                    {post.featuredImage && (
                       <div className="relative w-full h-48 overflow-hidden rounded-t-lg">
                         <img
-                          src={post.featured_image}
+                          src={post.featuredImage}
                           alt={post.title}
                           className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                           loading="lazy"
@@ -222,27 +219,28 @@ export default function Blog() {
 
                     <CardHeader>
                       {/* Category Badge */}
-                      {post.category && (
+                      {post.categories && post.categories.length > 0 && (
                         <Badge variant="outline" className="w-fit mb-2">
-                          {post.category.name}
+                          {post.categories[0]}
                         </Badge>
                       )}
 
                       {/* Title */}
                       <CardTitle className="line-clamp-2">
                         <Link
-                          to={`/blog/${post.slug}`}
+                          to={`/stories/blog/${post.id}`}
                           className="hover:text-primary transition-colors"
                         >
                           {post.title}
                         </Link>
                       </CardTitle>
 
-                      {/* Excerpt */}
+                      {/* Excerpt - WordPress returns HTML, strip tags */}
                       {post.excerpt && (
-                        <CardDescription className="line-clamp-3 mt-2">
-                          {post.excerpt}
-                        </CardDescription>
+                        <CardDescription
+                          className="line-clamp-3 mt-2"
+                          dangerouslySetInnerHTML={{ __html: post.excerpt }}
+                        />
                       )}
                     </CardHeader>
 
@@ -250,9 +248,9 @@ export default function Blog() {
                       {/* Tags */}
                       {post.tags && post.tags.length > 0 && (
                         <div className="flex flex-wrap gap-2">
-                          {post.tags.slice(0, 3).map(tag => (
-                            <Badge key={tag.id} variant="secondary" className="text-xs">
-                              {tag.name}
+                          {post.tags.slice(0, 3).map(tagName => (
+                            <Badge key={tagName} variant="secondary" className="text-xs">
+                              {tagName}
                             </Badge>
                           ))}
                           {post.tags.length > 3 && (
@@ -267,22 +265,29 @@ export default function Blog() {
                     <CardFooter className="flex flex-wrap gap-4 text-sm text-muted-foreground">
                       {/* Author */}
                       {post.author && (
-                        <div className="flex items-center gap-1">
-                          <span>{post.author.display_name || 'Anonymous'}</span>
+                        <div className="flex items-center gap-2">
+                          {post.author.avatar && (
+                            <img
+                              src={post.author.avatar}
+                              alt={post.author.name}
+                              className="w-5 h-5 rounded-full"
+                            />
+                          )}
+                          <span>{post.author.name}</span>
                         </div>
                       )}
 
                       {/* Published Date */}
-                      {post.published_at && (
+                      {post.publishedAt && (
                         <div className="flex items-center gap-1">
-                          <span>{formatDistanceToNow(new Date(post.published_at), { addSuffix: true })}</span>
+                          <span>{formatDistanceToNow(post.publishedAt, { addSuffix: true })}</span>
                         </div>
                       )}
 
-                      {/* View Count */}
-                      {post.view_count > 0 && (
+                      {/* Comment Count */}
+                      {post.commentCount && post.commentCount > 0 && (
                         <div className="flex items-center gap-1">
-                          <span>{post.view_count} views</span>
+                          <span>{post.commentCount} comments</span>
                         </div>
                       )}
                     </CardFooter>

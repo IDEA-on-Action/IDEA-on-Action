@@ -9,6 +9,39 @@
 
 ---
 
+## [2.37.2] - 2025-12-15 (WordPress 블로그 연동)
+
+### 🔗 WordPress 블로그 연동
+
+자체 Supabase 블로그를 테스트 완료 시까지 비활성화하고, 기존 WordPress 블로그 연동으로 전환.
+
+#### 변경된 파일
+
+| 파일 | 변경 내용 |
+|------|----------|
+| `src/pages/Blog.tsx` | `useWordPressPosts` 훅으로 교체, WordPress 카테고리/태그 필터 |
+| `src/pages/BlogPost.tsx` | WordPress 상세 페이지, HTML 콘텐츠 렌더링 |
+| `src/pages/stories/StoriesHub.tsx` | 블로그 섹션 WordPress 연동 |
+
+#### 기능
+
+| 항목 | 설명 |
+|------|------|
+| 블로그 목록 | WordPress.com API에서 포스트 조회 |
+| 블로그 상세 | 사이트 내에서 WordPress 콘텐츠 렌더링 |
+| 원본 링크 | WordPress 원본 페이지로 이동 버튼 |
+| 댓글 | WordPress 원본 페이지에서 확인 안내 |
+| Admin 메뉴 | 그대로 유지 (테스트 완료 후 활성화 예정) |
+
+### 🐛 버그 수정
+
+| 파일 | 수정 내용 |
+|------|----------|
+| `AdminBlogCategories.tsx` | `postCount`가 undefined일 때 NaN 표시 버그 수정 |
+| `DataTable.tsx` | 페이지네이션 버튼 접근성 오류 수정 (aria-label 추가) |
+
+---
+
 ## [2.37.1] - 2025-12-14 (Continuous Claude 도입)
 
 ### 🔄 Continuous Claude 자율 개발 루프

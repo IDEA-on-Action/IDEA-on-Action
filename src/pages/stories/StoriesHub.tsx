@@ -3,22 +3,23 @@
  * 이야기 허브 페이지 - 4개 섹션 미리보기
  *
  * Sprint 1 - Site Restructure
+ * WordPress 연동 버전
  */
 
 import { BookOpen, Mail, FileText, Bell } from "lucide-react";
 import { StoriesSection, type StoriesSectionItem } from "@/components/stories/StoriesSection";
 import { PageLayout } from "@/components/layouts";
+import { useWordPressPosts } from "@/hooks/useWordPressPosts";
 import { useBlogPosts } from "@/hooks/useBlogPosts";
 import { useNotices } from "@/hooks/useNotices";
 import { useNewsletterArchive } from "@/hooks/useNewsletterArchive";
 
 export default function StoriesHub() {
-  // 블로그 포스트 가져오기 (최신 3개, post_type: 'blog')
-  const { data: blogPosts, isLoading: blogLoading } = useBlogPosts({
-    filters: { status: "published", post_type: "blog" },
-    sortBy: "published_at",
-    sortOrder: "desc",
-    limit: 3,
+  // WordPress 블로그 포스트 가져오기 (최신 3개)
+  const { data: blogPosts, isLoading: blogLoading } = useWordPressPosts({
+    number: 3,
+    orderBy: "date",
+    order: "DESC",
   });
 
   // 뉴스레터 아카이브 가져오기 (최신 3개)
@@ -42,13 +43,20 @@ export default function StoriesHub() {
     sortOrder: "desc",
   });
 
-  // 블로그 데이터를 StoriesSectionItem 형태로 변환
+  // WordPress 블로그 데이터를 StoriesSectionItem 형태로 변환
+  // HTML excerpt에서 텍스트만 추출
+  const stripHtml = (html: string) => {
+    const tmp = document.createElement('div')
+    tmp.innerHTML = html
+    return tmp.textContent || tmp.innerText || ''
+  }
+
   const blogItems: StoriesSectionItem[] =
     blogPosts?.map((post) => ({
       id: post.id,
       title: post.title,
-      excerpt: post.excerpt || undefined,
-      published_at: post.published_at || post.created_at,
+      excerpt: post.excerpt ? stripHtml(post.excerpt).slice(0, 100) : undefined,
+      published_at: post.publishedAt.toISOString(),
     })) || [];
 
   // 뉴스레터 데이터를 StoriesSectionItem 형태로 변환

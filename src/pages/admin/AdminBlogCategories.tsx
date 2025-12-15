@@ -88,10 +88,11 @@ export default function AdminBlogCategories() {
 
     return rawData.data.filter((item) => {
       // Post count filter
-      if (postCountFilter === 'zero' && item.postCount !== 0) return false
-      if (postCountFilter === '1-10' && (item.postCount < 1 || item.postCount > 10))
+      const postCount = item.postCount ?? 0
+      if (postCountFilter === 'zero' && postCount !== 0) return false
+      if (postCountFilter === '1-10' && (postCount < 1 || postCount > 10))
         return false
-      if (postCountFilter === '10+' && item.postCount <= 10) return false
+      if (postCountFilter === '10+' && postCount <= 10) return false
 
       return true
     })
@@ -111,9 +112,9 @@ export default function AdminBlogCategories() {
       }
 
     const total = rawData.data.length
-    const withPosts = rawData.data.filter((item) => item.postCount > 0).length
+    const withPosts = rawData.data.filter((item) => (item.postCount ?? 0) > 0).length
     const empty = total - withPosts
-    const totalPosts = rawData.data.reduce((sum, item) => sum + item.postCount, 0)
+    const totalPosts = rawData.data.reduce((sum, item) => sum + (item.postCount ?? 0), 0)
 
     return { total, withPosts, empty, totalPosts }
   }, [rawData?.data])
