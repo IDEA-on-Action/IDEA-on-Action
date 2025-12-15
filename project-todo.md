@@ -3,10 +3,43 @@
 > 프로젝트 작업 목록 및 진행 상황 관리
 
 **마지막 업데이트**: 2025-12-15
-**현재 Phase**: v2.37.5 완료
+**현재 Phase**: v2.37.6 완료
 **다음 단계**: v2.38.0 계획
-**프로젝트 버전**: 2.37.5
+**프로젝트 버전**: 2.37.6
 **프로덕션**: https://www.ideaonaction.ai
+
+---
+
+## ✅ 완료: v2.37.6 MCP Auth 서비스 토큰 시스템 (2025-12-15)
+
+**목표**: Minu 서비스 인증 토큰 시스템 구축
+**완료일**: 2025-12-15
+
+### 작업 개요
+
+| 작업 | 상태 | 설명 |
+|------|------|------|
+| Supabase Secrets 설정 | ✅ | WEBHOOK_SECRET_MINU_FIND, MCP_JWT_SECRET |
+| service_tokens 테이블 | ✅ | 서비스 토큰 저장 |
+| mcp_audit_log 테이블 | ✅ | MCP API 호출 감사 로그 |
+| mcp-auth CORS 수정 | ✅ | Edge Function 재배포 |
+| 토큰 발급 스크립트 | ✅ | generate-service-token.cjs |
+
+---
+
+## ✅ 완료: v2.37.5 Minu Inbound 이벤트 시스템 (2025-12-15)
+
+**목표**: Minu 서비스 Outbound 이벤트 수신 시스템
+**완료일**: 2025-12-15
+
+### 작업 개요
+
+| 작업 | 상태 | 설명 |
+|------|------|------|
+| receive-service-event 수정 | ✅ | minu-portal 추가, 9개 이벤트 타입 |
+| mcp-router 수정 | ✅ | 8개 라우팅 규칙 추가 |
+| inbound-events.types.ts | ✅ | 타입 정의 |
+| usage-tracker.ts | ✅ | 사용량 집계 헬퍼 |
 
 ---
 

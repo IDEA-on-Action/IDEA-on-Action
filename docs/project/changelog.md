@@ -9,6 +9,36 @@
 
 ---
 
+## [2.37.6] - 2025-12-15 (MCP Auth 서비스 토큰 시스템)
+
+### ✨ 신규 기능
+
+MCP Auth 서비스 토큰 시스템 설정. Minu 서비스들이 ideaonaction.ai API에 인증된 요청을 보낼 수 있도록 토큰 기반 인증 시스템 구축.
+
+#### 신규 파일
+
+| 파일 | 설명 |
+|------|------|
+| `scripts/generate-service-token.cjs` | 서비스 토큰 발급 스크립트 |
+| `supabase/migrations/20251215001001_create_service_tokens.sql` | service_tokens 테이블 생성 |
+| `supabase/migrations/20251215001002_create_mcp_audit_log.sql` | mcp_audit_log 테이블 생성 |
+
+#### 수정된 파일
+
+| 파일 | 변경 내용 |
+|------|----------|
+| `supabase/functions/mcp-auth/index.ts` | CORS 버그 수정 및 재배포 |
+| `.env.example` | MCP_JWT_SECRET 환경 변수 문서화 |
+
+#### 설정된 Supabase Secrets
+
+| Secret | 용도 |
+|--------|------|
+| `WEBHOOK_SECRET_MINU_FIND` | Minu Find 웹훅 서명 검증 |
+| `MCP_JWT_SECRET` | JWT 토큰 서명/검증 |
+
+---
+
 ## [2.37.5] - 2025-12-15 (Minu Inbound 이벤트 시스템)
 
 ### ✨ 신규 기능
