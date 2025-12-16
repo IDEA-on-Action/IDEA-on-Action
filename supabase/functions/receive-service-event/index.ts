@@ -2,28 +2,109 @@
  * receive-service-event Edge Function
  *
  * 외부 Minu 서비스에서 발생한 이벤트를 수신하고 저장합니다.
- * HMAC-SHA256 서명으로 요청을 검증합니다.
+ *
+ * 인증 방식 (하이브리드):
+ * 1. JWT Bearer 토큰 (Authorization: Bearer <token>)
+ * 2. HMAC-SHA256 서명 (X-Signature 헤더)
+ *
+ * 페이로드 형식 (두 가지 모두 지원):
+ * 1. BaseEvent 형식 (@idea-on-action/events 패키지)
+ * 2. Legacy 형식 (기존 webhook)
  *
  * @endpoint POST /functions/v1/receive-service-event
  *
- * @headers
+ * @headers (JWT 방식)
+ *   Authorization: Bearer <JWT_TOKEN>
+ *
+ * @headers (HMAC 방식)
  *   X-Service-Id: 서비스 ID (minu-find, minu-frame, minu-build, minu-keep)
  *   X-Signature: HMAC-SHA256 서명 (sha256=...)
- *   X-Timestamp: 요청 타임스탬프 (ISO 8601)
+ *   X-Timestamp: 요청 타임스탬프 (ISO 8601, 선택)
  *
- * @body WebhookPayload
+ * @body BaseEventPayload | LegacyPayload
+ *
+ * @version 2.0.0
  */
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { getCorsHeaders } from '../_shared/cors.ts'
 import { updateUsageCount } from '../_shared/usage-tracker.ts'
+import { verifyJWTToken, hasRequiredScopes } from '../_shared/jwt-verify.ts'
 
-// 유효한 서비스 ID 목록
+// ============================================================================
+// 타입 정의
+// ============================================================================
+
+/**
+ * 유효한 서비스 ID 목록
+ */
 const VALID_SERVICE_IDS = ['minu-find', 'minu-frame', 'minu-build', 'minu-keep', 'minu-portal']
 
-// 타임스탬프 유효 기간 (5분)
+/**
+ * 타임스탬프 유효 기간 (5분)
+ */
 const TIMESTAMP_TOLERANCE_MS = 5 * 60 * 1000
+
+/**
+ * 인증 방식
+ */
+type AuthMethod = 'jwt' | 'hmac'
+
+/**
+ * Legacy 페이로드 형식 (기존)
+ */
+interface LegacyPayload {
+  event_type: string
+  payload?: Record<string, unknown>
+  project_id?: string
+  user_id?: string
+  metadata?: {
+    userId?: string
+    [key: string]: unknown
+  }
+}
+
+/**
+ * BaseEvent 페이로드 형식 (@idea-on-action/events)
+ */
+interface BaseEventPayload {
+  id: string
+  type: string
+  service: string
+  timestamp: string
+  version: string
+  metadata: {
+    userId?: string
+    tenantId?: string
+    sessionId?: string
+    correlationId?: string
+    environment: string
+  }
+  data: Record<string, unknown>
+}
+
+/**
+ * 정규화된 이벤트
+ */
+interface NormalizedEvent {
+  event_type: string
+  payload: Record<string, unknown>
+  project_id?: string
+  user_id?: string
+  metadata?: Record<string, unknown>
+  schema_version: 'legacy' | 'base_event'
+}
+
+// ============================================================================
+// CORS 헤더 (전역)
+// ============================================================================
+
+const defaultCorsHeaders = getCorsHeaders(null)
+
+// ============================================================================
+// 유틸리티 함수
+// ============================================================================
 
 /**
  * HMAC-SHA256 서명 검증
@@ -74,9 +155,51 @@ function verifyTimestamp(timestamp: string): boolean {
 }
 
 /**
+ * BaseEvent 형식인지 확인
+ */
+function isBaseEventPayload(raw: unknown): raw is BaseEventPayload {
+  if (!raw || typeof raw !== 'object') return false
+  const obj = raw as Record<string, unknown>
+  return (
+    typeof obj.type === 'string' &&
+    typeof obj.data === 'object' &&
+    typeof obj.metadata === 'object' &&
+    typeof obj.service === 'string'
+  )
+}
+
+/**
+ * 페이로드 정규화 (두 스키마 지원)
+ */
+function normalizePayload(raw: LegacyPayload | BaseEventPayload): NormalizedEvent {
+  // BaseEvent 형식
+  if (isBaseEventPayload(raw)) {
+    return {
+      event_type: raw.type,
+      payload: raw.data,
+      project_id: undefined,
+      user_id: raw.metadata?.userId,
+      metadata: raw.metadata,
+      schema_version: 'base_event',
+    }
+  }
+
+  // Legacy 형식
+  const legacy = raw as LegacyPayload
+  return {
+    event_type: legacy.event_type,
+    payload: legacy.payload || {},
+    project_id: legacy.project_id,
+    user_id: legacy.user_id || legacy.metadata?.userId,
+    metadata: legacy.metadata,
+    schema_version: 'legacy',
+  }
+}
+
+/**
  * 에러 응답 생성
  */
-function errorResponse(message: string, status: number) {
+function errorResponse(message: string, status: number, corsHeaders: Record<string, string>) {
   return new Response(
     JSON.stringify({ error: message, received: false }),
     {
@@ -89,7 +212,7 @@ function errorResponse(message: string, status: number) {
 /**
  * 성공 응답 생성
  */
-function successResponse(eventId: string) {
+function successResponse(eventId: string, corsHeaders: Record<string, string>) {
   return new Response(
     JSON.stringify({ received: true, event_id: eventId }),
     {
@@ -98,6 +221,10 @@ function successResponse(eventId: string) {
     }
   )
 }
+
+// ============================================================================
+// 메인 핸들러
+// ============================================================================
 
 serve(async (req) => {
   const origin = req.headers.get('origin')
@@ -110,97 +237,141 @@ serve(async (req) => {
 
   // POST만 허용
   if (req.method !== 'POST') {
-    return errorResponse('Method not allowed', 405)
+    return errorResponse('Method not allowed', 405, corsHeaders)
   }
 
   try {
-    // 헤더 추출
-    const serviceId = req.headers.get('x-service-id')
+    // ========================================================================
+    // 1. 인증 (하이브리드: JWT 또는 HMAC)
+    // ========================================================================
+
+    const authHeader = req.headers.get('authorization')
     const signature = req.headers.get('x-signature')
     const timestamp = req.headers.get('x-timestamp')
 
-    // 필수 헤더 검증
-    if (!serviceId) {
-      return errorResponse('Missing X-Service-Id header', 400)
-    }
+    let serviceId: string | null = null
+    let authMethod: AuthMethod | null = null
 
-    if (!signature) {
-      return errorResponse('Missing X-Signature header', 400)
-    }
-
-    // 서비스 ID 유효성 검증
-    if (!VALID_SERVICE_IDS.includes(serviceId)) {
-      return errorResponse('Invalid service ID', 400)
-    }
-
-    // 타임스탬프 검증 (선택적이지만 있으면 검증)
-    if (timestamp && !verifyTimestamp(timestamp)) {
-      return errorResponse('Request timestamp too old or invalid', 401)
-    }
-
-    // 요청 본문 읽기
+    // 요청 본문 읽기 (인증 검증에 필요)
     const body = await req.text()
 
     if (!body) {
-      return errorResponse('Empty request body', 400)
+      return errorResponse('Empty request body', 400, corsHeaders)
     }
 
-    // 웹훅 시크릿 조회
-    const secretEnvName = `WEBHOOK_SECRET_${serviceId.toUpperCase().replace(/-/g, '_')}`
-    const secret = Deno.env.get(secretEnvName)
+    // 방법 1: JWT Bearer 토큰
+    if (authHeader?.startsWith('Bearer ')) {
+      const token = authHeader.substring(7)
+      const result = await verifyJWTToken(token)
 
-    if (!secret) {
-      console.error(`Missing webhook secret for service: ${serviceId}`)
-      return errorResponse('Service configuration error', 500)
+      if (!result.valid) {
+        console.warn(`JWT authentication failed: ${result.errorCode}`)
+        return errorResponse(`Authentication failed: ${result.error}`, 401, corsHeaders)
+      }
+
+      // events:write scope 확인
+      if (!hasRequiredScopes(result.payload!, ['events:write'])) {
+        return errorResponse('Insufficient scope: events:write required', 403, corsHeaders)
+      }
+
+      serviceId = result.payload!.sub
+      authMethod = 'jwt'
+      console.log(`JWT auth success: service=${serviceId}, client=${result.payload!.client_id}`)
+    }
+    // 방법 2: HMAC-SHA256 서명
+    else if (signature) {
+      serviceId = req.headers.get('x-service-id')
+
+      if (!serviceId) {
+        return errorResponse('Missing X-Service-Id header', 400, corsHeaders)
+      }
+
+      if (!VALID_SERVICE_IDS.includes(serviceId)) {
+        return errorResponse('Invalid service ID', 400, corsHeaders)
+      }
+
+      // 타임스탬프 검증 (있으면)
+      if (timestamp && !verifyTimestamp(timestamp)) {
+        return errorResponse('Request timestamp too old or invalid', 401, corsHeaders)
+      }
+
+      // 웹훅 시크릿 조회
+      const secretEnvName = `WEBHOOK_SECRET_${serviceId.toUpperCase().replace(/-/g, '_')}`
+      const secret = Deno.env.get(secretEnvName)
+
+      if (!secret) {
+        console.error(`Missing webhook secret for service: ${serviceId}`)
+        return errorResponse('Service configuration error', 500, corsHeaders)
+      }
+
+      // HMAC 서명 검증
+      const isValidSignature = await verifySignature(body, signature, secret)
+
+      if (!isValidSignature) {
+        console.warn(`Invalid HMAC signature for service: ${serviceId}`)
+        return errorResponse('Invalid signature', 401, corsHeaders)
+      }
+
+      authMethod = 'hmac'
+      console.log(`HMAC auth success: service=${serviceId}`)
+    }
+    // 인증 정보 없음
+    else {
+      return errorResponse('Missing authentication (Authorization header or X-Signature)', 401, corsHeaders)
     }
 
-    // HMAC 서명 검증
-    const isValidSignature = await verifySignature(body, signature, secret)
+    // ========================================================================
+    // 2. 페이로드 파싱 및 정규화
+    // ========================================================================
 
-    if (!isValidSignature) {
-      console.warn(`Invalid signature for service: ${serviceId}`)
-      return errorResponse('Invalid signature', 401)
-    }
-
-    // 페이로드 파싱
-    let payload
+    let rawPayload: LegacyPayload | BaseEventPayload
     try {
-      payload = JSON.parse(body)
+      rawPayload = JSON.parse(body)
     } catch {
-      return errorResponse('Invalid JSON payload', 400)
+      return errorResponse('Invalid JSON payload', 400, corsHeaders)
     }
+
+    // 정규화
+    const normalized = normalizePayload(rawPayload)
 
     // 필수 필드 검증
-    if (!payload.event_type) {
-      return errorResponse('Missing event_type in payload', 400)
+    if (!normalized.event_type) {
+      return errorResponse('Missing event_type (or type) in payload', 400, corsHeaders)
     }
 
-    // Supabase 클라이언트 생성 (service_role 사용)
+    console.log(`Event: ${normalized.event_type} from ${serviceId} (schema: ${normalized.schema_version})`)
+
+    // ========================================================================
+    // 3. Supabase 클라이언트 생성
+    // ========================================================================
+
     const supabaseUrl = Deno.env.get('SUPABASE_URL')
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
 
     if (!supabaseUrl || !supabaseKey) {
       console.error('Missing Supabase configuration')
-      return errorResponse('Server configuration error', 500)
+      return errorResponse('Server configuration error', 500, corsHeaders)
     }
 
     const supabase = createClient(supabaseUrl, supabaseKey)
 
     let eventId: string | null = null
 
-    // 이벤트 유형별 처리
-    switch (payload.event_type) {
+    // ========================================================================
+    // 4. 이벤트 유형별 처리
+    // ========================================================================
+
+    switch (normalized.event_type) {
       case 'issue.created': {
-        // 이슈 테이블에 저장
         const { data: issueData, error: issueError } = await supabase
           .from('service_issues')
           .insert({
             service_id: serviceId,
-            severity: payload.payload?.severity || 'medium',
-            title: payload.payload?.title || 'Untitled Issue',
-            description: payload.payload?.description,
-            project_id: payload.project_id,
-            reported_by: payload.user_id,
+            severity: normalized.payload?.severity || 'medium',
+            title: normalized.payload?.title || 'Untitled Issue',
+            description: normalized.payload?.description,
+            project_id: normalized.project_id,
+            reported_by: normalized.user_id,
           })
           .select('id')
           .single()
@@ -213,27 +384,26 @@ serve(async (req) => {
         eventId = issueData.id
 
         // Critical/High 이슈는 알림 생성
-        if (['critical', 'high'].includes(payload.payload?.severity)) {
+        if (['critical', 'high'].includes(String(normalized.payload?.severity))) {
           await createNotification(
             supabase,
-            `[${serviceId}] ${payload.payload?.severity?.toUpperCase()} 이슈: ${payload.payload?.title}`,
-            payload.payload?.description
+            `[${serviceId}] ${String(normalized.payload?.severity).toUpperCase()} 이슈: ${normalized.payload?.title}`,
+            String(normalized.payload?.description || '')
           )
         }
         break
       }
 
       case 'issue.resolved': {
-        // 이슈 상태 업데이트
-        if (payload.payload?.issue_id) {
+        if (normalized.payload?.issue_id) {
           const { error: updateError } = await supabase
             .from('service_issues')
             .update({
               status: 'resolved',
               resolved_at: new Date().toISOString(),
-              resolution: payload.payload?.resolution,
+              resolution: normalized.payload?.resolution,
             })
-            .eq('id', payload.payload.issue_id)
+            .eq('id', normalized.payload.issue_id)
 
           if (updateError) {
             console.error('Error updating issue:', updateError)
@@ -244,14 +414,13 @@ serve(async (req) => {
 
       case 'service.health':
       case 'system.health_check': {
-        // 헬스 상태 업데이트
         const { error: healthError } = await supabase
           .from('service_health')
           .upsert({
             service_id: serviceId,
-            status: payload.payload?.status || 'healthy',
+            status: normalized.payload?.status || 'healthy',
             last_ping: new Date().toISOString(),
-            metrics: payload.payload?.metrics || {},
+            metrics: normalized.payload?.metrics || normalized.payload || {},
           })
 
         if (healthError) {
@@ -260,7 +429,7 @@ serve(async (req) => {
         }
 
         // unhealthy 상태면 알림 생성
-        if (payload.payload?.status === 'unhealthy') {
+        if (normalized.payload?.status === 'unhealthy') {
           await createNotification(
             supabase,
             `[${serviceId}] 서비스 상태 이상`,
@@ -275,8 +444,9 @@ serve(async (req) => {
       case 'agent.executed':
       case 'opportunity.searched': {
         // 사용량 집계 업데이트 (subscription_usage)
-        if (payload.metadata?.userId) {
-          await updateUsageCount(supabase, payload.metadata.userId, payload.event_type, serviceId)
+        const userId = normalized.user_id || (normalized.metadata as Record<string, string>)?.userId
+        if (userId) {
+          await updateUsageCount(supabase, userId, normalized.event_type, serviceId!)
         }
         break
       }
@@ -284,11 +454,11 @@ serve(async (req) => {
       // 시스템 이벤트
       case 'source.synced': {
         // 소스 동기화 완료 알림 (partial/failed 상태만)
-        if (['partial', 'failed'].includes(payload.payload?.status)) {
+        if (['partial', 'failed'].includes(String(normalized.payload?.status))) {
           await createNotification(
             supabase,
-            `[${serviceId}] 소스 동기화 ${payload.payload?.status}`,
-            `${payload.payload?.sourceName}: ${payload.payload?.errorMessage || '동기화 문제 발생'}`
+            `[${serviceId}] 소스 동기화 ${normalized.payload?.status}`,
+            `${normalized.payload?.sourceName}: ${normalized.payload?.errorMessage || '동기화 문제 발생'}`
           )
         }
         break
@@ -313,15 +483,18 @@ serve(async (req) => {
         break
     }
 
-    // 모든 이벤트를 이벤트 로그에 저장
+    // ========================================================================
+    // 5. 모든 이벤트를 이벤트 로그에 저장
+    // ========================================================================
+
     const { data: eventData, error: eventError } = await supabase
       .from('service_events')
       .insert({
         service_id: serviceId,
-        event_type: payload.event_type,
-        project_id: payload.project_id,
-        user_id: payload.user_id,
-        payload: payload.payload || {},
+        event_type: normalized.event_type,
+        project_id: normalized.project_id,
+        user_id: normalized.user_id,
+        payload: normalized.payload || {},
       })
       .select('id')
       .single()
@@ -333,15 +506,19 @@ serve(async (req) => {
 
     eventId = eventId || eventData.id
 
-    console.log(`Event received: ${payload.event_type} from ${serviceId}`)
+    console.log(`Event saved: ${normalized.event_type} from ${serviceId} (id: ${eventId}, auth: ${authMethod})`)
 
-    return successResponse(eventId)
+    return successResponse(eventId, corsHeaders)
 
   } catch (error) {
-    console.error('Error processing webhook:', error)
-    return errorResponse('Internal server error', 500)
+    console.error('Error processing event:', error)
+    return errorResponse('Internal server error', 500, corsHeaders)
   }
 })
+
+// ============================================================================
+// 헬퍼 함수
+// ============================================================================
 
 /**
  * 관리자 알림 생성 헬퍼

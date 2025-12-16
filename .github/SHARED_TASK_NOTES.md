@@ -2,8 +2,8 @@
 
 > 반복 간 진행 상황 전달을 위한 공유 메모
 
-**마지막 업데이트**: 2025-12-15
-**현재 버전**: v2.37.6
+**마지막 업데이트**: 2025-12-17
+**현재 버전**: v2.37.8
 
 ---
 
@@ -14,6 +14,26 @@ v2.38.0 준비 - Newsletter 고도화 및 컨텐츠 버전 관리
 ---
 
 ## 완료된 작업
+
+### v2.37.8 (2025-12-17)
+
+- [x] receive-service-event 하이브리드 인증 구현
+  - JWT Bearer 토큰 인증 (mcp-auth 발급)
+  - HMAC-SHA256 서명 검증 (기존 웹훅 방식)
+  - jwt-verify.ts 유틸리티 생성
+- [x] BaseEvent 스키마 지원 추가
+  - @idea-on-action/events 패키지 형식 지원
+  - Legacy 웹훅 형식과 호환
+  - normalizePayload() 함수로 두 스키마 정규화
+- [x] 토큰 갱신 엔드포인트 확인
+  - POST /functions/v1/mcp-auth/refresh
+  - Access Token: 15분, Refresh Token: 7일
+  - Token Rotation 보안 정책 적용
+
+### v2.37.7 (2025-12-17)
+
+- [x] 토스페이먼츠 라이브 결제 키 환경변수 설정
+- [x] Supabase Secrets 업데이트 (TOSS_PAYMENTS_SECRET_KEY, TOSS_SECRET_KEY)
 
 ### v2.37.6 (2025-12-15)
 

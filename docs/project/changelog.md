@@ -9,6 +9,74 @@
 
 ---
 
+## [2.37.8] - 2025-12-17 (receive-service-event 하이브리드 인증)
+
+### ✨ 신규 기능
+
+receive-service-event Edge Function에 하이브리드 인증 및 BaseEvent 스키마 지원 추가. JWT Bearer 토큰과 HMAC-SHA256 서명 방식을 모두 지원하여 Minu 서비스 연동 유연성 확보.
+
+#### 신규 파일
+
+| 파일 | 설명 |
+|------|------|
+| `supabase/functions/_shared/jwt-verify.ts` | mcp-auth 발급 JWT 검증 유틸리티 |
+
+#### 수정된 파일
+
+| 파일 | 변경 내용 |
+|------|----------|
+| `supabase/functions/receive-service-event/index.ts` | 하이브리드 인증 (JWT + HMAC), BaseEvent 스키마 지원 |
+
+#### 인증 방식
+
+| 방식 | 헤더 | 용도 |
+|------|------|------|
+| JWT Bearer | `Authorization: Bearer <token>` | mcp-auth 발급 토큰 (15분 만료) |
+| HMAC-SHA256 | `X-Signature`, `X-Service-Id`, `X-Timestamp` | 웹훅 서명 검증 |
+
+#### 지원 페이로드 스키마
+
+| 스키마 | 필드 | 설명 |
+|--------|------|------|
+| BaseEvent | `id`, `type`, `service`, `timestamp`, `version`, `data`, `metadata` | @idea-on-action/events 패키지 형식 |
+| Legacy | `event_type`, `payload`, `project_id`, `user_id` | 기존 웹훅 형식 |
+
+#### 토큰 갱신 엔드포인트
+
+| 항목 | 값 |
+|------|-----|
+| URL | `POST /functions/v1/mcp-auth/refresh` |
+| 요청 | `{ "grant_type": "refresh_token", "refresh_token": "rt_..." }` |
+| Access Token 유효기간 | 15분 |
+| Refresh Token 유효기간 | 7일 |
+
+---
+
+## [2.37.7] - 2025-12-17 (토스페이먼츠 결제 키 설정)
+
+### ⚙️ 설정
+
+토스페이먼츠 라이브 결제 키 환경변수 설정 및 Supabase Edge Function secrets 업데이트.
+
+#### 설정된 환경변수 (.env.local)
+
+| 변수 | 용도 |
+|------|------|
+| `VITE_TOSS_WIDGET_CLIENT_KEY` | 결제위젯 클라이언트 키 |
+| `VITE_TOSS_WIDGET_SECRET_KEY` | 결제위젯 시크릿 키 |
+| `VITE_TOSS_BILLING_CLIENT_KEY` | 정기결제용 클라이언트 키 (bill_ideao51b9) |
+| `VITE_TOSS_BILLING_SECRET_KEY` | 정기결제용 시크릿 키 |
+| `VITE_TOSS_NORMAL_*` | 일반결제용 키 (wh_ideaonaowz) - 심사 미완료 |
+
+#### 설정된 Supabase Secrets
+
+| Secret | 용도 |
+|--------|------|
+| `TOSS_PAYMENTS_SECRET_KEY` | 정기결제 빌링키 발급 |
+| `TOSS_SECRET_KEY` | 결제위젯 결제 승인 |
+
+---
+
 ## [2.37.6] - 2025-12-15 (MCP Auth 서비스 토큰 시스템)
 
 ### ✨ 신규 기능
