@@ -3,17 +3,45 @@
 > 반복 간 진행 상황 전달을 위한 공유 메모
 
 **마지막 업데이트**: 2025-12-17
-**현재 버전**: v2.37.8
+**현재 버전**: v2.38.0 (진행 중)
 
 ---
 
 ## 현재 목표
 
-v2.38.0 준비 - Newsletter 고도화 및 컨텐츠 버전 관리
+v2.38.0 완성 - Newsletter 자동 발송 및 Minu Find 확장
 
 ---
 
 ## 완료된 작업
+
+### v2.38.0 (2025-12-17, 진행 중)
+
+- [x] Newsletter 자동 발송 시스템 구현
+  - newsletter-send Edge Function 생성
+  - newsletter_drafts 테이블 (스케줄링, 세그먼트 필터)
+  - newsletter_send_logs 테이블 (발송 추적)
+  - useNewsletterDrafts 훅 (CRUD, 발송, 예약)
+  - Resend API 배치 발송 (50명씩)
+- [x] 구독자 세그멘테이션 지원
+  - segment_filter JSONB 필드 (상태, 토픽 기반)
+  - 마이그레이션: 20251217000001_newsletter_scheduler.sql
+- [x] 빌드/린트 검증 완료
+  - 린트 경고 0개
+  - 빌드 성공 (1627 KiB)
+- [x] 컨텐츠 버전 관리 시스템 구현
+  - content_versions 테이블 (변경 이력 추적)
+  - RLS 정책 (관리자 읽기, service_role 쓰기)
+  - create_content_version() 버전 생성 함수
+  - get_content_versions() 히스토리 조회
+  - restore_content_version() 복원 기능
+  - compare_content_versions() 비교 기능
+  - auto_version_blog_post() 자동 트리거
+  - useContentVersions.ts React 훅
+
+### v2.37.10 (2025-12-17)
+
+- [x] 문서 버전 동기화 (CLAUDE.md, docs/INDEX.md)
 
 ### v2.37.8 (2025-12-17)
 
@@ -64,7 +92,10 @@ v2.38.0 준비 - Newsletter 고도화 및 컨텐츠 버전 관리
 
 ## 진행 중인 작업
 
-(없음)
+- [ ] Edge Function 배포: newsletter-send
+- [ ] Supabase 마이그레이션 적용
+  - 20251217000001_newsletter_scheduler.sql
+  - 20251217000002_content_versions.sql
 
 ---
 
@@ -76,9 +107,11 @@ v2.38.0 준비 - Newsletter 고도화 및 컨텐츠 버전 관리
 
 ## 다음 우선순위
 
-1. Newsletter 자동 발송 스케줄링 (Edge Function)
-2. 컨텐츠 버전 관리 시스템 (content_versions 테이블)
-3. 구독자 세그멘테이션
+1. ~~Newsletter 자동 발송 스케줄링~~ ✅ 완료
+2. ~~구독자 세그멘테이션~~ ✅ 완료
+3. ~~컨텐츠 버전 관리 시스템~~ ✅ 완료
+4. Minu Find 기능 확장
+5. Lighthouse 접근성 100%
 
 ---
 
