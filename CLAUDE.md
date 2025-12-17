@@ -2,7 +2,7 @@
 
 > Claude와의 개발 협업을 위한 프로젝트 핵심 문서
 
-**현재 버전**: 2.37.0 | **상태**: ✅ Production | **방법론**: SSDD
+**현재 버전**: 2.37.9 | **상태**: ✅ Production | **방법론**: SSDD
 **변경 내역**: [docs/archive/CLAUDE-history-november-2025.md](docs/archive/CLAUDE-history-november-2025.md)
 
 ---
@@ -58,6 +58,25 @@
 - **헤더 통합**: 버전/상태/방법론 등 메타데이터는 문서 헤더에 통합
 - **아카이브 활용**: 히스토리는 `docs/archive/`로 이동, 최신 요약만 유지
 - **단일 책임**: 각 문서는 하나의 명확한 목적만 가짐
+
+### 주기적 정리 원칙 (월 1회 권장)
+
+**문서 정리**:
+
+- changelog.md: 1000줄 초과 시 이전 버전 → `docs/archive/changelog-YYYY-MM.md`
+- project-todo.md: 완료 항목 3개월 경과 시 → `docs/archive/completed-todos-vX.X.X.md`
+- 날짜별 리포트: `docs/archive/daily-summaries/`로 이동
+
+**버전 동기화 체크**:
+
+- package.json, CLAUDE.md, project-todo.md, docs/INDEX.md 버전 일치 확인
+- Git 태그와 package.json 버전 일치 확인
+
+**코드 품질 체크**:
+
+- `npm run lint` 경고 0개 유지
+- `npm run build` 성공 확인
+- 불필요한 `@ts-ignore` → `@ts-expect-error` 변환
 
 ---
 

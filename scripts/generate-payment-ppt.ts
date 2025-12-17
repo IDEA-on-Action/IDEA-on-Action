@@ -9,7 +9,7 @@
  * 2. scripts/payment-flow-screenshots/ 폴더에 이미지 확인
  */
 
-// @ts-ignore - pptxgenjs ESM import issue
+// @ts-expect-error - pptxgenjs ESM import issue
 import pptxgenjs from 'pptxgenjs'
 import * as fs from 'fs'
 import * as path from 'path'
