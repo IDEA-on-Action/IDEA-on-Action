@@ -115,10 +115,7 @@ v2.38.0 완료 ✅ → v2.39.0 계획
 
 - Supabase 마이그레이션 `supabase db push --include-all` 실패
   - 원인: "relation idx_projects_status already exists" (42P07)
-  - 해결: Supabase Dashboard SQL Editor에서 수동 적용 필요
-  - 대상 파일:
-    - 20251217000001_newsletter_scheduler.sql
-    - 20251217000002_content_versions.sql
+  - 해결: Dashboard SQL Editor에서 수동 적용 ✅
 
 ---
 
@@ -129,7 +126,7 @@ v2.38.0 완료 ✅ → v2.39.0 계획
 3. ~~컨텐츠 버전 관리 시스템~~ ✅ 완료
 4. ~~LCP/CLS 개선~~ ✅ 완료
 5. ~~SEO 메타 태그 개선~~ ✅ 완료
-6. Supabase 마이그레이션 수동 적용 (Dashboard)
+6. ~~Supabase 마이그레이션 수동 적용~~ ✅ 완료 (2025-12-17)
 7. Minu Find 기능 확장
 8. Lighthouse 접근성 100%
 
