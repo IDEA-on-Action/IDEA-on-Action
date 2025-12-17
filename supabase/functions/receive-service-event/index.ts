@@ -31,58 +31,22 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { getCorsHeaders } from '../_shared/cors.ts'
 import { updateUsageCount } from '../_shared/usage-tracker.ts'
 import { verifyJWTToken, hasRequiredScopes } from '../_shared/jwt-verify.ts'
+import { VALID_SERVICE_IDS, TIMESTAMP_TOLERANCE_MS } from '../_shared/constants.ts'
+import { ErrorCodes, ErrorMessages } from '../_shared/error-codes.ts'
+import {
+  validatePayload,
+  type BaseEventPayload,
+  type LegacyPayload,
+} from '../_shared/schemas.ts'
 
 // ============================================================================
 // 타입 정의
 // ============================================================================
 
 /**
- * 유효한 서비스 ID 목록
- */
-const VALID_SERVICE_IDS = ['minu-find', 'minu-frame', 'minu-build', 'minu-keep', 'minu-portal']
-
-/**
- * 타임스탬프 유효 기간 (5분)
- */
-const TIMESTAMP_TOLERANCE_MS = 5 * 60 * 1000
-
-/**
  * 인증 방식
  */
 type AuthMethod = 'jwt' | 'hmac'
-
-/**
- * Legacy 페이로드 형식 (기존)
- */
-interface LegacyPayload {
-  event_type: string
-  payload?: Record<string, unknown>
-  project_id?: string
-  user_id?: string
-  metadata?: {
-    userId?: string
-    [key: string]: unknown
-  }
-}
-
-/**
- * BaseEvent 페이로드 형식 (@idea-on-action/events)
- */
-interface BaseEventPayload {
-  id: string
-  type: string
-  service: string
-  timestamp: string
-  version: string
-  metadata: {
-    userId?: string
-    tenantId?: string
-    sessionId?: string
-    correlationId?: string
-    environment: string
-  }
-  data: Record<string, unknown>
-}
 
 /**
  * 정규화된 이벤트
@@ -94,6 +58,7 @@ interface NormalizedEvent {
   user_id?: string
   metadata?: Record<string, unknown>
   schema_version: 'legacy' | 'base_event'
+  event_id?: string // BaseEvent의 경우 원본 이벤트 ID
 }
 
 // ============================================================================
@@ -155,9 +120,9 @@ function verifyTimestamp(timestamp: string): boolean {
 }
 
 /**
- * BaseEvent 형식인지 확인
+ * BaseEvent 형식인지 확인 (간단한 타입 가드)
  */
-function isBaseEventPayload(raw: unknown): raw is BaseEventPayload {
+function isBaseEventFormat(raw: unknown): raw is BaseEventPayload {
   if (!raw || typeof raw !== 'object') return false
   const obj = raw as Record<string, unknown>
   return (
@@ -173,14 +138,16 @@ function isBaseEventPayload(raw: unknown): raw is BaseEventPayload {
  */
 function normalizePayload(raw: LegacyPayload | BaseEventPayload): NormalizedEvent {
   // BaseEvent 형식
-  if (isBaseEventPayload(raw)) {
+  if (isBaseEventFormat(raw)) {
+    const baseEvent = raw as BaseEventPayload
     return {
-      event_type: raw.type,
-      payload: raw.data,
+      event_type: baseEvent.type,
+      payload: baseEvent.data as Record<string, unknown>,
       project_id: undefined,
-      user_id: raw.metadata?.userId,
-      metadata: raw.metadata,
+      user_id: baseEvent.metadata?.userId,
+      metadata: baseEvent.metadata as Record<string, unknown>,
       schema_version: 'base_event',
+      event_id: baseEvent.id, // 원본 이벤트 ID 보존
     }
   }
 
@@ -188,10 +155,10 @@ function normalizePayload(raw: LegacyPayload | BaseEventPayload): NormalizedEven
   const legacy = raw as LegacyPayload
   return {
     event_type: legacy.event_type,
-    payload: legacy.payload || {},
+    payload: (legacy.payload || {}) as Record<string, unknown>,
     project_id: legacy.project_id,
     user_id: legacy.user_id || legacy.metadata?.userId,
-    metadata: legacy.metadata,
+    metadata: legacy.metadata as Record<string, unknown>,
     schema_version: 'legacy',
   }
 }
@@ -199,9 +166,17 @@ function normalizePayload(raw: LegacyPayload | BaseEventPayload): NormalizedEven
 /**
  * 에러 응답 생성
  */
-function errorResponse(message: string, status: number, corsHeaders: Record<string, string>) {
+function errorResponse(
+  code: string,
+  message: string,
+  status: number,
+  corsHeaders: Record<string, string>
+) {
   return new Response(
-    JSON.stringify({ error: message, received: false }),
+    JSON.stringify({
+      error: { code, message },
+      received: false,
+    }),
     {
       status,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -237,7 +212,7 @@ serve(async (req) => {
 
   // POST만 허용
   if (req.method !== 'POST') {
-    return errorResponse('Method not allowed', 405, corsHeaders)
+    return errorResponse(ErrorCodes.METHOD_NOT_ALLOWED, ErrorMessages[ErrorCodes.METHOD_NOT_ALLOWED], 405, corsHeaders)
   }
 
   try {
@@ -256,7 +231,7 @@ serve(async (req) => {
     const body = await req.text()
 
     if (!body) {
-      return errorResponse('Empty request body', 400, corsHeaders)
+      return errorResponse(ErrorCodes.EMPTY_BODY, ErrorMessages[ErrorCodes.EMPTY_BODY], 400, corsHeaders)
     }
 
     // 방법 1: JWT Bearer 토큰
@@ -266,12 +241,12 @@ serve(async (req) => {
 
       if (!result.valid) {
         console.warn(`JWT authentication failed: ${result.errorCode}`)
-        return errorResponse(`Authentication failed: ${result.error}`, 401, corsHeaders)
+        return errorResponse(result.errorCode || ErrorCodes.UNAUTHORIZED, result.error || ErrorMessages[ErrorCodes.UNAUTHORIZED], 401, corsHeaders)
       }
 
       // events:write scope 확인
       if (!hasRequiredScopes(result.payload!, ['events:write'])) {
-        return errorResponse('Insufficient scope: events:write required', 403, corsHeaders)
+        return errorResponse(ErrorCodes.INSUFFICIENT_SCOPE, 'events:write 권한이 필요합니다.', 403, corsHeaders)
       }
 
       serviceId = result.payload!.sub
@@ -283,16 +258,16 @@ serve(async (req) => {
       serviceId = req.headers.get('x-service-id')
 
       if (!serviceId) {
-        return errorResponse('Missing X-Service-Id header', 400, corsHeaders)
+        return errorResponse(ErrorCodes.MISSING_HEADER, 'X-Service-Id 헤더가 필요합니다.', 400, corsHeaders)
       }
 
-      if (!VALID_SERVICE_IDS.includes(serviceId)) {
-        return errorResponse('Invalid service ID', 400, corsHeaders)
+      if (!VALID_SERVICE_IDS.includes(serviceId as typeof VALID_SERVICE_IDS[number])) {
+        return errorResponse(ErrorCodes.INVALID_SERVICE, ErrorMessages[ErrorCodes.INVALID_SERVICE], 400, corsHeaders)
       }
 
       // 타임스탬프 검증 (있으면)
       if (timestamp && !verifyTimestamp(timestamp)) {
-        return errorResponse('Request timestamp too old or invalid', 401, corsHeaders)
+        return errorResponse(ErrorCodes.INVALID_TIMESTAMP, ErrorMessages[ErrorCodes.INVALID_TIMESTAMP], 401, corsHeaders)
       }
 
       // 웹훅 시크릿 조회
@@ -301,7 +276,7 @@ serve(async (req) => {
 
       if (!secret) {
         console.error(`Missing webhook secret for service: ${serviceId}`)
-        return errorResponse('Service configuration error', 500, corsHeaders)
+        return errorResponse(ErrorCodes.CONFIG_ERROR, ErrorMessages[ErrorCodes.CONFIG_ERROR], 500, corsHeaders)
       }
 
       // HMAC 서명 검증
@@ -309,7 +284,7 @@ serve(async (req) => {
 
       if (!isValidSignature) {
         console.warn(`Invalid HMAC signature for service: ${serviceId}`)
-        return errorResponse('Invalid signature', 401, corsHeaders)
+        return errorResponse(ErrorCodes.INVALID_SIGNATURE, ErrorMessages[ErrorCodes.INVALID_SIGNATURE], 401, corsHeaders)
       }
 
       authMethod = 'hmac'
@@ -317,26 +292,33 @@ serve(async (req) => {
     }
     // 인증 정보 없음
     else {
-      return errorResponse('Missing authentication (Authorization header or X-Signature)', 401, corsHeaders)
+      return errorResponse(ErrorCodes.UNAUTHORIZED, '인증 정보가 필요합니다. (Authorization 헤더 또는 X-Signature)', 401, corsHeaders)
     }
 
     // ========================================================================
     // 2. 페이로드 파싱 및 정규화
     // ========================================================================
 
-    let rawPayload: LegacyPayload | BaseEventPayload
+    let rawPayload: unknown
     try {
       rawPayload = JSON.parse(body)
     } catch {
-      return errorResponse('Invalid JSON payload', 400, corsHeaders)
+      return errorResponse(ErrorCodes.INVALID_JSON, ErrorMessages[ErrorCodes.INVALID_JSON], 400, corsHeaders)
+    }
+
+    // 스키마 검증
+    const validationResult = validatePayload(rawPayload)
+    if (!validationResult.success) {
+      console.warn(`Payload validation failed: ${validationResult.error}`)
+      return errorResponse(ErrorCodes.INVALID_PAYLOAD, validationResult.error, 400, corsHeaders)
     }
 
     // 정규화
-    const normalized = normalizePayload(rawPayload)
+    const normalized = normalizePayload(validationResult.data)
 
-    // 필수 필드 검증
+    // 필수 필드 검증 (추가 안전장치)
     if (!normalized.event_type) {
-      return errorResponse('Missing event_type (or type) in payload', 400, corsHeaders)
+      return errorResponse(ErrorCodes.INVALID_PAYLOAD, 'event_type (또는 type) 필드가 필요합니다.', 400, corsHeaders)
     }
 
     console.log(`Event: ${normalized.event_type} from ${serviceId} (schema: ${normalized.schema_version})`)
@@ -350,7 +332,7 @@ serve(async (req) => {
 
     if (!supabaseUrl || !supabaseKey) {
       console.error('Missing Supabase configuration')
-      return errorResponse('Server configuration error', 500, corsHeaders)
+      return errorResponse(ErrorCodes.CONFIG_ERROR, ErrorMessages[ErrorCodes.CONFIG_ERROR], 500, corsHeaders)
     }
 
     const supabase = createClient(supabaseUrl, supabaseKey)
@@ -512,7 +494,7 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Error processing event:', error)
-    return errorResponse('Internal server error', 500, corsHeaders)
+    return errorResponse(ErrorCodes.INTERNAL_ERROR, ErrorMessages[ErrorCodes.INTERNAL_ERROR], 500, corsHeaders)
   }
 })
 

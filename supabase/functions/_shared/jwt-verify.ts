@@ -7,10 +7,8 @@
  */
 
 import * as jose from 'https://deno.land/x/jose@v5.2.0/index.ts'
-
-// JWT 발급자 정보 (mcp-auth와 동일해야 함)
-const JWT_ISSUER = 'mcp-auth'
-const JWT_AUDIENCE = 'central-hub'
+import { JWT_ISSUER, JWT_AUDIENCE } from './constants.ts'
+import { ErrorCodes } from './error-codes.ts'
 
 /**
  * JWT 페이로드 타입
@@ -34,6 +32,9 @@ export interface JWTPayload {
   client_id: string
 }
 
+/** JWT 검증 에러 코드 타입 */
+export type JWTErrorCode = 'token_expired' | 'token_invalid' | 'config_error' | 'verification_failed'
+
 /**
  * JWT 검증 결과
  */
@@ -41,7 +42,7 @@ export interface JWTVerifyResult {
   valid: boolean
   payload?: JWTPayload
   error?: string
-  errorCode?: 'token_expired' | 'token_invalid' | 'config_error' | 'verification_failed'
+  errorCode?: JWTErrorCode
 }
 
 /**
@@ -58,7 +59,7 @@ export async function verifyJWTToken(token: string): Promise<JWTVerifyResult> {
     return {
       valid: false,
       error: 'JWT secret not configured',
-      errorCode: 'config_error',
+      errorCode: ErrorCodes.CONFIG_ERROR as JWTErrorCode,
     }
   }
 
@@ -78,7 +79,7 @@ export async function verifyJWTToken(token: string): Promise<JWTVerifyResult> {
       return {
         valid: false,
         error: '토큰이 만료되었습니다.',
-        errorCode: 'token_expired',
+        errorCode: ErrorCodes.TOKEN_EXPIRED as JWTErrorCode,
       }
     }
 
@@ -86,7 +87,7 @@ export async function verifyJWTToken(token: string): Promise<JWTVerifyResult> {
       return {
         valid: false,
         error: '유효하지 않은 토큰입니다.',
-        errorCode: 'token_invalid',
+        errorCode: ErrorCodes.TOKEN_INVALID as JWTErrorCode,
       }
     }
 

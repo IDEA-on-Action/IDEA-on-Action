@@ -25,31 +25,19 @@ import { getCorsHeaders } from '../_shared/cors.ts'
 // 기본 CORS 헤더 (errorResponse/successResponse에서 사용)
 const corsHeaders = getCorsHeaders(null)
 
-// 유효한 서비스 ID 목록
-const VALID_SERVICE_IDS = ['minu-find', 'minu-frame', 'minu-build', 'minu-keep'] as const
-type ServiceId = typeof VALID_SERVICE_IDS[number]
-
-// 유효한 scope 목록
-const VALID_SCOPES = [
-  'events:read',
-  'events:write',
-  'health:read',
-  'health:write',
-  'sync:read',
-  'sync:write',
-] as const
-type Scope = typeof VALID_SCOPES[number]
-
-// 토큰 만료 시간
-const ACCESS_TOKEN_EXPIRY_SECONDS = 15 * 60 // 15분
-const REFRESH_TOKEN_EXPIRY_SECONDS = 7 * 24 * 60 * 60 // 7일
-
-// 타임스탬프 유효 기간 (5분)
-const TIMESTAMP_TOLERANCE_MS = 5 * 60 * 1000
-
-// JWT 발급자 정보
-const JWT_ISSUER = 'mcp-auth'
-const JWT_AUDIENCE = 'central-hub'
+// 공유 상수 및 타입 import
+import {
+  VALID_SERVICE_IDS,
+  VALID_SCOPES,
+  ACCESS_TOKEN_EXPIRY_SECONDS,
+  REFRESH_TOKEN_EXPIRY_SECONDS,
+  TIMESTAMP_TOLERANCE_MS,
+  JWT_ISSUER,
+  JWT_AUDIENCE,
+  type ServiceId,
+  type Scope,
+} from '../_shared/constants.ts'
+import { ErrorCodes, ErrorMessages, ErrorStatusCodes } from '../_shared/error-codes.ts'
 
 // ============================================================================
 // 타입 정의

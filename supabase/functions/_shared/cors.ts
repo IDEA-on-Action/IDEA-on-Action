@@ -59,7 +59,10 @@ export function getCorsHeaders(origin: string | null): Record<string, string> {
 
   return {
     'Access-Control-Allow-Origin': validOrigin || 'null',
-    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-webhook-signature, x-webhook-timestamp',
+    'Access-Control-Allow-Headers':
+      'authorization, x-client-info, apikey, content-type, ' +
+      'x-webhook-signature, x-webhook-timestamp, ' +
+      'x-signature, x-service-id, x-timestamp',
     'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
     'Access-Control-Max-Age': '86400', // 24시간 캐시
   }
