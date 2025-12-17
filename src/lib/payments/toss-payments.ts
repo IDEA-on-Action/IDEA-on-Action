@@ -23,6 +23,10 @@ const CLIENT_KEY = import.meta.env.VITE_TOSS_CLIENT_KEY || ''
 const SECRET_KEY = import.meta.env.VITE_TOSS_SECRET_KEY || ''
 const TOSS_API_BASE = 'https://api.tosspayments.com/v1/payments'
 
+// 디버그: 현재 사용 중인 키 확인 (단건결제)
+console.log('🔑 [단건결제] 토스페이먼츠 클라이언트 키:', CLIENT_KEY.substring(0, 15) + '...')
+console.log('🔑 [단건결제] 키 타입:', CLIENT_KEY.startsWith('live_') ? 'LIVE' : 'TEST')
+
 // ===================================================================
 // SDK Instance
 // ===================================================================
