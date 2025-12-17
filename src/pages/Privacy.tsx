@@ -50,7 +50,7 @@ export default function Privacy() {
               <strong className="text-primary">서비스 제공</strong>
               <ul className="mt-2 space-y-1">
                 <li>소프트웨어 개발 서비스 (MVP 개발, 풀스택 개발, 디자인 시스템, 시스템 운영 관리) 제공</li>
-                <li>COMPASS 플랫폼 서비스 (Navigator, Cartographer, Captain, Harbor) 제공</li>
+                <li>Minu 플랫폼 서비스 (Minu Find 등) 제공</li>
                 <li>맞춤형 서비스 제공, 본인인증</li>
               </ul>
             </li>

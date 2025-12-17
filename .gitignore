@@ -74,6 +74,10 @@ backup-*.sql
 production-*.sql
 fix-*-production.sql
 
+# Payment flow screenshots/PPT output (generated files)
+scripts/payment-flow-screenshots/
+scripts/payment-flow-ppt/
+
 # OS files
 Thumbs.db
 .DS_Store

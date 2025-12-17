@@ -133,7 +133,7 @@ export default function RefundPolicy() {
               청약철회가 제한되는 디지털 콘텐츠 및 무형 서비스의 경우, 회사는 다음 중 하나 이상의 방법으로 소비자의 권리를 보장합니다:
               <ul>
                 <li>
-                  <strong>무료 체험판 제공</strong>: COMPASS Navigator 7일 무료 체험, 기타 서비스 데모 버전
+                  <strong>무료 체험판 제공</strong>: Minu Find 7일 무료 체험, 기타 서비스 데모 버전
                 </li>
                 <li>
                   <strong>상세 정보 제공</strong>: 서비스 기능 설명, 스크린샷, 시연 영상, 사용 가이드
@@ -226,7 +226,7 @@ export default function RefundPolicy() {
             </AlertDescription>
           </Alert>
 
-          <h3 className="text-xl font-semibold mt-8 mb-4 text-primary">3. COMPASS Navigator (월 구독)</h3>
+          <h3 className="text-xl font-semibold mt-8 mb-4 text-primary">3. Minu Find (월 구독)</h3>
           <Alert className="my-4">
             <CheckCircle2 className="h-4 w-4" />
             <AlertTitle>환불 가능</AlertTitle>
@@ -242,7 +242,7 @@ export default function RefundPolicy() {
             </AlertDescription>
           </Alert>
 
-          <h3 className="text-xl font-semibold mt-8 mb-4 text-primary">4. COMPASS 플랫폼 (연간 구독)</h3>
+          <h3 className="text-xl font-semibold mt-8 mb-4 text-primary">4. Minu 플랫폼 (연간 구독)</h3>
           <Alert className="my-4">
             <CheckCircle2 className="h-4 w-4" />
             <AlertTitle>환불 가능</AlertTitle>

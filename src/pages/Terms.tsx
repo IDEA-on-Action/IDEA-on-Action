@@ -36,13 +36,13 @@ export default function Terms() {
           <h2 className="text-2xl font-bold mt-12 mb-6 pb-3 border-b-2 border-primary/30">제2조 (정의)</h2>
           <ol className="space-y-4">
             <li>
-              <strong className="text-primary">"서비스"</strong>란 회사가 제공하는 소프트웨어 개발 서비스 및 COMPASS 플랫폼 서비스를 의미합니다.
+              <strong className="text-primary">"서비스"</strong>란 회사가 제공하는 소프트웨어 개발 서비스 및 Minu 플랫폼 서비스를 의미합니다.
             </li>
             <li>
-              <strong className="text-primary">"개발 서비스"</strong>란 맞춤형 소프트웨어 개발, 디자인 시스템 구축, 시스템 운영 관리 등의 서비스를 의미합니다.
+              <strong className="text-primary">"개발 서비스"</strong>란 맞춤형 소프트웨어 개발(MVP, Fullstack), 디자인 시스템 구축, 시스템 운영 관리(Operations) 등의 단건 결제 서비스를 의미합니다.
             </li>
             <li>
-              <strong className="text-primary">"플랫폼 서비스"</strong>란 COMPASS Navigator 등 SaaS 형태로 제공되는 서비스를 의미합니다.
+              <strong className="text-primary">"플랫폼 서비스"</strong>란 Minu Find 등 SaaS 형태로 제공되는 구독형 서비스를 의미합니다.
             </li>
             <li>
               <strong className="text-primary">"이용자"</strong>란 이 약관에 따라 회사가 제공하는 서비스를 이용하는 자를 의미합니다.
@@ -71,21 +71,18 @@ export default function Terms() {
               회사는 다음과 같은 서비스를 제공합니다:
               <ul className="mt-3 space-y-3">
                 <li>
-                  <strong className="text-primary">개발 서비스</strong>
+                  <strong className="text-primary">개발 서비스 (단건 결제)</strong>
                   <ul className="mt-2 space-y-1">
                     <li>MVP 개발 서비스</li>
-                    <li>풀스택 개발 서비스</li>
-                    <li>디자인 시스템 구축 서비스</li>
-                    <li>시스템 운영 관리 서비스</li>
+                    <li>Fullstack 개발 서비스</li>
+                    <li>Design System 구축 서비스</li>
+                    <li>Operations 관리 서비스</li>
                   </ul>
                 </li>
                 <li>
-                  <strong className="text-primary">COMPASS 플랫폼</strong>
+                  <strong className="text-primary">Minu 플랫폼 (구독형 서비스)</strong>
                   <ul className="mt-2 space-y-1">
-                    <li>COMPASS Navigator - 프로젝트 수주 기회 탐색</li>
-                    <li>COMPASS Cartographer - 시장 기회 분석 (2026 Q1 출시 예정)</li>
-                    <li>COMPASS Captain - 프로젝트 관리 (2026 Q1 출시 예정)</li>
-                    <li>COMPASS Harbor - 포트폴리오 관리 (2026 Q1 출시 예정)</li>
+                    <li>Minu Find - 프로젝트 수주 기회 탐색 (SaaS)</li>
                   </ul>
                 </li>
                 <li>기타 회사가 정하는 서비스</li>
@@ -109,7 +106,7 @@ export default function Terms() {
           <h2 className="text-2xl font-bold mt-12 mb-6 pb-3 border-b-2 border-primary/30">제6조 (구독 서비스)</h2>
           <ol className="space-y-4">
             <li>
-              <strong className="text-primary">구독 서비스 정의</strong>: 회사는 COMPASS 플랫폼 등의 서비스를 월간 또는 연간 구독 형태로 제공합니다.
+              <strong className="text-primary">구독 서비스 정의</strong>: 회사는 Minu 플랫폼 등의 서비스를 월간 또는 연간 구독 형태로 제공합니다.
             </li>
             <li>
               <strong className="text-primary">구독 기간</strong>:
@@ -180,7 +177,7 @@ export default function Terms() {
           <h2 className="text-2xl font-bold mt-12 mb-6 pb-3 border-b-2 border-primary/30">제9조 (서비스 수준 보장)</h2>
           <ol className="space-y-4">
             <li>
-              <strong className="text-primary">서비스 가용성</strong>: 회사는 COMPASS 플랫폼 서비스에 대해 연간 99.5% 이상의 가용성을 목표로 합니다. 단, 정기 점검 시간은 제외됩니다.
+              <strong className="text-primary">서비스 가용성</strong>: 회사는 Minu 플랫폼 서비스에 대해 연간 99.5% 이상의 가용성을 목표로 합니다. 단, 정기 점검 시간은 제외됩니다.
             </li>
             <li>
               <strong className="text-primary">정기 점검</strong>: 정기 점검은 매주 수요일 새벽 2시~4시(KST)에 실시되며, 최소 24시간 전에 공지합니다.
