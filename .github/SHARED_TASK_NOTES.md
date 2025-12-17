@@ -42,6 +42,14 @@ v2.38.0 완료 ✅ → v2.39.0 계획
   - 1627 KiB → 157 KiB (90% 감소)
   - JS 번들을 runtime caching으로 전환
   - 11개 항목만 precache (CSS, 폰트, workbox)
+- [x] LCP/CLS 개선
+  - Hero 로고: loading="eager", fetchPriority="high"
+  - Google Fonts 최적화 (필수 weight만 로드)
+  - 폰트 fallback으로 CLS 방지
+- [x] SEO 메타 태그 개선
+  - Schema.org Organization 마크업
+  - Schema.org WebSite + SearchAction
+  - robots, canonical 메타 태그
 - [x] 빌드/린트 검증 완료
   - 린트 경고 0개
   - 빌드 성공
@@ -99,16 +107,18 @@ v2.38.0 완료 ✅ → v2.39.0 계획
 
 ## 진행 중인 작업
 
-- [ ] Edge Function 배포: newsletter-send
-- [ ] Supabase 마이그레이션 적용
-  - 20251217000001_newsletter_scheduler.sql
-  - 20251217000002_content_versions.sql
+(v2.38.0 완료됨 - 다음 우선순위 참조)
 
 ---
 
 ## 실패한 시도
 
-(없음)
+- Supabase 마이그레이션 `supabase db push --include-all` 실패
+  - 원인: "relation idx_projects_status already exists" (42P07)
+  - 해결: Supabase Dashboard SQL Editor에서 수동 적용 필요
+  - 대상 파일:
+    - 20251217000001_newsletter_scheduler.sql
+    - 20251217000002_content_versions.sql
 
 ---
 
@@ -117,8 +127,11 @@ v2.38.0 완료 ✅ → v2.39.0 계획
 1. ~~Newsletter 자동 발송 스케줄링~~ ✅ 완료
 2. ~~구독자 세그멘테이션~~ ✅ 완료
 3. ~~컨텐츠 버전 관리 시스템~~ ✅ 완료
-4. Minu Find 기능 확장
-5. Lighthouse 접근성 100%
+4. ~~LCP/CLS 개선~~ ✅ 완료
+5. ~~SEO 메타 태그 개선~~ ✅ 완료
+6. Supabase 마이그레이션 수동 적용 (Dashboard)
+7. Minu Find 기능 확장
+8. Lighthouse 접근성 100%
 
 ---
 
