@@ -9,6 +9,47 @@
 
 ---
 
+## [2.37.10] - 2025-12-17 (Minu 서비스 연동 개선)
+
+### ✨ 신규 기능
+
+Minu 서비스 연동 기능 전면 점검 및 개선. 공유 모듈 생성, 스키마 검증 강화, 단위 테스트 추가.
+
+#### 신규 파일
+
+| 파일 | 설명 |
+|------|------|
+| `supabase/functions/_shared/constants.ts` | JWT 설정, 서비스 ID, Scope, 보안 상수 통합 |
+| `supabase/functions/_shared/error-codes.ts` | 에러 코드, 메시지, HTTP 상태 코드 매핑 |
+| `supabase/functions/_shared/schemas.ts` | Zod 스키마 (BaseEvent, LegacyPayload) |
+
+#### 수정된 파일
+
+| 파일 | 변경 내용 |
+|------|----------|
+| `cors.ts` | `x-signature`, `x-service-id`, `x-timestamp` 헤더 추가 |
+| `mcp-auth/index.ts` | 공유 상수 import, `minu-portal` 서비스 ID 추가 |
+| `jwt-verify.ts` | 공유 상수/에러 코드 import |
+| `receive-service-event/index.ts` | Zod 스키마 검증 추가, 에러 응답 통일 |
+
+#### 단위 테스트 추가 (81개)
+
+| 파일 | 테스트 수 | 내용 |
+|------|----------|------|
+| `constants.test.ts` | 14개 | 서비스 ID, Scope, JWT 설정 검증 |
+| `error-codes.test.ts` | 14개 | 에러 코드/상태 코드 매핑 검증 |
+| `schemas.test.ts` | 24개 | BaseEvent/Legacy 스키마 검증 |
+| `security.test.ts` | 29개 | Timing-safe 비교, 타임스탬프, HMAC 검증 |
+
+#### 배포
+
+| Function | 크기 | 상태 |
+|----------|------|------|
+| mcp-auth | 147.5kB | ✅ 배포됨 |
+| receive-service-event | 209.9kB | ✅ 배포됨 |
+
+---
+
 ## [2.37.9] - 2025-12-17 (Preview 도메인 및 단건결제 테스트 환경)
 
 ### ✨ 신규 기능

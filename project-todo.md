@@ -3,10 +3,29 @@
 > 프로젝트 작업 목록 및 진행 상황 관리
 
 **마지막 업데이트**: 2025-12-17
-**현재 Phase**: v2.37.9 완료
+**현재 Phase**: v2.37.10 완료
 **다음 단계**: v2.38.0 계획
-**프로젝트 버전**: 2.37.9
+**프로젝트 버전**: 2.37.10
 **프로덕션**: https://www.ideaonaction.ai
+
+---
+
+## ✅ 완료: v2.37.10 Minu 서비스 연동 개선 (2025-12-17)
+
+**목표**: Minu 서비스 연동 기능 점검 및 개선
+**완료일**: 2025-12-17
+
+### 작업 개요
+
+| 작업 | 상태 | 설명 |
+|------|------|------|
+| 공유 상수 파일 | ✅ | `constants.ts` - JWT, 서비스 ID, Scope 통합 |
+| 에러 코드 통일 | ✅ | `error-codes.ts` - 에러 코드/메시지/상태 코드 |
+| 스키마 검증 | ✅ | `schemas.ts` - Zod BaseEvent/Legacy 스키마 |
+| CORS 헤더 수정 | ✅ | `x-signature`, `x-service-id`, `x-timestamp` 추가 |
+| Edge Function 리팩토링 | ✅ | mcp-auth, receive-service-event, jwt-verify |
+| 단위 테스트 | ✅ | 81개 테스트 (constants, error-codes, schemas, security) |
+| Edge Function 배포 | ✅ | mcp-auth (147.5kB), receive-service-event (209.9kB) |
 
 ---
 
