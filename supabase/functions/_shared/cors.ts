@@ -8,6 +8,7 @@ const ALLOWED_ORIGINS = {
   production: [
     'https://www.ideaonaction.ai',
     'https://ideaonaction.ai',
+    'https://preview.ideaonaction.ai',
     'https://minu.best',
     'https://find.minu.best',
     'https://frame.minu.best',
