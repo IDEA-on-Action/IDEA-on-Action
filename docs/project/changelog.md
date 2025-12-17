@@ -9,6 +9,44 @@
 
 ---
 
+## [2.38.0] - 2025-12-17 (Newsletter 자동 발송 및 컨텐츠 버전 관리)
+
+### ✨ 신규 기능
+
+Newsletter 자동 발송 시스템 구현 및 컨텐츠 변경 이력 추적 기능 추가.
+
+#### Newsletter 자동 발송 시스템
+
+| 파일 | 설명 |
+|------|------|
+| `supabase/functions/newsletter-send/index.ts` | Resend API 배치 발송 (50명씩) |
+| `supabase/migrations/20251217000001_newsletter_scheduler.sql` | `newsletter_drafts`, `newsletter_send_logs` 테이블 |
+| `src/hooks/useNewsletterDrafts.ts` | CRUD, 예약, 즉시 발송, 통계 훅 |
+
+- 드래프트 상태: draft → scheduled → sending → sent/failed
+- 구독자 세그멘테이션: `segment_filter` JSONB (상태, 토픽 기반)
+- 테스트 모드 지원: 단일 이메일로 테스트 발송
+
+#### 컨텐츠 버전 관리 시스템
+
+| 파일 | 설명 |
+|------|------|
+| `supabase/migrations/20251217000002_content_versions.sql` | `content_versions` 테이블 |
+| `src/hooks/useContentVersions.ts` | 버전 조회, 복원, 비교 훅 |
+
+- 지원 타입: blog_post, notice, service, portfolio, page
+- 자동 버전 생성: `auto_version_blog_post()` 트리거
+- 버전 복원: `restore_content_version()` 함수
+- 버전 비교: `compare_content_versions()` 함수
+
+#### 배포
+
+| Function | 상태 |
+|----------|------|
+| newsletter-send | ✅ 배포됨 |
+
+---
+
 ## [2.37.10] - 2025-12-17 (Minu 서비스 연동 개선)
 
 ### ✨ 신규 기능

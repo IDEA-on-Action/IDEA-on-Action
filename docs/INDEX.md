@@ -1,7 +1,7 @@
 # IDEA on Action 문서 인덱스
 
 **마지막 업데이트**: 2025-12-17
-**프로젝트 버전**: 2.37.10
+**프로젝트 버전**: 2.38.0
 **개발 방법론**: SSDD (Skillful Spec-Driven Development)
 
 ---

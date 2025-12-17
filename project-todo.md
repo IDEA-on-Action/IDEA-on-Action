@@ -3,10 +3,29 @@
 > 프로젝트 작업 목록 및 진행 상황 관리
 
 **마지막 업데이트**: 2025-12-17
-**현재 Phase**: v2.37.10 완료
-**다음 단계**: v2.38.0 계획
-**프로젝트 버전**: 2.37.10
+**현재 Phase**: v2.38.0 완료
+**다음 단계**: v2.39.0 계획
+**프로젝트 버전**: 2.38.0
 **프로덕션**: https://www.ideaonaction.ai
+
+---
+
+## ✅ 완료: v2.38.0 Newsletter 자동 발송 및 컨텐츠 버전 관리 (2025-12-17)
+
+**목표**: Newsletter 자동 발송 시스템 및 컨텐츠 변경 이력 추적
+**완료일**: 2025-12-17
+
+### 작업 개요
+
+| 작업 | 상태 | 설명 |
+|------|------|------|
+| Newsletter 자동 발송 | ✅ | `newsletter-send` Edge Function (Resend API) |
+| 드래프트 관리 훅 | ✅ | `useNewsletterDrafts.ts` (CRUD, 예약, 발송) |
+| Newsletter DB 스키마 | ✅ | `newsletter_drafts`, `newsletter_send_logs` 테이블 |
+| 컨텐츠 버전 관리 | ✅ | `content_versions` 테이블 (변경 이력 추적) |
+| 버전 관리 훅 | ✅ | `useContentVersions.ts` (복원, 비교) |
+| 구독자 세그멘테이션 | ✅ | `segment_filter` JSONB 필드 |
+| Edge Function 배포 | ✅ | `newsletter-send` 배포 완료 |
 
 ---
 
