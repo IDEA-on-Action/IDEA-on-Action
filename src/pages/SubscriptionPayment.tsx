@@ -19,11 +19,13 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Skeleton } from '@/components/ui/skeleton'
 import { AlertCircle, ArrowLeft, Shield, Info } from 'lucide-react'
 
-const TOSS_CLIENT_KEY = import.meta.env.VITE_TOSS_CLIENT_KEY || 'test_ck_D5GePWvyJnrK0W0k6q8gLzN97Eoq'
+// 정기결제용 클라이언트 키 (상점아이디: bill_ideao51b9)
+const TOSS_CLIENT_KEY = import.meta.env.VITE_TOSS_BILLING_CLIENT_KEY || import.meta.env.VITE_TOSS_CLIENT_KEY || 'test_ck_D5GePWvyJnrK0W0k6q8gLzN97Eoq'
 
 // 디버그: 현재 사용 중인 키 확인
 console.log('🔑 토스페이먼츠 클라이언트 키:', TOSS_CLIENT_KEY.substring(0, 15) + '...')
 console.log('🔑 키 타입:', TOSS_CLIENT_KEY.startsWith('live_') ? 'LIVE' : 'TEST')
+console.log('🏪 상점아이디: bill_ideao51b9 (정기결제용)')
 
 // Payment 인스턴스 타입 정의
 interface PaymentInstance {

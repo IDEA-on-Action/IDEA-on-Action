@@ -9,6 +9,43 @@
 
 ---
 
+## [2.37.9] - 2025-12-17 (Preview 도메인 및 단건결제 테스트 환경)
+
+### ✨ 신규 기능
+
+Preview 배포 환경(`preview.ideaonaction.ai`) 구축 및 단건결제 테스트 환경 설정.
+
+#### CORS 설정 업데이트
+
+| 파일 | 변경 내용 |
+|------|----------|
+| `supabase/functions/_shared/cors.ts` | `https://preview.ideaonaction.ai` 도메인 추가 |
+
+#### Git 브랜치 설정
+
+| 브랜치 | 용도 |
+|--------|------|
+| `main` | Production (`www.ideaonaction.ai`) |
+| `staging` | Preview (`preview.ideaonaction.ai`) |
+| `test/toss-payment-debug` | 단건결제 디버깅용 |
+
+#### Vercel 환경 설정
+
+| 환경 | 토스페이먼츠 키 |
+|------|----------------|
+| Production | `live_ck_*` (라이브 키) |
+| Preview/Development | `test_ck_*` (테스트 키) |
+
+#### 외부 서비스 설정
+
+| 서비스 | 설정 항목 |
+|--------|----------|
+| Supabase | Redirect URLs에 `preview.ideaonaction.ai` 추가 |
+| Google OAuth | Authorized origins/redirect URIs 추가 |
+| Edge Functions | 27개 함수 재배포 (CORS 적용) |
+
+---
+
 ## [2.37.8] - 2025-12-17 (receive-service-event 하이브리드 인증)
 
 ### ✨ 신규 기능
