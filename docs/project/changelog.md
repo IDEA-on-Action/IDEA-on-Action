@@ -45,6 +45,39 @@ Newsletter 자동 발송 시스템 구현 및 컨텐츠 변경 이력 추적 기
 |----------|------|
 | newsletter-send | ✅ 배포됨 |
 
+### 🚀 성능 최적화
+
+#### PWA Precache 90% 감소
+
+| 항목 | 변경 전 | 변경 후 |
+|------|---------|---------|
+| Precache 크기 | 1627 KiB | 157 KiB |
+| 항목 수 | 28개 | 11개 |
+
+- JS 번들을 runtime caching (CacheFirst)으로 전환
+- CSS, 폰트, workbox만 precache 유지
+
+#### LCP/CLS 개선
+
+| 최적화 | 변경 내용 |
+|--------|----------|
+| Hero 이미지 | `loading="eager"`, `fetchPriority="high"` |
+| Google Fonts | 필수 weight만 로드 (9→4개) |
+| CLS 방지 | 시스템 폰트 fallback, `font-display: swap` |
+
+#### SEO 메타 태그 개선
+
+- Schema.org Organization 마크업 추가
+- Schema.org WebSite + SearchAction 마크업 추가
+- `robots`, `canonical` 메타 태그 추가
+
+### 🛠️ Supabase 마이그레이션
+
+Dashboard SQL Editor에서 수동 적용 완료:
+
+- `20251217000001_newsletter_scheduler.sql`
+- `20251217000002_content_versions.sql`
+
 ---
 
 ## [2.37.10] - 2025-12-17 (Minu 서비스 연동 개선)
