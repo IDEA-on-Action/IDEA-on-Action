@@ -61,7 +61,8 @@ const Hero = ({ className = "" }: HeroProps) => {
               className="h-20 md:h-24 w-auto mx-auto"
               width={1920}
               height={832}
-              loading="lazy"
+              loading="eager"
+              fetchPriority="high"
             />
           </div>
 

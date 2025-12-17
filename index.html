@@ -14,16 +14,29 @@
     <meta name="description" content="생각과행동(IDEA on Action) - AI 기반 워킹 솔루션으로 비즈니스 혁신을 실현하세요. KEEP AWAKE, LIVE PASSIONATE" />
     <meta name="author" content="IDEA on Action" />
     <meta name="keywords" content="AI 컨설팅, 워크플로우 자동화, 데이터 분석, VIBE WORKING, 생각과행동" />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="https://www.ideaonaction.ai/" />
 
     <!-- Font Optimization: Preconnect to Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 
-    <!-- Google Fonts: Inter & JetBrains Mono -->
+    <!-- Google Fonts: Inter & JetBrains Mono (optimized weights) -->
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&family=JetBrains+Mono:wght@100;200;300;400;500;600;700;800;900&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
       rel="stylesheet"
     />
+
+    <!-- CLS 방지: 폰트 로딩 전 시스템 폰트 사용 -->
+    <style>
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      }
+      @font-face {
+        font-family: 'Inter';
+        font-display: swap;
+      }
+    </style>
 
     <!-- Favicon & PWA -->
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
@@ -49,6 +62,43 @@
     <meta name="twitter:title" content="IDEA on Action - 아이디어 실험실" />
     <meta name="twitter:description" content="투명한 개발 과정과 커뮤니티 참여를 통해 혁신적인 프로젝트를 만들어갑니다" />
     <meta name="twitter:image" content="https://www.ideaonaction.ai/og-image.png" />
+
+    <!-- Schema.org 조직 정보 (SEO) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "생각과행동 (IDEA on Action)",
+      "alternateName": "IDEA on Action",
+      "url": "https://www.ideaonaction.ai",
+      "logo": "https://www.ideaonaction.ai/logo-full.png",
+      "description": "아이디어 실험실 & 커뮤니티형 프로덕트 스튜디오",
+      "slogan": "KEEP AWAKE, LIVE PASSIONATE",
+      "contactPoint": {
+        "@type": "ContactPoint",
+        "email": "sinclairseo@gmail.com",
+        "contactType": "customer service"
+      },
+      "sameAs": [
+        "https://github.com/sinclairseo"
+      ]
+    }
+    </script>
+
+    <!-- Schema.org 웹사이트 정보 (SEO) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "IDEA on Action",
+      "url": "https://www.ideaonaction.ai",
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": "https://www.ideaonaction.ai/search?q={search_term_string}",
+        "query-input": "required name=search_term_string"
+      }
+    }
+    </script>
 
     <!-- Hide Vercel Toolbar -->
     <style>
