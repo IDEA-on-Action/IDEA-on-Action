@@ -3,22 +3,22 @@
 > 반복 간 진행 상황 전달을 위한 공유 메모
 
 **마지막 업데이트**: 2025-12-17
-**현재 버전**: v2.38.0 (진행 중)
+**현재 버전**: v2.38.0 (릴리스 완료)
 
 ---
 
 ## 현재 목표
 
-v2.38.0 완성 - Newsletter 자동 발송 및 Minu Find 확장
+v2.38.0 완료 ✅ → v2.39.0 계획
 
 ---
 
 ## 완료된 작업
 
-### v2.38.0 (2025-12-17, 진행 중)
+### v2.38.0 (2025-12-17, 릴리스 완료)
 
 - [x] Newsletter 자동 발송 시스템 구현
-  - newsletter-send Edge Function 생성
+  - newsletter-send Edge Function 생성 및 배포 ✅
   - newsletter_drafts 테이블 (스케줄링, 세그먼트 필터)
   - newsletter_send_logs 테이블 (발송 추적)
   - useNewsletterDrafts 훅 (CRUD, 발송, 예약)
@@ -26,9 +26,6 @@ v2.38.0 완성 - Newsletter 자동 발송 및 Minu Find 확장
 - [x] 구독자 세그멘테이션 지원
   - segment_filter JSONB 필드 (상태, 토픽 기반)
   - 마이그레이션: 20251217000001_newsletter_scheduler.sql
-- [x] 빌드/린트 검증 완료
-  - 린트 경고 0개
-  - 빌드 성공 (1627 KiB)
 - [x] 컨텐츠 버전 관리 시스템 구현
   - content_versions 테이블 (변경 이력 추적)
   - RLS 정책 (관리자 읽기, service_role 쓰기)
@@ -38,6 +35,16 @@ v2.38.0 완성 - Newsletter 자동 발송 및 Minu Find 확장
   - compare_content_versions() 비교 기능
   - auto_version_blog_post() 자동 트리거
   - useContentVersions.ts React 훅
+- [x] v2.38.0 버전 릴리스
+  - GitHub Release 생성 ✅
+  - 태그 v2.38.0 푸시 ✅
+- [x] PWA Precache 최적화
+  - 1627 KiB → 157 KiB (90% 감소)
+  - JS 번들을 runtime caching으로 전환
+  - 11개 항목만 precache (CSS, 폰트, workbox)
+- [x] 빌드/린트 검증 완료
+  - 린트 경고 0개
+  - 빌드 성공
 
 ### v2.37.10 (2025-12-17)
 

@@ -99,12 +99,12 @@ export default defineConfig(({ mode }) => ({
         // - Runtime Cache: ~2 MB (on-demand loading)
         // ============================================================
 
-        // Precache only essential files
+        // Precache only essential files (Phase 4: 600 KB 목표)
+        // v2.38.0: index-*.js를 제외하여 초기 로딩 최소화
+        // JS는 모두 runtime caching으로 처리 (CacheFirst)
         globPatterns: [
-          "**/*.{css,html,ico,png,svg,woff,woff2}",
-          "**/index-*.js",       // Main bundle (all vendors merged)
-          "**/workbox-*.js",     // PWA service worker
-          "offline.html",        // Offline fallback page
+          "**/*.{css,html,ico,woff,woff2}",  // 스타일, 폰트만 precache
+          "**/workbox-*.js",                  // PWA 필수
         ],
 
         // Offline fallback configuration
@@ -217,7 +217,20 @@ export default defineConfig(({ mode }) => ({
             },
           },
 
-          // 5. Other lazy-loaded chunks (on-demand)
+          // 5. Main bundle (index-*.js) - v2.38.0 runtime caching
+          {
+            urlPattern: /\/assets\/index-.*\.js$/,
+            handler: "CacheFirst",
+            options: {
+              cacheName: "main-bundle-cache",
+              expiration: {
+                maxEntries: 5,
+                maxAgeSeconds: 60 * 60 * 24 * 30, // 30일
+              },
+            },
+          },
+
+          // 6. Other lazy-loaded chunks (on-demand)
           {
             urlPattern: /\/assets\/DateRangePicker-.*\.js$/,
             handler: "CacheFirst",
@@ -230,7 +243,20 @@ export default defineConfig(({ mode }) => ({
             },
           },
 
-          // 6. Images (on-demand)
+          // 7. All remaining JS chunks (fallback)
+          {
+            urlPattern: /\/assets\/.*\.js$/,
+            handler: "CacheFirst",
+            options: {
+              cacheName: "js-chunks-cache",
+              expiration: {
+                maxEntries: 100,
+                maxAgeSeconds: 60 * 60 * 24 * 7, // 7일
+              },
+            },
+          },
+
+          // 8. Images (on-demand)
           {
             urlPattern: /\.(?:png|jpg|jpeg|svg|gif|webp)$/i,
             handler: "CacheFirst",
