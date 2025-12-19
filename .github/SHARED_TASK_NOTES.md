@@ -2,18 +2,38 @@
 
 > 반복 간 진행 상황 전달을 위한 공유 메모
 
-**마지막 업데이트**: 2025-12-17
-**현재 버전**: v2.38.0 (릴리스 완료)
+**마지막 업데이트**: 2025-12-19
+**현재 버전**: v2.39.0 (진행 중)
 
 ---
 
 ## 현재 목표
 
-v2.38.0 완료 ✅ → v2.39.0 계획
+v2.39.0: Minu SSO 연동 시스템 구현
 
 ---
 
 ## 완료된 작업
+
+### v2.39.0 (2025-12-19, 진행 중)
+
+- [x] Minu SSO Edge Functions 구현
+  - `minu-oauth-callback`: OAuth 콜백 처리, PKCE 검증, 세션 관리
+  - `minu-token-exchange`: Minu 토큰 → Central Hub JWT 교환
+  - `minu-webhook`: 구독/결제/사용량 이벤트 웹훅 수신
+- [x] Edge Functions 배포 완료
+  - minu-oauth-callback (116.4kB)
+  - minu-token-exchange (184.2kB)
+  - minu-webhook (113.3kB)
+- [x] Minu SSO React 훅 구현
+  - `useMinuSSO.ts`: PKCE OAuth 플로우, 토큰 관리, 구독 확인
+- [x] Minu API 클라이언트 구현
+  - `minu-client.ts`: 토큰 교환, 사용자 정보, 구독 조회
+  - `minu.types.ts`: 서비스, OAuth, 토큰, 웹훅 타입 정의
+- [ ] Supabase 마이그레이션 수동 적용 필요
+  - 파일: `20251217100000_minu_oauth_sessions.sql`
+  - 테이블: minu_oauth_sessions, minu_subscriptions, minu_tokens
+  - 함수: get_minu_subscription, upsert_minu_subscription
 
 ### v2.38.0 (2025-12-17, 릴리스 완료)
 
@@ -107,7 +127,13 @@ v2.38.0 완료 ✅ → v2.39.0 계획
 
 ## 진행 중인 작업
 
-(v2.38.0 완료됨 - 다음 우선순위 참조)
+### Supabase 마이그레이션 수동 적용 (필수)
+
+Dashboard SQL Editor에서 수동 적용이 필요합니다:
+
+1. [Supabase SQL Editor](https://supabase.com/dashboard/project/zykjdneewbzyazfukzyg/sql/new) 접속
+2. `supabase/migrations/20251217100000_minu_oauth_sessions.sql` 내용 복사
+3. 실행하여 테이블 생성
 
 ---
 
@@ -121,14 +147,11 @@ v2.38.0 완료 ✅ → v2.39.0 계획
 
 ## 다음 우선순위
 
-1. ~~Newsletter 자동 발송 스케줄링~~ ✅ 완료
-2. ~~구독자 세그멘테이션~~ ✅ 완료
-3. ~~컨텐츠 버전 관리 시스템~~ ✅ 완료
-4. ~~LCP/CLS 개선~~ ✅ 완료
-5. ~~SEO 메타 태그 개선~~ ✅ 완료
-6. ~~Supabase 마이그레이션 수동 적용~~ ✅ 완료 (2025-12-17)
-7. Minu Find 기능 확장
-8. Lighthouse 접근성 100%
+1. ~~Minu SSO Edge Functions~~ ✅ 배포 완료 (2025-12-19)
+2. Supabase 마이그레이션 수동 적용 (Dashboard에서 수동 적용 필요)
+3. Minu SSO 테스트 및 검증
+4. 환경 변수 설정 (MINU_FIND_CLIENT_ID, MINU_FIND_CLIENT_SECRET 등)
+5. Lighthouse 접근성 100%
 
 ---
 
