@@ -45,9 +45,13 @@ Deno.serve(async (req) => {
     const payload = await req.text()
 
     // 헤더에서 정보 추출
-    const signature = req.headers.get('x-webhook-signature')
-    const timestamp = req.headers.get('x-webhook-timestamp')
+    // 서비스별 서명 헤더: X-Minu-Find-Signature, X-Minu-Frame-Signature 등
     const serviceId = req.headers.get('x-service-id') as MinuService | null
+    const signatureHeaderName = serviceId
+      ? `x-minu-${serviceId}-signature`
+      : 'x-webhook-signature'
+    const signature = req.headers.get(signatureHeaderName) || req.headers.get('x-webhook-signature')
+    const timestamp = req.headers.get('x-webhook-timestamp')
 
     // 서비스 ID 검증
     if (!serviceId || !['find', 'frame', 'build', 'keep'].includes(serviceId)) {
