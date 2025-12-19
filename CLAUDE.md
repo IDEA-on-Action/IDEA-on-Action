@@ -92,6 +92,7 @@
 | `data-analyst` | SQL/데이터 분석 | 분석 요청 시 |
 | `project-organizer` | 문서/폴더 정리 | "프로젝트 정리해줘" |
 | `project-inspector` | 프로젝트 상태 점검 | "프로젝트 상태 점검해줘" |
+| `task-planner` | 다음 작업 계획/추천 | "다음 작업 뭐야" |
 
 ### 사용 가능한 Skills
 
@@ -102,6 +103,7 @@
 | `commit-helper` | 한글 커밋 메시지 생성 | commit, 커밋 |
 | `project-cleanup` | 문서 정리/아카이브 | 정리, cleanup, organize |
 | `project-health` | 상태 점검/건강 진단 | 상태, 점검, health, check |
+| `task-planning` | 작업 계획/우선순위 분석 | 작업, 계획, 다음, next |
 
 ### 관리 및 사용법
 

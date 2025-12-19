@@ -3,17 +3,17 @@
 > 프로젝트 작업 목록 및 진행 상황 관리
 
 **마지막 업데이트**: 2025-12-19
-**현재 Phase**: v2.39.0 진행 중
-**다음 단계**: Supabase 마이그레이션 수동 적용
+**현재 Phase**: v2.39.0 완료
+**다음 단계**: v2.40.0 계획
 **프로젝트 버전**: 2.39.0
 **프로덕션**: https://www.ideaonaction.ai
 
 ---
 
-## 📋 진행 중: v2.39.0 Minu SSO 연동 (2025-12-19)
+## ✅ 완료: v2.39.0 Minu SSO 연동 (2025-12-19)
 
 **목표**: Minu 서비스 SSO 인증 시스템 구현
-**시작일**: 2025-12-19
+**완료일**: 2025-12-19
 
 ### 작업 개요
 
@@ -26,13 +26,8 @@
 | minu-client.ts | ✅ | Minu API 클라이언트 |
 | minu.types.ts | ✅ | 타입 정의 (서비스, OAuth, 토큰, 웹훅) |
 | Edge Functions 배포 | ✅ | 3개 함수 배포 완료 |
-| Supabase 마이그레이션 | ⏳ | Dashboard에서 수동 적용 필요 |
-
-### 남은 작업
-
-1. Supabase Dashboard에서 `20251217100000_minu_oauth_sessions.sql` 실행
-2. 환경 변수 설정 (MINU_FIND_CLIENT_ID, MINU_FIND_CLIENT_SECRET 등)
-3. Minu SSO 통합 테스트
+| Supabase 마이그레이션 | ✅ | Dashboard에서 수동 적용 완료 |
+| 환경 변수 설정 | ✅ | .env.local + Supabase Secrets 완료 |
 
 ---
 
