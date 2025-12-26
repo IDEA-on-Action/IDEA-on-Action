@@ -4,12 +4,15 @@
  * 주문 상세 페이지 (주문 추적)
  */
 
-import { useParams, useNavigate, Link } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
 import { useOrderDetail, useCancelOrder } from '@/hooks/useOrders'
+import { usePayment } from '@/hooks/payments/usePayment'
 import { useAuth } from '@/hooks/useAuth'
+import { toast } from 'sonner'
+import type { PaymentProvider } from '@/lib/payments/types'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -58,7 +61,9 @@ export default function OrderDetail() {
   const navigate = useNavigate()
   const { user } = useAuth()
   const { data: order, isLoading, isError } = useOrderDetail(id)
-  const { mutate: cancelOrder, isPending: isCancelling } = useCancelOrder()
+  const { mutate: cancelOrder, isPending: isCancellingOrder } = useCancelOrder()
+  const { cancelPayment, isProcessing: isCancellingPayment } = usePayment()
+  const isCancelling = isCancellingOrder || isCancellingPayment
 
   // 로그인 체크
   if (!user) {
@@ -122,13 +127,37 @@ export default function OrderDetail() {
   // 주문 취소 가능 여부
   const canCancel = order.status === 'pending' || order.status === 'confirmed'
 
-  const handleCancelOrder = () => {
-    if (confirm('정말 이 주문을 취소하시겠습니까?')) {
-      cancelOrder(order.id, {
-        onSuccess: () => {
-          navigate('/orders')
-        },
-      })
+  const handleCancelOrder = async () => {
+    if (!confirm('정말 이 주문을 취소하시겠습니까?')) return
+
+    try {
+      // 결제 정보 확인 (Supabase 조인 결과는 배열 또는 단일 객체)
+      const payments = Array.isArray(order.payment)
+        ? order.payment
+        : order.payment
+          ? [order.payment]
+          : []
+      const completedPayment = payments.find((p) => p.status === 'completed')
+
+      if (completedPayment && completedPayment.provider) {
+        // 결제 완료된 경우: 실제 토스페이먼츠 취소 API 호출
+        await cancelPayment(
+          completedPayment.id,
+          completedPayment.provider as PaymentProvider,
+          '고객 요청 취소'
+        )
+        toast.success('주문이 취소되었습니다')
+        navigate('/orders')
+      } else {
+        // 결제 없음 또는 pending 상태: DB만 업데이트
+        cancelOrder(order.id, {
+          onSuccess: () => {
+            navigate('/orders')
+          },
+        })
+      }
+    } catch (err) {
+      toast.error('주문 취소에 실패했습니다')
     }
   }
 
