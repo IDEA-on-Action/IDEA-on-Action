@@ -392,6 +392,44 @@ toss.get('/history', requireAuth, async (c) => {
   }
 });
 
+// 결제 인텐트 생성 (플랜 업그레이드용)
+toss.post('/intent', requireAuth, async (c) => {
+  const db = c.env.DB;
+  const auth = c.get('auth')!;
+  const body = await c.req.json<{ planId: string }>();
+
+  const { planId } = body;
+
+  if (!planId) {
+    return c.json({ error: 'planId는 필수입니다' }, 400);
+  }
+
+  try {
+    // 플랜 조회
+    const plan = await db
+      .prepare('SELECT id, name, price FROM subscription_plans WHERE id = ? AND is_active = 1')
+      .bind(planId)
+      .first<{ id: string; name: string; price: number }>();
+
+    if (!plan) {
+      return c.json({ error: '플랜을 찾을 수 없습니다' }, 404);
+    }
+
+    // 주문 ID 생성
+    const orderId = `upgrade_${auth.userId?.slice(0, 8)}_${Date.now()}`;
+
+    return c.json({
+      orderId,
+      amount: plan.price,
+      orderName: `${plan.name} 업그레이드`,
+      planId: plan.id,
+    });
+  } catch (error) {
+    console.error('결제 인텐트 생성 오류:', error);
+    return c.json({ error: '결제 인텐트 생성 중 오류가 발생했습니다' }, 500);
+  }
+});
+
 // 웹훅 처리
 toss.post('/webhook', async (c) => {
   const db = c.env.DB;

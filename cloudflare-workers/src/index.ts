@@ -52,6 +52,9 @@ import minuOAuthCallback from './handlers/minu/oauth-callback';
 import minuTokenExchange from './handlers/minu/token-exchange';
 import minuWebhook from './handlers/minu/webhook';
 
+// Cron Handlers (Phase 9)
+import subscriptionProcessor from './handlers/cron/subscription-processor';
+
 // Durable Objects
 export { RealtimeRoom } from './durable-objects/RealtimeRoom';
 
@@ -116,6 +119,9 @@ app.route('/minu/oauth', minuOAuthCallback);
 app.route('/minu/token', minuTokenExchange);
 app.route('/minu/webhook', minuWebhook);
 
+// Cron Jobs (Phase 9)
+app.route('/cron/subscriptions', subscriptionProcessor);
+
 // 404 핸들러
 app.notFound((c) => {
   return c.json({
@@ -135,4 +141,15 @@ app.onError((err, c) => {
   }, 500);
 });
 
-export default app;
+// Scheduled 이벤트 핸들러 (Cron)
+import { processSubscriptions } from './handlers/cron/subscription-processor';
+
+export default {
+  fetch: app.fetch,
+  async scheduled(event: ScheduledEvent, env: AppType['Bindings'], ctx: ExecutionContext) {
+    console.log(`Cron triggered at ${new Date(event.scheduledTime).toISOString()}`);
+
+    // 정기결제 처리
+    ctx.waitUntil(processSubscriptions(env));
+  },
+};
