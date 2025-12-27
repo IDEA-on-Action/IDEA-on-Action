@@ -9,6 +9,48 @@
 
 ---
 
+## [2.40.1] - 2025-12-28 (ExcelJS 보안 패치)
+
+### 🔒 보안 수정
+
+xlsx 라이브러리의 High severity 보안 취약점 해결을 위해 ExcelJS로 마이그레이션.
+
+#### 해결된 취약점
+
+| 취약점 | 심각도 | CVE |
+|--------|--------|-----|
+| Prototype Pollution | High | GHSA-4r6h-8v6p-xvw6 |
+| ReDoS | High | GHSA-5pgg-2g8v-p9 |
+
+#### 취약점 현황
+
+| 항목 | 변경 전 | 변경 후 |
+|------|---------|---------|
+| 총 취약점 | 7개 | 6개 |
+| High severity | 1개 | 0개 |
+
+### 🔄 마이그레이션 파일
+
+| 파일 | 변경 내용 |
+|------|----------|
+| `src/lib/skills/excel/types.ts` | 신규 - ExcelJS 타입 정의 |
+| `src/lib/skills/excel/adapter.ts` | 신규 - xlsx API 호환 어댑터 |
+| `src/lib/skills/lazy-loader.ts` | ExcelJS 로더 추가 |
+| `src/hooks/useXlsxExport.ts` | ExcelJS 내보내기 |
+| `src/lib/skills/xlsx/import.ts` | ExcelJS 파일 읽기 |
+| `src/lib/skills/xlsx/chartInsert.ts` | ExcelJS 이미지 삽입 API |
+| `src/lib/skills/xlsx-chart.ts` | ExcelJS 차트 삽입 |
+| `src/lib/skills/xlsx/chart-exporter.ts` | ExcelJS ZIP 내보내기 |
+| `src/skills/xlsx/useXlsxExport.ts` | Central Hub 내보내기 |
+| `src/skills/xlsx/generators/eventReportWithChart.ts` | 차트 리포트 |
+
+### 📦 의존성 변경
+
+- ➕ `exceljs ^4.4.0`
+- ➖ `xlsx` (보안 취약점으로 제거)
+
+---
+
 ## [2.40.0] - 2025-12-28 (Cloudflare Workers 마이그레이션 100% 완료)
 
 ### 🎉 주요 변경사항
