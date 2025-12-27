@@ -393,7 +393,7 @@ toss.post('/webhook', async (c) => {
     console.log('토스페이먼츠 웹훅:', eventType, data);
 
     switch (eventType) {
-      case 'PAYMENT_STATUS_CHANGED':
+      case 'PAYMENT_STATUS_CHANGED': {
         // 결제 상태 변경 처리
         const paymentKey = data.paymentKey as string;
         const status = data.status as string;
@@ -410,8 +410,9 @@ toss.post('/webhook', async (c) => {
             .run();
         }
         break;
+      }
 
-      case 'BILLING_STATUS_CHANGED':
+      case 'BILLING_STATUS_CHANGED': {
         // 빌링 상태 변경 처리
         const billingKey = data.billingKey as string;
         const billingStatus = data.status as string;
@@ -423,6 +424,7 @@ toss.post('/webhook', async (c) => {
             .run();
         }
         break;
+      }
 
       default:
         console.log('처리되지 않은 웹훅 이벤트:', eventType);
