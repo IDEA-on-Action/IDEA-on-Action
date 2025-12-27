@@ -442,7 +442,7 @@ permissions.post('/check-resource', requireAuth, async (c) => {
         break;
       }
 
-      default:
+      default: {
         // 권한 테이블에서 확인
         const permission = `${resource_type}:${action}`;
         allowed = auth!.permissions.some(p => {
@@ -452,6 +452,8 @@ permissions.post('/check-resource', requireAuth, async (c) => {
           return false;
         });
         reason = allowed ? 'permission_granted' : 'permission_denied';
+        break;
+      }
     }
 
     return c.json({ allowed, reason });

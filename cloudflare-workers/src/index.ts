@@ -42,6 +42,9 @@ import websocket from './handlers/realtime/websocket';
 // Auth Handlers (Phase 5)
 import login from './handlers/auth/login';
 
+// Durable Objects
+export { RealtimeRoom } from './durable-objects/RealtimeRoom';
+
 // 메인 앱
 const app = new Hono<AppType>();
 

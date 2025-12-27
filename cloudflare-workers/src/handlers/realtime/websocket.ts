@@ -120,4 +120,12 @@ websocket.get('/rooms', async (c) => {
   }
 });
 
+// GET /realtime/status - 서비스 상태 확인
+websocket.get('/status', async (c) => {
+  return c.json({
+    available: true,
+    message: 'Realtime 서비스가 활성화되어 있습니다'
+  });
+});
+
 export default websocket;

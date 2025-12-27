@@ -6,10 +6,11 @@
 name = "idea-on-action-api"
 main = "src/index.ts"
 compatibility_date = "2024-12-01"
+compatibility_flags = ["nodejs_compat"]
 
-# 빌드 설정
-[build]
-command = "npm run build"
+# 빌드 설정 (wrangler가 직접 esbuild 사용)
+# [build]
+# command = "npm run build"
 
 # 개발 환경
 [dev]
@@ -18,6 +19,10 @@ local_protocol = "http"
 
 # =============================================================================
 # 환경 변수 (민감하지 않은 값만)
+# Secrets (wrangler secret put으로 설정):
+#   JWT_SECRET, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY,
+#   TOSS_SECRET_KEY, SLACK_WEBHOOK_URL, OPENAI_API_KEY,
+#   RESEND_API_KEY, INTERNAL_API_KEY
 # =============================================================================
 [vars]
 ENVIRONMENT = "production"
@@ -29,15 +34,15 @@ CORS_ORIGINS = "https://www.ideaonaction.ai,https://preview.ideaonaction.ai"
 # =============================================================================
 [[kv_namespaces]]
 binding = "SESSIONS"
-id = ""
+id = "1872ad8ccd8245e693932fc12961dff9"
 
 [[kv_namespaces]]
 binding = "CACHE"
-id = ""
+id = "b864bafab6064085a59ee94ee14baf70"
 
 [[kv_namespaces]]
 binding = "RATE_LIMIT"
-id = ""
+id = "50ed706000b14f0a952aa5250a64f416"
 
 # =============================================================================
 # D1 Database
@@ -45,7 +50,7 @@ id = ""
 [[d1_databases]]
 binding = "DB"
 database_name = "idea-on-action-db"
-database_id = ""
+database_id = "53853270-e050-419c-be7e-446eca24d279"
 
 # =============================================================================
 # R2 Storage
@@ -53,6 +58,21 @@ database_id = ""
 [[r2_buckets]]
 binding = "MEDIA_BUCKET"
 bucket_name = "idea-on-action-media"
+
+# =============================================================================
+# Vectorize (RAG 검색)
+# =============================================================================
+[[vectorize]]
+binding = "VECTORIZE"
+index_name = "rag-embeddings"
+
+# =============================================================================
+# Durable Objects (실시간 WebSocket)
+# =============================================================================
+[durable_objects]
+bindings = [
+  { name = "REALTIME_ROOM", class_name = "RealtimeRoom" }
+]
 
 # =============================================================================
 # 라우팅
@@ -71,7 +91,7 @@ routes = [
 ]
 
 # =============================================================================
-# 개발 환경
+# 개발 환경 (로컬 테스트용)
 # =============================================================================
 [env.development]
 vars = { ENVIRONMENT = "development" }
