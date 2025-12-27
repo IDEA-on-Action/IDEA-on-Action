@@ -280,6 +280,472 @@ const RLS_POLICIES: Record<string, Partial<Record<RLSOperation, RLSPolicy>>> = {
       params: (auth) => [auth.userId || null, auth.isAdmin ? 1 : 0],
     },
   },
+
+  // ============================================
+  // 추가 사용자 관련 테이블
+  // ============================================
+  admins: {
+    SELECT: {
+      condition: '? = 1',
+      params: (auth) => [auth.isAdmin ? 1 : 0],
+    },
+    INSERT: {
+      condition: '? = 1',
+      params: (auth) => [auth.isAdmin ? 1 : 0],
+    },
+    UPDATE: {
+      condition: '? = 1',
+      params: (auth) => [auth.isAdmin ? 1 : 0],
+    },
+    DELETE: {
+      condition: '? = 1',
+      params: (auth) => [auth.isAdmin ? 1 : 0],
+    },
+  },
+
+  roles: {
+    SELECT: {
+      condition: '1 = 1', // 모든 사용자 조회 가능
+      params: () => [],
+    },
+    INSERT: {
+      condition: '? = 1',
+      params: (auth) => [auth.isAdmin ? 1 : 0],
+    },
+    UPDATE: {
+      condition: '? = 1',
+      params: (auth) => [auth.isAdmin ? 1 : 0],
+    },
+    DELETE: {
+      condition: '? = 1',
+      params: (auth) => [auth.isAdmin ? 1 : 0],
+    },
+  },
+
+  user_roles: {
+    SELECT: {
+      condition: 'user_id = ? OR ? = 1',
+      params: (auth) => [auth.userId || null, auth.isAdmin ? 1 : 0],
+    },
+    INSERT: {
+      condition: '? = 1',
+      params: (auth) => [auth.isAdmin ? 1 : 0],
+    },
+    DELETE: {
+      condition: '? = 1',
+      params: (auth) => [auth.isAdmin ? 1 : 0],
+    },
+  },
+
+  two_factor_auth: {
+    SELECT: {
+      condition: 'user_id = ? OR ? = 1',
+      params: (auth) => [auth.userId || null, auth.isAdmin ? 1 : 0],
+    },
+    INSERT: {
+      condition: 'user_id = ?',
+      params: (auth) => [auth.userId || null],
+    },
+    UPDATE: {
+      condition: 'user_id = ? OR ? = 1',
+      params: (auth) => [auth.userId || null, auth.isAdmin ? 1 : 0],
+    },
+    DELETE: {
+      condition: 'user_id = ? OR ? = 1',
+      params: (auth) => [auth.userId || null, auth.isAdmin ? 1 : 0],
+    },
+  },
+
+  // ============================================
+  // 서비스 패키지 테이블
+  // ============================================
+  service_packages: {
+    SELECT: {
+      condition: '1 = 1', // 공개 조회
+      params: () => [],
+    },
+    INSERT: {
+      condition: '? = 1',
+      params: (auth) => [auth.isAdmin ? 1 : 0],
+    },
+    UPDATE: {
+      condition: '? = 1',
+      params: (auth) => [auth.isAdmin ? 1 : 0],
+    },
+    DELETE: {
+      condition: '? = 1',
+      params: (auth) => [auth.isAdmin ? 1 : 0],
+    },
+  },
+
+  // ============================================
+  // 장바구니 테이블
+  // ============================================
+  carts: {
+    SELECT: {
+      condition: 'user_id = ? OR session_id = ? OR ? = 1',
+      params: (auth) => [auth.userId || null, auth.userId || null, auth.isAdmin ? 1 : 0],
+    },
+    INSERT: {
+      condition: '1 = 1', // 누구나 생성 가능
+      params: () => [],
+    },
+    UPDATE: {
+      condition: 'user_id = ? OR ? = 1',
+      params: (auth) => [auth.userId || null, auth.isAdmin ? 1 : 0],
+    },
+    DELETE: {
+      condition: 'user_id = ? OR ? = 1',
+      params: (auth) => [auth.userId || null, auth.isAdmin ? 1 : 0],
+    },
+  },
+
+  cart_items: {
+    SELECT: {
+      condition: 'cart_id IN (SELECT id FROM carts WHERE user_id = ?) OR ? = 1',
+      params: (auth) => [auth.userId || null, auth.isAdmin ? 1 : 0],
+    },
+    INSERT: {
+      condition: '1 = 1',
+      params: () => [],
+    },
+    UPDATE: {
+      condition: '? = 1',
+      params: (auth) => [auth.isAdmin ? 1 : 0],
+    },
+    DELETE: {
+      condition: '? = 1',
+      params: (auth) => [auth.isAdmin ? 1 : 0],
+    },
+  },
+
+  // ============================================
+  // 주문 아이템 테이블
+  // ============================================
+  order_items: {
+    SELECT: {
+      condition: 'order_id IN (SELECT id FROM orders WHERE user_id = ?) OR ? = 1',
+      params: (auth) => [auth.userId || null, auth.isAdmin ? 1 : 0],
+    },
+    INSERT: {
+      condition: '? = 1',
+      params: (auth) => [auth.isAdmin ? 1 : 0],
+    },
+    UPDATE: {
+      condition: '? = 1',
+      params: (auth) => [auth.isAdmin ? 1 : 0],
+    },
+  },
+
+  billing_keys: {
+    SELECT: {
+      condition: 'user_id = ? OR ? = 1',
+      params: (auth) => [auth.userId || null, auth.isAdmin ? 1 : 0],
+    },
+    INSERT: {
+      condition: 'user_id = ?',
+      params: (auth) => [auth.userId || null],
+    },
+    UPDATE: {
+      condition: 'user_id = ? OR ? = 1',
+      params: (auth) => [auth.userId || null, auth.isAdmin ? 1 : 0],
+    },
+    DELETE: {
+      condition: 'user_id = ? OR ? = 1',
+      params: (auth) => [auth.userId || null, auth.isAdmin ? 1 : 0],
+    },
+  },
+
+  // ============================================
+  // 구독 결제 테이블
+  // ============================================
+  subscription_payments: {
+    SELECT: {
+      condition: 'subscription_id IN (SELECT id FROM subscriptions WHERE user_id = ?) OR ? = 1',
+      params: (auth) => [auth.userId || null, auth.isAdmin ? 1 : 0],
+    },
+    INSERT: {
+      condition: '? = 1',
+      params: (auth) => [auth.isAdmin ? 1 : 0],
+    },
+    UPDATE: {
+      condition: '? = 1',
+      params: (auth) => [auth.isAdmin ? 1 : 0],
+    },
+  },
+
+  // ============================================
+  // CMS 추가 테이블
+  // ============================================
+  blog_categories: {
+    SELECT: {
+      condition: 'is_active = 1 OR ? = 1',
+      params: (auth) => [auth.isAdmin ? 1 : 0],
+    },
+    INSERT: {
+      condition: '? = 1',
+      params: (auth) => [auth.isAdmin ? 1 : 0],
+    },
+    UPDATE: {
+      condition: '? = 1',
+      params: (auth) => [auth.isAdmin ? 1 : 0],
+    },
+    DELETE: {
+      condition: '? = 1',
+      params: (auth) => [auth.isAdmin ? 1 : 0],
+    },
+  },
+
+  tags: {
+    SELECT: {
+      condition: '1 = 1', // 공개 조회
+      params: () => [],
+    },
+    INSERT: {
+      condition: '? = 1',
+      params: (auth) => [auth.isAdmin ? 1 : 0],
+    },
+    UPDATE: {
+      condition: '? = 1',
+      params: (auth) => [auth.isAdmin ? 1 : 0],
+    },
+    DELETE: {
+      condition: '? = 1',
+      params: (auth) => [auth.isAdmin ? 1 : 0],
+    },
+  },
+
+  roadmap_items: {
+    SELECT: {
+      condition: '1 = 1', // 공개 조회
+      params: () => [],
+    },
+    INSERT: {
+      condition: '? = 1',
+      params: (auth) => [auth.isAdmin ? 1 : 0],
+    },
+    UPDATE: {
+      condition: '? = 1',
+      params: (auth) => [auth.isAdmin ? 1 : 0],
+    },
+    DELETE: {
+      condition: '? = 1',
+      params: (auth) => [auth.isAdmin ? 1 : 0],
+    },
+  },
+
+  // ============================================
+  // 분석 테이블
+  // ============================================
+  analytics_events: {
+    SELECT: {
+      condition: 'user_id = ? OR ? = 1',
+      params: (auth) => [auth.userId || null, auth.isAdmin ? 1 : 0],
+    },
+    INSERT: {
+      condition: '1 = 1', // 누구나 이벤트 기록 가능
+      params: () => [],
+    },
+  },
+
+  // ============================================
+  // 미디어 라이브러리 테이블
+  // ============================================
+  media_library: {
+    SELECT: {
+      condition: 'is_public = 1 OR uploaded_by = ? OR ? = 1',
+      params: (auth) => [auth.userId || null, auth.isAdmin ? 1 : 0],
+    },
+    INSERT: {
+      condition: '? IS NOT NULL OR ? = 1',
+      params: (auth) => [auth.userId, auth.isAdmin ? 1 : 0],
+    },
+    UPDATE: {
+      condition: 'uploaded_by = ? OR ? = 1',
+      params: (auth) => [auth.userId || null, auth.isAdmin ? 1 : 0],
+    },
+    DELETE: {
+      condition: 'uploaded_by = ? OR ? = 1',
+      params: (auth) => [auth.userId || null, auth.isAdmin ? 1 : 0],
+    },
+  },
+
+  // ============================================
+  // 팀 관련 테이블
+  // ============================================
+  teams: {
+    SELECT: {
+      condition: 'owner_id = ? OR id IN (SELECT team_id FROM team_members WHERE user_id = ?) OR ? = 1',
+      params: (auth) => [auth.userId || null, auth.userId || null, auth.isAdmin ? 1 : 0],
+    },
+    INSERT: {
+      condition: '? IS NOT NULL',
+      params: (auth) => [auth.userId],
+    },
+    UPDATE: {
+      condition: 'owner_id = ? OR ? = 1',
+      params: (auth) => [auth.userId || null, auth.isAdmin ? 1 : 0],
+    },
+    DELETE: {
+      condition: 'owner_id = ? OR ? = 1',
+      params: (auth) => [auth.userId || null, auth.isAdmin ? 1 : 0],
+    },
+  },
+
+  team_members: {
+    SELECT: {
+      condition: 'team_id IN (SELECT id FROM teams WHERE owner_id = ?) OR user_id = ? OR ? = 1',
+      params: (auth) => [auth.userId || null, auth.userId || null, auth.isAdmin ? 1 : 0],
+    },
+    INSERT: {
+      condition: 'team_id IN (SELECT id FROM teams WHERE owner_id = ?) OR ? = 1',
+      params: (auth) => [auth.userId || null, auth.isAdmin ? 1 : 0],
+    },
+    DELETE: {
+      condition: 'team_id IN (SELECT id FROM teams WHERE owner_id = ?) OR user_id = ? OR ? = 1',
+      params: (auth) => [auth.userId || null, auth.userId || null, auth.isAdmin ? 1 : 0],
+    },
+  },
+
+  team_invitations: {
+    SELECT: {
+      condition: 'team_id IN (SELECT id FROM teams WHERE owner_id = ?) OR email = ? OR ? = 1',
+      params: (auth) => [auth.userId || null, auth.userId || null, auth.isAdmin ? 1 : 0],
+    },
+    INSERT: {
+      condition: 'team_id IN (SELECT id FROM teams WHERE owner_id = ?) OR ? = 1',
+      params: (auth) => [auth.userId || null, auth.isAdmin ? 1 : 0],
+    },
+    DELETE: {
+      condition: 'team_id IN (SELECT id FROM teams WHERE owner_id = ?) OR ? = 1',
+      params: (auth) => [auth.userId || null, auth.isAdmin ? 1 : 0],
+    },
+  },
+
+  // ============================================
+  // AI 관련 테이블
+  // ============================================
+  ai_conversations: {
+    SELECT: {
+      condition: 'user_id = ? OR ? = 1',
+      params: (auth) => [auth.userId || null, auth.isAdmin ? 1 : 0],
+    },
+    INSERT: {
+      condition: 'user_id = ?',
+      params: (auth) => [auth.userId || null],
+    },
+    UPDATE: {
+      condition: 'user_id = ? OR ? = 1',
+      params: (auth) => [auth.userId || null, auth.isAdmin ? 1 : 0],
+    },
+    DELETE: {
+      condition: 'user_id = ? OR ? = 1',
+      params: (auth) => [auth.userId || null, auth.isAdmin ? 1 : 0],
+    },
+  },
+
+  ai_messages: {
+    SELECT: {
+      condition: 'conversation_id IN (SELECT id FROM ai_conversations WHERE user_id = ?) OR ? = 1',
+      params: (auth) => [auth.userId || null, auth.isAdmin ? 1 : 0],
+    },
+    INSERT: {
+      condition: 'conversation_id IN (SELECT id FROM ai_conversations WHERE user_id = ?) OR ? = 1',
+      params: (auth) => [auth.userId || null, auth.isAdmin ? 1 : 0],
+    },
+  },
+
+  prompt_templates: {
+    SELECT: {
+      condition: 'is_public = 1 OR user_id = ? OR ? = 1',
+      params: (auth) => [auth.userId || null, auth.isAdmin ? 1 : 0],
+    },
+    INSERT: {
+      condition: '? IS NOT NULL OR ? = 1',
+      params: (auth) => [auth.userId, auth.isAdmin ? 1 : 0],
+    },
+    UPDATE: {
+      condition: 'user_id = ? OR ? = 1',
+      params: (auth) => [auth.userId || null, auth.isAdmin ? 1 : 0],
+    },
+    DELETE: {
+      condition: 'user_id = ? OR ? = 1',
+      params: (auth) => [auth.userId || null, auth.isAdmin ? 1 : 0],
+    },
+  },
+
+  // ============================================
+  // 문의 및 알림 테이블
+  // ============================================
+  work_with_us_inquiries: {
+    SELECT: {
+      condition: 'email = ? OR ? = 1',
+      params: (auth) => [auth.userId || null, auth.isAdmin ? 1 : 0],
+    },
+    INSERT: {
+      condition: '1 = 1', // 누구나 문의 가능
+      params: () => [],
+    },
+    UPDATE: {
+      condition: '? = 1',
+      params: (auth) => [auth.isAdmin ? 1 : 0],
+    },
+  },
+
+  notifications: {
+    SELECT: {
+      condition: 'user_id = ? OR ? = 1',
+      params: (auth) => [auth.userId || null, auth.isAdmin ? 1 : 0],
+    },
+    INSERT: {
+      condition: '? = 1',
+      params: (auth) => [auth.isAdmin ? 1 : 0],
+    },
+    UPDATE: {
+      condition: 'user_id = ? OR ? = 1',
+      params: (auth) => [auth.userId || null, auth.isAdmin ? 1 : 0],
+    },
+    DELETE: {
+      condition: 'user_id = ? OR ? = 1',
+      params: (auth) => [auth.userId || null, auth.isAdmin ? 1 : 0],
+    },
+  },
+
+  // ============================================
+  // 감사 로그 테이블
+  // ============================================
+  audit_logs: {
+    SELECT: {
+      condition: '? = 1',
+      params: (auth) => [auth.isAdmin ? 1 : 0],
+    },
+    INSERT: {
+      condition: '1 = 1', // 시스템 자동 기록
+      params: () => [],
+    },
+  },
+
+  // ============================================
+  // 뉴스레터 테이블
+  // ============================================
+  newsletter_subscriptions: {
+    SELECT: {
+      condition: 'email = ? OR ? = 1',
+      params: (auth) => [auth.userId || null, auth.isAdmin ? 1 : 0],
+    },
+    INSERT: {
+      condition: '1 = 1', // 누구나 구독 가능
+      params: () => [],
+    },
+    UPDATE: {
+      condition: 'email = ? OR ? = 1',
+      params: (auth) => [auth.userId || null, auth.isAdmin ? 1 : 0],
+    },
+    DELETE: {
+      condition: 'email = ? OR ? = 1',
+      params: (auth) => [auth.userId || null, auth.isAdmin ? 1 : 0],
+    },
+  },
 };
 
 /**

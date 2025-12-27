@@ -26,6 +26,16 @@ import authorize from './handlers/oauth/authorize';
 import token from './handlers/oauth/token';
 import revoke from './handlers/oauth/revoke';
 
+// OAuth Provider Handlers (Phase 2 Migration)
+import googleOAuth from './handlers/oauth/google';
+import githubOAuth from './handlers/oauth/github';
+import kakaoOAuth from './handlers/oauth/kakao';
+import microsoftOAuth from './handlers/oauth/microsoft';
+import appleOAuth from './handlers/oauth/apple';
+
+// 2FA Handler (Phase 2 Migration)
+import twoFactorAuth from './handlers/auth/2fa';
+
 // Payment Handlers (Wave 3)
 import toss from './handlers/payments/toss';
 import subscription from './handlers/payments/subscription';
@@ -109,6 +119,16 @@ app.route('/api/v1/permissions', permissions);
 app.route('/oauth/authorize', authorize);
 app.route('/oauth/token', token);
 app.route('/oauth/revoke', revoke);
+
+// OAuth Providers (Phase 2 Migration)
+app.route('/oauth/google', googleOAuth);
+app.route('/oauth/github', githubOAuth);
+app.route('/oauth/kakao', kakaoOAuth);
+app.route('/oauth/microsoft', microsoftOAuth);
+app.route('/oauth/apple', appleOAuth);
+
+// 2FA (Phase 2 Migration)
+app.route('/auth/2fa', twoFactorAuth);
 
 // Payments (Wave 3)
 app.route('/api/v1/payments', toss);

@@ -2,15 +2,23 @@
  * Media Utility Functions
  *
  * CMS Phase 5 - Helper functions for media operations
+ *
+ * Note: R2 마이그레이션 진행 중
+ * - Supabase URL → R2 URL 자동 변환 지원
+ * - 새 업로드는 useR2Storage 사용 권장
  */
 
 import { supabase } from '@/integrations/supabase/client';
+import { rewriteStorageUrl, getImageVariant as r2ImageVariant } from '@/lib/storage/url-rewriter';
 
 // =====================================================
 // Constants
 // =====================================================
 
 export const MEDIA_BUCKET = 'media-library';
+
+// R2 Public URL
+export const R2_PUBLIC_URL = 'https://media.ideaonaction.ai';
 
 export const ALLOWED_IMAGE_TYPES = [
   'image/jpeg',
@@ -28,10 +36,24 @@ export const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
 /**
  * Get public URL for a storage path
+ * 마이그레이션 후: R2 URL 반환
  */
-export function getMediaPublicUrl(storagePath: string): string {
+export function getMediaPublicUrl(storagePath: string, useR2 = true): string {
+  if (useR2) {
+    // R2 URL 직접 생성
+    return `${R2_PUBLIC_URL}/${MEDIA_BUCKET}/${storagePath}`;
+  }
+  // 레거시 Supabase URL
   const { data } = supabase.storage.from(MEDIA_BUCKET).getPublicUrl(storagePath);
   return data.publicUrl;
+}
+
+/**
+ * 모든 스토리지 URL을 R2 URL로 변환
+ * Supabase URL도 자동으로 R2 URL로 변환됨
+ */
+export function normalizeStorageUrl(url: string | null | undefined): string | null {
+  return rewriteStorageUrl(url);
 }
 
 /**
@@ -48,8 +70,9 @@ export function getMediaThumbnailUrl(
 }
 
 /**
- * Generate a Supabase Storage transform URL for on-the-fly resizing
- * @see https://supabase.com/docs/guides/storage/serving/image-transformations
+ * Generate image transform URL (R2 또는 Supabase)
+ * R2: Cloudflare Image Resizing 사용
+ * Supabase: Storage Image Transformations 사용
  */
 export function getMediaTransformUrl(
   storagePath: string,
@@ -57,13 +80,26 @@ export function getMediaTransformUrl(
     width?: number;
     height?: number;
     quality?: number;
-    format?: 'webp' | 'jpg' | 'png';
-    resize?: 'cover' | 'contain' | 'fill';
-  } = {}
+    format?: 'webp' | 'jpg' | 'png' | 'avif' | 'jpeg';
+    resize?: 'cover' | 'contain' | 'fill' | 'scale-down' | 'crop';
+  } = {},
+  useR2 = true
 ): string {
   const { width, height, quality = 80, format, resize = 'cover' } = options;
 
-  // Build transform query params
+  if (useR2) {
+    // R2 URL with Cloudflare Image Resizing
+    const baseUrl = `${R2_PUBLIC_URL}/${MEDIA_BUCKET}/${storagePath}`;
+    return r2ImageVariant(baseUrl, {
+      width,
+      height,
+      quality,
+      format: format === 'jpg' ? 'jpeg' : format as 'webp' | 'avif' | 'jpeg' | 'png' | undefined,
+      fit: resize === 'fill' ? 'cover' : resize as 'contain' | 'cover' | 'scale-down' | 'crop' | undefined,
+    }) || baseUrl;
+  }
+
+  // 레거시 Supabase Storage Transform
   const transforms: string[] = [];
   if (width) transforms.push(`width=${width}`);
   if (height) transforms.push(`height=${height}`);
@@ -71,14 +107,12 @@ export function getMediaTransformUrl(
   if (format) transforms.push(`format=${format}`);
   if (resize) transforms.push(`resize=${resize}`);
 
-  const baseUrl = getMediaPublicUrl(storagePath);
+  const baseUrl = getMediaPublicUrl(storagePath, false);
 
   if (transforms.length === 0) {
     return baseUrl;
   }
 
-  // Add render/image transform endpoint
-  // Note: Requires Supabase Pro plan for image transformations
   return `${baseUrl}?${transforms.join('&')}`;
 }
 
@@ -476,13 +510,23 @@ export function isSvgImage(file: File): boolean {
 // =====================================================
 
 /**
- * Extract storage path from Supabase public URL
- * @param url Supabase public URL
+ * Extract storage path from Supabase or R2 public URL
+ * @param url Storage URL (Supabase or R2)
  * @returns Storage path
  */
 export function extractStoragePathFromUrl(url: string): string | null {
   try {
     const urlObj = new URL(url);
+
+    // R2 URL 패턴: https://media.ideaonaction.ai/{bucket}/{path}
+    if (url.includes('media.ideaonaction.ai')) {
+      const pathParts = urlObj.pathname.split('/').filter(Boolean);
+      if (pathParts.length >= 2) {
+        return pathParts.slice(1).join('/'); // 버킷 제외한 경로
+      }
+    }
+
+    // Supabase URL 패턴
     const pathMatch = urlObj.pathname.match(/\/storage\/v1\/object\/public\/[^/]+\/(.+)/);
     return pathMatch ? pathMatch[1] : null;
   } catch {
@@ -495,6 +539,13 @@ export function extractStoragePathFromUrl(url: string): string | null {
  */
 export function isSupabaseStorageUrl(url: string): boolean {
   return url.includes('supabase.co/storage/v1/object');
+}
+
+/**
+ * Check if URL is an R2 storage URL
+ */
+export function isR2StorageUrl(url: string): boolean {
+  return url.includes('media.ideaonaction.ai');
 }
 
 // =====================================================

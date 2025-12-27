@@ -508,11 +508,11 @@ profileSync.post('/webhook', async (c) => {
   }
 
   // 서명 검증
-  const signature = c.req.header('x-webhook-signature');
-  const timestamp = c.req.header('x-webhook-timestamp');
+  const signature = c.req.header('x-webhook-signature') || null;
+  const timestamp = c.req.header('x-webhook-timestamp') || null;
   const payload = await c.req.text();
 
-  const verification = await verifyWebhookSignature(payload, signature, timestamp, webhookSecret);
+  const verification = await verifyWebhookSignature(payload, signature, timestamp, webhookSecret || '');
 
   if (!verification.valid) {
     return c.json(

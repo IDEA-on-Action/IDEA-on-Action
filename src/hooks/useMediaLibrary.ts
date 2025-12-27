@@ -4,6 +4,10 @@
  * Provides media CRUD operations with React Query integration.
  * Supports upload, list, search, delete, and metadata update.
  *
+ * Note: R2 마이그레이션 진행 중
+ * - 새 프로젝트는 useR2Storage 사용 권장
+ * - 기존 URL은 자동으로 R2 URL로 변환됨
+ *
  * @example
  * const {
  *   mediaItems,
@@ -19,6 +23,7 @@ import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { rewriteStorageUrl } from '@/lib/storage/url-rewriter';
 import type { MediaItem, MediaItemInsert, MediaItemUpdate, MediaSearchParams } from '@/types/cms.types';
 
 // =====================================================
@@ -62,11 +67,12 @@ function generateUniqueFilename(originalFilename: string): string {
 }
 
 /**
- * Get public URL for storage path
+ * Get public URL for storage path (R2 지원)
  */
 function getPublicUrl(storagePath: string): string {
   const { data } = supabase.storage.from(MEDIA_BUCKET).getPublicUrl(storagePath);
-  return data.publicUrl;
+  // Supabase URL을 R2 URL로 변환
+  return rewriteStorageUrl(data.publicUrl) || data.publicUrl;
 }
 
 /**
@@ -180,8 +186,16 @@ export function useMediaLibrary(options: UseMediaLibraryOptions = {}) {
           throw error;
         }
 
+        // 미디어 아이템의 URL을 R2 URL로 변환
+        const normalizedData = (data || []).map(item => ({
+          ...item,
+          storage_path: item.storage_path,
+          // URL 필드가 있으면 R2 URL로 변환
+          url: item.url ? rewriteStorageUrl(item.url as string) : undefined,
+        })) as MediaItem[];
+
         return {
-          data: (data || []) as MediaItem[],
+          data: normalizedData,
           count: count || 0,
           page,
           perPage,

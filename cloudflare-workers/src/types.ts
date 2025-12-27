@@ -76,6 +76,33 @@ export interface Env {
   MINU_WEBHOOK_SECRET?: string;
   OAUTH_ERROR_PAGE_URL?: string;
 
+  // OAuth Provider Secrets
+  GOOGLE_CLIENT_ID?: string;
+  GOOGLE_CLIENT_SECRET?: string;
+  GOOGLE_REDIRECT_URI?: string;
+
+  GITHUB_CLIENT_ID?: string;
+  GITHUB_CLIENT_SECRET?: string;
+  GITHUB_REDIRECT_URI?: string;
+
+  KAKAO_CLIENT_ID?: string;
+  KAKAO_CLIENT_SECRET?: string;
+  KAKAO_REDIRECT_URI?: string;
+
+  MICROSOFT_CLIENT_ID?: string;
+  MICROSOFT_CLIENT_SECRET?: string;
+  MICROSOFT_REDIRECT_URI?: string;
+
+  APPLE_CLIENT_ID?: string;
+  APPLE_TEAM_ID?: string;
+  APPLE_KEY_ID?: string;
+  APPLE_PRIVATE_KEY?: string;
+  APPLE_REDIRECT_URI?: string;
+
+  // Worker URL (for OAuth callbacks)
+  WORKER_URL?: string;
+  FRONTEND_URL?: string;
+
   // Dynamic access for webhook secrets
   [key: `WEBHOOK_SECRET_${string}`]: string | undefined;
   [key: `MINU_${string}_CLIENT_ID`]: string | undefined;
