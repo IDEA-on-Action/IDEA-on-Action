@@ -4,10 +4,22 @@
  */
 
 import { Hono } from 'hono';
-import type { Env } from '../../types';
-import { authMiddleware, adminOnlyMiddleware } from '../../middleware/auth';
+import { AppType } from '../../types';
+import { requireAuth, requireAdmin } from '../../middleware/auth';
 
 const toss = new Hono<AppType>();
+
+// 토스페이먼츠 API 응답 타입
+interface TossAPIError {
+  code: string;
+  message: string;
+}
+
+interface TossAPIResponse {
+  ok: boolean;
+  data?: unknown;
+  error?: string;
+}
 
 // 토스페이먼츠 API 기본 URL
 const TOSS_API_URL = 'https://api.tosspayments.com';
@@ -37,7 +49,7 @@ async function callTossAPI(
   method: string,
   secretKey: string,
   body?: unknown
-): Promise<{ ok: boolean; data?: unknown; error?: string }> {
+): Promise<TossAPIResponse> {
   const authHeader = btoa(`${secretKey}:`);
 
   try {
@@ -50,10 +62,11 @@ async function callTossAPI(
       body: body ? JSON.stringify(body) : undefined,
     });
 
-    const data = await response.json();
+    const data = await response.json() as unknown;
 
     if (!response.ok) {
-      return { ok: false, error: data.message || '결제 처리 중 오류가 발생했습니다' };
+      const errorData = data as TossAPIError;
+      return { ok: false, error: errorData.message || '결제 처리 중 오류가 발생했습니다' };
     }
 
     return { ok: true, data };
@@ -64,9 +77,9 @@ async function callTossAPI(
 }
 
 // 결제 승인
-toss.post('/confirm', authMiddleware, async (c) => {
+toss.post('/confirm', requireAuth, async (c) => {
   const db = c.env.DB;
-  const auth = c.get('auth');
+  const auth = c.get('auth')!;
   const body = await c.req.json<PaymentConfirmRequest>();
 
   const { paymentKey, orderId, amount } = body;
@@ -156,9 +169,9 @@ toss.post('/confirm', authMiddleware, async (c) => {
 });
 
 // 빌링키 발급
-toss.post('/billing-key', authMiddleware, async (c) => {
+toss.post('/billing-key', requireAuth, async (c) => {
   const db = c.env.DB;
-  const auth = c.get('auth');
+  const auth = c.get('auth')!;
   const body = await c.req.json<BillingKeyIssueRequest>();
 
   const { authKey, customerKey } = body;
@@ -226,9 +239,9 @@ toss.post('/billing-key', authMiddleware, async (c) => {
 });
 
 // 정기결제 실행
-toss.post('/subscription', authMiddleware, async (c) => {
+toss.post('/subscription', requireAuth, async (c) => {
   const db = c.env.DB;
-  const auth = c.get('auth');
+  const auth = c.get('auth')!;
   const body = await c.req.json<SubscriptionPaymentRequest>();
 
   const { billingKey, customerKey, amount, orderId, orderName } = body;
@@ -273,9 +286,9 @@ toss.post('/subscription', authMiddleware, async (c) => {
 });
 
 // 결제 취소
-toss.post('/cancel', authMiddleware, async (c) => {
+toss.post('/cancel', requireAuth, async (c) => {
   const db = c.env.DB;
-  const auth = c.get('auth');
+  const auth = c.get('auth')!;
   const body = await c.req.json<{
     paymentKey: string;
     cancelReason: string;
@@ -344,9 +357,9 @@ toss.post('/cancel', authMiddleware, async (c) => {
 });
 
 // 결제 내역 조회
-toss.get('/history', authMiddleware, async (c) => {
+toss.get('/history', requireAuth, async (c) => {
   const db = c.env.DB;
-  const auth = c.get('auth');
+  const auth = c.get('auth')!;
   const { limit = '20', offset = '0' } = c.req.query();
 
   try {

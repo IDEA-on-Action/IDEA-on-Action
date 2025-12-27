@@ -26,6 +26,10 @@ import authorize from './handlers/oauth/authorize';
 import token from './handlers/oauth/token';
 import revoke from './handlers/oauth/revoke';
 
+// Payment Handlers (Wave 3)
+import toss from './handlers/payments/toss';
+import subscription from './handlers/payments/subscription';
+
 // 메인 앱
 const app = new Hono<AppType>();
 
@@ -60,6 +64,10 @@ app.route('/api/v1/permissions', permissions);
 app.route('/oauth/authorize', authorize);
 app.route('/oauth/token', token);
 app.route('/oauth/revoke', revoke);
+
+// Payments (Wave 3)
+app.route('/api/v1/payments', toss);
+app.route('/api/v1/subscriptions', subscription);
 
 // 404 핸들러
 app.notFound((c) => {
