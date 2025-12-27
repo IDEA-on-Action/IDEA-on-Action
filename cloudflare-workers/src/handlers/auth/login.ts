@@ -216,11 +216,12 @@ login.post('/login', async (c) => {
       // 로그인 실패 기록
       await db
         .prepare(`
-          INSERT INTO login_attempts (id, user_id, ip_address, success)
-          VALUES (?, ?, ?, 0)
+          INSERT INTO login_attempts (id, email, user_id, ip_address, success)
+          VALUES (?, ?, ?, ?, 0)
         `)
         .bind(
           crypto.randomUUID(),
+          email.toLowerCase(),
           user.id,
           c.req.header('CF-Connecting-IP') || 'unknown'
         )
@@ -262,11 +263,12 @@ login.post('/login', async (c) => {
     // 로그인 성공 기록
     await db
       .prepare(`
-        INSERT INTO login_attempts (id, user_id, ip_address, success)
-        VALUES (?, ?, ?, 1)
+        INSERT INTO login_attempts (id, email, user_id, ip_address, success)
+        VALUES (?, ?, ?, ?, 1)
       `)
       .bind(
         crypto.randomUUID(),
+        user.email as string,
         user.id,
         c.req.header('CF-Connecting-IP') || 'unknown'
       )
