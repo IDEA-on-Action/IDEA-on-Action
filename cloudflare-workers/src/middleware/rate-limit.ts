@@ -1,253 +1,147 @@
 /**
  * Rate Limiting 미들웨어
- * Cloudflare KV 기반 요청 제한
+ * Cloudflare KV 기반 Rate Limiter
  */
 
 import { Context, Next } from 'hono';
-import { createMiddleware } from 'hono/factory';
-import type { Env } from '../index';
+import { AppType } from '../types';
 
-// Rate Limit 설정 타입
 interface RateLimitConfig {
-  // 윈도우 크기 (초)
-  windowSec: number;
-  // 윈도우당 최대 요청 수
-  maxRequests: number;
-  // 키 생성 함수
-  keyGenerator?: (c: Context<{ Bindings: Env }>) => string;
-  // 제한 초과 시 메시지
-  message?: string;
-  // 스킵 조건
-  skip?: (c: Context<{ Bindings: Env }>) => boolean;
+  windowMs: number;      // 시간 윈도우 (밀리초)
+  maxRequests: number;   // 최대 요청 수
+  keyPrefix?: string;    // KV 키 프리픽스
 }
 
-// Rate Limit 정보 타입
-interface RateLimitInfo {
+interface RateLimitData {
   count: number;
   resetAt: number;
 }
 
-// 기본 설정
+// 기본 Rate Limit 설정
 const DEFAULT_CONFIG: RateLimitConfig = {
-  windowSec: 60, // 1분
-  maxRequests: 100, // 분당 100 요청
+  windowMs: 60 * 1000,   // 1분
+  maxRequests: 100,      // 분당 100회
+  keyPrefix: 'ratelimit',
 };
 
 // 엔드포인트별 Rate Limit 설정
-export const RATE_LIMIT_CONFIGS: Record<string, RateLimitConfig> = {
-  // 인증 관련 (엄격)
-  '/api/v1/auth/login': { windowSec: 60, maxRequests: 10 },
-  '/api/v1/auth/signup': { windowSec: 60, maxRequests: 5 },
-  '/api/v1/auth/forgot-password': { windowSec: 60, maxRequests: 3 },
-  '/oauth/token': { windowSec: 60, maxRequests: 20 },
-
-  // AI 관련 (비용 고려)
-  '/api/v1/ai/chat': { windowSec: 60, maxRequests: 20 },
-  '/api/v1/ai/vision': { windowSec: 60, maxRequests: 10 },
-  '/api/v1/rag/search': { windowSec: 60, maxRequests: 30 },
-
-  // 결제 관련
-  '/api/v1/payments': { windowSec: 60, maxRequests: 20 },
-
-  // 웹훅 (높은 제한)
-  '/api/v1/webhooks': { windowSec: 60, maxRequests: 200 },
-
-  // 기본
-  default: DEFAULT_CONFIG,
+const ENDPOINT_LIMITS: Record<string, RateLimitConfig> = {
+  '/auth/login': { windowMs: 60 * 1000, maxRequests: 5 },       // 로그인: 분당 5회
+  '/auth/register': { windowMs: 60 * 1000, maxRequests: 3 },    // 회원가입: 분당 3회
+  '/api/v1/payments': { windowMs: 60 * 1000, maxRequests: 10 }, // 결제: 분당 10회
+  '/api/v1/rag/search': { windowMs: 60 * 1000, maxRequests: 30 }, // RAG: 분당 30회
 };
 
 /**
  * Rate Limit 키 생성
  */
-function generateKey(c: Context<{ Bindings: Env }>, config: RateLimitConfig): string {
-  if (config.keyGenerator) {
-    return config.keyGenerator(c);
-  }
+function getRateLimitKey(c: Context<AppType>, prefix: string): string {
+  // IP 주소 또는 사용자 ID 기반
+  const ip = c.req.header('CF-Connecting-IP') || 
+             c.req.header('X-Forwarded-For')?.split(',')[0] || 
+             'unknown';
+  const userId = c.get('auth')?.userId;
 
-  // 기본: IP + 경로
-  const ip = c.req.header('cf-connecting-ip') || c.req.header('x-forwarded-for') || 'unknown';
+  const identifier = userId || ip;
   const path = new URL(c.req.url).pathname;
 
-  // 인증된 사용자는 user_id 사용
-  const auth = c.get('auth');
-  if (auth?.userId) {
-    return `ratelimit:user:${auth.userId}:${path}`;
-  }
-
-  return `ratelimit:ip:${ip}:${path}`;
+  return `${prefix}:${path}:${identifier}`;
 }
 
 /**
- * 경로에 맞는 Rate Limit 설정 찾기
+ * Rate Limit 체크 및 업데이트
  */
-function getConfigForPath(path: string): RateLimitConfig {
-  // 정확한 경로 매칭
-  if (RATE_LIMIT_CONFIGS[path]) {
-    return RATE_LIMIT_CONFIGS[path];
+async function checkRateLimit(
+  kv: KVNamespace,
+  key: string,
+  config: RateLimitConfig
+): Promise<{ allowed: boolean; remaining: number; resetAt: number }> {
+  const now = Date.now();
+  const existing = await kv.get<RateLimitData>(key, 'json');
+
+  // 새 윈도우 또는 기존 윈도우 만료
+  if (!existing || existing.resetAt <= now) {
+    const resetAt = now + config.windowMs;
+    await kv.put(key, JSON.stringify({ count: 1, resetAt }), {
+      expirationTtl: Math.ceil(config.windowMs / 1000) + 60,
+    });
+    return { allowed: true, remaining: config.maxRequests - 1, resetAt };
   }
 
-  // 접두사 매칭
-  for (const [pattern, config] of Object.entries(RATE_LIMIT_CONFIGS)) {
-    if (pattern !== 'default' && path.startsWith(pattern)) {
-      return config;
-    }
+  // 기존 윈도우 내 요청
+  const newCount = existing.count + 1;
+  const allowed = newCount <= config.maxRequests;
+
+  if (allowed) {
+    await kv.put(key, JSON.stringify({ count: newCount, resetAt: existing.resetAt }), {
+      expirationTtl: Math.ceil((existing.resetAt - now) / 1000) + 60,
+    });
   }
 
-  return RATE_LIMIT_CONFIGS.default;
+  return {
+    allowed,
+    remaining: Math.max(0, config.maxRequests - newCount),
+    resetAt: existing.resetAt,
+  };
 }
 
 /**
  * Rate Limit 미들웨어
  */
-export const rateLimitMiddleware = createMiddleware<{ Bindings: Env }>(
-  async (c: Context<{ Bindings: Env }>, next: Next) => {
-    const path = new URL(c.req.url).pathname;
-    const config = getConfigForPath(path);
+export async function rateLimitMiddleware(c: Context<AppType>, next: Next) {
+  const path = new URL(c.req.url).pathname;
 
-    // 스킵 조건 확인
-    if (config.skip?.(c)) {
-      return next();
-    }
+  // 엔드포인트별 설정 또는 기본값
+  const config = ENDPOINT_LIMITS[path] || DEFAULT_CONFIG;
+  const key = getRateLimitKey(c, config.keyPrefix || 'ratelimit');
 
-    const key = generateKey(c, config);
-    const now = Date.now();
-    const windowStart = now - config.windowSec * 1000;
+  const { allowed, remaining, resetAt } = await checkRateLimit(
+    c.env.RATE_LIMIT,
+    key,
+    config
+  );
 
-    try {
-      // KV에서 현재 상태 조회
-      const stored = await c.env.RATE_LIMIT_KV.get<RateLimitInfo>(key, 'json');
+  // Rate Limit 헤더 설정
+  c.header('X-RateLimit-Limit', config.maxRequests.toString());
+  c.header('X-RateLimit-Remaining', remaining.toString());
+  c.header('X-RateLimit-Reset', Math.ceil(resetAt / 1000).toString());
 
-      let info: RateLimitInfo;
-
-      if (!stored || stored.resetAt < now) {
-        // 새 윈도우 시작
-        info = {
-          count: 1,
-          resetAt: now + config.windowSec * 1000,
-        };
-      } else {
-        // 기존 윈도우 업데이트
-        info = {
-          count: stored.count + 1,
-          resetAt: stored.resetAt,
-        };
-      }
-
-      // Rate Limit 헤더 추가
-      const remaining = Math.max(0, config.maxRequests - info.count);
-      const resetInSeconds = Math.ceil((info.resetAt - now) / 1000);
-
-      c.res.headers.set('X-RateLimit-Limit', config.maxRequests.toString());
-      c.res.headers.set('X-RateLimit-Remaining', remaining.toString());
-      c.res.headers.set('X-RateLimit-Reset', resetInSeconds.toString());
-
-      // 제한 초과 확인
-      if (info.count > config.maxRequests) {
-        c.res.headers.set('Retry-After', resetInSeconds.toString());
-
-        return c.json(
-          {
-            error: 'Too Many Requests',
-            message: config.message || `Rate limit exceeded. Try again in ${resetInSeconds} seconds.`,
-            code: 'RATE_LIMIT_EXCEEDED',
-            retryAfter: resetInSeconds,
-          },
-          429
-        );
-      }
-
-      // KV에 상태 저장
-      await c.env.RATE_LIMIT_KV.put(key, JSON.stringify(info), {
-        expirationTtl: config.windowSec + 60, // 여유 시간 추가
-      });
-
-      await next();
-    } catch (error) {
-      // KV 오류 시 요청 허용 (fail-open)
-      console.error('Rate limit error:', error);
-      await next();
-    }
+  if (!allowed) {
+    return c.json(
+      {
+        error: '요청 한도를 초과했습니다. 잠시 후 다시 시도해주세요.',
+        success: false,
+        retryAfter: Math.ceil((resetAt - Date.now()) / 1000),
+      },
+      429
+    );
   }
-);
+
+  await next();
+}
 
 /**
  * 커스텀 Rate Limit 미들웨어 생성
  */
-export function createRateLimitMiddleware(config: RateLimitConfig) {
-  return createMiddleware<{ Bindings: Env }>(
-    async (c: Context<{ Bindings: Env }>, next: Next) => {
-      // 스킵 조건 확인
-      if (config.skip?.(c)) {
-        return next();
-      }
+export function createRateLimiter(config: Partial<RateLimitConfig>) {
+  const finalConfig = { ...DEFAULT_CONFIG, ...config };
 
-      const key = generateKey(c, config);
-      const now = Date.now();
+  return async (c: Context<AppType>, next: Next) => {
+    const key = getRateLimitKey(c, finalConfig.keyPrefix || 'ratelimit');
+    const { allowed, remaining, resetAt } = await checkRateLimit(
+      c.env.RATE_LIMIT,
+      key,
+      finalConfig
+    );
 
-      try {
-        const stored = await c.env.RATE_LIMIT_KV.get<RateLimitInfo>(key, 'json');
+    c.header('X-RateLimit-Limit', finalConfig.maxRequests.toString());
+    c.header('X-RateLimit-Remaining', remaining.toString());
+    c.header('X-RateLimit-Reset', Math.ceil(resetAt / 1000).toString());
 
-        let info: RateLimitInfo;
-
-        if (!stored || stored.resetAt < now) {
-          info = {
-            count: 1,
-            resetAt: now + config.windowSec * 1000,
-          };
-        } else {
-          info = {
-            count: stored.count + 1,
-            resetAt: stored.resetAt,
-          };
-        }
-
-        const remaining = Math.max(0, config.maxRequests - info.count);
-        const resetInSeconds = Math.ceil((info.resetAt - now) / 1000);
-
-        c.res.headers.set('X-RateLimit-Limit', config.maxRequests.toString());
-        c.res.headers.set('X-RateLimit-Remaining', remaining.toString());
-        c.res.headers.set('X-RateLimit-Reset', resetInSeconds.toString());
-
-        if (info.count > config.maxRequests) {
-          c.res.headers.set('Retry-After', resetInSeconds.toString());
-
-          return c.json(
-            {
-              error: 'Too Many Requests',
-              message: config.message || `Rate limit exceeded. Try again in ${resetInSeconds} seconds.`,
-              code: 'RATE_LIMIT_EXCEEDED',
-              retryAfter: resetInSeconds,
-            },
-            429
-          );
-        }
-
-        await c.env.RATE_LIMIT_KV.put(key, JSON.stringify(info), {
-          expirationTtl: config.windowSec + 60,
-        });
-
-        await next();
-      } catch (error) {
-        console.error('Rate limit error:', error);
-        await next();
-      }
+    if (!allowed) {
+      return c.json({ error: '요청 한도 초과', success: false }, 429);
     }
-  );
-}
 
-/**
- * Rate Limit 리셋 (관리자용)
- */
-export async function resetRateLimit(kv: KVNamespace, key: string): Promise<void> {
-  await kv.delete(key);
-}
-
-/**
- * Rate Limit 상태 조회 (관리자용)
- */
-export async function getRateLimitStatus(
-  kv: KVNamespace,
-  key: string
-): Promise<RateLimitInfo | null> {
-  return await kv.get<RateLimitInfo>(key, 'json');
+    await next();
+  };
 }

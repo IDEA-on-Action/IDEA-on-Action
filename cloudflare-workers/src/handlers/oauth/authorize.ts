@@ -4,11 +4,11 @@
  */
 
 import { Hono } from 'hono';
-import type { Env } from '../../index';
+import type { Env } from '../../types';
 import { optionalAuthMiddleware, type AuthContext } from '../../middleware/auth';
 import { SignJWT } from 'jose';
 
-const authorize = new Hono<{ Bindings: Env }>();
+const authorize = new Hono<AppType>();
 
 interface AuthorizeParams {
   response_type: string;

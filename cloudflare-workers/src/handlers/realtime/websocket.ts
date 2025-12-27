@@ -4,10 +4,10 @@
  */
 
 import { Hono } from 'hono';
-import type { Env } from '../../index';
+import type { Env } from '../../types';
 import { optionalAuthMiddleware } from '../../middleware/auth';
 
-const websocket = new Hono<{ Bindings: Env }>();
+const websocket = new Hono<AppType>();
 
 // GET /realtime/:roomId - WebSocket 연결
 websocket.get('/:roomId', optionalAuthMiddleware, async (c) => {
@@ -108,7 +108,7 @@ websocket.get('/rooms', async (c) => {
 
   // Note: Durable Objects는 모든 인스턴스를 직접 열거하는 API가 없음
   // KV에 활성 룸 목록을 저장하는 방식으로 구현 가능
-  const kv = c.env.SESSION_KV;
+  const kv = c.env.SESSIONS;
 
   try {
     const roomsData = await kv.get<string[]>('active_rooms', 'json');

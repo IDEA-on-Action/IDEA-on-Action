@@ -5,7 +5,7 @@
 
 import { Context, Next } from 'hono';
 import { createMiddleware } from 'hono/factory';
-import type { Env } from '../index';
+import type { Env } from '../types';
 import type { AuthContext } from './auth';
 
 // RLS 정책 타입
@@ -353,7 +353,7 @@ export function applyRLSToQuery(
  * RLS 가드 미들웨어
  */
 export const rlsGuardMiddleware = createMiddleware<{ Bindings: Env }>(
-  async (c: Context<{ Bindings: Env }>, next: Next) => {
+  async (c: Context<AppType>, next: Next) => {
     const auth = c.get('auth');
 
     if (!auth) {

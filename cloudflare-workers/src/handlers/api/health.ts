@@ -4,7 +4,7 @@
  */
 
 import { Context } from 'hono';
-import type { Env } from '../../index';
+import type { Env } from '../../types';
 
 interface HealthCheckResult {
   status: 'healthy' | 'degraded' | 'unhealthy';
@@ -94,7 +94,7 @@ export async function healthHandler(c: Context<{ Bindings: Env }>) {
   });
 
   // KV 체크
-  const kvCheck = await checkKV(c.env.SESSION_KV);
+  const kvCheck = await checkKV(c.env.SESSIONS);
   checks.push({
     name: 'kv',
     status: kvCheck.ok ? 'pass' : 'fail',

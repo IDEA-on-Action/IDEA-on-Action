@@ -1,23 +1,15 @@
 {
-  "name": "idea-on-action-api",
+  "name": "idea-on-action-workers",
   "version": "1.0.0",
-  "description": "IDEA on Action API - Cloudflare Workers",
+  "description": "IDEA on Action Cloudflare Workers API",
   "type": "module",
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
     "deploy:staging": "wrangler deploy --env staging",
-    "deploy:production": "wrangler deploy --env production",
-    "build": "echo 'Skipping tsc, wrangler will handle bundling'",
-    "typecheck": "tsc --noEmit",
+    "build": "esbuild src/index.ts --bundle --outfile=dist/index.js --format=esm --platform=neutral",
     "test": "vitest",
-    "test:coverage": "vitest --coverage",
-    "lint": "eslint src --ext .ts",
-    "format": "prettier --write src",
-    "db:migrate": "wrangler d1 migrations apply idea-on-action-db",
-    "db:migrate:local": "wrangler d1 migrations apply idea-on-action-db --local",
-    "kv:create": "wrangler kv:namespace create",
-    "r2:create": "wrangler r2 bucket create"
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "hono": "^4.6.0",
@@ -25,14 +17,9 @@
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20241205.0",
-    "@types/node": "^22.0.0",
+    "esbuild": "^0.24.0",
     "typescript": "^5.7.0",
     "vitest": "^2.1.0",
-    "wrangler": "^3.99.0",
-    "eslint": "^9.0.0",
-    "prettier": "^3.4.0"
-  },
-  "engines": {
-    "node": ">=20.0.0"
+    "wrangler": "^3.99.0"
   }
 }

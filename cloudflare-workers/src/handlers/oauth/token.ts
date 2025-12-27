@@ -4,10 +4,10 @@
  */
 
 import { Hono } from 'hono';
-import type { Env } from '../../index';
+import type { Env } from '../../types';
 import { SignJWT, jwtVerify } from 'jose';
 
-const token = new Hono<{ Bindings: Env }>();
+const token = new Hono<AppType>();
 
 interface TokenRequest {
   grant_type: string;

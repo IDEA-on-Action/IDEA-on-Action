@@ -4,10 +4,10 @@
  */
 
 import { Hono } from 'hono';
-import type { Env } from '../../index';
+import type { Env } from '../../types';
 import { authMiddleware } from '../../middleware/auth';
 
-const sessions = new Hono<{ Bindings: Env }>();
+const sessions = new Hono<AppType>();
 
 // 세션 키 접두어
 const SESSION_PREFIX = 'session:';
@@ -58,7 +58,7 @@ function parseUserAgent(ua: string): { device: string; browser: string; os: stri
 // 현재 사용자의 모든 세션 조회
 sessions.get('/', authMiddleware, async (c) => {
   const auth = c.get('auth');
-  const kv = c.env.SESSION_KV;
+  const kv = c.env.SESSIONS;
 
   try {
     // 사용자의 세션 목록 조회
@@ -92,7 +92,7 @@ sessions.get('/', authMiddleware, async (c) => {
 // 새 세션 생성
 sessions.post('/', authMiddleware, async (c) => {
   const auth = c.get('auth');
-  const kv = c.env.SESSION_KV;
+  const kv = c.env.SESSIONS;
   const db = c.env.DB;
 
   try {
@@ -151,7 +151,7 @@ sessions.post('/', authMiddleware, async (c) => {
 // 세션 활성 상태 업데이트 (heartbeat)
 sessions.post('/:id/heartbeat', authMiddleware, async (c) => {
   const auth = c.get('auth');
-  const kv = c.env.SESSION_KV;
+  const kv = c.env.SESSIONS;
   const sessionId = c.req.param('id');
 
   try {
@@ -180,7 +180,7 @@ sessions.post('/:id/heartbeat', authMiddleware, async (c) => {
 // 특정 세션 종료
 sessions.delete('/:id', authMiddleware, async (c) => {
   const auth = c.get('auth');
-  const kv = c.env.SESSION_KV;
+  const kv = c.env.SESSIONS;
   const db = c.env.DB;
   const sessionId = c.req.param('id');
 
@@ -221,7 +221,7 @@ sessions.delete('/:id', authMiddleware, async (c) => {
 // 현재 기기 외 모든 세션 종료
 sessions.delete('/others', authMiddleware, async (c) => {
   const auth = c.get('auth');
-  const kv = c.env.SESSION_KV;
+  const kv = c.env.SESSIONS;
   const db = c.env.DB;
   const currentSessionId = c.req.header('X-Session-ID');
 

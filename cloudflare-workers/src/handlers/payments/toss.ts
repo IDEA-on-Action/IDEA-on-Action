@@ -4,10 +4,10 @@
  */
 
 import { Hono } from 'hono';
-import type { Env } from '../../index';
+import type { Env } from '../../types';
 import { authMiddleware, adminOnlyMiddleware } from '../../middleware/auth';
 
-const toss = new Hono<{ Bindings: Env }>();
+const toss = new Hono<AppType>();
 
 // 토스페이먼츠 API 기본 URL
 const TOSS_API_URL = 'https://api.tosspayments.com';

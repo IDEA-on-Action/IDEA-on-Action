@@ -4,10 +4,10 @@
  */
 
 import { Hono } from 'hono';
-import type { Env } from '../../index';
+import type { Env } from '../../types';
 import { authMiddleware, adminOnlyMiddleware } from '../../middleware/auth';
 
-const r2 = new Hono<{ Bindings: Env }>();
+const r2 = new Hono<AppType>();
 
 // 허용된 MIME 타입
 const ALLOWED_MIME_TYPES = [

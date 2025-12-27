@@ -4,10 +4,10 @@
  */
 
 import { Hono } from 'hono';
-import type { Env } from '../../index';
+import type { Env } from '../../types';
 import { SignJWT } from 'jose';
 
-const login = new Hono<{ Bindings: Env }>();
+const login = new Hono<AppType>();
 
 // 비밀번호 해싱 (Web Crypto API)
 async function hashPassword(password: string, salt: string): Promise<string> {
@@ -77,7 +77,7 @@ async function generateTokens(
 // POST /auth/register - 회원가입
 login.post('/register', async (c) => {
   const db = c.env.DB;
-  const kv = c.env.SESSION_KV;
+  const kv = c.env.SESSIONS;
 
   const body = await c.req.json<{
     email: string;
@@ -159,7 +159,7 @@ login.post('/register', async (c) => {
 // POST /auth/login - 로그인
 login.post('/login', async (c) => {
   const db = c.env.DB;
-  const kv = c.env.SESSION_KV;
+  const kv = c.env.SESSIONS;
 
   const body = await c.req.json<{
     email: string;
@@ -301,7 +301,7 @@ login.post('/login', async (c) => {
 // POST /auth/refresh - 토큰 갱신
 login.post('/refresh', async (c) => {
   const db = c.env.DB;
-  const kv = c.env.SESSION_KV;
+  const kv = c.env.SESSIONS;
   const { jwtVerify } = await import('jose');
 
   const body = await c.req.json<{ refreshToken: string }>();
@@ -384,7 +384,7 @@ login.post('/refresh', async (c) => {
 
 // POST /auth/logout - 로그아웃
 login.post('/logout', async (c) => {
-  const kv = c.env.SESSION_KV;
+  const kv = c.env.SESSIONS;
 
   const body = await c.req.json<{ refreshToken: string }>();
   const { refreshToken } = body;
@@ -417,7 +417,7 @@ login.post('/logout', async (c) => {
 // POST /auth/forgot-password - 비밀번호 재설정 요청
 login.post('/forgot-password', async (c) => {
   const db = c.env.DB;
-  const kv = c.env.SESSION_KV;
+  const kv = c.env.SESSIONS;
 
   const body = await c.req.json<{ email: string }>();
   const { email } = body;
@@ -470,7 +470,7 @@ login.post('/forgot-password', async (c) => {
 // POST /auth/reset-password - 비밀번호 재설정
 login.post('/reset-password', async (c) => {
   const db = c.env.DB;
-  const kv = c.env.SESSION_KV;
+  const kv = c.env.SESSIONS;
 
   const body = await c.req.json<{
     token: string;

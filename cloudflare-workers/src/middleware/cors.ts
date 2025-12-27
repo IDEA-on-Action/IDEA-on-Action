@@ -1,181 +1,78 @@
 /**
  * CORS 미들웨어
- * Supabase Edge Functions의 cors.ts 대체
+ * Supabase _shared/cors.ts → Cloudflare Workers 마이그레이션
  */
 
 import { Context, Next } from 'hono';
-import { createMiddleware } from 'hono/factory';
-import type { Env } from '../index';
+import { Env, AppType } from '../types';
 
-// CORS 설정 타입
-interface CorsOptions {
-  allowedOrigins?: string[];
-  allowedMethods?: string[];
-  allowedHeaders?: string[];
-  exposedHeaders?: string[];
-  credentials?: boolean;
-  maxAge?: number;
-}
-
-// 기본 허용 오리진
-const DEFAULT_ALLOWED_ORIGINS = [
-  // 프로덕션
+// 허용된 도메인 목록
+const ALLOWED_ORIGINS = [
   'https://www.ideaonaction.ai',
   'https://ideaonaction.ai',
-  // 프리뷰
   'https://preview.ideaonaction.ai',
-  // Cloudflare Pages
   'https://idea-on-action.pages.dev',
-  // Vercel (마이그레이션 기간)
-  'https://vite-react-shadcn-ts.vercel.app',
-  // Minu 서비스
-  'https://find.minu.best',
-  'https://frame.minu.best',
-  'https://build.minu.best',
-  'https://keep.minu.best',
-];
-
-// 개발 환경 오리진 패턴
-const DEV_ORIGIN_PATTERNS = [
-  /^http:\/\/localhost:\d+$/,
-  /^http:\/\/127\.0\.0\.1:\d+$/,
-  /^https:\/\/.*\.pages\.dev$/,
-  /^https:\/\/.*--idea-on-action\.netlify\.app$/,
+  'http://localhost:8080',
+  'http://localhost:5173',
+  'http://localhost:3000',
 ];
 
 /**
- * 오리진 허용 여부 확인
+ * Origin 유효성 검사
  */
-function isOriginAllowed(
-  origin: string | undefined,
-  allowedOrigins: string[],
-  isDevelopment: boolean
-): boolean {
+function isAllowedOrigin(origin: string | null, env: Env): boolean {
   if (!origin) return false;
 
-  // 명시적 허용 목록 확인
-  if (allowedOrigins.includes(origin)) {
-    return true;
-  }
+  // 환경변수에서 추가 origin 가져오기
+  const envOrigins = env.CORS_ORIGINS?.split(',') || [];
+  const allOrigins = [...ALLOWED_ORIGINS, ...envOrigins];
 
-  // 개발 환경에서는 localhost 허용
-  if (isDevelopment) {
-    for (const pattern of DEV_ORIGIN_PATTERNS) {
-      if (pattern.test(origin)) {
-        return true;
-      }
-    }
+  // 정확한 매칭
+  if (allOrigins.includes(origin)) return true;
+
+  // Cloudflare Pages 프리뷰 URL 패턴
+  if (origin.match(/^https:\/\/[a-z0-9-]+\.idea-on-action\.pages\.dev$/)) {
+    return true;
   }
 
   return false;
 }
 
 /**
- * CORS 미들웨어 생성
+ * CORS 헤더 생성
  */
-export function createCorsMiddleware(options: CorsOptions = {}) {
-  const {
-    allowedMethods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders = [
-      'Content-Type',
-      'Authorization',
-      'X-Request-ID',
-      'X-Client-Info',
-      'apikey',
-      'x-client-info',
-    ],
-    exposedHeaders = ['X-Request-ID', 'X-RateLimit-Remaining', 'X-RateLimit-Reset'],
-    credentials = true,
-    maxAge = 86400,
-  } = options;
-
-  return createMiddleware<{ Bindings: Env }>(
-    async (c: Context<{ Bindings: Env }>, next: Next) => {
-      const origin = c.req.header('Origin');
-      const isDevelopment = c.env.ENVIRONMENT === 'development';
-
-      // 환경 변수에서 허용 오리진 가져오기
-      const envOrigins = c.env.ALLOWED_ORIGINS
-        ? c.env.ALLOWED_ORIGINS.split(',').map((o) => o.trim())
-        : [];
-
-      const allowedOrigins = [
-        ...DEFAULT_ALLOWED_ORIGINS,
-        ...envOrigins,
-        ...(options.allowedOrigins || []),
-      ];
-
-      // 허용된 오리진인지 확인
-      const isAllowed = isOriginAllowed(origin, allowedOrigins, isDevelopment);
-      const responseOrigin = isAllowed ? origin : null;
-
-      // Preflight 요청 (OPTIONS)
-      if (c.req.method === 'OPTIONS') {
-        return new Response(null, {
-          status: 204,
-          headers: {
-            'Access-Control-Allow-Origin': responseOrigin || '',
-            'Access-Control-Allow-Methods': allowedMethods.join(', '),
-            'Access-Control-Allow-Headers': allowedHeaders.join(', '),
-            'Access-Control-Expose-Headers': exposedHeaders.join(', '),
-            'Access-Control-Allow-Credentials': credentials ? 'true' : 'false',
-            'Access-Control-Max-Age': maxAge.toString(),
-            Vary: 'Origin',
-          },
-        });
-      }
-
-      // 다음 핸들러 실행
-      await next();
-
-      // 응답에 CORS 헤더 추가
-      if (responseOrigin) {
-        c.res.headers.set('Access-Control-Allow-Origin', responseOrigin);
-        c.res.headers.set('Access-Control-Allow-Credentials', credentials ? 'true' : 'false');
-        c.res.headers.set('Access-Control-Expose-Headers', exposedHeaders.join(', '));
-        c.res.headers.set('Vary', 'Origin');
-      }
-    }
-  );
-}
-
-/**
- * 기본 CORS 미들웨어
- */
-export const corsMiddleware = createCorsMiddleware();
-
-/**
- * CORS 헤더 직접 생성 (레거시 호환)
- */
-export function getCorsHeaders(
-  origin: string | null,
-  options: CorsOptions = {}
-): Record<string, string> {
-  const {
-    allowedMethods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders = ['Content-Type', 'Authorization', 'X-Request-ID'],
-    exposedHeaders = ['X-Request-ID', 'X-RateLimit-Remaining'],
-    credentials = true,
-    maxAge = 86400,
-  } = options;
+export function getCorsHeaders(origin: string | null, env: Env): Record<string, string> {
+  const allowedOrigin = isAllowedOrigin(origin, env) ? origin : ALLOWED_ORIGINS[0];
 
   return {
-    'Access-Control-Allow-Origin': origin || '*',
-    'Access-Control-Allow-Methods': allowedMethods.join(', '),
-    'Access-Control-Allow-Headers': allowedHeaders.join(', '),
-    'Access-Control-Expose-Headers': exposedHeaders.join(', '),
-    'Access-Control-Allow-Credentials': credentials ? 'true' : 'false',
-    'Access-Control-Max-Age': maxAge.toString(),
-    Vary: 'Origin',
+    'Access-Control-Allow-Origin': allowedOrigin || '*',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Client-Info, X-Request-ID, X-Session-ID',
+    'Access-Control-Allow-Credentials': 'true',
+    'Access-Control-Max-Age': '86400',
   };
 }
 
 /**
- * OPTIONS 응답 생성 (레거시 호환)
+ * CORS 미들웨어
  */
-export function corsOptionsResponse(origin: string | null): Response {
-  return new Response(null, {
-    status: 204,
-    headers: getCorsHeaders(origin),
+export async function corsMiddleware(c: Context<AppType>, next: Next) {
+  const origin = c.req.header('Origin');
+  const corsHeaders = getCorsHeaders(origin, c.env);
+
+  // OPTIONS preflight
+  if (c.req.method === 'OPTIONS') {
+    return new Response(null, {
+      status: 204,
+      headers: corsHeaders,
+    });
+  }
+
+  // 응답에 CORS 헤더 추가
+  await next();
+
+  // 모든 응답에 CORS 헤더 적용
+  Object.entries(corsHeaders).forEach(([key, value]) => {
+    c.res.headers.set(key, value);
   });
 }

@@ -4,10 +4,10 @@
  */
 
 import { Hono } from 'hono';
-import type { Env } from '../../index';
+import type { Env } from '../../types';
 import { optionalAuthMiddleware, authMiddleware } from '../../middleware/auth';
 
-const search = new Hono<{ Bindings: Env }>();
+const search = new Hono<AppType>();
 
 interface SearchRequest {
   query: string;

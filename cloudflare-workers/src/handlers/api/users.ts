@@ -4,11 +4,11 @@
  */
 
 import { Hono } from 'hono';
-import type { Env } from '../../index';
+import type { Env } from '../../types';
 import { authMiddleware, adminOnlyMiddleware } from '../../middleware/auth';
 import { applyRLSToQuery } from '../../middleware/rls-guard';
 
-const users = new Hono<{ Bindings: Env }>();
+const users = new Hono<AppType>();
 
 // 현재 사용자 정보 조회
 users.get('/me', authMiddleware, async (c) => {
