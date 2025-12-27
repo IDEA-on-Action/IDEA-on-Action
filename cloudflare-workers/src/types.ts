@@ -54,6 +54,11 @@ export interface Env {
   WEBHOOK_SECRET_MINU_KEEP?: string;
   WEBHOOK_SECRET_MINU_PORTAL?: string;
 
+  // Minu API
+  MINU_API_KEY?: string;
+  MINU_API_BASE_URL?: string;
+  WEBHOOK_SECRET_MINU?: string;
+
   // Minu SSO Secrets
   MINU_FIND_CLIENT_ID?: string;
   MINU_FIND_CLIENT_SECRET?: string;

@@ -56,6 +56,9 @@ import minuWebhook from './handlers/minu/webhook';
 // Cron Handlers (Phase 9)
 import subscriptionProcessor from './handlers/cron/subscription-processor';
 
+// Profile Sync Handlers (Phase 10)
+import profileSync from './handlers/profile/sync';
+
 // Durable Objects
 export { RealtimeRoom } from './durable-objects/RealtimeRoom';
 
@@ -123,6 +126,9 @@ app.route('/minu/webhook', minuWebhook);
 
 // Cron Jobs (Phase 9)
 app.route('/cron/subscriptions', subscriptionProcessor);
+
+// Profile Sync (Phase 10)
+app.route('/profile', profileSync);
 
 // 404 핸들러
 app.notFound((c) => {
