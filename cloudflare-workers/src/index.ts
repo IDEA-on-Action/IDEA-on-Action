@@ -42,6 +42,11 @@ import websocket from './handlers/realtime/websocket';
 // Auth Handlers (Phase 5)
 import login from './handlers/auth/login';
 
+// MCP Handlers (Phase 7)
+import mcpAuth from './handlers/mcp/auth';
+import mcpEvents from './handlers/mcp/events';
+import mcpRouter from './handlers/mcp/router';
+
 // Durable Objects
 export { RealtimeRoom } from './durable-objects/RealtimeRoom';
 
@@ -95,6 +100,11 @@ app.route('/realtime', websocket);
 
 // Auth (Phase 5)
 app.route('/auth', login);
+
+// MCP (Phase 7)
+app.route('/mcp/auth', mcpAuth);
+app.route('/mcp/events', mcpEvents);
+app.route('/mcp/router', mcpRouter);
 
 // 404 핸들러
 app.notFound((c) => {

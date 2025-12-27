@@ -45,6 +45,17 @@ export interface Env {
   SLACK_WEBHOOK_URL: string;
   OPENAI_API_KEY: string;
   RESEND_API_KEY: string;
+
+  // MCP Secrets
+  MCP_JWT_SECRET: string;
+  WEBHOOK_SECRET_MINU_FIND?: string;
+  WEBHOOK_SECRET_MINU_FRAME?: string;
+  WEBHOOK_SECRET_MINU_BUILD?: string;
+  WEBHOOK_SECRET_MINU_KEEP?: string;
+  WEBHOOK_SECRET_MINU_PORTAL?: string;
+
+  // Dynamic access for webhook secrets
+  [key: `WEBHOOK_SECRET_${string}`]: string | undefined;
 }
 
 export interface AuthContext {
