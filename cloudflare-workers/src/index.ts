@@ -21,6 +21,11 @@ import sessions from './handlers/api/sessions';
 import teams from './handlers/api/teams';
 import permissions from './handlers/api/permissions';
 
+// OAuth Handlers (Wave 3)
+import authorize from './handlers/oauth/authorize';
+import token from './handlers/oauth/token';
+import revoke from './handlers/oauth/revoke';
+
 // 메인 앱
 const app = new Hono<AppType>();
 
@@ -50,6 +55,11 @@ app.route('/api/v1/users', users);
 app.route('/api/v1/sessions', sessions);
 app.route('/api/v1/teams', teams);
 app.route('/api/v1/permissions', permissions);
+
+// OAuth 2.0 (Wave 3)
+app.route('/oauth/authorize', authorize);
+app.route('/oauth/token', token);
+app.route('/oauth/revoke', revoke);
 
 // 404 핸들러
 app.notFound((c) => {

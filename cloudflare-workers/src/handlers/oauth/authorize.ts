@@ -4,11 +4,23 @@
  */
 
 import { Hono } from 'hono';
-import type { Env } from '../../types';
-import { optionalAuthMiddleware, type AuthContext } from '../../middleware/auth';
+import { AppType } from '../../types';
+import { authMiddleware, type AuthContext } from '../../middleware/auth';
 import { SignJWT } from 'jose';
 
 const authorize = new Hono<AppType>();
+
+// OAuth 클라이언트 타입
+interface OAuthClient {
+  id: string;
+  client_id: string;
+  client_secret_hash: string;
+  name: string;
+  redirect_uris: string;
+  allowed_scopes: string;
+  require_pkce: number;
+  is_active: number;
+}
 
 interface AuthorizeParams {
   response_type: string;
@@ -38,7 +50,7 @@ function base64UrlEncode(buffer: ArrayBuffer): string {
 async function generateAuthorizationCode(): Promise<string> {
   const buffer = new Uint8Array(32);
   crypto.getRandomValues(buffer);
-  return base64UrlEncode(buffer);
+  return base64UrlEncode(buffer.buffer as ArrayBuffer);
 }
 
 // 클라이언트 검증
@@ -46,11 +58,11 @@ async function validateClient(
   db: D1Database,
   clientId: string,
   redirectUri: string
-): Promise<{ valid: boolean; client?: D1Result<unknown>['results'][0]; error?: string }> {
+): Promise<{ valid: boolean; client?: OAuthClient; error?: string }> {
   const client = await db
     .prepare('SELECT * FROM oauth_clients WHERE client_id = ? AND is_active = 1')
     .bind(clientId)
-    .first();
+    .first<OAuthClient>();
 
   if (!client) {
     return { valid: false, error: 'invalid_client' };
@@ -86,7 +98,7 @@ function validateScopes(
 }
 
 // GET /oauth/authorize - 인가 페이지 리다이렉트
-authorize.get('/', optionalAuthMiddleware, async (c) => {
+authorize.get('/', authMiddleware, async (c) => {
   const db = c.env.DB;
   const auth = c.get('auth') as AuthContext | undefined;
   const query = c.req.query() as unknown as AuthorizeParams;
@@ -130,7 +142,7 @@ authorize.get('/', optionalAuthMiddleware, async (c) => {
   const client = clientValidation.client!;
 
   // PKCE 검증 (필수인 경우)
-  if (client.require_pkce && !code_challenge) {
+  if (client.require_pkce === 1 && !code_challenge) {
     return c.json({
       error: 'invalid_request',
       error_description: 'PKCE code_challenge가 필요합니다',
@@ -146,7 +158,7 @@ authorize.get('/', optionalAuthMiddleware, async (c) => {
 
   // 스코프 검증
   const requestedScopes = scope.split(' ').filter(Boolean);
-  const allowedScopes = JSON.parse(client.allowed_scopes as string) as string[];
+  const allowedScopes = JSON.parse(client.allowed_scopes) as string[];
   const scopeValidation = validateScopes(requestedScopes, allowedScopes);
 
   if (!scopeValidation.valid) {
@@ -200,7 +212,7 @@ authorize.get('/', optionalAuthMiddleware, async (c) => {
 });
 
 // POST /oauth/authorize - 동의 처리 (프론트엔드 없이 직접 처리)
-authorize.post('/', optionalAuthMiddleware, async (c) => {
+authorize.post('/', authMiddleware, async (c) => {
   const db = c.env.DB;
   const auth = c.get('auth') as AuthContext | undefined;
 
@@ -245,7 +257,7 @@ authorize.post('/', optionalAuthMiddleware, async (c) => {
 
   // 스코프 검증
   const requestedScopes = body.scope.split(' ').filter(Boolean);
-  const allowedScopes = JSON.parse(client.allowed_scopes as string) as string[];
+  const allowedScopes = JSON.parse(client.allowed_scopes) as string[];
   const scopeValidation = validateScopes(requestedScopes, allowedScopes);
 
   // 인가 코드 생성

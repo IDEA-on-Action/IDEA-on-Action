@@ -4,7 +4,8 @@
  */
 
 import { Hono } from 'hono';
-import type { Env } from '../../types';
+import { Context } from 'hono';
+import { AppType } from '../../types';
 import { SignJWT, jwtVerify } from 'jose';
 
 const token = new Hono<AppType>();
@@ -161,7 +162,7 @@ token.post('/', async (c) => {
 
 // Authorization Code Grant 처리
 async function handleAuthorizationCodeGrant(
-  c: ReturnType<typeof Hono.prototype.get>,
+  c: Context<AppType>,
   db: D1Database,
   body: TokenRequest
 ) {
@@ -321,7 +322,7 @@ async function handleAuthorizationCodeGrant(
 
 // Refresh Token Grant 처리
 async function handleRefreshTokenGrant(
-  c: ReturnType<typeof Hono.prototype.get>,
+  c: Context<AppType>,
   db: D1Database,
   body: TokenRequest
 ) {
