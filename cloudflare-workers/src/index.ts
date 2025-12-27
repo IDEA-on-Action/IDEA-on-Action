@@ -62,6 +62,16 @@ import profileSync from './handlers/profile/sync';
 // AI Handlers (Phase 11)
 import claudeAI from './handlers/ai/claude';
 
+// Webhook Handlers (Phase 12)
+import webhookSend from './handlers/webhooks/send';
+
+// Newsletter Handlers (Phase 12)
+import newsletter from './handlers/notifications/newsletter';
+
+// Cron Handlers (Phase 12)
+import githubReleases from './handlers/cron/github-releases';
+import weeklyRecap from './handlers/cron/weekly-recap';
+
 // Durable Objects
 export { RealtimeRoom } from './durable-objects/RealtimeRoom';
 
@@ -135,6 +145,16 @@ app.route('/profile', profileSync);
 
 // AI (Phase 11)
 app.route('/ai', claudeAI);
+
+// Webhooks (Phase 12)
+app.route('/webhooks', webhookSend);
+
+// Newsletter (Phase 12)
+app.route('/notifications/newsletter', newsletter);
+
+// Cron Jobs (Phase 12)
+app.route('/cron/github-releases', githubReleases);
+app.route('/cron/weekly-recap', weeklyRecap);
 
 // 404 핸들러
 app.notFound((c) => {
