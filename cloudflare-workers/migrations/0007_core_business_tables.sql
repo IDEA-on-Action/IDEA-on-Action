@@ -1,13 +1,13 @@
 -- =============================================================================
 -- Core Business Tables Migration
--- PostgreSQL → SQLite (D1) 완전 마이그레이션
+-- PostgreSQL ??SQLite (D1) ?�전 마이그레?�션
 -- =============================================================================
 
 -- =============================================================================
--- 1. 사용자 및 인증 테이블
+-- 1. ?�용??�??�증 ?�이�?
 -- =============================================================================
 
--- users 테이블 (핵심 사용자)
+-- users ?�이�?(?�심 ?�용??
 CREATE TABLE IF NOT EXISTS users (
   id TEXT PRIMARY KEY,
   email TEXT NOT NULL UNIQUE,
@@ -27,7 +27,7 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 CREATE INDEX IF NOT EXISTS idx_users_status ON users(status);
 
--- user_profiles 테이블 (확장 프로필)
+-- user_profiles ?�이�?(?�장 ?�로??
 CREATE TABLE IF NOT EXISTS user_profiles (
   id TEXT PRIMARY KEY,
   user_id TEXT NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
@@ -44,7 +44,7 @@ CREATE TABLE IF NOT EXISTS user_profiles (
 
 CREATE INDEX IF NOT EXISTS idx_user_profiles_user ON user_profiles(user_id);
 
--- admins 테이블
+-- admins ?�이�?
 CREATE TABLE IF NOT EXISTS admins (
   id TEXT PRIMARY KEY,
   user_id TEXT NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
@@ -57,7 +57,7 @@ CREATE TABLE IF NOT EXISTS admins (
 
 CREATE INDEX IF NOT EXISTS idx_admins_user ON admins(user_id);
 
--- roles 테이블
+-- roles ?�이�?
 CREATE TABLE IF NOT EXISTS roles (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL UNIQUE,
@@ -66,7 +66,7 @@ CREATE TABLE IF NOT EXISTS roles (
   created_at TEXT DEFAULT (datetime('now'))
 );
 
--- user_roles 테이블
+-- user_roles ?�이�?
 CREATE TABLE IF NOT EXISTS user_roles (
   id TEXT PRIMARY KEY,
   user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -78,7 +78,7 @@ CREATE TABLE IF NOT EXISTS user_roles (
 CREATE INDEX IF NOT EXISTS idx_user_roles_user ON user_roles(user_id);
 CREATE INDEX IF NOT EXISTS idx_user_roles_role ON user_roles(role_id);
 
--- two_factor_auth 테이블
+-- two_factor_auth ?�이�?
 CREATE TABLE IF NOT EXISTS two_factor_auth (
   id TEXT PRIMARY KEY,
   user_id TEXT NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
@@ -93,10 +93,10 @@ CREATE TABLE IF NOT EXISTS two_factor_auth (
 CREATE INDEX IF NOT EXISTS idx_2fa_user ON two_factor_auth(user_id);
 
 -- =============================================================================
--- 2. 서비스 및 상품 테이블
+-- 2. ?�비??�??�품 ?�이�?
 -- =============================================================================
 
--- service_categories 테이블
+-- service_categories ?�이�?
 CREATE TABLE IF NOT EXISTS service_categories (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
@@ -113,7 +113,7 @@ CREATE TABLE IF NOT EXISTS service_categories (
 CREATE INDEX IF NOT EXISTS idx_service_cat_slug ON service_categories(slug);
 CREATE INDEX IF NOT EXISTS idx_service_cat_parent ON service_categories(parent_id);
 
--- services 테이블
+-- services ?�이�?
 CREATE TABLE IF NOT EXISTS services (
   id TEXT PRIMARY KEY,
   title TEXT NOT NULL,
@@ -151,7 +151,7 @@ CREATE INDEX IF NOT EXISTS idx_services_category ON services(category_id);
 CREATE INDEX IF NOT EXISTS idx_services_status ON services(status);
 CREATE INDEX IF NOT EXISTS idx_services_featured ON services(is_featured);
 
--- service_packages 테이블
+-- service_packages ?�이�?
 CREATE TABLE IF NOT EXISTS service_packages (
   id TEXT PRIMARY KEY,
   service_id TEXT NOT NULL REFERENCES services(id) ON DELETE CASCADE,
@@ -170,10 +170,10 @@ CREATE TABLE IF NOT EXISTS service_packages (
 CREATE INDEX IF NOT EXISTS idx_service_pkg_service ON service_packages(service_id);
 
 -- =============================================================================
--- 3. 장바구니 테이블
+-- 3. ?�바구니 ?�이�?
 -- =============================================================================
 
--- carts 테이블
+-- carts ?�이�?
 CREATE TABLE IF NOT EXISTS carts (
   id TEXT PRIMARY KEY,
   user_id TEXT REFERENCES users(id) ON DELETE CASCADE,
@@ -187,7 +187,7 @@ CREATE TABLE IF NOT EXISTS carts (
 CREATE INDEX IF NOT EXISTS idx_carts_user ON carts(user_id);
 CREATE INDEX IF NOT EXISTS idx_carts_session ON carts(session_id);
 
--- cart_items 테이블
+-- cart_items ?�이�?
 CREATE TABLE IF NOT EXISTS cart_items (
   id TEXT PRIMARY KEY,
   cart_id TEXT NOT NULL REFERENCES carts(id) ON DELETE CASCADE,
@@ -202,10 +202,10 @@ CREATE TABLE IF NOT EXISTS cart_items (
 CREATE INDEX IF NOT EXISTS idx_cart_items_cart ON cart_items(cart_id);
 
 -- =============================================================================
--- 4. 주문 및 결제 테이블
+-- 4. 주문 �?결제 ?�이�?
 -- =============================================================================
 
--- orders 테이블
+-- orders ?�이�?
 CREATE TABLE IF NOT EXISTS orders (
   id TEXT PRIMARY KEY,
   order_number TEXT NOT NULL UNIQUE,
@@ -237,7 +237,7 @@ CREATE INDEX IF NOT EXISTS idx_orders_user ON orders(user_id);
 CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
 CREATE INDEX IF NOT EXISTS idx_orders_created ON orders(created_at);
 
--- order_items 테이블
+-- order_items ?�이�?
 CREATE TABLE IF NOT EXISTS order_items (
   id TEXT PRIMARY KEY,
   order_id TEXT NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
@@ -254,7 +254,7 @@ CREATE TABLE IF NOT EXISTS order_items (
 
 CREATE INDEX IF NOT EXISTS idx_order_items_order ON order_items(order_id);
 
--- payments 테이블
+-- payments ?�이�?
 CREATE TABLE IF NOT EXISTS payments (
   id TEXT PRIMARY KEY,
   order_id TEXT REFERENCES orders(id),
@@ -283,7 +283,7 @@ CREATE INDEX IF NOT EXISTS idx_payments_user ON payments(user_id);
 CREATE INDEX IF NOT EXISTS idx_payments_status ON payments(status);
 CREATE INDEX IF NOT EXISTS idx_payments_provider ON payments(provider_payment_id);
 
--- billing_keys 테이블 (정기결제용)
+-- billing_keys ?�이�?(?�기결제??
 CREATE TABLE IF NOT EXISTS billing_keys (
   id TEXT PRIMARY KEY,
   user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -300,10 +300,10 @@ CREATE TABLE IF NOT EXISTS billing_keys (
 CREATE INDEX IF NOT EXISTS idx_billing_keys_user ON billing_keys(user_id);
 
 -- =============================================================================
--- 5. 구독 테이블
+-- 5. 구독 ?�이�?
 -- =============================================================================
 
--- subscription_plans 테이블
+-- subscription_plans ?�이�?
 CREATE TABLE IF NOT EXISTS subscription_plans (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
@@ -326,7 +326,7 @@ CREATE TABLE IF NOT EXISTS subscription_plans (
 CREATE INDEX IF NOT EXISTS idx_sub_plans_slug ON subscription_plans(slug);
 CREATE INDEX IF NOT EXISTS idx_sub_plans_active ON subscription_plans(is_active);
 
--- subscriptions 테이블
+-- subscriptions ?�이�?
 CREATE TABLE IF NOT EXISTS subscriptions (
   id TEXT PRIMARY KEY,
   user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -349,7 +349,7 @@ CREATE INDEX IF NOT EXISTS idx_subscriptions_user ON subscriptions(user_id);
 CREATE INDEX IF NOT EXISTS idx_subscriptions_plan ON subscriptions(plan_id);
 CREATE INDEX IF NOT EXISTS idx_subscriptions_status ON subscriptions(status);
 
--- subscription_payments 테이블
+-- subscription_payments ?�이�?
 CREATE TABLE IF NOT EXISTS subscription_payments (
   id TEXT PRIMARY KEY,
   subscription_id TEXT NOT NULL REFERENCES subscriptions(id) ON DELETE CASCADE,
@@ -368,10 +368,10 @@ CREATE INDEX IF NOT EXISTS idx_sub_payments_sub ON subscription_payments(subscri
 CREATE INDEX IF NOT EXISTS idx_sub_payments_status ON subscription_payments(status);
 
 -- =============================================================================
--- 6. CMS 테이블
+-- 6. CMS ?�이�?
 -- =============================================================================
 
--- blog_categories 테이블
+-- blog_categories ?�이�?
 CREATE TABLE IF NOT EXISTS blog_categories (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
@@ -385,7 +385,7 @@ CREATE TABLE IF NOT EXISTS blog_categories (
 
 CREATE INDEX IF NOT EXISTS idx_blog_cat_slug ON blog_categories(slug);
 
--- blog_posts 테이블
+-- blog_posts ?�이�?
 CREATE TABLE IF NOT EXISTS blog_posts (
   id TEXT PRIMARY KEY,
   title TEXT NOT NULL,
@@ -415,7 +415,7 @@ CREATE INDEX IF NOT EXISTS idx_blog_posts_author ON blog_posts(author_id);
 CREATE INDEX IF NOT EXISTS idx_blog_posts_status ON blog_posts(status);
 CREATE INDEX IF NOT EXISTS idx_blog_posts_published ON blog_posts(published_at);
 
--- tags 테이블
+-- tags ?�이�?
 CREATE TABLE IF NOT EXISTS tags (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL UNIQUE,
@@ -428,7 +428,7 @@ CREATE TABLE IF NOT EXISTS tags (
 
 CREATE INDEX IF NOT EXISTS idx_tags_slug ON tags(slug);
 
--- notices 테이블
+-- notices ?�이�?
 CREATE TABLE IF NOT EXISTS notices (
   id TEXT PRIMARY KEY,
   title TEXT NOT NULL,
@@ -449,7 +449,7 @@ CREATE INDEX IF NOT EXISTS idx_notices_slug ON notices(slug);
 CREATE INDEX IF NOT EXISTS idx_notices_status ON notices(status);
 CREATE INDEX IF NOT EXISTS idx_notices_type ON notices(type);
 
--- portfolio_items 테이블
+-- portfolio_items ?�이�?
 CREATE TABLE IF NOT EXISTS portfolio_items (
   id TEXT PRIMARY KEY,
   title TEXT NOT NULL,
@@ -477,7 +477,7 @@ CREATE INDEX IF NOT EXISTS idx_portfolio_slug ON portfolio_items(slug);
 CREATE INDEX IF NOT EXISTS idx_portfolio_status ON portfolio_items(status);
 CREATE INDEX IF NOT EXISTS idx_portfolio_category ON portfolio_items(category);
 
--- roadmap_items 테이블
+-- roadmap_items ?�이�?
 CREATE TABLE IF NOT EXISTS roadmap_items (
   id TEXT PRIMARY KEY,
   title TEXT NOT NULL,
@@ -498,10 +498,10 @@ CREATE INDEX IF NOT EXISTS idx_roadmap_status ON roadmap_items(status);
 CREATE INDEX IF NOT EXISTS idx_roadmap_category ON roadmap_items(category);
 
 -- =============================================================================
--- 7. 분석 테이블
+-- 7. 분석 ?�이�?
 -- =============================================================================
 
--- analytics_events 테이블
+-- analytics_events ?�이�?
 CREATE TABLE IF NOT EXISTS analytics_events (
   id TEXT PRIMARY KEY,
   event_name TEXT NOT NULL,
@@ -527,10 +527,10 @@ CREATE INDEX IF NOT EXISTS idx_analytics_session ON analytics_events(session_id)
 CREATE INDEX IF NOT EXISTS idx_analytics_created ON analytics_events(created_at);
 
 -- =============================================================================
--- 8. 미디어 라이브러리 테이블
+-- 8. 미디???�이브러�??�이�?
 -- =============================================================================
 
--- media_library 테이블
+-- media_library ?�이�?
 CREATE TABLE IF NOT EXISTS media_library (
   id TEXT PRIMARY KEY,
   filename TEXT NOT NULL,
@@ -560,10 +560,10 @@ CREATE INDEX IF NOT EXISTS idx_media_folder ON media_library(folder);
 CREATE INDEX IF NOT EXISTS idx_media_deleted ON media_library(deleted_at);
 
 -- =============================================================================
--- 9. 팀 및 조직 테이블
+-- 9. ?� �?조직 ?�이�?
 -- =============================================================================
 
--- teams 테이블
+-- teams ?�이�?
 CREATE TABLE IF NOT EXISTS teams (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
@@ -580,7 +580,7 @@ CREATE TABLE IF NOT EXISTS teams (
 CREATE INDEX IF NOT EXISTS idx_teams_slug ON teams(slug);
 CREATE INDEX IF NOT EXISTS idx_teams_owner ON teams(owner_id);
 
--- team_members 테이블
+-- team_members ?�이�?
 CREATE TABLE IF NOT EXISTS team_members (
   id TEXT PRIMARY KEY,
   team_id TEXT NOT NULL REFERENCES teams(id) ON DELETE CASCADE,
@@ -594,7 +594,7 @@ CREATE TABLE IF NOT EXISTS team_members (
 CREATE INDEX IF NOT EXISTS idx_team_members_team ON team_members(team_id);
 CREATE INDEX IF NOT EXISTS idx_team_members_user ON team_members(user_id);
 
--- team_invitations 테이블
+-- team_invitations ?�이�?
 CREATE TABLE IF NOT EXISTS team_invitations (
   id TEXT PRIMARY KEY,
   team_id TEXT NOT NULL REFERENCES teams(id) ON DELETE CASCADE,
@@ -612,10 +612,10 @@ CREATE INDEX IF NOT EXISTS idx_team_inv_email ON team_invitations(email);
 CREATE INDEX IF NOT EXISTS idx_team_inv_token ON team_invitations(token);
 
 -- =============================================================================
--- 10. AI 및 RAG 테이블
+-- 10. AI �?RAG ?�이�?
 -- =============================================================================
 
--- ai_conversations 테이블
+-- ai_conversations ?�이�?
 CREATE TABLE IF NOT EXISTS ai_conversations (
   id TEXT PRIMARY KEY,
   user_id TEXT REFERENCES users(id) ON DELETE CASCADE,
@@ -631,7 +631,7 @@ CREATE TABLE IF NOT EXISTS ai_conversations (
 CREATE INDEX IF NOT EXISTS idx_ai_conv_user ON ai_conversations(user_id);
 CREATE INDEX IF NOT EXISTS idx_ai_conv_archived ON ai_conversations(is_archived);
 
--- ai_messages 테이블
+-- ai_messages ?�이�?
 CREATE TABLE IF NOT EXISTS ai_messages (
   id TEXT PRIMARY KEY,
   conversation_id TEXT NOT NULL REFERENCES ai_conversations(id) ON DELETE CASCADE,
@@ -646,7 +646,7 @@ CREATE TABLE IF NOT EXISTS ai_messages (
 CREATE INDEX IF NOT EXISTS idx_ai_msg_conv ON ai_messages(conversation_id);
 CREATE INDEX IF NOT EXISTS idx_ai_msg_created ON ai_messages(created_at);
 
--- prompt_templates 테이블
+-- prompt_templates ?�이�?
 CREATE TABLE IF NOT EXISTS prompt_templates (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
@@ -666,7 +666,7 @@ CREATE INDEX IF NOT EXISTS idx_prompt_slug ON prompt_templates(slug);
 CREATE INDEX IF NOT EXISTS idx_prompt_user ON prompt_templates(user_id);
 CREATE INDEX IF NOT EXISTS idx_prompt_public ON prompt_templates(is_public);
 
--- rag_documents 테이블
+-- rag_documents ?�이�?
 CREATE TABLE IF NOT EXISTS rag_documents (
   id TEXT PRIMARY KEY,
   title TEXT NOT NULL,
@@ -693,10 +693,10 @@ CREATE INDEX IF NOT EXISTS idx_rag_doc_public ON rag_documents(is_public);
 CREATE INDEX IF NOT EXISTS idx_rag_doc_indexed ON rag_documents(is_indexed);
 
 -- =============================================================================
--- 11. 문의 및 알림 테이블
+-- 11. 문의 �??�림 ?�이�?
 -- =============================================================================
 
--- work_with_us_inquiries 테이블
+-- work_with_us_inquiries ?�이�?
 CREATE TABLE IF NOT EXISTS work_with_us_inquiries (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
@@ -719,7 +719,7 @@ CREATE TABLE IF NOT EXISTS work_with_us_inquiries (
 CREATE INDEX IF NOT EXISTS idx_inquiry_status ON work_with_us_inquiries(status);
 CREATE INDEX IF NOT EXISTS idx_inquiry_created ON work_with_us_inquiries(created_at);
 
--- notifications 테이블
+-- notifications ?�이�?
 CREATE TABLE IF NOT EXISTS notifications (
   id TEXT PRIMARY KEY,
   user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -736,10 +736,10 @@ CREATE INDEX IF NOT EXISTS idx_notifications_read ON notifications(read_at);
 CREATE INDEX IF NOT EXISTS idx_notifications_type ON notifications(type);
 
 -- =============================================================================
--- 12. 감사 로그 테이블
+-- 12. 감사 로그 ?�이�?
 -- =============================================================================
 
--- audit_logs 테이블
+-- audit_logs ?�이�?
 CREATE TABLE IF NOT EXISTS audit_logs (
   id TEXT PRIMARY KEY,
   user_id TEXT REFERENCES users(id),
@@ -759,10 +759,10 @@ CREATE INDEX IF NOT EXISTS idx_audit_table ON audit_logs(table_name);
 CREATE INDEX IF NOT EXISTS idx_audit_created ON audit_logs(created_at);
 
 -- =============================================================================
--- 13. OAuth 연결 테이블
+-- 13. OAuth ?�결 ?�이�?
 -- =============================================================================
 
--- oauth_connections 테이블
+-- oauth_connections ?�이�?
 CREATE TABLE IF NOT EXISTS oauth_connections (
   id TEXT PRIMARY KEY,
   user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -783,10 +783,10 @@ CREATE INDEX IF NOT EXISTS idx_oauth_conn_provider ON oauth_connections(provider
 CREATE INDEX IF NOT EXISTS idx_oauth_conn_provider_user ON oauth_connections(provider, provider_user_id);
 
 -- =============================================================================
--- 14. 뉴스레터 테이블
+-- 14. ?�스?�터 ?�이�?
 -- =============================================================================
 
--- newsletter_subscriptions 테이블
+-- newsletter_subscriptions ?�이�?
 CREATE TABLE IF NOT EXISTS newsletter_subscriptions (
   id TEXT PRIMARY KEY,
   email TEXT NOT NULL UNIQUE,
