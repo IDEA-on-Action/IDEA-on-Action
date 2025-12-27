@@ -47,6 +47,11 @@ import mcpAuth from './handlers/mcp/auth';
 import mcpEvents from './handlers/mcp/events';
 import mcpRouter from './handlers/mcp/router';
 
+// Minu SSO Handlers (Phase 8)
+import minuOAuthCallback from './handlers/minu/oauth-callback';
+import minuTokenExchange from './handlers/minu/token-exchange';
+import minuWebhook from './handlers/minu/webhook';
+
 // Durable Objects
 export { RealtimeRoom } from './durable-objects/RealtimeRoom';
 
@@ -105,6 +110,11 @@ app.route('/auth', login);
 app.route('/mcp/auth', mcpAuth);
 app.route('/mcp/events', mcpEvents);
 app.route('/mcp/router', mcpRouter);
+
+// Minu SSO (Phase 8)
+app.route('/minu/oauth', minuOAuthCallback);
+app.route('/minu/token', minuTokenExchange);
+app.route('/minu/webhook', minuWebhook);
 
 // 404 핸들러
 app.notFound((c) => {

@@ -54,8 +54,27 @@ export interface Env {
   WEBHOOK_SECRET_MINU_KEEP?: string;
   WEBHOOK_SECRET_MINU_PORTAL?: string;
 
+  // Minu SSO Secrets
+  MINU_FIND_CLIENT_ID?: string;
+  MINU_FIND_CLIENT_SECRET?: string;
+  MINU_FRAME_CLIENT_ID?: string;
+  MINU_FRAME_CLIENT_SECRET?: string;
+  MINU_BUILD_CLIENT_ID?: string;
+  MINU_BUILD_CLIENT_SECRET?: string;
+  MINU_KEEP_CLIENT_ID?: string;
+  MINU_KEEP_CLIENT_SECRET?: string;
+  MINU_FIND_WEBHOOK_SECRET?: string;
+  MINU_FRAME_WEBHOOK_SECRET?: string;
+  MINU_BUILD_WEBHOOK_SECRET?: string;
+  MINU_KEEP_WEBHOOK_SECRET?: string;
+  MINU_WEBHOOK_SECRET?: string;
+  OAUTH_ERROR_PAGE_URL?: string;
+
   // Dynamic access for webhook secrets
   [key: `WEBHOOK_SECRET_${string}`]: string | undefined;
+  [key: `MINU_${string}_CLIENT_ID`]: string | undefined;
+  [key: `MINU_${string}_CLIENT_SECRET`]: string | undefined;
+  [key: `MINU_${string}_WEBHOOK_SECRET`]: string | undefined;
 }
 
 export interface AuthContext {
