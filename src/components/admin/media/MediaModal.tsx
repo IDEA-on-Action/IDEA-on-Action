@@ -3,11 +3,11 @@
  *
  * Modal for previewing and editing media item details.
  * Shows full-size image preview and editable metadata.
+ * R2 스토리지 마이그레이션 지원
  */
 
 import React, { useState, useEffect } from 'react';
-import { X, Copy, Check, Download, ExternalLink, Edit2, Save, Loader2 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Copy, Check, Download, ExternalLink, Edit2, Save, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -26,6 +26,7 @@ import { formatFileSize, formatDate } from '@/lib/cms-utils';
 import type { MediaItem } from '@/types/cms.types';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { rewriteStorageUrl } from '@/lib/storage/url-rewriter';
 
 // =====================================================
 // Types
@@ -45,7 +46,8 @@ export interface MediaModalProps {
 
 function getPublicUrl(storagePath: string): string {
   const { data } = supabase.storage.from('media-library').getPublicUrl(storagePath);
-  return data.publicUrl;
+  // Supabase URL을 R2 URL로 변환
+  return rewriteStorageUrl(data.publicUrl) || data.publicUrl;
 }
 
 // =====================================================

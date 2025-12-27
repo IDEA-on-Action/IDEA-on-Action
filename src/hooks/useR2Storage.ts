@@ -152,7 +152,7 @@ export function useR2Storage(options: UseR2StorageOptions = {}) {
         return null;
       }
     },
-    [uploadMutation, folder]
+    [uploadMutation]
   );
 
   /**

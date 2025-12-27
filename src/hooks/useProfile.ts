@@ -3,7 +3,7 @@
  *
  * React Query를 사용한 사용자 프로필 관리
  * - 프로필 조회, 수정
- * - 아바타 업로드
+ * - 아바타 업로드 (R2 지원)
  * - 연결된 계정 관리
  */
 
@@ -12,6 +12,7 @@ import { supabase } from '@/integrations/supabase/client'
 import { useAuth } from './useAuth'
 import { toast } from 'sonner'
 import { devError } from '@/lib/errors'
+import { rewriteStorageUrl } from '@/lib/storage/url-rewriter'
 
 // ===================================================================
 // Types
@@ -108,7 +109,11 @@ export function useProfile() {
         throw error
       }
 
-      return data as UserProfile
+      // avatar_url을 R2 URL로 변환
+      return {
+        ...data,
+        avatar_url: rewriteStorageUrl(data.avatar_url),
+      } as UserProfile
     },
     enabled: !!user,
     staleTime: 1000 * 60 * 5, // 5분

@@ -3,6 +3,7 @@
  *
  * Individual media card component for displaying uploaded images.
  * Supports selection, preview, and actions.
+ * R2 스토리지 마이그레이션 지원
  */
 
 import React from 'react';
@@ -20,6 +21,7 @@ import {
 import { formatFileSize, formatRelativeTime } from '@/lib/cms-utils';
 import type { MediaItem as MediaItemType } from '@/types/cms.types';
 import { supabase } from '@/integrations/supabase/client';
+import { rewriteStorageUrl } from '@/lib/storage/url-rewriter';
 
 // =====================================================
 // Types
@@ -43,7 +45,8 @@ export interface MediaItemProps {
 
 function getPublicUrl(storagePath: string): string {
   const { data } = supabase.storage.from('media-library').getPublicUrl(storagePath);
-  return data.publicUrl;
+  // Supabase URL을 R2 URL로 변환
+  return rewriteStorageUrl(data.publicUrl) || data.publicUrl;
 }
 
 // =====================================================

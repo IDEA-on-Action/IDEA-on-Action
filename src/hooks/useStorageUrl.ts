@@ -62,6 +62,12 @@ export function useStorageUrl(
   url: string | null | undefined,
   options?: ImageTransformOptions
 ): UseStorageUrlResult {
+  const width = options?.width;
+  const height = options?.height;
+  const fit = options?.fit;
+  const quality = options?.quality;
+  const format = options?.format;
+
   return useMemo(() => {
     if (!url) {
       return {
@@ -74,14 +80,14 @@ export function useStorageUrl(
       };
     }
 
-    const status = getStorageUrlStatus(url);
-    const wasSupabase = status === 'supabase';
+    const urlStatus = getStorageUrlStatus(url);
+    const wasSupabase = urlStatus === 'supabase';
 
     // 이미지 변환 옵션이 있으면 적용
-    const rewrittenUrl =
-      options && Object.keys(options).length > 0
-        ? getImageVariant(url, options)
-        : rewriteStorageUrl(url);
+    const hasOptions = width || height || fit || quality || format;
+    const rewrittenUrl = hasOptions
+      ? getImageVariant(url, { width, height, fit, quality, format })
+      : rewriteStorageUrl(url);
 
     const finalStatus = getStorageUrlStatus(rewrittenUrl);
 
@@ -93,7 +99,7 @@ export function useStorageUrl(
       isSupabase: finalStatus === 'supabase',
       wasRewritten: wasSupabase && finalStatus === 'r2',
     };
-  }, [url, options?.width, options?.height, options?.fit, options?.quality, options?.format]);
+  }, [url, width, height, fit, quality, format]);
 }
 
 // =====================================================
@@ -173,9 +179,11 @@ export function useCoverImageUrl(
  * 여러 URL 일괄 변환 훅
  */
 export function useStorageUrls(urls: (string | null | undefined)[]): (string | null)[] {
+  const urlsKey = urls.join(',');
   return useMemo(() => {
     return urls.map((url) => rewriteStorageUrl(url));
-  }, [urls.join(',')]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [urlsKey]);
 }
 
 /**
@@ -185,6 +193,7 @@ export function useRewrittenObject<T extends Record<string, unknown>>(
   obj: T | null | undefined,
   urlFields: (keyof T)[]
 ): T | null {
+  const fieldsKey = urlFields.join(',');
   return useMemo(() => {
     if (!obj) return null;
 
@@ -196,7 +205,8 @@ export function useRewrittenObject<T extends Record<string, unknown>>(
       }
     }
     return result;
-  }, [obj, urlFields.join(',')]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [obj, fieldsKey]);
 }
 
 // =====================================================
