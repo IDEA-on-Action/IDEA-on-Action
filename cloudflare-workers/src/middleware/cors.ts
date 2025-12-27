@@ -20,7 +20,7 @@ const ALLOWED_ORIGINS = [
 /**
  * Origin 유효성 검사
  */
-function isAllowedOrigin(origin: string | null, env: Env): boolean {
+function isAllowedOrigin(origin: string | null | undefined, env: Env): boolean {
   if (!origin) return false;
 
   // 환경변수에서 추가 origin 가져오기
@@ -41,7 +41,7 @@ function isAllowedOrigin(origin: string | null, env: Env): boolean {
 /**
  * CORS 헤더 생성
  */
-export function getCorsHeaders(origin: string | null, env: Env): Record<string, string> {
+export function getCorsHeaders(origin: string | null | undefined, env: Env): Record<string, string> {
   const allowedOrigin = isAllowedOrigin(origin, env) ? origin : ALLOWED_ORIGINS[0];
 
   return {

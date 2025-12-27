@@ -4,15 +4,14 @@
  */
 
 import { Hono } from 'hono';
-import type { Env } from '../../types';
-import { authMiddleware, adminOnlyMiddleware } from '../../middleware/auth';
-import { applyRLSToQuery } from '../../middleware/rls-guard';
+import { AppType, AuthContext } from '../../types';
+import { requireAuth, requireAdmin } from '../../middleware/auth';
 
 const users = new Hono<AppType>();
 
 // 현재 사용자 정보 조회
-users.get('/me', authMiddleware, async (c) => {
-  const auth = c.get('auth');
+users.get('/me', requireAuth, async (c) => {
+  const auth = c.get('auth')!;
   const db = c.env.DB;
 
   try {
@@ -42,8 +41,8 @@ users.get('/me', authMiddleware, async (c) => {
 });
 
 // 사용자 정보 업데이트
-users.patch('/me', authMiddleware, async (c) => {
-  const auth = c.get('auth');
+users.patch('/me', requireAuth, async (c) => {
+  const auth = c.get('auth')!;
   const db = c.env.DB;
   const body = await c.req.json<{
     name?: string;
@@ -83,8 +82,8 @@ users.patch('/me', authMiddleware, async (c) => {
 });
 
 // 사용자 프로필 업데이트
-users.patch('/me/profile', authMiddleware, async (c) => {
-  const auth = c.get('auth');
+users.patch('/me/profile', requireAuth, async (c) => {
+  const auth = c.get('auth')!;
   const db = c.env.DB;
   const body = await c.req.json<{
     bio?: string;
@@ -176,7 +175,7 @@ users.patch('/me/profile', authMiddleware, async (c) => {
 });
 
 // 관리자: 사용자 목록 조회
-users.get('/', adminOnlyMiddleware, async (c) => {
+users.get('/', requireAuth, requireAdmin, async (c) => {
   const db = c.env.DB;
   const { limit = '50', offset = '0', search } = c.req.query();
 
@@ -217,7 +216,7 @@ users.get('/', adminOnlyMiddleware, async (c) => {
 });
 
 // 관리자: 특정 사용자 조회
-users.get('/:id', adminOnlyMiddleware, async (c) => {
+users.get('/:id', requireAuth, requireAdmin, async (c) => {
   const db = c.env.DB;
   const userId = c.req.param('id');
 
@@ -259,7 +258,7 @@ users.get('/:id', adminOnlyMiddleware, async (c) => {
 });
 
 // 관리자: 사용자 상태 변경
-users.patch('/:id/status', adminOnlyMiddleware, async (c) => {
+users.patch('/:id/status', requireAuth, requireAdmin, async (c) => {
   const db = c.env.DB;
   const userId = c.req.param('id');
   const { is_active } = await c.req.json<{ is_active: boolean }>();

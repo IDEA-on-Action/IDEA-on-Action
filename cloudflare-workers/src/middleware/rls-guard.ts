@@ -5,7 +5,7 @@
 
 import { Context, Next } from 'hono';
 import { createMiddleware } from 'hono/factory';
-import type { Env } from '../types';
+import { type Env, type AppType } from '../types';
 import type { AuthContext } from './auth';
 
 // RLS 정책 타입
@@ -352,15 +352,15 @@ export function applyRLSToQuery(
 /**
  * RLS 가드 미들웨어
  */
-export const rlsGuardMiddleware = createMiddleware<{ Bindings: Env }>(
-  async (c: Context<AppType>, next: Next) => {
+export const rlsGuardMiddleware = createMiddleware<AppType>(
+  async (c, next) => {
     const auth = c.get('auth');
 
     if (!auth) {
       // 인증 정보가 없으면 빈 컨텍스트 설정
       c.set('auth', {
-        userId: '',
-        scope: [],
+        userId: null,
+        permissions: [],
         isAdmin: false,
       });
     }

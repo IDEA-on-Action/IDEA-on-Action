@@ -15,6 +15,12 @@ import health from './handlers/health';
 import slack from './handlers/notifications/slack';
 import email from './handlers/notifications/email';
 
+// API Handlers (Wave 2)
+import users from './handlers/api/users';
+import sessions from './handlers/api/sessions';
+import teams from './handlers/api/teams';
+import permissions from './handlers/api/permissions';
+
 // 메인 앱
 const app = new Hono<AppType>();
 
@@ -38,6 +44,12 @@ app.route('/health', health);
 // Notifications
 app.route('/notifications/slack', slack);
 app.route('/notifications/email', email);
+
+// API v1 (Wave 2)
+app.route('/api/v1/users', users);
+app.route('/api/v1/sessions', sessions);
+app.route('/api/v1/teams', teams);
+app.route('/api/v1/permissions', permissions);
 
 // 404 핸들러
 app.notFound((c) => {
