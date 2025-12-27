@@ -1,0 +1,112 @@
+# Cloudflare Workers 설정
+# IDEA on Action - API 서버 (Supabase Edge Functions 대체)
+# Phase 2: Workers 마이그레이션
+
+name = "idea-on-action-api"
+main = "src/index.ts"
+compatibility_date = "2024-12-01"
+compatibility_flags = ["nodejs_compat"]
+
+# 계정 설정 (배포 시 환경변수로 대체)
+# account_id = ""
+
+# 빌드 설정 (wrangler가 직접 번들링)
+# [build]
+# command = "npm run build"
+
+# 개발 서버 설정
+[dev]
+port = 8787
+local_protocol = "http"
+
+# ============================================
+# 환경 변수 (민감하지 않은 값)
+# ============================================
+[vars]
+ENVIRONMENT = "production"
+API_VERSION = "v1"
+ALLOWED_ORIGINS = "https://www.ideaonaction.ai,https://preview.ideaonaction.ai"
+
+# ============================================
+# KV 네임스페이스
+# ============================================
+# 세션 저장소
+[[kv_namespaces]]
+binding = "SESSION_KV"
+id = "5df185da99044525a25d0dec72e4e40f"
+
+# Rate Limit 저장소
+[[kv_namespaces]]
+binding = "RATE_LIMIT_KV"
+id = "651ed609a3ce47f893d2869452e4eb6c"
+
+# 캐시 저장소
+[[kv_namespaces]]
+binding = "CACHE_KV"
+id = "851ff4e9a0604cc9ad4da1e3da1d13e4"
+
+# ============================================
+# D1 데이터베이스
+# ============================================
+[[d1_databases]]
+binding = "DB"
+database_name = "idea-on-action-db"
+database_id = "53853270-e050-419c-be7e-446eca24d279"
+
+# ============================================
+# R2 스토리지 (Phase 4)
+# ============================================
+[[r2_buckets]]
+binding = "MEDIA_BUCKET"
+bucket_name = "idea-on-action-media"
+
+# ============================================
+# Vectorize (Phase 3: RAG)
+# ============================================
+[[vectorize]]
+binding = "VECTORIZE"
+index_name = "rag-embeddings"
+
+# ============================================
+# Durable Objects (Phase 6: Realtime)
+# ============================================
+[durable_objects]
+bindings = [
+  { name = "REALTIME_ROOM", class_name = "RealtimeRoom" }
+]
+
+# Durable Objects 마이그레이션
+[[migrations]]
+tag = "v1"
+new_classes = ["RealtimeRoom"]
+
+# ============================================
+# 환경별 설정
+# ============================================
+[env.staging]
+vars = { ENVIRONMENT = "staging" }
+
+[env.development]
+vars = { ENVIRONMENT = "development" }
+
+# ============================================
+# 라우팅 규칙 (커스텀 도메인)
+# ============================================
+# API 경로만 Workers로 라우팅
+# Cloudflare Dashboard에서 ideaonaction.ai 도메인이 연결된 후 활성화
+routes = [
+  { pattern = "api.ideaonaction.ai/*", zone_name = "ideaonaction.ai" }
+]
+
+# ============================================
+# 시크릿 (wrangler secret으로 설정)
+# ============================================
+# JWT_SECRET
+# SUPABASE_SERVICE_ROLE_KEY
+# TOSS_SECRET_KEY
+# OPENAI_API_KEY
+# ANTHROPIC_API_KEY
+# RESEND_API_KEY
+# SLACK_WEBHOOK_URL
+# MINU_WEBHOOK_SECRET
+# INTERNAL_API_KEY

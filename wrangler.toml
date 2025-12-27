@@ -1,0 +1,65 @@
+# Cloudflare Pages 설정
+# IDEA on Action - Supabase + Vercel → Cloudflare 마이그레이션
+# Phase 1: 호스팅 마이그레이션
+
+name = "idea-on-action"
+compatibility_date = "2024-12-01"
+
+# 빌드 설정
+[build]
+command = "npm run build"
+
+# 환경 변수 (민감하지 않은 값만)
+[vars]
+VITE_APP_ENV = "production"
+
+# SPA 라우팅을 위한 리다이렉트
+# 모든 요청을 index.html로 라우팅 (React Router 지원)
+# 참고: Cloudflare Pages는 public/_redirects 파일도 지원
+
+# 프리뷰 환경 설정
+[env.preview]
+vars = { VITE_APP_ENV = "preview" }
+
+# 스테이징 환경 설정
+[env.staging]
+vars = { VITE_APP_ENV = "staging" }
+
+# 개발 환경 설정 (로컬 개발용)
+[env.development]
+vars = { VITE_APP_ENV = "development" }
+
+# ============================================
+# Phase 2+ 에서 추가될 설정 (현재 주석 처리)
+# ============================================
+
+# KV 네임스페이스 (Phase 2: Workers)
+# [[kv_namespaces]]
+# binding = "AUTH_KV"
+# id = "xxxx"
+
+# [[kv_namespaces]]
+# binding = "SESSION_KV"
+# id = "xxxx"
+
+# D1 데이터베이스 (Phase 3: Database)
+# [[d1_databases]]
+# binding = "DB"
+# database_name = "idea-on-action-db"
+# database_id = "xxxx"
+
+# R2 스토리지 (Phase 4: Storage)
+# [[r2_buckets]]
+# binding = "MEDIA_BUCKET"
+# bucket_name = "idea-on-action-media"
+
+# Vectorize (Phase 3: RAG)
+# [[vectorize]]
+# binding = "VECTORIZE"
+# index_name = "rag-embeddings"
+
+# Durable Objects (Phase 6: Realtime)
+# [durable_objects]
+# bindings = [
+#   { name = "REALTIME_ROOM", class_name = "RealtimeRoom" }
+# ]

@@ -284,3 +284,63 @@ jobs:
               repo: context.repo.repo,
               body: body
             });
+
+  # ============================================
+  # Cloudflare Pages 배포 (Phase 1: 호스팅 마이그레이션)
+  # ============================================
+  # 마이그레이션 완료 후 Vercel 배포 제거 예정
+  deploy-cloudflare:
+    name: Deploy to Cloudflare Pages
+    runs-on: ubuntu-latest
+    needs: [setup, lint, test-unit]
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/staging'
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts
+          path: dist
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist --project-name=idea-on-action --branch=${{ github.ref_name }}
+
+      - name: Comment PR with deployment URL
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const branch = '${{ github.head_ref || github.ref_name }}';
+            const projectName = 'idea-on-action';
+
+            // Cloudflare Pages 프리뷰 URL 패턴
+            const previewUrl = `https://${branch}.${projectName}.pages.dev`;
+            const productionUrl = 'https://idea-on-action.pages.dev';
+
+            const body = `## 🚀 Cloudflare Pages Deployment
+
+            | Environment | URL |
+            |-------------|-----|
+            | Preview | [${previewUrl}](${previewUrl}) |
+            | Production | [${productionUrl}](${productionUrl}) |
+
+            **Branch:** \`${branch}\`
+            **Status:** ✅ Deployed
+
+            > 📝 Note: DNS 마이그레이션 완료 후 www.ideaonaction.ai로 접근 가능
+            `;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });
