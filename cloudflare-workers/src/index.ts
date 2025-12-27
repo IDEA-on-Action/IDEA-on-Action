@@ -46,6 +46,7 @@ import login from './handlers/auth/login';
 import mcpAuth from './handlers/mcp/auth';
 import mcpEvents from './handlers/mcp/events';
 import mcpRouter from './handlers/mcp/router';
+import mcpSync from './handlers/mcp/sync';
 
 // Minu SSO Handlers (Phase 8)
 import minuOAuthCallback from './handlers/minu/oauth-callback';
@@ -113,6 +114,7 @@ app.route('/auth', login);
 app.route('/mcp/auth', mcpAuth);
 app.route('/mcp/events', mcpEvents);
 app.route('/mcp/router', mcpRouter);
+app.route('/mcp/sync', mcpSync);
 
 // Minu SSO (Phase 8)
 app.route('/minu/oauth', minuOAuthCallback);
