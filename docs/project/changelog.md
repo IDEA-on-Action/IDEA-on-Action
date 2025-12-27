@@ -9,6 +9,63 @@
 
 ---
 
+## [2.40.0] - 2025-12-28 (Cloudflare Workers 마이그레이션 100% 완료)
+
+### 🎉 주요 변경사항
+
+Supabase Edge Functions에서 Cloudflare Workers로 전체 마이그레이션 완료.
+
+#### 마이그레이션 현황
+
+| 항목 | 수치 |
+|------|------|
+| 총 핸들러 | 31개 (100%) |
+| D1 테이블 | 80개 |
+| Worker 크기 | 562.63 KiB (gzip 101.78 KiB) |
+
+#### Phase 12 핸들러 (최종)
+
+| 핸들러 | 엔드포인트 | 기능 |
+|--------|-----------|------|
+| `webhook-send` | POST /webhooks/send | HMAC-SHA256 서명 웹훅 발송 |
+| `newsletter-send` | POST /notifications/newsletter/send | Resend API 배치 이메일 |
+| `github-releases` | POST /cron/github-releases/sync | GitHub 릴리즈 동기화 |
+| `weekly-recap` | POST /cron/weekly-recap/generate | 주간 활동 요약 자동 생성 |
+
+#### 마이그레이션 Phase 요약
+
+| Phase | 내용 | 핸들러 수 |
+|-------|------|---------|
+| 1-2 | 기본 API, Users, Sessions, Teams | 8 |
+| 3 | OAuth 2.0, 토스페이먼츠 결제 | 5 |
+| 4 | RAG 검색, R2 스토리지 | 2 |
+| 5-6 | Auth, Realtime WebSocket | 2 |
+| 7 | MCP Auth/Events/Router/Sync | 4 |
+| 8 | Minu SSO OAuth/Token/Webhook | 3 |
+| 9 | Cron 정기결제 처리 | 1 |
+| 10 | Profile Sync | 1 |
+| 11 | Claude AI Chat/Vision | 1 |
+| 12 | Webhook/Newsletter/GitHub/Recap | 4 |
+
+### 🗂️ 코드 정리
+
+- Supabase Edge Functions → `supabase/functions-archive/` 아카이브
+- 32개 함수 참조용 보관
+- README 문서 추가
+
+### 🛠️ 기술 스택
+
+| 항목 | 기술 |
+|------|------|
+| Runtime | Cloudflare Workers (Hono) |
+| Database | D1 (SQLite) |
+| Storage | R2 |
+| Cache | KV Namespace |
+| Realtime | Durable Objects |
+| Vector | Vectorize |
+
+---
+
 ## [2.38.0] - 2025-12-17 (Newsletter 자동 발송 및 컨텐츠 버전 관리)
 
 ### ✨ 신규 기능

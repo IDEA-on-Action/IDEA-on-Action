@@ -2,18 +2,31 @@
 
 > 반복 간 진행 상황 전달을 위한 공유 메모
 
-**마지막 업데이트**: 2025-12-19
-**현재 버전**: v2.39.0 (완료)
+**마지막 업데이트**: 2025-12-28
+**현재 버전**: v2.40.0 (완료)
 
 ---
 
 ## 현재 목표
 
-v2.39.0: Minu SSO 연동 시스템 구현
+v2.40.0: Cloudflare Workers 마이그레이션 100% 완료
 
 ---
 
 ## 완료된 작업
+
+### v2.40.0 (2025-12-28, 완료)
+
+- [x] Cloudflare Workers 마이그레이션 100% 완료 (31/31 핸들러)
+- [x] Phase 12 최종 핸들러 구현
+  - `webhook-send`: HMAC-SHA256 서명 웹훅 발송
+  - `newsletter-send`: Resend API 배치 이메일
+  - `github-releases`: GitHub 릴리즈 동기화
+  - `weekly-recap`: 주간 활동 요약 자동 생성
+- [x] D1 마이그레이션 적용 (80개 테이블)
+- [x] Supabase Edge Functions 아카이브 정리
+  - 32개 함수 → `supabase/functions-archive/` 이동
+  - README 문서 추가
 
 ### v2.39.0 (2025-12-19, 완료)
 
