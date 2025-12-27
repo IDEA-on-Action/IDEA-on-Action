@@ -25,7 +25,14 @@ export interface Env {
   // R2 Storage
   MEDIA_BUCKET: R2Bucket;
 
+  // Vectorize (RAG 검색)
+  VECTORIZE: VectorizeIndex;
+
+  // Durable Objects (실시간)
+  REALTIME_ROOM: DurableObjectNamespace;
+
   // Environment Variables
+  INTERNAL_API_KEY: string;
   ENVIRONMENT: string;
   API_VERSION: string;
   CORS_ORIGINS: string;

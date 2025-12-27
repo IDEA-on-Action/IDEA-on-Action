@@ -4,13 +4,13 @@
  */
 
 import { Hono } from 'hono';
-import type { Env } from '../../types';
-import { optionalAuthMiddleware } from '../../middleware/auth';
+import { AppType } from '../../types';
+import { authMiddleware } from '../../middleware/auth';
 
 const websocket = new Hono<AppType>();
 
 // GET /realtime/:roomId - WebSocket 연결
-websocket.get('/:roomId', optionalAuthMiddleware, async (c) => {
+websocket.get('/:roomId', authMiddleware, async (c) => {
   const roomId = c.req.param('roomId');
   const auth = c.get('auth');
 
@@ -70,11 +70,11 @@ websocket.post('/:roomId/broadcast', async (c) => {
   }));
 
   const result = await response.json();
-  return c.json(result, response.status);
+  return c.json(result, response.ok ? 200 : 500);
 });
 
 // GET /realtime/:roomId/presence - Presence 조회
-websocket.get('/:roomId/presence', optionalAuthMiddleware, async (c) => {
+websocket.get('/:roomId/presence', authMiddleware, async (c) => {
   const roomId = c.req.param('roomId');
 
   const id = c.env.REALTIME_ROOM.idFromName(roomId);
@@ -83,7 +83,7 @@ websocket.get('/:roomId/presence', optionalAuthMiddleware, async (c) => {
   const response = await room.fetch(new Request('https://internal/presence'));
   const result = await response.json();
 
-  return c.json(result, response.status);
+  return c.json(result, response.ok ? 200 : 500);
 });
 
 // GET /realtime/:roomId/stats - 통계 조회
@@ -96,7 +96,7 @@ websocket.get('/:roomId/stats', async (c) => {
   const response = await room.fetch(new Request('https://internal/stats'));
   const result = await response.json();
 
-  return c.json(result, response.status);
+  return c.json(result, response.ok ? 200 : 500);
 });
 
 // GET /realtime/rooms - 모든 룸 목록 (관리자용)

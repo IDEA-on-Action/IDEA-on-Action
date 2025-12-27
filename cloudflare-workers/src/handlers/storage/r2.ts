@@ -4,8 +4,8 @@
  */
 
 import { Hono } from 'hono';
-import type { Env } from '../../types';
-import { authMiddleware, adminOnlyMiddleware } from '../../middleware/auth';
+import { AppType } from '../../types';
+import { requireAuth, requireAdmin } from '../../middleware/auth';
 
 const r2 = new Hono<AppType>();
 
@@ -49,9 +49,9 @@ function getFolderPath(folder: string, userId?: string): string {
 }
 
 // GET /storage/files - 파일 목록 조회
-r2.get('/files', authMiddleware, async (c) => {
+r2.get('/files', requireAuth, async (c) => {
   const db = c.env.DB;
-  const auth = c.get('auth');
+  const auth = c.get('auth')!;
   const { folder = 'uploads', limit = '50', cursor } = c.req.query();
 
   try {
@@ -90,19 +90,21 @@ r2.get('/files', authMiddleware, async (c) => {
 });
 
 // POST /storage/upload - 파일 업로드
-r2.post('/upload', authMiddleware, async (c) => {
+r2.post('/upload', requireAuth, async (c) => {
   const bucket = c.env.MEDIA_BUCKET;
   const db = c.env.DB;
-  const auth = c.get('auth');
+  const auth = c.get('auth')!;
 
   try {
     const formData = await c.req.formData();
-    const file = formData.get('file') as File;
+    const fileEntry = formData.get('file');
     const folder = (formData.get('folder') as string) || 'uploads';
 
-    if (!file) {
+    if (!fileEntry || typeof fileEntry === 'string') {
       return c.json({ error: '파일이 필요합니다' }, 400);
     }
+
+    const file = fileEntry as unknown as File;
 
     // MIME 타입 검증
     if (!ALLOWED_MIME_TYPES.includes(file.type)) {
@@ -120,7 +122,7 @@ r2.post('/upload', authMiddleware, async (c) => {
 
     // 파일명 생성
     const filename = generateFileName(file.name);
-    const folderPath = getFolderPath(folder, auth.userId);
+    const folderPath = getFolderPath(folder, auth.userId ?? undefined);
     const key = `${folderPath}/${filename}`;
 
     // R2에 업로드
@@ -181,8 +183,8 @@ r2.post('/upload', authMiddleware, async (c) => {
 });
 
 // POST /storage/upload-url - 서명된 업로드 URL 생성
-r2.post('/upload-url', authMiddleware, async (c) => {
-  const auth = c.get('auth');
+r2.post('/upload-url', requireAuth, async (c) => {
+  const auth = c.get('auth')!;
   const body = await c.req.json<{
     filename: string;
     mimeType: string;
@@ -201,7 +203,7 @@ r2.post('/upload-url', authMiddleware, async (c) => {
 
   try {
     const newFilename = generateFileName(filename);
-    const folderPath = getFolderPath(folder, auth.userId);
+    const folderPath = getFolderPath(folder, auth.userId ?? undefined);
     const key = `${folderPath}/${newFilename}`;
 
     // Note: R2는 현재 서명된 URL을 직접 지원하지 않음
@@ -220,10 +222,10 @@ r2.post('/upload-url', authMiddleware, async (c) => {
 });
 
 // PUT /storage/upload-direct - 직접 업로드 (서명된 URL 대안)
-r2.put('/upload-direct', authMiddleware, async (c) => {
+r2.put('/upload-direct', requireAuth, async (c) => {
   const bucket = c.env.MEDIA_BUCKET;
   const db = c.env.DB;
-  const auth = c.get('auth');
+  const auth = c.get('auth')!;
   const { key } = c.req.query();
 
   if (!key) {
@@ -287,10 +289,10 @@ r2.put('/upload-direct', authMiddleware, async (c) => {
 });
 
 // DELETE /storage/files/:id - 파일 삭제
-r2.delete('/files/:id', authMiddleware, async (c) => {
+r2.delete('/files/:id', requireAuth, async (c) => {
   const bucket = c.env.MEDIA_BUCKET;
   const db = c.env.DB;
-  const auth = c.get('auth');
+  const auth = c.get('auth')!;
   const fileId = c.req.param('id');
 
   try {
@@ -325,10 +327,10 @@ r2.delete('/files/:id', authMiddleware, async (c) => {
 });
 
 // GET /storage/files/:id/download - 파일 다운로드
-r2.get('/files/:id/download', authMiddleware, async (c) => {
+r2.get('/files/:id/download', requireAuth, async (c) => {
   const bucket = c.env.MEDIA_BUCKET;
   const db = c.env.DB;
-  const auth = c.get('auth');
+  const auth = c.get('auth')!;
   const fileId = c.req.param('id');
 
   try {
@@ -367,7 +369,7 @@ r2.get('/files/:id/download', authMiddleware, async (c) => {
 });
 
 // 관리자: 스토리지 통계
-r2.get('/stats', adminOnlyMiddleware, async (c) => {
+r2.get('/stats', requireAdmin, async (c) => {
   const db = c.env.DB;
 
   try {

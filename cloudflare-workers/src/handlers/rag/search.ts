@@ -4,10 +4,29 @@
  */
 
 import { Hono } from 'hono';
-import type { Env } from '../../types';
-import { optionalAuthMiddleware, authMiddleware } from '../../middleware/auth';
+import { AppType } from '../../types';
+import { authMiddleware, requireAuth, requireAdmin } from '../../middleware/auth';
 
 const search = new Hono<AppType>();
+
+// 청크 결과 타입
+interface ChunkResult {
+  id: string;
+  document_id: string;
+  content: string;
+  metadata: string | null;
+  title: string;
+  source_url: string | null;
+  service_id: string | null;
+}
+
+// 벡터 메타데이터 타입
+interface VectorMetadata {
+  documentId: string;
+  chunkIndex?: number;
+  serviceId?: string | null;
+  isPublic?: number;
+}
 
 interface SearchRequest {
   query: string;
@@ -65,15 +84,21 @@ async function vectorSearch(
   vectorize: VectorizeIndex,
   embedding: number[],
   limit: number,
-  filters?: Record<string, unknown>
+  filters?: SearchRequest['filters']
 ): Promise<Array<{ id: string; score: number }>> {
   const options: VectorizeQueryOptions = {
     topK: limit,
     returnMetadata: 'none',
   };
 
+  // 필터가 있으면 Vectorize 필터 형식으로 변환
   if (filters) {
-    options.filter = filters;
+    const vectorizeFilter: Record<string, string | number | boolean> = {};
+    if (filters.serviceId) vectorizeFilter.serviceId = filters.serviceId;
+    if (filters.isPublic !== undefined) vectorizeFilter.isPublic = filters.isPublic ? 1 : 0;
+    if (Object.keys(vectorizeFilter).length > 0) {
+      options.filter = vectorizeFilter;
+    }
   }
 
   const results = await vectorize.query(embedding, options);
@@ -160,7 +185,7 @@ function mergeResults(
 }
 
 // POST /rag/search
-search.post('/', optionalAuthMiddleware, async (c) => {
+search.post('/', authMiddleware, async (c) => {
   const db = c.env.DB;
   const vectorize = c.env.VECTORIZE;
   const auth = c.get('auth');
@@ -235,28 +260,26 @@ search.post('/', optionalAuthMiddleware, async (c) => {
       .all();
 
     // 결과 매핑
-    const chunkMap = new Map(
-      chunks.results.map(chunk => [chunk.id as string, chunk])
-    );
+    const chunkMap = new Map<string, ChunkResult>();
+    for (const chunk of chunks.results) {
+      chunkMap.set(chunk.id as string, chunk as unknown as ChunkResult);
+    }
 
-    const searchResults: SearchResult[] = results
-      .map(result => {
-        const chunk = chunkMap.get(result.id);
-        if (!chunk) return null;
+    const searchResults: SearchResult[] = [];
+    for (const result of results) {
+      const chunk = chunkMap.get(result.id);
+      if (!chunk) continue;
 
-        return {
-          id: result.id,
-          documentId: chunk.document_id as string,
-          title: chunk.title as string,
-          content: chunk.content as string,
-          score: result.score,
-          matchType: searchType,
-          metadata: chunk.metadata
-            ? JSON.parse(chunk.metadata as string)
-            : undefined,
-        };
-      })
-      .filter((r): r is SearchResult => r !== null);
+      searchResults.push({
+        id: result.id,
+        documentId: chunk.document_id,
+        title: chunk.title,
+        content: chunk.content,
+        score: result.score,
+        matchType: searchType,
+        metadata: chunk.metadata ? JSON.parse(chunk.metadata) : undefined,
+      });
+    }
 
     const latencyMs = Date.now() - startTime;
 
@@ -290,15 +313,10 @@ search.post('/', optionalAuthMiddleware, async (c) => {
 });
 
 // 문서 임베딩 생성 (관리자용)
-search.post('/embed/:documentId', authMiddleware, async (c) => {
+search.post('/embed/:documentId', requireAuth, requireAdmin, async (c) => {
   const db = c.env.DB;
   const vectorize = c.env.VECTORIZE;
-  const auth = c.get('auth');
   const documentId = c.req.param('documentId');
-
-  if (!auth.isAdmin) {
-    return c.json({ error: '관리자 권한이 필요합니다' }, 403);
-  }
 
   try {
     // 문서 조회
@@ -336,15 +354,20 @@ search.post('/embed/:documentId', authMiddleware, async (c) => {
         c.env.OPENAI_API_KEY
       );
 
+      const vectorMetadata: VectorizeVectorMetadata = {
+        documentId,
+        chunkIndex: chunk.chunk_index as number,
+        isPublic: document.is_public as number,
+      };
+      // serviceId가 있으면 추가
+      if (document.service_id) {
+        vectorMetadata.serviceId = document.service_id as string;
+      }
+
       vectors.push({
         id: chunk.id as string,
         values: embedding,
-        metadata: {
-          documentId,
-          chunkIndex: chunk.chunk_index as number,
-          serviceId: document.service_id as string | null,
-          isPublic: document.is_public as number,
-        },
+        metadata: vectorMetadata,
       });
     }
 
@@ -377,7 +400,7 @@ search.post('/embed/:documentId', authMiddleware, async (c) => {
 });
 
 // 유사 문서 조회
-search.get('/similar/:documentId', optionalAuthMiddleware, async (c) => {
+search.get('/similar/:documentId', authMiddleware, async (c) => {
   const db = c.env.DB;
   const vectorize = c.env.VECTORIZE;
   const documentId = c.req.param('documentId');
@@ -408,15 +431,19 @@ search.get('/similar/:documentId', optionalAuthMiddleware, async (c) => {
     });
 
     // 자기 자신 제외
-    const filteredResults = similarResults.matches.filter(
-      match => (match.metadata as { documentId: string })?.documentId !== documentId
-    );
+    const filteredResults = similarResults.matches.filter(match => {
+      const meta = match.metadata as VectorMetadata | undefined;
+      return meta?.documentId !== documentId;
+    });
 
     // 문서 상세 정보 조회
     const documentIds = [...new Set(
       filteredResults
-        .map(match => (match.metadata as { documentId: string })?.documentId)
-        .filter(Boolean)
+        .map(match => {
+          const meta = match.metadata as VectorMetadata | undefined;
+          return meta?.documentId;
+        })
+        .filter((id): id is string => Boolean(id))
     )];
 
     if (documentIds.length === 0) {
@@ -433,24 +460,41 @@ search.get('/similar/:documentId', optionalAuthMiddleware, async (c) => {
       .bind(...documentIds)
       .all();
 
-    const documentMap = new Map(
-      documents.results.map(doc => [doc.id as string, doc])
-    );
+    interface DocResult {
+      id: string;
+      title: string;
+      source_url: string | null;
+      service_id: string | null;
+    }
 
-    const similar = filteredResults
-      .slice(0, parseInt(limit))
-      .map(match => {
-        const docId = (match.metadata as { documentId: string })?.documentId;
-        const doc = documentMap.get(docId);
-        return doc ? {
-          id: docId,
-          title: doc.title,
-          sourceUrl: doc.source_url,
-          serviceId: doc.service_id,
-          score: match.score,
-        } : null;
-      })
-      .filter(Boolean);
+    const documentMap = new Map<string, DocResult>();
+    for (const doc of documents.results) {
+      documentMap.set(doc.id as string, doc as unknown as DocResult);
+    }
+
+    const similar: Array<{
+      id: string;
+      title: string;
+      sourceUrl: string | null;
+      serviceId: string | null;
+      score: number;
+    }> = [];
+
+    for (const match of filteredResults.slice(0, parseInt(limit))) {
+      const meta = match.metadata as VectorMetadata | undefined;
+      if (!meta?.documentId) continue;
+
+      const doc = documentMap.get(meta.documentId);
+      if (!doc) continue;
+
+      similar.push({
+        id: meta.documentId,
+        title: doc.title,
+        sourceUrl: doc.source_url,
+        serviceId: doc.service_id,
+        score: match.score,
+      });
+    }
 
     return c.json({ similar });
   } catch (error) {

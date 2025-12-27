@@ -30,6 +30,18 @@ import revoke from './handlers/oauth/revoke';
 import toss from './handlers/payments/toss';
 import subscription from './handlers/payments/subscription';
 
+// RAG Handlers (Wave 4)
+import search from './handlers/rag/search';
+
+// Storage Handlers (Phase 4)
+import r2 from './handlers/storage/r2';
+
+// Realtime Handlers (Phase 6)
+import websocket from './handlers/realtime/websocket';
+
+// Auth Handlers (Phase 5)
+import login from './handlers/auth/login';
+
 // 메인 앱
 const app = new Hono<AppType>();
 
@@ -68,6 +80,18 @@ app.route('/oauth/revoke', revoke);
 // Payments (Wave 3)
 app.route('/api/v1/payments', toss);
 app.route('/api/v1/subscriptions', subscription);
+
+// RAG (Wave 4)
+app.route('/api/v1/rag/search', search);
+
+// Storage (Phase 4)
+app.route('/api/v1/storage', r2);
+
+// Realtime (Phase 6)
+app.route('/realtime', websocket);
+
+// Auth (Phase 5)
+app.route('/auth', login);
 
 // 404 핸들러
 app.notFound((c) => {

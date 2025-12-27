@@ -4,7 +4,7 @@
  */
 
 import { Hono } from 'hono';
-import type { Env } from '../../types';
+import { AppType } from '../../types';
 import { SignJWT } from 'jose';
 
 const login = new Hono<AppType>();
