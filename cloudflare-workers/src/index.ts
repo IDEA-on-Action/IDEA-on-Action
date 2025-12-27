@@ -59,6 +59,9 @@ import subscriptionProcessor from './handlers/cron/subscription-processor';
 // Profile Sync Handlers (Phase 10)
 import profileSync from './handlers/profile/sync';
 
+// AI Handlers (Phase 11)
+import claudeAI from './handlers/ai/claude';
+
 // Durable Objects
 export { RealtimeRoom } from './durable-objects/RealtimeRoom';
 
@@ -129,6 +132,9 @@ app.route('/cron/subscriptions', subscriptionProcessor);
 
 // Profile Sync (Phase 10)
 app.route('/profile', profileSync);
+
+// AI (Phase 11)
+app.route('/ai', claudeAI);
 
 // 404 핸들러
 app.notFound((c) => {

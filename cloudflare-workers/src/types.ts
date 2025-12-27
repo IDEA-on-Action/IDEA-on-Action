@@ -45,6 +45,7 @@ export interface Env {
   SLACK_WEBHOOK_URL: string;
   OPENAI_API_KEY: string;
   RESEND_API_KEY: string;
+  ANTHROPIC_API_KEY: string;
 
   // MCP Secrets
   MCP_JWT_SECRET: string;
