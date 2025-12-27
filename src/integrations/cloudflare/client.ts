@@ -4,7 +4,7 @@
  */
 
 // API 엔드포인트 설정
-const WORKERS_API_URL = import.meta.env.VITE_WORKERS_API_URL || 'https://idea-on-action-api.sinclair-account.workers.dev';
+const WORKERS_API_URL = import.meta.env.VITE_WORKERS_API_URL || 'https://api.ideaonaction.ai';
 
 interface ApiOptions {
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
