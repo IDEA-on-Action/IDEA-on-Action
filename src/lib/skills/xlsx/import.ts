@@ -2,11 +2,12 @@
  * xlsx Import 유틸리티
  *
  * Excel 파일 파싱, 검증, 매핑, DB 삽입 기능
+ * ExcelJS 기반으로 마이그레이션됨 (보안 취약점 해결)
  *
  * @module lib/skills/xlsx/import
  */
 
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import { supabase } from '@/integrations/supabase/client';
 import type {
   ImportConfig,
@@ -43,73 +44,94 @@ export async function parseExcelFile(
 ): Promise<ParsedExcelData> {
   const startTime = performance.now();
 
-  // 파일 읽기
+  // 파일 읽기 (ExcelJS 사용)
   const arrayBuffer = await file.arrayBuffer();
-  const workbook = XLSX.read(arrayBuffer, {
-    type: 'array',
-    cellDates: true,
-    cellNF: true,
-    cellText: false,
-  });
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.load(arrayBuffer);
 
   // 시트 선택
-  const targetSheetName = sheetName || workbook.SheetNames[0];
-  const worksheet = workbook.Sheets[targetSheetName];
+  const targetSheetName = sheetName || workbook.worksheets[0]?.name;
+  const worksheet = workbook.getWorksheet(targetSheetName);
 
   if (!worksheet) {
     throw new Error(`시트를 찾을 수 없습니다: ${targetSheetName}`);
   }
 
-  // 시트를 JSON으로 변환
-  const rawData = XLSX.utils.sheet_to_json<Record<string, unknown>>(worksheet, {
-    header: 1,
-    raw: false,
-    dateNF: 'yyyy-mm-dd',
-  }) as unknown[][];
+  // 시트명 목록
+  const availableSheets = workbook.worksheets.map(ws => ws.name);
 
-  if (rawData.length === 0) {
-    throw new Error('빈 시트입니다.');
-  }
+  // 헤더 추출 (1-based index for ExcelJS)
+  const headerRowNum = headerRow + 1;
+  const headerRowData = worksheet.getRow(headerRowNum);
+  const headers: string[] = [];
 
-  // 헤더 추출
-  const headers = (rawData[headerRow] as string[]) || [];
+  headerRowData.eachCell((cell, colNumber) => {
+    headers[colNumber - 1] = String(cell.value || `Column${colNumber}`);
+  });
+
   if (headers.length === 0) {
     throw new Error('헤더를 찾을 수 없습니다.');
   }
 
   // 데이터 행 추출 및 객체로 변환
-  const dataRows = rawData.slice(dataStartRow);
-  const rows: Record<string, unknown>[] = dataRows
-    .map((row) => {
-      const rowObj: Record<string, unknown> = {};
-      headers.forEach((header, index) => {
-        if (header) {
-          rowObj[header] = (row as unknown[])[index] ?? null;
+  const dataStartRowNum = dataStartRow + 1;
+  const rows: Record<string, unknown>[] = [];
+  let totalRowCount = 0;
+
+  worksheet.eachRow((row, rowNumber) => {
+    totalRowCount++;
+    if (rowNumber < dataStartRowNum) return;
+
+    const rowObj: Record<string, unknown> = {};
+    let hasData = false;
+
+    row.eachCell((cell, colNumber) => {
+      const header = headers[colNumber - 1];
+      if (header) {
+        // 셀 값 처리 (날짜, 숫자 등)
+        let cellValue = cell.value;
+
+        // ExcelJS의 RichText 처리
+        if (cellValue && typeof cellValue === 'object' && 'richText' in cellValue) {
+          cellValue = (cellValue as { richText: { text: string }[] }).richText
+            .map(rt => rt.text)
+            .join('');
         }
-      });
-      return rowObj;
-    })
-    .filter((row) => {
-      // 모든 값이 null/undefined/빈 문자열인 행 제거
-      return Object.values(row).some((value) => {
-        if (value === null || value === undefined) return false;
-        if (typeof value === 'string' && value.trim() === '') return false;
-        return true;
-      });
+
+        // 날짜 처리
+        if (cellValue instanceof Date) {
+          cellValue = cellValue.toISOString().split('T')[0];
+        }
+
+        rowObj[header] = cellValue ?? null;
+        if (cellValue !== null && cellValue !== undefined) {
+          hasData = true;
+        }
+      }
     });
+
+    // 빈 행 건너뛰기
+    if (hasData) {
+      rows.push(rowObj);
+    }
+  });
+
+  if (rows.length === 0) {
+    throw new Error('빈 시트입니다.');
+  }
 
   const parseTime = performance.now() - startTime;
 
   return {
-    sheetName: targetSheetName,
+    sheetName: targetSheetName || '',
     headers,
     rows,
-    totalRows: rawData.length,
+    totalRows: totalRowCount,
     metadata: {
       filename: file.name,
       fileSize: file.size,
       parseTime,
-      availableSheets: workbook.SheetNames,
+      availableSheets,
     },
   };
 }

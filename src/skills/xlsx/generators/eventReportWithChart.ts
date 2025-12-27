@@ -2,11 +2,12 @@
  * 차트가 포함된 이벤트 리포트 생성
  *
  * 이벤트 데이터 + 트렌드 차트 + 유형별 분포 차트
+ * ExcelJS 기반으로 마이그레이션됨 (보안 취약점 해결)
  *
  * @module skills/xlsx/generators/eventReportWithChart
  */
 
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { ServiceEvent } from '@/types/central-hub.types';
 import { SERVICE_INFO } from '@/types/central-hub.types';
@@ -44,49 +45,55 @@ import { eventColumns } from './eventsSheet';
 export async function generateEventReportWithChart(
   supabase: SupabaseClient,
   dateRange?: DateRange
-): Promise<XLSX.WorkBook> {
+): Promise<ExcelJS.Workbook> {
   // 1. 이벤트 데이터 조회
   const events = await fetchEventsForChart(supabase, dateRange);
 
-  // 2. 시트 1: 이벤트 로그 (테이블)
-  const eventSheet = XLSX.utils.json_to_sheet(events);
-  eventSheet['!cols'] = eventColumns.map((col) => ({ wch: col.width || 15 }));
+  // 2. 워크북 생성 (ExcelJS)
+  const workbook = new ExcelJS.Workbook();
+  workbook.creator = 'IDEA on Action';
+  workbook.created = new Date();
 
-  // 3. 시트 2: 트렌드 차트 데이터 준비
+  // 3. 시트 1: 이벤트 로그 (테이블)
+  const eventSheet = workbook.addWorksheet('이벤트 로그');
+  eventSheet.columns = eventColumns.map((col) => ({
+    header: col.header,
+    key: col.key || col.header,
+    width: col.width || 15,
+  }));
+  events.forEach(event => eventSheet.addRow(event));
+
+  // 4. 시트 2: 트렌드 차트 데이터 준비
   const trendData = prepareTrendData(events);
   const trendChartConfig = createTrendChart(trendData);
 
-  // 4. 시트 3: 유형별 분포 차트 데이터 준비
+  // 5. 시트 3: 유형별 분포 차트 데이터 준비
   const distributionData = prepareDistributionData(events);
   const pieChartConfig = createPieChart(distributionData);
 
-  // 5. 차트 이미지 생성
+  // 6. 차트 이미지 생성
   const [trendChartResult, pieChartResult] = await Promise.all([
     generateChartImage(trendChartConfig),
     generateChartImage(pieChartConfig),
   ]);
 
-  // 6. 워크북 생성
-  const workbook = XLSX.utils.book_new();
-
-  // 시트 1: 이벤트 로그
-  XLSX.utils.book_append_sheet(workbook, eventSheet, '이벤트 로그');
-
-  // 시트 2: 트렌드 차트 (이미지 삽입은 SheetJS의 제한으로 설명 시트로 대체)
-  const trendInfoSheet = createChartInfoSheet(
+  // 7. 시트 2: 트렌드 차트 정보
+  createChartInfoSheetExcel(
+    workbook,
+    '트렌드 차트',
     '일별 이벤트 트렌드',
     trendChartResult,
     trendData.data
   );
-  XLSX.utils.book_append_sheet(workbook, trendInfoSheet, '트렌드 차트');
 
-  // 시트 3: 유형별 분포 차트
-  const distInfoSheet = createChartInfoSheet(
+  // 8. 시트 3: 유형별 분포 차트
+  createChartInfoSheetExcel(
+    workbook,
+    '유형별 분포',
     '유형별 이벤트 분포',
     pieChartResult,
     distributionData.data.map((d) => ({ date: d.category, count: d.count }))
   );
-  XLSX.utils.book_append_sheet(workbook, distInfoSheet, '유형별 분포');
 
   return workbook;
 }
@@ -169,17 +176,19 @@ function prepareDistributionData(
 }
 
 /**
- * 차트 정보 시트 생성
+ * 차트 정보 시트 생성 (ExcelJS)
  *
- * SheetJS는 이미지 삽입을 직접 지원하지 않으므로,
  * 차트 데이터와 메타 정보를 포함한 설명 시트를 생성합니다.
  *
+ * @param workbook - ExcelJS 워크북
+ * @param sheetName - 시트명
  * @param title - 차트 제목
  * @param chartResult - 차트 생성 결과
  * @param data - 차트 원본 데이터
- * @returns 워크시트
  */
-function createChartInfoSheet(
+function createChartInfoSheetExcel(
+  workbook: ExcelJS.Workbook,
+  sheetName: string,
   title: string,
   chartResult: {
     blob: Blob;
@@ -187,34 +196,24 @@ function createChartInfoSheet(
     size: number;
   },
   data: Array<{ date: string; count: number }>
-): XLSX.WorkSheet {
-  const infoData = [
-    { 항목: '차트 제목', 값: title },
-    {
-      항목: '생성 시간',
-      값: `${chartResult.duration.toFixed(2)}ms`,
-    },
-    {
-      항목: '이미지 크기',
-      값: `${(chartResult.size / 1024).toFixed(2)} KB`,
-    },
-    { 항목: '데이터 포인트 수', 값: data.length },
-    { 항목: '', 값: '' },
-    { 항목: '데이터 (날짜/카테고리)', 값: '개수' },
+): void {
+  const sheet = workbook.addWorksheet(sheetName);
+  sheet.columns = [
+    { header: '항목', key: 'item', width: 30 },
+    { header: '값', key: 'value', width: 20 },
   ];
+
+  sheet.addRow({ item: '차트 제목', value: title });
+  sheet.addRow({ item: '생성 시간', value: `${chartResult.duration.toFixed(2)}ms` });
+  sheet.addRow({ item: '이미지 크기', value: `${(chartResult.size / 1024).toFixed(2)} KB` });
+  sheet.addRow({ item: '데이터 포인트 수', value: data.length });
+  sheet.addRow({ item: '', value: '' });
+  sheet.addRow({ item: '데이터 (날짜/카테고리)', value: '개수' });
 
   // 데이터 추가
   data.forEach((d) => {
-    infoData.push({
-      항목: d.date,
-      값: d.count.toString(),
-    });
+    sheet.addRow({ item: d.date, value: d.count });
   });
-
-  const sheet = XLSX.utils.json_to_sheet(infoData);
-  sheet['!cols'] = [{ wch: 30 }, { wch: 20 }];
-
-  return sheet;
 }
 
 /**

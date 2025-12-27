@@ -25,8 +25,14 @@ type LoadingState<T> = {
 
 /**
  * xlsx 모듈 타입
+ * @deprecated ExcelJS 사용 권장 - xlsx에 보안 취약점 존재
  */
 export type XlsxModule = typeof import('xlsx');
+
+/**
+ * ExcelJS 모듈 타입
+ */
+export type ExcelJSModule = typeof import('exceljs');
 
 /**
  * docx 모듈 타입
@@ -49,6 +55,7 @@ export type PptxModule = {
  */
 const moduleCache = {
   xlsx: null as XlsxModule | null,
+  exceljs: null as ExcelJSModule | null,
   docx: null as DocxModule | null,
   pptx: null as PptxModule | null,
 };
@@ -58,12 +65,80 @@ const moduleCache = {
  */
 const loadingStates = {
   xlsx: { loading: false, module: null, error: null } as LoadingState<XlsxModule>,
+  exceljs: { loading: false, module: null, error: null } as LoadingState<ExcelJSModule>,
   docx: { loading: false, module: null, error: null } as LoadingState<DocxModule>,
   pptx: { loading: false, module: null, error: null } as LoadingState<PptxModule>,
 };
 
 // ============================================================================
-// xlsx 동적 로더
+// ExcelJS 동적 로더 (권장)
+// ============================================================================
+
+/**
+ * ExcelJS 라이브러리 동적 로드
+ *
+ * Excel 파일 생성/파싱을 위한 ExcelJS 라이브러리를 동적으로 로드합니다.
+ * xlsx 대비 보안 취약점 없음, 공식 이미지 삽입 API 지원
+ *
+ * @returns ExcelJS 모듈
+ * @throws 로딩 실패 시 에러
+ *
+ * @example
+ * ```ts
+ * const ExcelJS = await loadExcelJS();
+ * const workbook = new ExcelJS.Workbook();
+ * ```
+ */
+export async function loadExcelJS(): Promise<ExcelJSModule> {
+  // 캐시된 모듈 반환
+  if (moduleCache.exceljs) {
+    return moduleCache.exceljs;
+  }
+
+  // 이미 로딩 중인 경우 대기
+  if (loadingStates.exceljs.loading) {
+    return new Promise((resolve, reject) => {
+      const interval = setInterval(() => {
+        if (loadingStates.exceljs.module) {
+          clearInterval(interval);
+          resolve(loadingStates.exceljs.module);
+        } else if (loadingStates.exceljs.error) {
+          clearInterval(interval);
+          reject(loadingStates.exceljs.error);
+        }
+      }, 50);
+    });
+  }
+
+  // 새로 로딩 시작
+  loadingStates.exceljs.loading = true;
+  loadingStates.exceljs.error = null;
+
+  try {
+    const module = await import('exceljs');
+    moduleCache.exceljs = module;
+    loadingStates.exceljs.module = module;
+    loadingStates.exceljs.loading = false;
+    return module;
+  } catch (error) {
+    const err = error instanceof Error ? error : new Error(String(error));
+    loadingStates.exceljs.error = err;
+    loadingStates.exceljs.loading = false;
+    throw new Error(`ExcelJS 라이브러리 로딩 실패: ${err.message}`);
+  }
+}
+
+/**
+ * ExcelJS 모듈 로딩 상태 확인
+ *
+ * @returns 로딩 상태
+ */
+export function getExcelJSLoadingState(): Readonly<LoadingState<ExcelJSModule>> {
+  return { ...loadingStates.exceljs };
+}
+
+// ============================================================================
+// xlsx 동적 로더 (레거시 - deprecated)
 // ============================================================================
 
 /**
@@ -72,6 +147,7 @@ const loadingStates = {
  * Excel 파일 생성/파싱을 위한 xlsx 라이브러리를 동적으로 로드합니다.
  * 한 번 로드된 모듈은 캐시되어 재사용됩니다.
  *
+ * @deprecated ExcelJS 사용 권장 - xlsx에 보안 취약점 존재
  * @returns xlsx 모듈
  * @throws 로딩 실패 시 에러
  *
@@ -306,10 +382,12 @@ export function getPptxLoadingState(): Readonly<LoadingState<PptxModule>> {
  */
 export function clearAllCache(): void {
   moduleCache.xlsx = null;
+  moduleCache.exceljs = null;
   moduleCache.docx = null;
   moduleCache.pptx = null;
 
   loadingStates.xlsx = { loading: false, module: null, error: null };
+  loadingStates.exceljs = { loading: false, module: null, error: null };
   loadingStates.docx = { loading: false, module: null, error: null };
   loadingStates.pptx = { loading: false, module: null, error: null };
 }
@@ -321,10 +399,10 @@ export function clearAllCache(): void {
  *
  * @example
  * ```ts
- * clearCache('xlsx');
+ * clearCache('exceljs');
  * ```
  */
-export function clearCache(module: 'xlsx' | 'docx' | 'pptx'): void {
+export function clearCache(module: 'xlsx' | 'exceljs' | 'docx' | 'pptx'): void {
   moduleCache[module] = null;
   loadingStates[module] = { loading: false, module: null, error: null };
 }
@@ -342,7 +420,7 @@ export function clearCache(module: 'xlsx' | 'docx' | 'pptx'): void {
  * ```
  */
 export function isAllLoaded(): boolean {
-  return !!(moduleCache.xlsx && moduleCache.docx && moduleCache.pptx);
+  return !!(moduleCache.exceljs && moduleCache.docx && moduleCache.pptx);
 }
 
 /**
@@ -358,7 +436,7 @@ export function isAllLoaded(): boolean {
  */
 export function getLoadedCount(): number {
   let count = 0;
-  if (moduleCache.xlsx) count++;
+  if (moduleCache.exceljs) count++;
   if (moduleCache.docx) count++;
   if (moduleCache.pptx) count++;
   return count;
@@ -379,13 +457,14 @@ export function getLoadedCount(): number {
  * @example
  * ```ts
  * // Admin 페이지 진입 시 미리 로드
- * await preloadModules(['xlsx', 'docx']);
+ * await preloadModules(['exceljs', 'docx']);
  * ```
  */
 export async function preloadModules(
-  modules: Array<'xlsx' | 'docx' | 'pptx'>
+  modules: Array<'xlsx' | 'exceljs' | 'docx' | 'pptx'>
 ): Promise<{
   xlsx?: XlsxModule;
+  exceljs?: ExcelJSModule;
   docx?: DocxModule;
   pptx?: PptxModule;
 }> {
@@ -393,6 +472,8 @@ export async function preloadModules(
     switch (module) {
       case 'xlsx':
         return { name: 'xlsx' as const, module: await loadXlsx() };
+      case 'exceljs':
+        return { name: 'exceljs' as const, module: await loadExcelJS() };
       case 'docx':
         return { name: 'docx' as const, module: await loadDocx() };
       case 'pptx':
@@ -404,6 +485,7 @@ export async function preloadModules(
 
   const loaded: {
     xlsx?: XlsxModule;
+    exceljs?: ExcelJSModule;
     docx?: DocxModule;
     pptx?: PptxModule;
   } = {};
@@ -411,6 +493,8 @@ export async function preloadModules(
   for (const result of results) {
     if (result.name === 'xlsx') {
       loaded.xlsx = result.module;
+    } else if (result.name === 'exceljs') {
+      loaded.exceljs = result.module;
     } else if (result.name === 'docx') {
       loaded.docx = result.module;
     } else if (result.name === 'pptx') {

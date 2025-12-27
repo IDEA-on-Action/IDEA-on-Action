@@ -2,11 +2,12 @@
  * xlsx 차트 삽입 유틸리티
  *
  * Excel 워크시트에 차트 이미지를 삽입하는 기능
+ * ExcelJS 기반으로 마이그레이션됨 (공식 이미지 삽입 API 사용)
  *
  * @module lib/skills/xlsx/chartInsert
  */
 
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import type {
   ChartInsertOptions,
   ChartPosition,
@@ -20,12 +21,17 @@ import type {
 /**
  * Excel 워크시트 타입
  */
-type Worksheet = XLSX.WorkSheet;
+type Worksheet = ExcelJS.Worksheet;
+
+/**
+ * Excel 워크북 타입
+ */
+type Workbook = ExcelJS.Workbook;
 
 /**
  * 이미지 확장자 타입
  */
-type ImageExtension = 'png' | 'jpeg' | 'jpg';
+type ImageExtension = 'png' | 'jpeg' | 'gif';
 
 // ============================================================================
 // 헬퍼 함수
@@ -75,25 +81,12 @@ function rowColToCell(row: number, col: number): string {
 }
 
 /**
- * Base64 문자열을 ArrayBuffer로 변환
- */
-function base64ToArrayBuffer(base64: string): ArrayBuffer {
-  const binaryString = atob(base64);
-  const len = binaryString.length;
-  const bytes = new Uint8Array(len);
-  for (let i = 0; i < len; i++) {
-    bytes[i] = binaryString.charCodeAt(i);
-  }
-  return bytes.buffer;
-}
-
-/**
  * 이미지 확장자 추출
  */
 function getImageExtension(mimeType: string): ImageExtension {
   if (mimeType === 'image/png') return 'png';
   if (mimeType === 'image/jpeg') return 'jpeg';
-  if (mimeType === 'image/jpg') return 'jpg';
+  if (mimeType === 'image/gif') return 'gif';
   return 'png'; // 기본값
 }
 
@@ -129,70 +122,50 @@ function calculateSize(size?: ChartSize): { width: number; height: number } {
 // ============================================================================
 
 /**
- * 워크시트에 차트 이미지 삽입
+ * 워크시트에 차트 이미지 삽입 (ExcelJS)
  *
+ * @param workbook - 워크북 (이미지 등록용)
  * @param worksheet - 대상 워크시트
  * @param imageBase64 - Base64 인코딩된 이미지 데이터
  * @param options - 삽입 옵션
- * @returns 수정된 워크시트
+ * @returns 이미지 ID
  *
  * @example
  * ```typescript
- * const ws = XLSX.utils.aoa_to_sheet([['Header 1', 'Header 2']]);
+ * const wb = new ExcelJS.Workbook();
+ * const ws = wb.addWorksheet('Data');
  * const chartResult = await generateBarChartImage(data, options);
- * insertChartImage(ws, chartResult.imageBase64, {
+ * insertChartImageExcel(wb, ws, chartResult.imageBase64, {
  *   position: { cell: 'D2' },
  *   size: { width: 600, height: 400 },
  *   alt: 'Monthly Sales Chart'
  * });
  * ```
  */
-export function insertChartImage(
+export function insertChartImageExcel(
+  workbook: Workbook,
   worksheet: Worksheet,
   imageBase64: string,
   options: ChartInsertOptions
-): Worksheet {
+): number {
   try {
     // 위치 계산
     const { row, col } = calculatePosition(options.position);
     const { width, height } = calculateSize(options.size);
 
-    // 이미지 데이터를 ArrayBuffer로 변환
-    const imageBuffer = base64ToArrayBuffer(imageBase64);
+    // 워크북에 이미지 등록 (ExcelJS)
+    const imageId = workbook.addImage({
+      base64: imageBase64,
+      extension: 'png',
+    });
 
-    // xlsx 라이브러리는 기본적으로 이미지 삽입을 직접 지원하지 않음
-    // 대신 워크시트의 '!images' 속성을 사용하여 이미지 정보 저장
-    if (!worksheet['!images']) {
-      worksheet['!images'] = [];
-    }
+    // 워크시트에 이미지 배치
+    worksheet.addImage(imageId, {
+      tl: { col, row },
+      ext: { width, height },
+    });
 
-    // 이미지 메타데이터 추가
-    const imageData = {
-      name: options.alt || 'Chart',
-      data: imageBuffer,
-      position: {
-        type: 'twoCellAnchor',
-        from: { row, col },
-        to: {
-          row: row + Math.ceil(height / 20), // 대략적인 행 수
-          col: col + Math.ceil(width / 64),   // 대략적인 열 수
-        },
-      },
-      ext: 'png',
-    };
-
-    worksheet['!images'].push(imageData);
-
-    // 차트 위치에 플레이스홀더 텍스트 삽입
-    const cellAddr = rowColToCell(row, col);
-    if (!worksheet[cellAddr]) {
-      worksheet[cellAddr] = {
-        t: 's', // 문자열 타입
-        v: options.alt || '[Chart]',
-      };
-    }
-
-    return worksheet;
+    return imageId;
   } catch (error) {
     throw new Error(
       `차트 이미지 삽입 실패: ${error instanceof Error ? error.message : String(error)}`
@@ -201,23 +174,75 @@ export function insertChartImage(
 }
 
 /**
- * 여러 차트를 워크시트에 일괄 삽입
+ * 워크시트에 차트 이미지 삽입 (레거시 호환용)
  *
+ * @deprecated insertChartImageExcel 사용 권장
+ * @param worksheet - 대상 워크시트
+ * @param imageBase64 - Base64 인코딩된 이미지 데이터
+ * @param options - 삽입 옵션
+ * @returns 수정된 워크시트
+ */
+export function insertChartImage(
+  worksheet: Worksheet,
+  imageBase64: string,
+  options: ChartInsertOptions
+): Worksheet {
+  // ExcelJS에서는 워크북이 필요하지만, 레거시 호환을 위해 메타데이터만 저장
+  const { row, col } = calculatePosition(options.position);
+  const { width, height } = calculateSize(options.size);
+
+  // 커스텀 속성에 이미지 정보 저장 (나중에 워크북에서 처리)
+  const imageInfo = {
+    base64: imageBase64,
+    position: { row, col },
+    size: { width, height },
+    alt: options.alt || 'Chart',
+  };
+
+  // 워크시트의 커스텀 속성에 저장
+  if (!(worksheet as unknown as Record<string, unknown>)['__pendingImages']) {
+    (worksheet as unknown as Record<string, unknown>)['__pendingImages'] = [];
+  }
+  ((worksheet as unknown as Record<string, unknown>)['__pendingImages'] as unknown[]).push(imageInfo);
+
+  return worksheet;
+}
+
+/**
+ * 여러 차트를 워크시트에 일괄 삽입 (ExcelJS)
+ *
+ * @param workbook - 워크북 (이미지 등록용)
  * @param worksheet - 대상 워크시트
  * @param charts - 차트 배열 (각 차트는 imageBase64와 options 포함)
- * @returns 수정된 워크시트
+ * @returns 이미지 ID 배열
  *
  * @example
  * ```typescript
- * const ws = XLSX.utils.aoa_to_sheet(data);
+ * const wb = new ExcelJS.Workbook();
+ * const ws = wb.addWorksheet('Data');
  * const chart1 = await generateBarChartImage(data1, options1);
  * const chart2 = await generateLineChartImage(data2, options2);
  *
- * insertMultipleCharts(ws, [
+ * insertMultipleChartsExcel(wb, ws, [
  *   { imageBase64: chart1.imageBase64, options: { position: { cell: 'A10' } } },
  *   { imageBase64: chart2.imageBase64, options: { position: { cell: 'A25' } } },
  * ]);
  * ```
+ */
+export function insertMultipleChartsExcel(
+  workbook: Workbook,
+  worksheet: Worksheet,
+  charts: Array<{ imageBase64: string; options: ChartInsertOptions }>
+): number[] {
+  return charts.map(chart =>
+    insertChartImageExcel(workbook, worksheet, chart.imageBase64, chart.options)
+  );
+}
+
+/**
+ * 여러 차트를 워크시트에 일괄 삽입 (레거시 호환용)
+ *
+ * @deprecated insertMultipleChartsExcel 사용 권장
  */
 export function insertMultipleCharts(
   worksheet: Worksheet,
@@ -243,37 +268,26 @@ export function canInsertChart(
 ): boolean {
   try {
     const { row, col } = calculatePosition(position);
-
-    // 워크시트 범위 확인
-    const range = XLSX.utils.decode_range(worksheet['!ref'] || 'A1');
-
-    // 위치가 현재 범위를 벗어나는 경우에도 삽입 가능
-    // (새로운 셀이 자동으로 생성됨)
+    // 위치가 유효한지 확인
     return row >= 0 && col >= 0;
-  } catch (error) {
+  } catch {
     return false;
   }
 }
 
 /**
- * 워크시트의 모든 차트 제거
+ * 워크시트의 이미지 개수 조회
  *
  * @param worksheet - 대상 워크시트
- * @returns 수정된 워크시트
- */
-export function removeAllCharts(worksheet: Worksheet): Worksheet {
-  if (worksheet['!images']) {
-    delete worksheet['!images'];
-  }
-  return worksheet;
-}
-
-/**
- * 차트 개수 조회
- *
- * @param worksheet - 대상 워크시트
- * @returns 차트 개수
+ * @returns 이미지 개수
  */
 export function getChartCount(worksheet: Worksheet): number {
-  return worksheet['!images']?.length || 0;
+  // ExcelJS에서는 워크시트의 이미지를 직접 조회할 수 있음
+  const images = (worksheet as unknown as { getImages?: () => unknown[] }).getImages?.();
+  if (images) {
+    return images.length;
+  }
+  // 레거시 호환: __pendingImages 확인
+  const pendingImages = (worksheet as unknown as Record<string, unknown>)['__pendingImages'] as unknown[] | undefined;
+  return pendingImages?.length || 0;
 }

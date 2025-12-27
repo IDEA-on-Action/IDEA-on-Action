@@ -2,12 +2,13 @@
  * xlsx 차트 내보내기 유틸리티
  *
  * Excel 파일과 차트 이미지를 ZIP 파일로 함께 내보내기
+ * ExcelJS 기반으로 마이그레이션됨 (보안 취약점 해결)
  *
  * @module lib/skills/xlsx/chart-exporter
  */
 
 import JSZip from 'jszip';
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 
 // ============================================================================
 // 타입 정의
@@ -29,8 +30,8 @@ export interface ChartExportConfig {
  * ZIP 내보내기 옵션
  */
 export interface ExportWithChartsOptions {
-  /** Excel 워크북 */
-  workbook: XLSX.WorkBook;
+  /** Excel 워크북 (ExcelJS) */
+  workbook: ExcelJS.Workbook;
   /** 기본 파일명 (확장자 제외) */
   fileName: string;
   /** 차트 설정 배열 (선택) */
@@ -116,11 +117,8 @@ export async function exportWithCharts(
     const zip = new JSZip();
     let fileCount = 0;
 
-    // 1. Excel 파일 추가
-    const xlsxBuffer = XLSX.write(workbook, {
-      bookType: 'xlsx',
-      type: 'array',
-    });
+    // 1. Excel 파일 추가 (ExcelJS)
+    const xlsxBuffer = await workbook.xlsx.writeBuffer();
     zip.file(`${fileName}.xlsx`, xlsxBuffer);
     fileCount++;
 

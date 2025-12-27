@@ -2,11 +2,13 @@
  * xlsx 내보내기 훅
  *
  * Central Hub 데이터를 Excel 파일로 내보내기
+ * ExcelJS 기반으로 마이그레이션됨 (보안 취약점 해결)
  *
  * @module skills/xlsx/useXlsxExport
  */
 
 import { useState, useCallback } from 'react';
+import ExcelJS from 'exceljs';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import type {
@@ -67,33 +69,42 @@ export function useXlsxExport(): UseXlsxExportResult {
       setError(null);
 
       try {
-        // 0. xlsx 라이브러리 동적 로딩 (0-10%)
-        setProgress(5);
-        const XLSX = await import('xlsx');
+        // 1. 데이터 로딩 (0-30%)
         setProgress(10);
-
-        // 1. 데이터 로딩 (10-30%)
-        setProgress(15);
         const sheets =
           options?.sheets ||
           (await fetchDefaultSheets(options?.dateRange));
         setProgress(30);
 
-        // 2. 워크북 생성 (30-60%)
-        const workbook = XLSX.utils.book_new();
+        // 2. 워크북 생성 (30-60%) - ExcelJS
+        const workbook = new ExcelJS.Workbook();
+        workbook.creator = 'IDEA on Action';
+        workbook.created = new Date();
 
         for (let i = 0; i < sheets.length; i++) {
           const sheet = sheets[i];
-          const worksheet = XLSX.utils.json_to_sheet(sheet.data);
+          const worksheet = workbook.addWorksheet(sheet.name);
 
-          // 컬럼 너비 설정
+          // 컬럼 설정
           if (sheet.columns) {
-            worksheet['!cols'] = sheet.columns.map((col) => ({
-              wch: col.width || 15,
+            worksheet.columns = sheet.columns.map((col) => ({
+              header: col.header,
+              key: col.key || col.header,
+              width: col.width || 15,
+            }));
+          } else if (sheet.data.length > 0) {
+            // 데이터에서 컬럼 추론
+            const keys = Object.keys(sheet.data[0]);
+            worksheet.columns = keys.map((key) => ({
+              header: key,
+              key: key,
+              width: 15,
             }));
           }
 
-          XLSX.utils.book_append_sheet(workbook, worksheet, sheet.name);
+          // 데이터 행 추가
+          sheet.data.forEach((row) => worksheet.addRow(row));
+
           setProgress(30 + Math.floor(((i + 1) / sheets.length) * 30));
         }
         setProgress(60);
@@ -126,10 +137,7 @@ export function useXlsxExport(): UseXlsxExportResult {
           // 기존 xlsx만 내보내기
           setProgress(70);
 
-          const buffer = XLSX.write(workbook, {
-            type: 'array',
-            bookType: 'xlsx',
-          });
+          const buffer = await workbook.xlsx.writeBuffer();
           const blob = new Blob([buffer], {
             type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
           });

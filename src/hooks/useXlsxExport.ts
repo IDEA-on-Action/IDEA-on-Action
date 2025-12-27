@@ -2,12 +2,13 @@
  * xlsx 내보내기 훅
  *
  * Excel 파일 내보내기 및 차트 삽입 기능을 제공하는 React 훅
+ * ExcelJS 기반으로 마이그레이션됨 (보안 취약점 해결)
  *
  * @module hooks/useXlsxExport
  */
 
 import { useState, useCallback } from 'react';
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import type {
   UseXlsxExportOptions,
   UseXlsxExportResult,
@@ -25,7 +26,37 @@ import {
   generateLineChartImage,
   generatePieChartImage,
 } from '@/lib/skills/xlsx/chartGenerate';
-import { insertChartImage } from '@/lib/skills/xlsx/chartInsert';
+
+// ============================================================================
+// 헬퍼 함수
+// ============================================================================
+
+/**
+ * 셀 주소를 행/열 인덱스로 변환
+ * @example 'A1' -> { row: 0, col: 0 }
+ * @example 'D5' -> { row: 4, col: 3 }
+ */
+function cellToRowCol(cell: string): { row: number; col: number } {
+  const match = cell.match(/^([A-Z]+)(\d+)$/);
+  if (!match) {
+    throw new Error(`잘못된 셀 주소: ${cell}`);
+  }
+
+  const colStr = match[1];
+  const rowStr = match[2];
+
+  // 열 문자를 숫자로 변환 (A=0, B=1, ..., Z=25, AA=26, ...)
+  let col = 0;
+  for (let i = 0; i < colStr.length; i++) {
+    col = col * 26 + (colStr.charCodeAt(i) - 65 + 1);
+  }
+  col -= 1; // 0-based index
+
+  // 행 숫자를 0-based로 변환
+  const row = parseInt(rowStr, 10) - 1;
+
+  return { row, col };
+}
 
 // ============================================================================
 // 타입 정의
@@ -112,36 +143,49 @@ export function useXlsxExport(): UseXlsxExportResult & {
       setError(null);
 
       try {
-        // 워크북 생성
-        const wb = XLSX.utils.book_new();
+        // 워크북 생성 (ExcelJS)
+        const wb = new ExcelJS.Workbook();
+        wb.creator = 'IDEA on Action';
+        wb.created = new Date();
 
         // 시트 추가
         if (options.sheets && options.sheets.length > 0) {
-          options.sheets.forEach((sheet, index) => {
-            setProgress(((index + 1) / options.sheets!.length) * 50);
+          for (let index = 0; index < options.sheets.length; index++) {
+            const sheet = options.sheets[index];
+            setProgress(((index + 1) / options.sheets.length) * 50);
 
-            // 데이터를 워크시트로 변환
-            const ws = XLSX.utils.json_to_sheet(sheet.data);
+            // 워크시트 생성
+            const ws = wb.addWorksheet(sheet.name);
 
             // 컬럼 설정 적용
             if (sheet.columns) {
-              const colWidths = sheet.columns.map(col => ({
-                wch: col.width || 10,
+              ws.columns = sheet.columns.map(col => ({
+                header: col.header,
+                key: col.key || col.header,
+                width: col.width || 15,
               }));
-              ws['!cols'] = colWidths;
-
-              // 헤더 설정
-              const headers = sheet.columns.map(col => col.header);
-              XLSX.utils.sheet_add_aoa(ws, [headers], { origin: 'A1' });
+            } else {
+              // 데이터에서 컬럼 추론
+              const firstRow = sheet.data[0];
+              if (firstRow) {
+                const keys = Object.keys(firstRow);
+                ws.columns = keys.map(key => ({
+                  header: key,
+                  key: key,
+                  width: 15,
+                }));
+              }
             }
 
-            // 워크북에 시트 추가
-            XLSX.utils.book_append_sheet(wb, ws, sheet.name);
-          });
+            // 데이터 행 추가
+            sheet.data.forEach(row => {
+              ws.addRow(row);
+            });
+          }
         } else {
           // 기본 시트 추가
-          const ws = XLSX.utils.aoa_to_sheet([['No Data']]);
-          XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
+          const ws = wb.addWorksheet('Sheet1');
+          ws.addRow(['No Data']);
         }
 
         setProgress(75);
@@ -151,8 +195,19 @@ export function useXlsxExport(): UseXlsxExportResult & {
           options.filename ||
           `report-${new Date().toISOString().split('T')[0]}.xlsx`;
 
-        // 파일 다운로드
-        XLSX.writeFile(wb, filename);
+        // 파일 다운로드 (ExcelJS)
+        const buffer = await wb.xlsx.writeBuffer();
+        const blob = new Blob([buffer], {
+          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
 
         setProgress(100);
       } catch (err) {
@@ -185,12 +240,25 @@ export function useXlsxExport(): UseXlsxExportResult & {
       setError(null);
 
       try {
-        // 워크북 생성
-        const wb = XLSX.utils.book_new();
+        // 워크북 생성 (ExcelJS)
+        const wb = new ExcelJS.Workbook();
+        wb.creator = 'IDEA on Action';
+        wb.created = new Date();
 
         // 데이터 시트 생성
         setProgress(10);
-        const ws = XLSX.utils.json_to_sheet(data);
+        const ws = wb.addWorksheet('Data');
+
+        // 데이터에서 컬럼 추론
+        if (data.length > 0) {
+          const keys = Object.keys(data[0]);
+          ws.columns = keys.map(key => ({
+            header: key,
+            key: key,
+            width: 15,
+          }));
+          data.forEach(row => ws.addRow(row));
+        }
 
         // 차트 이미지 생성
         setProgress(30);
@@ -218,15 +286,17 @@ export function useXlsxExport(): UseXlsxExportResult & {
             throw new Error(`지원하지 않는 차트 유형: ${chartConfig.type}`);
         }
 
-        // 차트 삽입
+        // 차트 삽입 (ExcelJS 공식 API)
         setProgress(60);
-        insertChartImage(ws, chartResult.imageBase64, {
-          position: { cell: chartConfig.position },
-          alt: chartConfig.alt || 'Chart',
+        const { row, col } = cellToRowCol(chartConfig.position);
+        const imageId = wb.addImage({
+          base64: chartResult.imageBase64,
+          extension: 'png',
         });
-
-        // 워크북에 시트 추가
-        XLSX.utils.book_append_sheet(wb, ws, 'Data');
+        ws.addImage(imageId, {
+          tl: { col, row },
+          ext: { width: 600, height: 400 },
+        });
 
         setProgress(80);
 
@@ -235,8 +305,19 @@ export function useXlsxExport(): UseXlsxExportResult & {
           options.filename ||
           `report-with-chart-${new Date().toISOString().split('T')[0]}.xlsx`;
 
-        // 파일 다운로드
-        XLSX.writeFile(wb, filename);
+        // 파일 다운로드 (ExcelJS)
+        const buffer = await wb.xlsx.writeBuffer();
+        const blob = new Blob([buffer], {
+          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
 
         setProgress(100);
       } catch (err) {
@@ -269,8 +350,10 @@ export function useXlsxExport(): UseXlsxExportResult & {
       setError(null);
 
       try {
-        // 워크북 생성
-        const wb = XLSX.utils.book_new();
+        // 워크북 생성 (ExcelJS)
+        const wb = new ExcelJS.Workbook();
+        wb.creator = 'IDEA on Action';
+        wb.created = new Date();
 
         // 시트별로 처리
         for (let i = 0; i < sheets.length; i++) {
@@ -278,7 +361,18 @@ export function useXlsxExport(): UseXlsxExportResult & {
           setProgress((i / sheets.length) * 50);
 
           // 워크시트 생성
-          const ws = XLSX.utils.json_to_sheet(sheet.data);
+          const ws = wb.addWorksheet(sheet.name);
+
+          // 데이터에서 컬럼 추론
+          if (sheet.data.length > 0) {
+            const keys = Object.keys(sheet.data[0]);
+            ws.columns = keys.map(key => ({
+              header: key,
+              key: key,
+              width: 15,
+            }));
+            sheet.data.forEach(row => ws.addRow(row));
+          }
 
           // 해당 시트의 차트 필터링 (시트 이름 기반)
           const sheetCharts = charts.filter(
@@ -310,15 +404,18 @@ export function useXlsxExport(): UseXlsxExportResult & {
             }
 
             if (chartResult) {
-              insertChartImage(ws, chartResult.imageBase64, {
-                position: { cell: chartConfig.position },
-                alt: chartConfig.alt || 'Chart',
+              // 차트 삽입 (ExcelJS 공식 API)
+              const { row, col } = cellToRowCol(chartConfig.position);
+              const imageId = wb.addImage({
+                base64: chartResult.imageBase64,
+                extension: 'png',
+              });
+              ws.addImage(imageId, {
+                tl: { col, row },
+                ext: { width: 600, height: 400 },
               });
             }
           }
-
-          // 워크북에 시트 추가
-          XLSX.utils.book_append_sheet(wb, ws, sheet.name);
         }
 
         setProgress(80);
@@ -328,8 +425,19 @@ export function useXlsxExport(): UseXlsxExportResult & {
           options.filename ||
           `report-${new Date().toISOString().split('T')[0]}.xlsx`;
 
-        // 파일 다운로드
-        XLSX.writeFile(wb, filename);
+        // 파일 다운로드 (ExcelJS)
+        const buffer = await wb.xlsx.writeBuffer();
+        const blob = new Blob([buffer], {
+          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
 
         setProgress(100);
       } catch (err) {

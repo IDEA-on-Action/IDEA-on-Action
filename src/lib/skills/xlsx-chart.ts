@@ -3,11 +3,12 @@
  *
  * Excel 파일에 차트 이미지를 직접 삽입하는 기능을 제공합니다.
  * Canvas API로 생성한 차트를 Base64로 변환하여 Excel 파일에 삽입합니다.
+ * ExcelJS 기반으로 마이그레이션됨 (공식 이미지 삽입 API 사용)
  *
  * @module lib/skills/xlsx-chart
  */
 
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import type { AnyChartConfig } from '@/types/xlsx-chart.types';
 import { generateChartImage } from '@/skills/xlsx/chart/chart-utils';
 
@@ -19,8 +20,8 @@ import { generateChartImage } from '@/skills/xlsx/chart/chart-utils';
  * Excel 차트 삽입 설정
  */
 export interface ExcelChartInsertConfig {
-  /** 워크북 객체 */
-  workbook: XLSX.WorkBook;
+  /** 워크북 객체 (ExcelJS) */
+  workbook: ExcelJS.Workbook;
   /** 시트 이름 */
   sheetName: string;
   /** 차트 설정 */
@@ -47,8 +48,8 @@ export interface ChartInsertResult {
  * 다중 차트 삽입 설정
  */
 export interface MultiChartInsertConfig {
-  /** 워크북 객체 */
-  workbook: XLSX.WorkBook;
+  /** 워크북 객체 (ExcelJS) */
+  workbook: ExcelJS.Workbook;
   /** 차트 설정 목록 */
   charts: Array<{
     /** 시트 이름 */
@@ -112,8 +113,8 @@ export async function insertChartToExcel(
   const { workbook, sheetName, chart, cellAddress } = config;
 
   try {
-    // 시트 확인
-    const worksheet = workbook.Sheets[sheetName];
+    // 시트 확인 (ExcelJS)
+    const worksheet = workbook.getWorksheet(sheetName);
     if (!worksheet) {
       return {
         success: false,
@@ -127,25 +128,16 @@ export async function insertChartToExcel(
     // Base64로 변환
     const base64 = await blobToBase64(rendered.blob);
 
-    // xlsx 라이브러리는 이미지 삽입을 네이티브로 지원하지 않음
-    // 대신 차트 정보를 셀 주석으로 저장하고, 별도 시트에 차트 데이터 기록
-    const chartDataSheet = createChartDataSheet(chart, base64);
+    // ExcelJS 공식 이미지 삽입 API 사용
+    const { row, col } = cellAddressToCoords(cellAddress);
+    const imageId = workbook.addImage({
+      base64: base64,
+      extension: 'png',
+    });
 
-    // 차트 데이터 시트 추가 (이미 있으면 건너뜀)
-    const chartSheetName = `_chart_${sheetName}`;
-    if (!workbook.Sheets[chartSheetName]) {
-      XLSX.utils.book_append_sheet(workbook, chartDataSheet, chartSheetName);
-    }
-
-    // 원본 시트에 차트 참조 주석 추가
-    if (!worksheet['!comments']) {
-      worksheet['!comments'] = [];
-    }
-
-    worksheet['!comments'].push({
-      ref: cellAddress,
-      a: 'SYSTEM',
-      t: `차트: ${chart.title || chart.type}\n크기: ${Math.round(rendered.size / 1024)}KB\n시트: ${chartSheetName}`,
+    worksheet.addImage(imageId, {
+      tl: { col, row },
+      ext: { width: chart.width || 600, height: chart.height || 400 },
     });
 
     return {
@@ -228,32 +220,6 @@ async function blobToBase64(blob: Blob): Promise<string> {
 }
 
 /**
- * 차트 데이터 시트 생성
- *
- * 차트 메타데이터와 Base64 이미지 데이터를 포함하는 시트 생성
- */
-function createChartDataSheet(
-  chart: AnyChartConfig,
-  base64: string
-): XLSX.WorkSheet {
-  const data: (string | number)[][] = [
-    ['차트 정보'],
-    ['타입', chart.type],
-    ['제목', chart.title || ''],
-    ['데이터 개수', chart.data.length],
-    [''],
-    ['차트 데이터'],
-    ['레이블', '값'],
-    ...chart.data.map((point) => [point.label, point.value]),
-    [''],
-    ['이미지 데이터 (Base64)'],
-    [base64],
-  ];
-
-  return XLSX.utils.aoa_to_sheet(data);
-}
-
-/**
  * 셀 주소를 행/열 좌표로 변환
  *
  * @example
@@ -261,8 +227,25 @@ function createChartDataSheet(
  * cellAddressToCoords('B5') => { row: 4, col: 1 }
  */
 export function cellAddressToCoords(address: string): { row: number; col: number } {
-  const decoded = XLSX.utils.decode_cell(address);
-  return { row: decoded.r, col: decoded.c };
+  const match = address.match(/^([A-Z]+)(\d+)$/);
+  if (!match) {
+    throw new Error(`잘못된 셀 주소: ${address}`);
+  }
+
+  const colStr = match[1];
+  const rowStr = match[2];
+
+  // 열 문자를 숫자로 변환 (A=0, B=1, ..., Z=25, AA=26, ...)
+  let col = 0;
+  for (let i = 0; i < colStr.length; i++) {
+    col = col * 26 + (colStr.charCodeAt(i) - 65 + 1);
+  }
+  col -= 1; // 0-based index
+
+  // 행 숫자를 0-based로 변환
+  const row = parseInt(rowStr, 10) - 1;
+
+  return { row, col };
 }
 
 /**
@@ -273,7 +256,14 @@ export function cellAddressToCoords(address: string): { row: number; col: number
  * coordsToCellAddress({ row: 4, col: 1 }) => 'B5'
  */
 export function coordsToCellAddress(coords: { row: number; col: number }): string {
-  return XLSX.utils.encode_cell({ r: coords.row, c: coords.col });
+  let colStr = '';
+  let c = coords.col + 1;
+  while (c > 0) {
+    const remainder = (c - 1) % 26;
+    colStr = String.fromCharCode(65 + remainder) + colStr;
+    c = Math.floor((c - 1) / 26);
+  }
+  return `${colStr}${coords.row + 1}`;
 }
 
 // ============================================================================
@@ -283,7 +273,7 @@ export function coordsToCellAddress(coords: { row: number; col: number }): strin
 /**
  * 시트의 데이터 범위 다음에 차트를 배치할 위치 계산
  *
- * @param worksheet - 워크시트
+ * @param worksheet - 워크시트 (ExcelJS)
  * @param margin - 데이터와 차트 사이 간격 (열 단위, 기본값: 2)
  * @returns 차트 삽입 위치 (셀 주소)
  *
@@ -294,12 +284,12 @@ export function coordsToCellAddress(coords: { row: number; col: number }): strin
  * ```
  */
 export function calculateChartPosition(
-  worksheet: XLSX.WorkSheet,
+  worksheet: ExcelJS.Worksheet,
   margin = 2
 ): string {
-  const range = XLSX.utils.decode_range(worksheet['!ref'] || 'A1');
-  const chartCol = range.e.c + margin + 1; // 데이터 끝 + 간격 + 1
-  const chartRow = range.s.r; // 데이터 시작 행과 동일
+  const columnCount = worksheet.columnCount || 1;
+  const chartCol = columnCount + margin;
+  const chartRow = 0; // 첫 번째 행
 
-  return XLSX.utils.encode_cell({ r: chartRow, c: chartCol });
+  return coordsToCellAddress({ row: chartRow, col: chartCol });
 }
