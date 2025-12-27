@@ -74,6 +74,11 @@ bindings = [
   { name = "REALTIME_ROOM", class_name = "RealtimeRoom" }
 ]
 
+# Durable Objects Migrations
+[[migrations]]
+tag = "v1"
+new_classes = ["RealtimeRoom"]
+
 # =============================================================================
 # 라우팅
 # =============================================================================
