@@ -19,7 +19,6 @@ const AIChatWidget = lazy(() => import("./components/ai-chat").then(m => ({ defa
 import { trackPageView } from "./lib/analytics";
 import { initWebVitals } from "./lib/web-vitals";
 import * as Sentry from "@sentry/react";
-import { Analytics as VercelAnalytics } from "@vercel/analytics/react";
 
 // Loading component
 const LoadingFallback = () => (
@@ -357,7 +356,6 @@ const App = () => (
           </AnnouncerProvider>
         </TooltipProvider>
       </HelmetProvider>
-      <VercelAnalytics />
     </QueryClientProvider>
   </Sentry.ErrorBoundary>
 );
