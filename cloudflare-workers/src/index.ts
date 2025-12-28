@@ -9,6 +9,7 @@ import { Hono } from 'hono';
 import { AppType } from './types';
 import { corsMiddleware } from './middleware/cors';
 import { authMiddleware } from './middleware/auth';
+import { serviceKeyMiddleware } from './middleware/service-key';
 
 // Handlers
 import health from './handlers/health';
@@ -29,6 +30,7 @@ import blog from './handlers/api/blog';
 import notices from './handlers/api/notices';
 import portfolio from './handlers/api/portfolio';
 import roadmap from './handlers/api/roadmap';
+import admin from './handlers/api/admin';
 
 // OAuth Handlers (Wave 3)
 import authorize from './handlers/oauth/authorize';
@@ -99,6 +101,7 @@ const app = new Hono<AppType>();
 
 // 글로벌 미들웨어
 app.use('*', corsMiddleware);
+app.use('*', serviceKeyMiddleware); // X-Service-Key 인증 (MCP Server 등)
 app.use('*', authMiddleware);
 
 // 루트 엔드포인트
@@ -132,6 +135,9 @@ app.route('/api/v1/blog', blog);
 app.route('/api/v1/notices', notices);
 app.route('/api/v1/portfolio', portfolio);
 app.route('/api/v1/roadmap', roadmap);
+
+// Admin API (Service Key 인증)
+app.route('/api/v1/admin', admin);
 
 // OAuth 2.0 (Wave 3)
 app.route('/oauth/authorize', authorize);
