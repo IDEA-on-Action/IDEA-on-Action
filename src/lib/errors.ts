@@ -2,13 +2,12 @@
  * Error Handling Utilities
  *
  * 일관된 에러 핸들링 시스템
- * - Supabase 에러 처리
+ * - Database 에러 처리
  * - API 에러 처리
  * - 개발/프로덕션 환경별 로깅
  * - Sentry 통합
  */
 
-import { PostgrestError } from '@supabase/supabase-js'
 import axios, { AxiosError } from 'axios'
 import { logError as sentryLogError } from './sentry'
 
@@ -16,10 +15,24 @@ import { logError as sentryLogError } from './sentry'
 // Error Types
 // ===================================================================
 
-export interface SupabaseErrorResult<T> {
+/**
+ * PostgreSQL/D1 데이터베이스 에러 타입
+ * (이전 Supabase PostgrestError와 호환)
+ */
+export interface PostgrestError {
+  code: string
+  message: string
+  details?: string
+  hint?: string
+}
+
+export interface DatabaseErrorResult<T> {
   data: T | null
   error: PostgrestError | null
 }
+
+/** @deprecated DatabaseErrorResult 사용 권장 */
+export type SupabaseErrorResult<T> = DatabaseErrorResult<T>
 
 export interface ApiErrorResult<T> {
   data: T | null

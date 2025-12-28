@@ -40,8 +40,6 @@ export interface Env {
   // Secrets (wrangler secret으로 설정)
   JWT_SECRET: string;
   SERVICE_KEY: string; // MCP Server 등 내부 서비스 인증용
-  SUPABASE_URL: string;
-  SUPABASE_SERVICE_ROLE_KEY: string;
   TOSS_SECRET_KEY: string;
   SLACK_WEBHOOK_URL: string;
   OPENAI_API_KEY: string;
