@@ -1,19 +1,19 @@
 /**
  * useAuth Hook
  *
- * Supabase Auth + Workers Auth 이중 인증 지원
- * - OAuth 로그인 (Google, GitHub, Kakao, Microsoft, Apple) → Supabase
- * - 이메일/비밀번호 로그인 → Supabase 우선, 실패 시 Workers 시도
- * - 회원가입 → Workers 전용 (D1 저장)
- * - 세션 상태 구독
+ * Workers Auth 전용 인증 (Cloudflare Workers + D1)
+ * - OAuth 로그인 (Google, GitHub, Kakao, Microsoft, Apple) → Workers
+ * - 이메일/비밀번호 로그인 → Workers
+ * - 회원가입 → Workers (D1 저장)
+ * - 세션 상태 관리
  * - 사용자 정보 관리
  * - Sentry 사용자 추적 통합
  *
  * @description
- * 점진적 마이그레이션 전략:
- * 1. 신규 가입: Workers 사용 (D1에 저장)
- * 2. 기존 로그인: Supabase 우선, 실패 시 Workers 시도
- * 3. Workers 로그인 성공 시 Supabase에도 세션 생성 시도 (호환성)
+ * Workers 전용 전략:
+ * 1. 모든 OAuth: Workers OAuth 엔드포인트로 리다이렉트
+ * 2. 이메일 로그인/가입: Workers API 사용
+ * 3. 세션: localStorage에 JWT 토큰 저장
  *
  * @returns {UseAuthReturn} 사용자 정보, 세션 정보, 로그인/로그아웃 함수
  *
@@ -75,6 +75,9 @@ import type { User, Session } from '@supabase/supabase-js'
 import { setUser as setSentryUser, clearUser as clearSentryUser } from '@/lib/sentry'
 import { devError, devLog } from '@/lib/errors'
 import { authApi } from '@/integrations/cloudflare/client'
+
+// Workers OAuth URL
+const WORKERS_API_URL = import.meta.env.VITE_WORKERS_API_URL || 'https://api.ideaonaction.ai'
 
 // Workers 인증 토큰 저장 키
 const WORKERS_TOKEN_KEY = 'workers_auth_tokens'
@@ -343,90 +346,43 @@ export function useAuth(): UseAuthReturn {
   }, [refreshWorkersToken])
 
   /**
-   * Google OAuth 로그인
+   * Google OAuth 로그인 (Workers)
    */
   const signInWithGoogle = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
-      },
-    })
-
-    if (error) {
-      devError(error, { service: 'Auth', operation: 'Google 로그인' })
-      throw error
-    }
+    devLog('Workers Google OAuth 시작')
+    window.location.href = `${WORKERS_API_URL}/oauth/google/authorize`
   }
 
   /**
-   * GitHub OAuth 로그인
+   * GitHub OAuth 로그인 (Workers)
    */
   const signInWithGithub = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'github',
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
-      },
-    })
-
-    if (error) {
-      devError(error, { service: 'Auth', operation: 'GitHub 로그인' })
-      throw error
-    }
+    devLog('Workers GitHub OAuth 시작')
+    window.location.href = `${WORKERS_API_URL}/oauth/github/authorize`
   }
 
   /**
-   * Kakao OAuth 로그인
+   * Kakao OAuth 로그인 (Workers)
    */
   const signInWithKakao = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'kakao',
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
-      },
-    })
-
-    if (error) {
-      devError(error, { service: 'Auth', operation: 'Kakao 로그인' })
-      throw error
-    }
+    devLog('Workers Kakao OAuth 시작')
+    window.location.href = `${WORKERS_API_URL}/oauth/kakao/authorize`
   }
 
   /**
-   * Microsoft (Azure AD) OAuth 로그인
+   * Microsoft (Azure AD) OAuth 로그인 (Workers)
    */
   const signInWithMicrosoft = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'azure',
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
-        scopes: 'email profile openid',
-      },
-    })
-
-    if (error) {
-      devError(error, { service: 'Auth', operation: 'Microsoft 로그인' })
-      throw error
-    }
+    devLog('Workers Microsoft OAuth 시작')
+    window.location.href = `${WORKERS_API_URL}/oauth/microsoft/authorize`
   }
 
   /**
-   * Apple OAuth 로그인
+   * Apple OAuth 로그인 (Workers)
    */
   const signInWithApple = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'apple',
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
-        scopes: 'email name',
-      },
-    })
-
-    if (error) {
-      devError(error, { service: 'Auth', operation: 'Apple 로그인' })
-      throw error
-    }
+    devLog('Workers Apple OAuth 시작')
+    window.location.href = `${WORKERS_API_URL}/oauth/apple/authorize`
   }
 
   /**

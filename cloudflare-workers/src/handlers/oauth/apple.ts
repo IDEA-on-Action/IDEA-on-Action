@@ -221,7 +221,7 @@ apple.post('/callback', async (c) => {
     let dbUser = await db
       .prepare('SELECT * FROM users WHERE email = ?')
       .bind(email)
-      .first<{ id: string; email: string; name: string; status: string }>();
+      .first<{ id: string; email: string; name: string; is_active: number }>();
 
     if (!dbUser) {
       const userId = crypto.randomUUID();
@@ -229,21 +229,13 @@ apple.post('/callback', async (c) => {
 
       await db
         .prepare(`
-          INSERT INTO users (id, email, name, status, email_confirmed_at, created_at, updated_at)
-          VALUES (?, ?, ?, 'active', ?, ?, ?)
+          INSERT INTO users (id, email, name, is_active, email_verified, created_at, updated_at)
+          VALUES (?, ?, ?, 1, 1, ?, ?)
         `)
-        .bind(userId, email, name, now, now, now)
+        .bind(userId, email, name, now, now)
         .run();
 
-      await db
-        .prepare(`
-          INSERT INTO user_profiles (id, user_id, display_name, created_at, updated_at)
-          VALUES (?, ?, ?, ?, ?)
-        `)
-        .bind(crypto.randomUUID(), userId, name, now, now)
-        .run();
-
-      dbUser = { id: userId, email, name, status: 'active' };
+      dbUser = { id: userId, email, name, is_active: 1 };
     }
 
     // OAuth 연결 저장/업데이트
@@ -289,7 +281,7 @@ apple.post('/callback', async (c) => {
 
     // 마지막 로그인 시간 업데이트
     await db
-      .prepare('UPDATE users SET last_sign_in_at = ? WHERE id = ?')
+      .prepare('UPDATE users SET last_login_at = ? WHERE id = ?')
       .bind(now, dbUser.id)
       .run();
 

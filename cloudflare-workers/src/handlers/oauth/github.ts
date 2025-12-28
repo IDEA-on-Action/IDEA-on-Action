@@ -49,7 +49,16 @@ async function generateJWT(
 github.get('/authorize', async (c) => {
   const kv = c.env.SESSIONS;
   const clientId = c.env.GITHUB_CLIENT_ID;
-  const redirectUri = c.env.GITHUB_REDIRECT_URI || `${c.env.WORKER_URL}/oauth/github/callback`;
+  const workerUrl = c.env.WORKER_URL;
+  const redirectUri = c.env.GITHUB_REDIRECT_URI || `${workerUrl}/oauth/github/callback`;
+
+  // 디버그 로그
+  console.log('[GitHub OAuth] 설정:', {
+    clientId: clientId ? `${clientId.slice(0, 8)}...` : 'NOT SET',
+    workerUrl,
+    redirectUri,
+    hasGithubRedirectUri: !!c.env.GITHUB_REDIRECT_URI,
+  });
 
   if (!clientId) {
     return c.json({ error: 'GITHUB_CLIENT_ID가 설정되지 않았습니다' }, 500);
@@ -68,6 +77,8 @@ github.get('/authorize', async (c) => {
   authUrl.searchParams.set('redirect_uri', redirectUri);
   authUrl.searchParams.set('scope', 'user:email read:user');
   authUrl.searchParams.set('state', state);
+
+  console.log('[GitHub OAuth] 리다이렉트 URL:', authUrl.toString());
 
   return c.redirect(authUrl.toString());
 });
@@ -184,7 +195,7 @@ github.get('/callback', async (c) => {
     let user = await db
       .prepare('SELECT * FROM users WHERE email = ?')
       .bind(email)
-      .first<{ id: string; email: string; name: string; status: string }>();
+      .first<{ id: string; email: string; name: string; is_active: number }>();
 
     if (!user) {
       const userId = crypto.randomUUID();
@@ -192,21 +203,13 @@ github.get('/callback', async (c) => {
 
       await db
         .prepare(`
-          INSERT INTO users (id, email, name, avatar_url, status, email_confirmed_at, created_at, updated_at)
-          VALUES (?, ?, ?, ?, 'active', ?, ?, ?)
+          INSERT INTO users (id, email, name, avatar_url, is_active, email_verified, created_at, updated_at)
+          VALUES (?, ?, ?, ?, 1, 1, ?, ?)
         `)
-        .bind(userId, email, userInfo.name || userInfo.login, userInfo.avatar_url, now, now, now)
+        .bind(userId, email, userInfo.name || userInfo.login, userInfo.avatar_url, now, now)
         .run();
 
-      await db
-        .prepare(`
-          INSERT INTO user_profiles (id, user_id, display_name, created_at, updated_at)
-          VALUES (?, ?, ?, ?, ?)
-        `)
-        .bind(crypto.randomUUID(), userId, userInfo.name || userInfo.login, now, now)
-        .run();
-
-      user = { id: userId, email, name: userInfo.name || userInfo.login, status: 'active' };
+      user = { id: userId, email, name: userInfo.name || userInfo.login, is_active: 1 };
     }
 
     // OAuth 연결 저장/업데이트
@@ -237,7 +240,7 @@ github.get('/callback', async (c) => {
 
     // 마지막 로그인 시간 업데이트
     await db
-      .prepare('UPDATE users SET last_sign_in_at = ? WHERE id = ?')
+      .prepare('UPDATE users SET last_login_at = ? WHERE id = ?')
       .bind(now, user.id)
       .run();
 
