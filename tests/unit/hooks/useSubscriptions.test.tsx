@@ -2,28 +2,50 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { MemoryRouter } from 'react-router-dom';
+import React, { type ReactNode } from 'react';
+import type { SubscriptionWithPlan, SubscriptionPaymentWithDetails } from '@/types/subscription.types';
+
+// Mock useAuth hook - must be before imports
+vi.mock('@/hooks/useAuth', () => ({
+  useAuth: vi.fn(() => ({
+    workersTokens: { accessToken: 'test-token', refreshToken: 'test-refresh' },
+    workersUser: { id: 'user-123', email: 'test@example.com' },
+    isAuthenticated: true,
+    loading: false,
+  })),
+}));
+
+// Mock Workers API client - must be before imports
+vi.mock('@/integrations/cloudflare/client', () => ({
+  subscriptionsApi: {
+    getPlans: vi.fn(),
+    getHistory: vi.fn(),
+    getCurrent: vi.fn(),
+    cancel: vi.fn(),
+    resume: vi.fn(),
+    changePlan: vi.fn(),
+    updatePayment: vi.fn(),
+    create: vi.fn(),
+  },
+  paymentsApi: {
+    history: vi.fn(),
+  },
+}));
+
+// Import after mocks are defined
 import {
   useMySubscriptions,
   useCancelSubscription,
   useUpgradeSubscription,
   useSubscriptionPayments,
+  useCurrentSubscription,
+  useResumeSubscription,
+  useCreateSubscription,
+  useSubscriptionPlans,
 } from '@/hooks/useSubscriptions';
-import { supabase } from '@/integrations/supabase/client';
-import React, { type ReactNode } from 'react';
-import type { SubscriptionWithPlan, SubscriptionPaymentWithDetails } from '@/types/subscription.types';
-
-// Mock supabase client
-vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
-    auth: {
-      getUser: vi.fn(),
-    },
-    from: vi.fn(),
-    functions: {
-      invoke: vi.fn(),
-    },
-  },
-}));
+import { useAuth } from '@/hooks/useAuth';
+import { subscriptionsApi, paymentsApi } from '@/integrations/cloudflare/client';
 
 // Mock sonner toast
 vi.mock('sonner', () => ({
@@ -35,11 +57,6 @@ vi.mock('sonner', () => ({
 
 describe('useSubscriptions', () => {
   let queryClient: QueryClient;
-
-  const mockUser = {
-    id: 'user-123',
-    email: 'test@example.com',
-  };
 
   const mockSubscriptions: SubscriptionWithPlan[] = [
     {
@@ -67,31 +84,6 @@ describe('useSubscriptions', () => {
         features: { storage: '100GB', users: 10 },
       },
     },
-    {
-      id: 'sub-2',
-      user_id: 'user-123',
-      service_id: 'service-2',
-      plan_id: 'plan-2',
-      status: 'trial',
-      current_period_start: '2024-01-15T00:00:00Z',
-      current_period_end: '2024-01-29T00:00:00Z',
-      cancel_at_period_end: false,
-      created_at: '2024-01-15T00:00:00Z',
-      updated_at: '2024-01-15T00:00:00Z',
-      service: {
-        id: 'service-2',
-        title: '워크플로우 자동화',
-        slug: 'workflow-automation',
-        image_url: 'https://example.com/image2.jpg',
-      },
-      plan: {
-        id: 'plan-2',
-        plan_name: '스타터',
-        billing_cycle: 'monthly',
-        price: 50000,
-        features: { storage: '50GB', users: 5 },
-      },
-    },
   ];
 
   const mockPayments: SubscriptionPaymentWithDetails[] = [
@@ -109,20 +101,6 @@ describe('useSubscriptions', () => {
         plan_name: '프로',
       },
     },
-    {
-      id: 'payment-2',
-      subscription_id: 'sub-1',
-      amount: 100000,
-      status: 'success',
-      payment_method: 'card',
-      transaction_id: 'txn-124',
-      created_at: '2024-02-01T00:00:00Z',
-      subscription: {
-        id: 'sub-1',
-        service_title: 'AI 컨설팅',
-        plan_name: '프로',
-      },
-    },
   ];
 
   beforeEach(() => {
@@ -134,142 +112,112 @@ describe('useSubscriptions', () => {
       },
     });
     vi.clearAllMocks();
+    // Reset useAuth mock to default
+    vi.mocked(useAuth).mockReturnValue({
+      workersTokens: { accessToken: 'test-token', refreshToken: 'test-refresh' },
+      workersUser: { id: 'user-123', email: 'test@example.com' },
+      isAuthenticated: true,
+      loading: false,
+    } as any);
   });
 
   const wrapper = ({ children }: { children: ReactNode }) => (
-    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    <MemoryRouter>
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    </MemoryRouter>
   );
+
+  describe('useSubscriptionPlans', () => {
+    it('구독 플랜 목록을 조회해야 함', async () => {
+      const mockPlans = [{ id: 'plan-1', plan_name: '프로', price: 100000 }];
+      vi.mocked(subscriptionsApi.getPlans).mockResolvedValue({
+        data: { plans: mockPlans },
+        error: null,
+      });
+
+      const { result } = renderHook(() => useSubscriptionPlans(), { wrapper });
+
+      await waitFor(() => {
+        expect(result.current.isSuccess).toBe(true);
+      });
+
+      expect(result.current.data).toEqual(mockPlans);
+    });
+  });
 
   describe('useMySubscriptions', () => {
     it('내 구독 목록을 성공적으로 조회해야 함', async () => {
-      // Setup
-      vi.mocked(supabase.auth.getUser).mockResolvedValue({
-        data: { user: mockUser as any },
+      vi.mocked(subscriptionsApi.getHistory).mockResolvedValue({
+        data: { subscriptions: mockSubscriptions },
         error: null,
       });
 
-      const orderMock = vi.fn().mockResolvedValue({
-        data: mockSubscriptions,
-        error: null,
+      const { result } = renderHook(() => useMySubscriptions(), { wrapper });
+
+      await waitFor(() => {
+        expect(result.current.isSuccess).toBe(true);
       });
 
-      const eqMock = vi.fn().mockReturnValue({
-        order: orderMock,
-      });
+      expect(result.current.data).toEqual(mockSubscriptions);
+      expect(subscriptionsApi.getHistory).toHaveBeenCalledWith('test-token');
+    });
 
-      const selectMock = vi.fn().mockReturnValue({
-        eq: eqMock,
-      });
-
-      vi.mocked(supabase.from).mockReturnValue({
-        select: selectMock,
+    it('로그인하지 않은 경우 쿼리가 비활성화되어야 함', async () => {
+      vi.mocked(useAuth).mockReturnValue({
+        workersTokens: null,
+        workersUser: null,
+        isAuthenticated: false,
+        loading: false,
       } as any);
 
-      // Execute
       const { result } = renderHook(() => useMySubscriptions(), { wrapper });
 
-      // Assert
       await waitFor(() => {
-        expect(result.current.isSuccess || result.current.isError).toBe(true);
+        expect(result.current.fetchStatus).toBe('idle');
       });
 
-      if (result.current.isSuccess) {
-        expect(result.current.data).toEqual(mockSubscriptions);
-        expect(supabase.from).toHaveBeenCalledWith('subscriptions');
-        expect(eqMock).toHaveBeenCalledWith('user_id', mockUser.id);
-        expect(orderMock).toHaveBeenCalledWith('created_at', { ascending: false });
-      }
+      expect(subscriptionsApi.getHistory).not.toHaveBeenCalled();
     });
 
-    it('로그인하지 않은 경우 에러를 반환해야 함', async () => {
-      // Setup
-      vi.mocked(supabase.auth.getUser).mockResolvedValue({
-        data: { user: null },
-        error: null,
-      });
-
-      // Execute
-      const { result } = renderHook(() => useMySubscriptions(), { wrapper });
-
-      // Assert
-      await waitFor(() => {
-        expect(result.current.isError).toBe(true);
-      });
-
-      expect(result.current.error).toEqual(new Error('로그인이 필요합니다.'));
-    });
-
-    it('데이터베이스 에러 발생 시 에러를 반환해야 함', async () => {
-      // Setup
-      vi.mocked(supabase.auth.getUser).mockResolvedValue({
-        data: { user: mockUser as any },
-        error: null,
-      });
-
-      const orderMock = vi.fn().mockResolvedValue({
+    it('API 에러 발생 시 에러를 반환해야 함', async () => {
+      vi.mocked(subscriptionsApi.getHistory).mockResolvedValue({
         data: null,
-        error: { message: 'Database error', code: 'PGRST116' },
+        error: 'Database error',
       });
 
-      const eqMock = vi.fn().mockReturnValue({
-        order: orderMock,
-      });
-
-      const selectMock = vi.fn().mockReturnValue({
-        eq: eqMock,
-      });
-
-      vi.mocked(supabase.from).mockReturnValue({
-        select: selectMock,
-      } as any);
-
-      // Execute
       const { result } = renderHook(() => useMySubscriptions(), { wrapper });
 
-      // Assert
       await waitFor(() => {
         expect(result.current.isError).toBe(true);
       });
+    });
+  });
+
+  describe('useCurrentSubscription', () => {
+    it('현재 활성 구독을 조회해야 함', async () => {
+      vi.mocked(subscriptionsApi.getCurrent).mockResolvedValue({
+        data: { subscription: mockSubscriptions[0] },
+        error: null,
+      });
+
+      const { result } = renderHook(() => useCurrentSubscription(), { wrapper });
+
+      await waitFor(() => {
+        expect(result.current.isSuccess).toBe(true);
+      });
+
+      expect(result.current.data).toEqual(mockSubscriptions[0]);
     });
   });
 
   describe('useCancelSubscription', () => {
-    it('즉시 취소 시 구독을 성공적으로 취소해야 함', async () => {
-      // Setup
-      const cancelledSubscription = {
-        ...mockSubscriptions[0],
-        status: 'cancelled',
-        cancel_at_period_end: false,
-        cancelled_at: '2024-01-20T00:00:00Z',
-      };
-
-      const singleMock = vi.fn().mockResolvedValue({
-        data: cancelledSubscription,
+    it('구독을 성공적으로 취소해야 함', async () => {
+      vi.mocked(subscriptionsApi.cancel).mockResolvedValue({
+        data: { success: true },
         error: null,
       });
 
-      const selectMock = vi.fn().mockReturnValue({
-        single: singleMock,
-      });
-
-      const eqMock = vi.fn().mockReturnValue({
-        select: selectMock,
-      });
-
-      const updateMock = vi.fn().mockReturnValue({
-        eq: eqMock,
-      });
-
-      vi.mocked(supabase.from).mockReturnValue({
-        update: updateMock,
-      } as any);
-
-      // Execute
       const { result } = renderHook(() => useCancelSubscription(), { wrapper });
-
-      await waitFor(() => {
-        expect(result.current.isIdle || result.current.isSuccess || result.current.isError).toBe(true);
-      });
 
       result.current.mutate({
         subscription_id: 'sub-1',
@@ -277,934 +225,127 @@ describe('useSubscriptions', () => {
         reason: '더 이상 필요하지 않음',
       });
 
-      // Assert
       await waitFor(() => {
-        expect(result.current.isSuccess || result.current.isError).toBe(true);
+        expect(result.current.isSuccess).toBe(true);
       });
 
-      if (result.current.isSuccess) {
-        expect(updateMock).toHaveBeenCalledWith(
-          expect.objectContaining({
-            cancel_at_period_end: false,
-            status: 'cancelled',
-            metadata: { cancel_reason: '더 이상 필요하지 않음' },
-          })
-        );
-        expect(eqMock).toHaveBeenCalledWith('id', 'sub-1');
-      }
-    });
-
-    it('주기 종료 시 취소 설정을 성공적으로 적용해야 함', async () => {
-      // Setup
-      const scheduledCancellation = {
-        ...mockSubscriptions[0],
-        cancel_at_period_end: true,
-      };
-
-      const singleMock = vi.fn().mockResolvedValue({
-        data: scheduledCancellation,
-        error: null,
-      });
-
-      const selectMock = vi.fn().mockReturnValue({
-        single: singleMock,
-      });
-
-      const eqMock = vi.fn().mockReturnValue({
-        select: selectMock,
-      });
-
-      const updateMock = vi.fn().mockReturnValue({
-        eq: eqMock,
-      });
-
-      vi.mocked(supabase.from).mockReturnValue({
-        update: updateMock,
-      } as any);
-
-      // Execute
-      const { result } = renderHook(() => useCancelSubscription(), { wrapper });
-
-      await waitFor(() => {
-        expect(result.current.isIdle || result.current.isSuccess || result.current.isError).toBe(true);
-      });
-
-      result.current.mutate({
-        subscription_id: 'sub-1',
-        cancel_at_period_end: true,
-      });
-
-      // Assert
-      await waitFor(() => {
-        expect(result.current.isSuccess || result.current.isError).toBe(true);
-      });
-
-      if (result.current.isSuccess) {
-        expect(updateMock).toHaveBeenCalledWith(
-          expect.objectContaining({
-            cancel_at_period_end: true,
-          })
-        );
-        expect(updateMock).not.toHaveBeenCalledWith(
-          expect.objectContaining({
-            status: 'cancelled',
-          })
-        );
-      }
+      expect(subscriptionsApi.cancel).toHaveBeenCalledWith(
+        'test-token',
+        'sub-1',
+        {
+          cancel_immediately: true,
+          reason: '더 이상 필요하지 않음',
+        }
+      );
     });
 
     it('취소 실패 시 에러를 처리해야 함', async () => {
-      // Setup
-      const eqMock = vi.fn().mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          single: vi.fn().mockResolvedValue({
-            data: null,
-            error: { message: 'Subscription not found', code: 'PGRST116' },
-          }),
-        }),
+      vi.mocked(subscriptionsApi.cancel).mockResolvedValue({
+        data: null,
+        error: 'Subscription not found',
       });
 
-      vi.mocked(supabase.from).mockReturnValue({
-        update: vi.fn().mockReturnValue({
-          eq: eqMock,
-        }),
-      } as any);
-
-      // Execute
       const { result } = renderHook(() => useCancelSubscription(), { wrapper });
-
-      await waitFor(() => {
-        expect(result.current.isIdle || result.current.isSuccess || result.current.isError).toBe(true);
-      });
 
       result.current.mutate({
         subscription_id: 'sub-999',
         cancel_at_period_end: false,
       });
 
-      // Assert
       await waitFor(() => {
         expect(result.current.isError).toBe(true);
       });
+    });
+  });
+
+  describe('useResumeSubscription', () => {
+    it('구독을 성공적으로 재개해야 함', async () => {
+      vi.mocked(subscriptionsApi.resume).mockResolvedValue({
+        data: { success: true },
+        error: null,
+      });
+
+      const { result } = renderHook(() => useResumeSubscription(), { wrapper });
+
+      result.current.mutate('sub-1');
+
+      await waitFor(() => {
+        expect(result.current.isSuccess).toBe(true);
+      });
+
+      expect(subscriptionsApi.resume).toHaveBeenCalledWith('test-token', 'sub-1');
     });
   });
 
   describe('useUpgradeSubscription', () => {
-    it('구독 플랜을 성공적으로 업그레이드해야 함', async () => {
-      // Setup
-      vi.mocked(supabase.auth.getUser).mockResolvedValue({
-        data: { user: mockUser as any },
+    it('구독 플랜을 성공적으로 변경해야 함', async () => {
+      vi.mocked(subscriptionsApi.changePlan).mockResolvedValue({
+        data: { success: true },
         error: null,
       });
 
-      vi.mocked(supabase.functions.invoke).mockResolvedValue({
-        data: {
-          orderId: 'order-123',
-          amount: 200000,
-          orderName: '플랜 업그레이드',
-        },
-        error: null,
-      });
-
-      const upgradedSubscription = {
-        ...mockSubscriptions[0],
-        plan_id: 'plan-premium',
-      };
-
-      const singleMock = vi.fn().mockResolvedValue({
-        data: upgradedSubscription,
-        error: null,
-      });
-
-      const selectMock = vi.fn().mockReturnValue({
-        single: singleMock,
-      });
-
-      const eqMock = vi.fn().mockReturnValue({
-        select: selectMock,
-      });
-
-      const updateMock = vi.fn().mockReturnValue({
-        eq: eqMock,
-      });
-
-      vi.mocked(supabase.from).mockReturnValue({
-        update: updateMock,
-      } as any);
-
-      // Execute
       const { result } = renderHook(() => useUpgradeSubscription(), { wrapper });
-
-      await waitFor(() => {
-        expect(result.current.isIdle || result.current.isSuccess || result.current.isError).toBe(true);
-      });
 
       result.current.mutate({
         subscription_id: 'sub-1',
         new_plan_id: 'plan-premium',
       });
 
-      // Assert
       await waitFor(() => {
-        expect(result.current.isSuccess || result.current.isError).toBe(true);
+        expect(result.current.isSuccess).toBe(true);
       });
 
-      if (result.current.isSuccess) {
-        expect(supabase.functions.invoke).toHaveBeenCalledWith('create-payment-intent', {
-          body: {
-            planId: 'plan-premium',
-            userId: mockUser.id,
-            subscriptionId: 'sub-1',
-          },
-        });
-        expect(updateMock).toHaveBeenCalledWith(
-          expect.objectContaining({
-            plan_id: 'plan-premium',
-          })
-        );
-      }
-    });
-
-    it('로그인하지 않은 경우 에러를 반환해야 함', async () => {
-      // Setup
-      vi.mocked(supabase.auth.getUser).mockResolvedValue({
-        data: { user: null },
-        error: null,
-      });
-
-      // Execute
-      const { result } = renderHook(() => useUpgradeSubscription(), { wrapper });
-
-      await waitFor(() => {
-        expect(result.current.isIdle || result.current.isSuccess || result.current.isError).toBe(true);
-      });
-
-      result.current.mutate({
-        subscription_id: 'sub-1',
-        new_plan_id: 'plan-premium',
-      });
-
-      // Assert
-      await waitFor(() => {
-        expect(result.current.isError).toBe(true);
-      });
-    });
-
-    it('결제 인텐트 생성 실패 시 에러를 처리해야 함', async () => {
-      // Setup
-      vi.mocked(supabase.auth.getUser).mockResolvedValue({
-        data: { user: mockUser as any },
-        error: null,
-      });
-
-      vi.mocked(supabase.functions.invoke).mockResolvedValue({
-        data: {
-          error: 'Payment intent creation failed',
-        },
-        error: null,
-      });
-
-      // Execute
-      const { result } = renderHook(() => useUpgradeSubscription(), { wrapper });
-
-      await waitFor(() => {
-        expect(result.current.isIdle || result.current.isSuccess || result.current.isError).toBe(true);
-      });
-
-      result.current.mutate({
-        subscription_id: 'sub-1',
-        new_plan_id: 'plan-premium',
-      });
-
-      // Assert
-      await waitFor(() => {
-        expect(result.current.isError).toBe(true);
-      });
-    });
-
-    it('구독 업데이트 실패 시 에러를 처리해야 함', async () => {
-      // Setup
-      vi.mocked(supabase.auth.getUser).mockResolvedValue({
-        data: { user: mockUser as any },
-        error: null,
-      });
-
-      vi.mocked(supabase.functions.invoke).mockResolvedValue({
-        data: {
-          orderId: 'order-123',
-          amount: 200000,
-        },
-        error: null,
-      });
-
-      const eqMock = vi.fn().mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          single: vi.fn().mockResolvedValue({
-            data: null,
-            error: { message: 'Update failed', code: 'PGRST116' },
-          }),
-        }),
-      });
-
-      vi.mocked(supabase.from).mockReturnValue({
-        update: vi.fn().mockReturnValue({
-          eq: eqMock,
-        }),
-      } as any);
-
-      // Execute
-      const { result } = renderHook(() => useUpgradeSubscription(), { wrapper });
-
-      await waitFor(() => {
-        expect(result.current.isIdle || result.current.isSuccess || result.current.isError).toBe(true);
-      });
-
-      result.current.mutate({
-        subscription_id: 'sub-1',
-        new_plan_id: 'plan-premium',
-      });
-
-      // Assert
-      await waitFor(() => {
-        expect(result.current.isError).toBe(true);
-      });
-    });
-  });
-
-  describe('useMySubscriptions - 추가 테스트', () => {
-    it('구독이 여러 개 있을 때 최신순으로 정렬되어야 함', async () => {
-      // Setup
-      vi.mocked(supabase.auth.getUser).mockResolvedValue({
-        data: { user: mockUser as any },
-        error: null,
-      });
-
-      const orderMock = vi.fn().mockResolvedValue({
-        data: mockSubscriptions,
-        error: null,
-      });
-
-      const eqMock = vi.fn().mockReturnValue({
-        order: orderMock,
-      });
-
-      const selectMock = vi.fn().mockReturnValue({
-        eq: eqMock,
-      });
-
-      vi.mocked(supabase.from).mockReturnValue({
-        select: selectMock,
-      } as any);
-
-      // Execute
-      const { result } = renderHook(() => useMySubscriptions(), { wrapper });
-
-      // Assert
-      await waitFor(() => {
-        expect(result.current.isSuccess || result.current.isError).toBe(true);
-      });
-
-      if (result.current.isSuccess) {
-        expect(orderMock).toHaveBeenCalledWith('created_at', { ascending: false });
-        expect(result.current.data![0].created_at).toBe('2024-01-01T00:00:00Z');
-      }
-    });
-
-    it('빈 구독 목록도 성공으로 처리되어야 함', async () => {
-      // Setup
-      vi.mocked(supabase.auth.getUser).mockResolvedValue({
-        data: { user: mockUser as any },
-        error: null,
-      });
-
-      const orderMock = vi.fn().mockResolvedValue({
-        data: [],
-        error: null,
-      });
-
-      const eqMock = vi.fn().mockReturnValue({
-        order: orderMock,
-      });
-
-      const selectMock = vi.fn().mockReturnValue({
-        eq: eqMock,
-      });
-
-      vi.mocked(supabase.from).mockReturnValue({
-        select: selectMock,
-      } as any);
-
-      // Execute
-      const { result } = renderHook(() => useMySubscriptions(), { wrapper });
-
-      // Assert
-      await waitFor(() => {
-        expect(result.current.isSuccess || result.current.isError).toBe(true);
-      });
-
-      if (result.current.isSuccess) {
-        expect(result.current.data).toEqual([]);
-      }
-    });
-
-    it('active와 trial 상태의 구독이 모두 조회되어야 함', async () => {
-      // Setup
-      vi.mocked(supabase.auth.getUser).mockResolvedValue({
-        data: { user: mockUser as any },
-        error: null,
-      });
-
-      const orderMock = vi.fn().mockResolvedValue({
-        data: mockSubscriptions,
-        error: null,
-      });
-
-      const eqMock = vi.fn().mockReturnValue({
-        order: orderMock,
-      });
-
-      const selectMock = vi.fn().mockReturnValue({
-        eq: eqMock,
-      });
-
-      vi.mocked(supabase.from).mockReturnValue({
-        select: selectMock,
-      } as any);
-
-      // Execute
-      const { result } = renderHook(() => useMySubscriptions(), { wrapper });
-
-      // Assert
-      await waitFor(() => {
-        expect(result.current.isSuccess || result.current.isError).toBe(true);
-      });
-
-      if (result.current.isSuccess) {
-        const activeCount = result.current.data!.filter((s) => s.status === 'active').length;
-        const trialCount = result.current.data!.filter((s) => s.status === 'trial').length;
-        expect(activeCount + trialCount).toBeGreaterThan(0);
-      }
-    });
-  });
-
-  describe('useCancelSubscription - 추가 테스트', () => {
-    it('취소 사유가 없어도 정상적으로 취소되어야 함', async () => {
-      // Setup
-      const cancelledSubscription = {
-        ...mockSubscriptions[0],
-        status: 'cancelled',
-        cancel_at_period_end: false,
-        cancelled_at: '2024-01-20T00:00:00Z',
-      };
-
-      const singleMock = vi.fn().mockResolvedValue({
-        data: cancelledSubscription,
-        error: null,
-      });
-
-      const selectMock = vi.fn().mockReturnValue({
-        single: singleMock,
-      });
-
-      const eqMock = vi.fn().mockReturnValue({
-        select: selectMock,
-      });
-
-      const updateMock = vi.fn().mockReturnValue({
-        eq: eqMock,
-      });
-
-      vi.mocked(supabase.from).mockReturnValue({
-        update: updateMock,
-      } as any);
-
-      // Execute
-      const { result } = renderHook(() => useCancelSubscription(), { wrapper });
-
-      await waitFor(() => {
-        expect(result.current.isIdle || result.current.isSuccess || result.current.isError).toBe(true);
-      });
-
-      result.current.mutate({
-        subscription_id: 'sub-1',
-        cancel_at_period_end: false,
-      });
-
-      // Assert
-      await waitFor(() => {
-        expect(result.current.isSuccess || result.current.isError).toBe(true);
-      });
-
-      if (result.current.isSuccess) {
-        expect(updateMock).toHaveBeenCalled();
-      }
-    });
-
-    it('이미 취소된 구독을 다시 취소하려고 하면 에러를 반환해야 함', async () => {
-      // Setup
-      const eqMock = vi.fn().mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          single: vi.fn().mockResolvedValue({
-            data: null,
-            error: { message: 'Already cancelled', code: 'PGRST116' },
-          }),
-        }),
-      });
-
-      vi.mocked(supabase.from).mockReturnValue({
-        update: vi.fn().mockReturnValue({
-          eq: eqMock,
-        }),
-      } as any);
-
-      // Execute
-      const { result } = renderHook(() => useCancelSubscription(), { wrapper });
-
-      await waitFor(() => {
-        expect(result.current.isIdle || result.current.isSuccess || result.current.isError).toBe(true);
-      });
-
-      result.current.mutate({
-        subscription_id: 'sub-cancelled',
-        cancel_at_period_end: false,
-      });
-
-      // Assert
-      await waitFor(() => {
-        expect(result.current.isError).toBe(true);
-      });
-    });
-
-    it('metadata에 취소 사유가 올바르게 저장되어야 함', async () => {
-      // Setup
-      const cancelledSubscription = {
-        ...mockSubscriptions[0],
-        status: 'cancelled',
-        cancel_at_period_end: false,
-        cancelled_at: '2024-01-20T00:00:00Z',
-        metadata: { cancel_reason: '더 나은 서비스 발견' },
-      };
-
-      const singleMock = vi.fn().mockResolvedValue({
-        data: cancelledSubscription,
-        error: null,
-      });
-
-      const selectMock = vi.fn().mockReturnValue({
-        single: singleMock,
-      });
-
-      const eqMock = vi.fn().mockReturnValue({
-        select: selectMock,
-      });
-
-      const updateMock = vi.fn().mockReturnValue({
-        eq: eqMock,
-      });
-
-      vi.mocked(supabase.from).mockReturnValue({
-        update: updateMock,
-      } as any);
-
-      // Execute
-      const { result } = renderHook(() => useCancelSubscription(), { wrapper });
-
-      await waitFor(() => {
-        expect(result.current.isIdle || result.current.isSuccess || result.current.isError).toBe(true);
-      });
-
-      result.current.mutate({
-        subscription_id: 'sub-1',
-        cancel_at_period_end: false,
-        reason: '더 나은 서비스 발견',
-      });
-
-      // Assert
-      await waitFor(() => {
-        expect(result.current.isSuccess || result.current.isError).toBe(true);
-      });
-
-      if (result.current.isSuccess) {
-        expect(updateMock).toHaveBeenCalledWith(
-          expect.objectContaining({
-            metadata: { cancel_reason: '더 나은 서비스 발견' },
-          })
-        );
-      }
-    });
-
-    it('cancel_at_period_end가 true일 때 cancelled_at이 설정되지 않아야 함', async () => {
-      // Setup
-      const scheduledCancellation = {
-        ...mockSubscriptions[0],
-        cancel_at_period_end: true,
-      };
-
-      const singleMock = vi.fn().mockResolvedValue({
-        data: scheduledCancellation,
-        error: null,
-      });
-
-      const selectMock = vi.fn().mockReturnValue({
-        single: singleMock,
-      });
-
-      const eqMock = vi.fn().mockReturnValue({
-        select: selectMock,
-      });
-
-      const updateMock = vi.fn().mockReturnValue({
-        eq: eqMock,
-      });
-
-      vi.mocked(supabase.from).mockReturnValue({
-        update: updateMock,
-      } as any);
-
-      // Execute
-      const { result } = renderHook(() => useCancelSubscription(), { wrapper });
-
-      await waitFor(() => {
-        expect(result.current.isIdle || result.current.isSuccess || result.current.isError).toBe(true);
-      });
-
-      result.current.mutate({
-        subscription_id: 'sub-1',
-        cancel_at_period_end: true,
-      });
-
-      // Assert
-      await waitFor(() => {
-        expect(result.current.isSuccess || result.current.isError).toBe(true);
-      });
-
-      if (result.current.isSuccess) {
-        expect(updateMock).toHaveBeenCalledWith(
-          expect.not.objectContaining({
-            cancelled_at: expect.anything(),
-          })
-        );
-      }
-    });
-  });
-
-  describe('useUpgradeSubscription - 추가 테스트', () => {
-    it('플랜 다운그레이드도 성공적으로 처리되어야 함', async () => {
-      // Setup
-      vi.mocked(supabase.auth.getUser).mockResolvedValue({
-        data: { user: mockUser as any },
-        error: null,
-      });
-
-      vi.mocked(supabase.functions.invoke).mockResolvedValue({
-        data: {
-          orderId: 'order-123',
-          amount: 50000, // 더 낮은 가격
-          orderName: '플랜 다운그레이드',
-        },
-        error: null,
-      });
-
-      const downgradedSubscription = {
-        ...mockSubscriptions[0],
-        plan_id: 'plan-basic',
-      };
-
-      const singleMock = vi.fn().mockResolvedValue({
-        data: downgradedSubscription,
-        error: null,
-      });
-
-      const selectMock = vi.fn().mockReturnValue({
-        single: singleMock,
-      });
-
-      const eqMock = vi.fn().mockReturnValue({
-        select: selectMock,
-      });
-
-      const updateMock = vi.fn().mockReturnValue({
-        eq: eqMock,
-      });
-
-      vi.mocked(supabase.from).mockReturnValue({
-        update: updateMock,
-      } as any);
-
-      // Execute
-      const { result } = renderHook(() => useUpgradeSubscription(), { wrapper });
-
-      await waitFor(() => {
-        expect(result.current.isIdle || result.current.isSuccess || result.current.isError).toBe(true);
-      });
-
-      result.current.mutate({
-        subscription_id: 'sub-1',
-        new_plan_id: 'plan-basic',
-      });
-
-      // Assert
-      await waitFor(() => {
-        expect(result.current.isSuccess || result.current.isError).toBe(true);
-      });
-
-      if (result.current.isSuccess) {
-        expect(updateMock).toHaveBeenCalledWith(
-          expect.objectContaining({
-            plan_id: 'plan-basic',
-          })
-        );
-      }
-    });
-
-    it('같은 플랜으로 변경하려고 해도 처리되어야 함', async () => {
-      // Setup
-      vi.mocked(supabase.auth.getUser).mockResolvedValue({
-        data: { user: mockUser as any },
-        error: null,
-      });
-
-      vi.mocked(supabase.functions.invoke).mockResolvedValue({
-        data: {
-          orderId: 'order-123',
-          amount: 100000,
-        },
-        error: null,
-      });
-
-      const singleMock = vi.fn().mockResolvedValue({
-        data: mockSubscriptions[0],
-        error: null,
-      });
-
-      const selectMock = vi.fn().mockReturnValue({
-        single: singleMock,
-      });
-
-      const eqMock = vi.fn().mockReturnValue({
-        select: selectMock,
-      });
-
-      const updateMock = vi.fn().mockReturnValue({
-        eq: eqMock,
-      });
-
-      vi.mocked(supabase.from).mockReturnValue({
-        update: updateMock,
-      } as any);
-
-      // Execute
-      const { result } = renderHook(() => useUpgradeSubscription(), { wrapper });
-
-      await waitFor(() => {
-        expect(result.current.isIdle || result.current.isSuccess || result.current.isError).toBe(true);
-      });
-
-      result.current.mutate({
-        subscription_id: 'sub-1',
-        new_plan_id: 'plan-1', // 현재 플랜과 동일
-      });
-
-      // Assert
-      await waitFor(() => {
-        expect(result.current.isSuccess || result.current.isError).toBe(true);
-      });
-    });
-
-    it('Edge Function 네트워크 에러 시 에러를 반환해야 함', async () => {
-      // Setup
-      vi.mocked(supabase.auth.getUser).mockResolvedValue({
-        data: { user: mockUser as any },
-        error: null,
-      });
-
-      vi.mocked(supabase.functions.invoke).mockResolvedValue({
-        data: null,
-        error: { message: 'Network error', name: 'NetworkError' },
-      });
-
-      // Execute
-      const { result } = renderHook(() => useUpgradeSubscription(), { wrapper });
-
-      await waitFor(() => {
-        expect(result.current.isIdle || result.current.isSuccess || result.current.isError).toBe(true);
-      });
-
-      result.current.mutate({
-        subscription_id: 'sub-1',
-        new_plan_id: 'plan-premium',
-      });
-
-      // Assert
-      await waitFor(() => {
-        expect(result.current.isError).toBe(true);
-      });
+      expect(subscriptionsApi.changePlan).toHaveBeenCalledWith(
+        'test-token',
+        'sub-1',
+        { new_plan_id: 'plan-premium' }
+      );
     });
   });
 
   describe('useSubscriptionPayments', () => {
-    it('구독 결제 내역을 성공적으로 조회해야 함', async () => {
-      // Setup
-      const rawPayments = [
-        {
-          id: 'payment-1',
-          subscription_id: 'sub-1',
-          amount: 100000,
-          status: 'success',
-          payment_method: 'card',
-          transaction_id: 'txn-123',
-          created_at: '2024-01-01T00:00:00Z',
-          subscription: {
-            id: 'sub-1',
-            service: { title: 'AI 컨설팅' },
-            plan: { plan_name: '프로' },
-          },
-        },
-        {
-          id: 'payment-2',
-          subscription_id: 'sub-1',
-          amount: 100000,
-          status: 'success',
-          payment_method: 'card',
-          transaction_id: 'txn-124',
-          created_at: '2024-02-01T00:00:00Z',
-          subscription: {
-            id: 'sub-1',
-            service: { title: 'AI 컨설팅' },
-            plan: { plan_name: '프로' },
-          },
-        },
-      ];
-
-      const orderMock = vi.fn().mockResolvedValue({
-        data: rawPayments,
+    it('결제 내역을 성공적으로 조회해야 함', async () => {
+      vi.mocked(paymentsApi.history).mockResolvedValue({
+        data: { payments: mockPayments },
         error: null,
       });
 
-      const eqMock = vi.fn().mockReturnValue({
-        order: orderMock,
-      });
-
-      const selectMock = vi.fn().mockReturnValue({
-        eq: eqMock,
-      });
-
-      vi.mocked(supabase.from).mockReturnValue({
-        select: selectMock,
-      } as any);
-
-      // Execute
       const { result } = renderHook(() => useSubscriptionPayments('sub-1'), { wrapper });
 
-      // Assert
       await waitFor(() => {
-        expect(result.current.isSuccess || result.current.isError).toBe(true);
+        expect(result.current.isSuccess).toBe(true);
       });
 
-      if (result.current.isSuccess) {
-        expect(result.current.data).toHaveLength(2);
-        expect(result.current.data![0]).toMatchObject({
-          id: 'payment-1',
-          subscription: {
-            id: 'sub-1',
-            service_title: 'AI 컨설팅',
-            plan_name: '프로',
-          },
-        });
-        expect(supabase.from).toHaveBeenCalledWith('subscription_payments');
-        expect(eqMock).toHaveBeenCalledWith('subscription_id', 'sub-1');
-        expect(orderMock).toHaveBeenCalledWith('created_at', { ascending: false });
-      }
+      expect(result.current.data).toEqual(mockPayments);
+      expect(paymentsApi.history).toHaveBeenCalledWith('test-token', { subscriptionId: 'sub-1' });
     });
+  });
 
-    it('구독 ID가 없으면 쿼리가 비활성화되어야 함', () => {
-      // Execute
-      const { result } = renderHook(() => useSubscriptionPayments(''), { wrapper });
-
-      // Assert
-      expect(result.current.isFetching).toBe(false);
-      expect(result.current.data).toBeUndefined();
-    });
-
-    it('결제 내역 조회 실패 시 에러를 처리해야 함', async () => {
-      // Setup
-      const orderMock = vi.fn().mockResolvedValue({
-        data: null,
-        error: { message: 'Database error', code: 'PGRST116' },
-      });
-
-      const eqMock = vi.fn().mockReturnValue({
-        order: orderMock,
-      });
-
-      const selectMock = vi.fn().mockReturnValue({
-        eq: eqMock,
-      });
-
-      vi.mocked(supabase.from).mockReturnValue({
-        select: selectMock,
-      } as any);
-
-      // Execute
-      const { result } = renderHook(() => useSubscriptionPayments('sub-1'), { wrapper });
-
-      // Assert
-      await waitFor(() => {
-        expect(result.current.isError).toBe(true);
-      });
-    });
-
-    it('서비스나 플랜 정보가 없는 경우 기본값을 사용해야 함', async () => {
-      // Setup
-      const rawPayments = [
-        {
-          id: 'payment-1',
-          subscription_id: 'sub-1',
-          amount: 100000,
-          status: 'success',
-          payment_method: 'card',
-          transaction_id: 'txn-123',
-          created_at: '2024-01-01T00:00:00Z',
-          subscription: {
-            id: 'sub-1',
-            service: null,
-            plan: null,
-          },
-        },
-      ];
-
-      const orderMock = vi.fn().mockResolvedValue({
-        data: rawPayments,
+  describe('useCreateSubscription', () => {
+    it('구독을 성공적으로 생성해야 함', async () => {
+      vi.mocked(subscriptionsApi.create).mockResolvedValue({
+        data: { success: true, subscription: mockSubscriptions[0] },
         error: null,
       });
 
-      const eqMock = vi.fn().mockReturnValue({
-        order: orderMock,
+      const { result } = renderHook(() => useCreateSubscription(), { wrapper });
+
+      result.current.mutate({
+        planId: 'plan-1',
+        billingKeyId: 'billing-key-1',
       });
 
-      const selectMock = vi.fn().mockReturnValue({
-        eq: eqMock,
-      });
-
-      vi.mocked(supabase.from).mockReturnValue({
-        select: selectMock,
-      } as any);
-
-      // Execute
-      const { result } = renderHook(() => useSubscriptionPayments('sub-1'), { wrapper });
-
-      // Assert
       await waitFor(() => {
-        expect(result.current.isSuccess || result.current.isError).toBe(true);
+        expect(result.current.isSuccess).toBe(true);
       });
 
-      if (result.current.isSuccess) {
-        expect(result.current.data![0].subscription).toMatchObject({
-          id: 'sub-1',
-          service_title: 'Unknown Service',
-          plan_name: 'Unknown Plan',
-        });
-      }
+      expect(subscriptionsApi.create).toHaveBeenCalledWith(
+        'test-token',
+        {
+          plan_id: 'plan-1',
+          billing_key_id: 'billing-key-1',
+        }
+      );
     });
   });
 });
