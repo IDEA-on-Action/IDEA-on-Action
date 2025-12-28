@@ -2,14 +2,15 @@
  * useTossPay Hook
  *
  * Toss Payments 전용 결제 훅
+ *
+ * @migration Supabase → Cloudflare Workers (완전 마이그레이션 완료)
  */
 
 import { useState } from 'react'
-import { supabase } from '@/integrations/supabase/client'
+import { paymentsApi, ordersApi } from '@/integrations/cloudflare/client'
+import { useAuth } from '@/hooks/useAuth'
 import {
   requestTossPayment,
-  confirmTossPayment,
-  cancelTossPayment,
   getTossPaymentRedirectUrls,
 } from '@/lib/payments/toss-payments'
 import type { PaymentResult, PaymentError } from '@/lib/payments/types'
@@ -27,6 +28,7 @@ export interface UseTossPayReturn {
 export function useTossPay(): UseTossPayReturn {
   const [isProcessing, setIsProcessing] = useState(false)
   const [error, setError] = useState<PaymentError | null>(null)
+  const { workersTokens, workersUser } = useAuth()
 
   /**
    * Toss Payments 결제 시작
@@ -41,8 +43,7 @@ export function useTossPay(): UseTossPayReturn {
     setError(null)
 
     try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error('로그인이 필요합니다.')
+      if (!workersUser) throw new Error('로그인이 필요합니다.')
 
       // 1. Redirect URL 생성
       const redirectUrls = getTossPaymentRedirectUrls(orderId)
@@ -52,7 +53,7 @@ export function useTossPay(): UseTossPayReturn {
         orderId: orderNumber,
         orderName,
         amount,
-        customerEmail: user.email,
+        customerEmail: workersUser.email,
         ...redirectUrls,
       })
 
@@ -84,62 +85,37 @@ export function useTossPay(): UseTossPayReturn {
     setError(null)
 
     try {
-      // 1. 주문 정보 조회
-      const { data: order, error: orderError } = await supabase
-        .from('orders')
-        .select('order_number')
-        .eq('id', orderId)
-        .single()
+      const token = workersTokens?.accessToken
+      if (!token) throw new Error('로그인이 필요합니다.')
 
-      if (orderError || !order) throw new Error('주문 정보를 찾을 수 없습니다.')
-
-      // 2. Toss Payments 승인 요청
-      const confirmResponse = await confirmTossPayment({
+      // Workers API로 결제 승인 요청
+      // Workers에서 토스 API 호출 + payments 삽입 + orders 업데이트 처리
+      const response = await paymentsApi.confirm(token, {
         paymentKey,
-        orderId: order.order_number,
+        orderId,
         amount,
       })
 
-      // 3. payments 테이블에 결제 정보 저장
-      const { error: paymentError } = await supabase.from('payments').insert({
-        order_id: orderId,
-        amount: confirmResponse.totalAmount,
-        status: 'completed',
-        provider: 'toss',
-        provider_transaction_id: confirmResponse.paymentKey,
-        payment_method: confirmResponse.method,
-        card_info: confirmResponse.card
-          ? {
-              cardType: confirmResponse.card.cardType,
-              cardNumber: confirmResponse.card.number,
-              issuer: confirmResponse.card.company,
-              approveNo: confirmResponse.card.approvedNo,
-            }
-          : null,
-        metadata: confirmResponse,
-        paid_at: confirmResponse.approvedAt,
-      })
+      if (response.error) {
+        throw new Error(response.error)
+      }
 
-      if (paymentError) throw paymentError
-
-      // 4. orders 테이블 상태 업데이트 (pending → confirmed)
-      const { error: orderUpdateError } = await supabase
-        .from('orders')
-        .update({
-          status: 'confirmed',
-          confirmed_at: new Date().toISOString(),
-        })
-        .eq('id', orderId)
-
-      if (orderUpdateError) throw orderUpdateError
+      const result = response.data as {
+        success: boolean
+        payment: {
+          paymentKey: string
+          totalAmount: number
+          approvedAt: string
+        }
+      }
 
       return {
         success: true,
         provider: 'toss',
-        transactionId: confirmResponse.paymentKey,
+        transactionId: result.payment.paymentKey,
         orderId,
-        amount: confirmResponse.totalAmount,
-        paidAt: confirmResponse.approvedAt,
+        amount: result.payment.totalAmount,
+        paidAt: result.payment.approvedAt,
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : '결제 승인 실패'
@@ -152,11 +128,15 @@ export function useTossPay(): UseTossPayReturn {
 
       devError(err, { service: 'Toss Payments', operation: '결제 승인' })
 
-      // 결제 실패 시 orders 상태 업데이트
-      await supabase
-        .from('orders')
-        .update({ status: 'cancelled' })
-        .eq('id', orderId)
+      // 결제 실패 시 orders 상태 업데이트 (Workers API 사용)
+      const token = workersTokens?.accessToken
+      if (token) {
+        try {
+          await ordersApi.updateStatus(token, orderId, 'cancelled')
+        } catch (updateErr) {
+          console.error('[useTossPay] 주문 상태 업데이트 실패:', updateErr)
+        }
+      }
 
       throw err
     } finally {
@@ -172,11 +152,19 @@ export function useTossPay(): UseTossPayReturn {
     setError(null)
 
     try {
-      await cancelTossPayment({
+      const token = workersTokens?.accessToken
+      if (!token) throw new Error('로그인이 필요합니다.')
+
+      // Workers API로 결제 취소 요청
+      const response = await paymentsApi.cancel(token, {
         paymentKey,
         cancelReason,
         cancelAmount,
       })
+
+      if (response.error) {
+        throw new Error(response.error)
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : '결제 취소 실패'
       setError({
@@ -207,4 +195,3 @@ export function useTossPay(): UseTossPayReturn {
     clearError,
   }
 }
-

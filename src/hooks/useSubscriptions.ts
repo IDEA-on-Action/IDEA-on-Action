@@ -7,18 +7,14 @@
  * - 구독 업그레이드/다운그레이드
  * - 결제 내역 조회
  *
- * @migration Supabase 유지 (인증 기반 개인 데이터 + 뮤테이션)
- * - useMySubscriptions: 인증 필요한 개인 데이터
- * - useCancelSubscription: 뮤테이션 (Supabase 유지)
- * - useUpgradeSubscription: 뮤테이션 (Supabase 유지)
- * - useSubscriptionPayments: 인증 필요한 개인 데이터
+ * @migration Supabase → Cloudflare Workers (완전 마이그레이션 완료)
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { supabase } from '@/integrations/supabase/client'
+import { subscriptionsApi, paymentsApi } from '@/integrations/cloudflare/client'
+import { useAuth } from './useAuth'
 import {
   SubscriptionWithPlan,
-  SubscriptionPaymentWithDetails,
   CancelSubscriptionRequest,
   UpgradeSubscriptionRequest
 } from '@/types/subscription.types'
@@ -29,77 +25,79 @@ export const subscriptionKeys = {
   mySubscriptions: () => [...subscriptionKeys.all, 'my'] as const,
   details: (id: string) => [...subscriptionKeys.all, 'detail', id] as const,
   payments: (id: string) => [...subscriptionKeys.all, 'payments', id] as const,
+  plans: () => [...subscriptionKeys.all, 'plans'] as const,
+}
+
+/**
+ * 구독 플랜 목록 조회 훅
+ */
+export function useSubscriptionPlans() {
+  return useQuery({
+    queryKey: subscriptionKeys.plans(),
+    staleTime: 1000 * 60 * 30, // 30분간 캐시 유지
+    queryFn: async () => {
+      const response = await subscriptionsApi.getPlans()
+
+      if (response.error) {
+        console.error('[useSubscriptionPlans] API 오류:', response.error)
+        return []
+      }
+
+      const result = response.data as { plans: unknown[] } | null
+      return result?.plans || []
+    }
+  })
 }
 
 /**
  * 내 구독 목록 조회 훅
  */
 export function useMySubscriptions() {
+  const { workersTokens } = useAuth()
+
   return useQuery({
     queryKey: subscriptionKeys.mySubscriptions(),
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error('로그인이 필요합니다.')
+      const token = workersTokens?.accessToken
+      if (!token) throw new Error('로그인이 필요합니다.')
 
-      // 먼저 구독 정보 조회 (billing_keys 조인 제외)
-      const { data: subscriptionsData, error: subsError } = await supabase
-        .from('subscriptions')
-        .select(`
-          *,
-          service:services (
-            id,
-            title,
-            slug,
-            image_url
-          ),
-          plan:subscription_plans (
-            id,
-            plan_name,
-            billing_cycle,
-            price,
-            features
-          )
-        `)
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
+      const response = await subscriptionsApi.getHistory(token)
 
-      if (subsError) throw subsError
-
-      // 구독이 없으면 빈 배열 반환
-      if (!subscriptionsData || subscriptionsData.length === 0) {
-        return [] as SubscriptionWithPlan[]
+      if (response.error) {
+        console.error('[useMySubscriptions] API 오류:', response.error)
+        throw new Error(response.error)
       }
 
-      // billing_key_id가 있는 구독들의 billing_key 조회
-      const billingKeyIds = subscriptionsData
-        .map(sub => sub.billing_key_id)
-        .filter((id): id is string => id !== null)
+      const result = response.data as { subscriptions: SubscriptionWithPlan[] } | null
+      return result?.subscriptions || []
+    },
+    enabled: !!workersTokens?.accessToken
+  })
+}
 
-      let billingKeysMap: Record<string, unknown> = {}
+/**
+ * 현재 활성 구독 조회 훅
+ */
+export function useCurrentSubscription() {
+  const { workersTokens } = useAuth()
 
-      if (billingKeyIds.length > 0) {
-        const { data: billingKeys } = await supabase
-          .from('billing_keys')
-          .select('*')
-          .in('id', billingKeyIds)
+  return useQuery({
+    queryKey: [...subscriptionKeys.mySubscriptions(), 'current'],
+    queryFn: async () => {
+      const token = workersTokens?.accessToken
+      if (!token) throw new Error('로그인이 필요합니다.')
 
-        if (billingKeys) {
-          billingKeysMap = billingKeys.reduce((acc, key) => {
-            acc[key.id] = key
-            return acc
-          }, {} as Record<string, unknown>)
-        }
+      const response = await subscriptionsApi.getCurrent(token)
+
+      if (response.error) {
+        console.error('[useCurrentSubscription] API 오류:', response.error)
+        return null
       }
 
-      // 구독 데이터에 billing_key 매핑
-      const data = subscriptionsData.map(sub => ({
-        ...sub,
-        billing_key: sub.billing_key_id ? billingKeysMap[sub.billing_key_id] || null : null
-      }))
-
-      // 타입 캐스팅 (Supabase 조인 쿼리 결과 매핑)
-      return data as unknown as SubscriptionWithPlan[]
-    }
+      const result = response.data as { subscription: SubscriptionWithPlan | null } | null
+      return result?.subscription || null
+    },
+    enabled: !!workersTokens?.accessToken
   })
 }
 
@@ -108,37 +106,23 @@ export function useMySubscriptions() {
  */
 export function useCancelSubscription() {
   const queryClient = useQueryClient()
+  const { workersTokens } = useAuth()
 
   return useMutation({
     mutationFn: async ({ subscription_id, cancel_at_period_end, reason }: CancelSubscriptionRequest) => {
-      // 1. 구독 상태 업데이트
-      // 1. 구독 상태 업데이트
-      const status = cancel_at_period_end ? 'active' : 'cancelled'
-      const updateData: {
-        cancel_at_period_end: boolean
-        metadata?: { cancel_reason: string }
-        status?: string
-        cancelled_at?: string
-      } = {
-        cancel_at_period_end,
-        metadata: reason ? { cancel_reason: reason } : undefined
+      const token = workersTokens?.accessToken
+      if (!token) throw new Error('로그인이 필요합니다.')
+
+      const response = await subscriptionsApi.cancel(token, subscription_id, {
+        cancel_immediately: !cancel_at_period_end,
+        reason,
+      })
+
+      if (response.error) {
+        throw new Error(response.error)
       }
 
-      // 즉시 취소인 경우 status도 변경
-      if (!cancel_at_period_end) {
-        updateData.status = 'cancelled'
-        updateData.cancelled_at = new Date().toISOString()
-      }
-
-      const { data, error } = await supabase
-        .from('subscriptions')
-        .update(updateData)
-        .eq('id', subscription_id)
-        .select()
-        .single()
-
-      if (error) throw error
-      return data
+      return response.data
     },
     onSuccess: () => {
       toast.success('구독이 성공적으로 취소되었습니다.')
@@ -152,58 +136,60 @@ export function useCancelSubscription() {
 }
 
 /**
+ * 구독 재개 훅
+ */
+export function useResumeSubscription() {
+  const queryClient = useQueryClient()
+  const { workersTokens } = useAuth()
+
+  return useMutation({
+    mutationFn: async (subscriptionId: string) => {
+      const token = workersTokens?.accessToken
+      if (!token) throw new Error('로그인이 필요합니다.')
+
+      const response = await subscriptionsApi.resume(token, subscriptionId)
+
+      if (response.error) {
+        throw new Error(response.error)
+      }
+
+      return response.data
+    },
+    onSuccess: () => {
+      toast.success('구독이 재개되었습니다.')
+      queryClient.invalidateQueries({ queryKey: subscriptionKeys.all })
+    },
+    onError: (error) => {
+      console.error('Error resuming subscription:', error)
+      toast.error('구독 재개 중 오류가 발생했습니다.')
+    }
+  })
+}
+
+/**
  * 구독 업그레이드/다운그레이드 훅
  */
 export function useUpgradeSubscription() {
   const queryClient = useQueryClient()
+  const { workersTokens } = useAuth()
 
   return useMutation({
     mutationFn: async ({ subscription_id, new_plan_id }: UpgradeSubscriptionRequest) => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error('로그인이 필요합니다.')
+      const token = workersTokens?.accessToken
+      if (!token) throw new Error('로그인이 필요합니다.')
 
-      // 1. Call Edge Function to create payment intent/order
-      const { data: orderData, error: orderError } = await supabase.functions.invoke('create-payment-intent', {
-        body: {
-          planId: new_plan_id,
-          userId: user.id,
-          subscriptionId: subscription_id // Pass subscription ID for context
-        }
+      const response = await subscriptionsApi.changePlan(token, subscription_id, {
+        new_plan_id,
       })
 
-      if (orderError) throw orderError
-      if (orderData.error) throw new Error(orderData.error)
+      if (response.error) {
+        throw new Error(response.error)
+      }
 
-      // 2. Initialize Toss Payments (Client-side)
-      // Note: In a real implementation, you would load the Toss Payments SDK here
-      // and call requestPayment with the orderData.
-      // For this refactoring step, we will simulate the successful payment flow
-      // by calling the update logic directly, but acknowledging the integration point.
-
-      console.log('Payment Order Created:', orderData)
-
-      // SIMULATION: Assume payment success and update DB directly for now
-      // In production: 
-      // await tossPayments.requestPayment('CARD', { ...orderData })
-      // AND/OR the success URL would trigger a webhook or another edge function.
-
-      // For now, we'll just update the subscription plan directly as before, 
-      // but now we have the infrastructure to switch to real payments easily.
-      const { data, error } = await supabase
-        .from('subscriptions')
-        .update({
-          plan_id: new_plan_id,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', subscription_id)
-        .select()
-        .single()
-
-      if (error) throw error
-      return data
+      return response.data
     },
     onSuccess: () => {
-      toast.success('구독 플랜이 변경되었습니다. (결제 연동 준비 완료)')
+      toast.success('구독 플랜이 변경되었습니다.')
       queryClient.invalidateQueries({ queryKey: subscriptionKeys.all })
     },
     onError: (error) => {
@@ -214,37 +200,95 @@ export function useUpgradeSubscription() {
 }
 
 /**
+ * 구독 결제 수단 변경 훅
+ */
+export function useUpdateSubscriptionPayment() {
+  const queryClient = useQueryClient()
+  const { workersTokens } = useAuth()
+
+  return useMutation({
+    mutationFn: async ({ subscriptionId, billingKeyId }: { subscriptionId: string; billingKeyId: string }) => {
+      const token = workersTokens?.accessToken
+      if (!token) throw new Error('로그인이 필요합니다.')
+
+      const response = await subscriptionsApi.updatePayment(token, subscriptionId, {
+        billing_key_id: billingKeyId,
+      })
+
+      if (response.error) {
+        throw new Error(response.error)
+      }
+
+      return response.data
+    },
+    onSuccess: () => {
+      toast.success('결제 수단이 변경되었습니다.')
+      queryClient.invalidateQueries({ queryKey: subscriptionKeys.all })
+    },
+    onError: (error) => {
+      console.error('Error updating payment method:', error)
+      toast.error('결제 수단 변경 중 오류가 발생했습니다.')
+    }
+  })
+}
+
+/**
  * 구독 결제 내역 조회 훅
  */
 export function useSubscriptionPayments(subscriptionId: string) {
+  const { workersTokens } = useAuth()
+
   return useQuery({
     queryKey: subscriptionKeys.payments(subscriptionId),
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('subscription_payments')
-        .select(`
-          *,
-          subscription:subscriptions (
-            id,
-            service:services (title),
-            plan:subscription_plans (plan_name)
-          )
-        `)
-        .eq('subscription_id', subscriptionId)
-        .order('created_at', { ascending: false })
+      const token = workersTokens?.accessToken
+      if (!token) throw new Error('로그인이 필요합니다.')
 
-      if (error) throw error
+      // Workers API에서 결제 내역 조회
+      const response = await paymentsApi.history(token, { subscriptionId })
 
-      // 데이터 매핑
-      return data.map(payment => ({
-        ...payment,
-        subscription: {
-          id: payment.subscription.id,
-          service_title: payment.subscription.service?.title || 'Unknown Service',
-          plan_name: payment.subscription.plan?.plan_name || 'Unknown Plan'
-        }
-      })) as SubscriptionPaymentWithDetails[]
+      if (response.error) {
+        console.error('[useSubscriptionPayments] API 오류:', response.error)
+        return []
+      }
+
+      const result = response.data as { payments: unknown[] } | null
+      return result?.payments || []
     },
-    enabled: !!subscriptionId
+    enabled: !!subscriptionId && !!workersTokens?.accessToken
+  })
+}
+
+/**
+ * 구독 생성 훅
+ */
+export function useCreateSubscription() {
+  const queryClient = useQueryClient()
+  const { workersTokens } = useAuth()
+
+  return useMutation({
+    mutationFn: async ({ planId, billingKeyId }: { planId: string; billingKeyId: string }) => {
+      const token = workersTokens?.accessToken
+      if (!token) throw new Error('로그인이 필요합니다.')
+
+      const response = await subscriptionsApi.create(token, {
+        plan_id: planId,
+        billing_key_id: billingKeyId,
+      })
+
+      if (response.error) {
+        throw new Error(response.error)
+      }
+
+      return response.data
+    },
+    onSuccess: () => {
+      toast.success('구독이 시작되었습니다.')
+      queryClient.invalidateQueries({ queryKey: subscriptionKeys.all })
+    },
+    onError: (error) => {
+      console.error('Error creating subscription:', error)
+      toast.error(`구독 생성 실패: ${error.message}`)
+    }
   })
 }

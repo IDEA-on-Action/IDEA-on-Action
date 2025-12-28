@@ -228,9 +228,13 @@ export const paymentsApi = {
     });
   },
 
-  history: async (token: string, params?: { limit?: number; offset?: number }) => {
-    const query = params ? `?limit=${params.limit || 20}&offset=${params.offset || 0}` : '';
-    return callWorkersApi(`/api/v1/payments/toss/history${query}`, { token });
+  history: async (token: string, params?: { limit?: number; offset?: number; subscriptionId?: string }) => {
+    const queryParams = new URLSearchParams();
+    if (params?.limit) queryParams.set('limit', String(params.limit));
+    if (params?.offset) queryParams.set('offset', String(params.offset));
+    if (params?.subscriptionId) queryParams.set('subscription_id', params.subscriptionId);
+    const query = queryParams.toString();
+    return callWorkersApi(`/api/v1/payments/toss/history${query ? `?${query}` : ''}`, { token });
   },
 };
 
@@ -447,6 +451,14 @@ export const ordersApi = {
     return callWorkersApi(`/api/v1/orders/${id}`, {
       method: 'DELETE',
       token,
+    });
+  },
+
+  updateStatus: async (token: string, id: string, status: string) => {
+    return callWorkersApi(`/api/v1/orders/${id}`, {
+      method: 'PATCH',
+      token,
+      body: { status },
     });
   },
 };
@@ -734,6 +746,70 @@ export const noticesApi = {
   },
 };
 
+/**
+ * 구독 API
+ */
+export const subscriptionsApi = {
+  // 플랜 목록 조회
+  getPlans: async () => {
+    return callWorkersApi('/api/v1/subscriptions/plans');
+  },
+
+  // 현재 구독 조회
+  getCurrent: async (token: string) => {
+    return callWorkersApi('/api/v1/subscriptions/current', { token });
+  },
+
+  // 구독 내역 조회
+  getHistory: async (token: string) => {
+    return callWorkersApi('/api/v1/subscriptions/history', { token });
+  },
+
+  // 구독 생성
+  create: async (token: string, data: { plan_id: string; billing_key_id: string }) => {
+    return callWorkersApi('/api/v1/subscriptions', {
+      method: 'POST',
+      token,
+      body: data,
+    });
+  },
+
+  // 구독 취소
+  cancel: async (token: string, id: string, data: { cancel_immediately?: boolean; reason?: string }) => {
+    return callWorkersApi(`/api/v1/subscriptions/${id}/cancel`, {
+      method: 'POST',
+      token,
+      body: data,
+    });
+  },
+
+  // 구독 재개
+  resume: async (token: string, id: string) => {
+    return callWorkersApi(`/api/v1/subscriptions/${id}/resume`, {
+      method: 'POST',
+      token,
+    });
+  },
+
+  // 플랜 변경
+  changePlan: async (token: string, id: string, data: { new_plan_id: string }) => {
+    return callWorkersApi(`/api/v1/subscriptions/${id}/change-plan`, {
+      method: 'POST',
+      token,
+      body: data,
+    });
+  },
+
+  // 결제 수단 변경
+  updatePayment: async (token: string, id: string, data: { billing_key_id: string }) => {
+    return callWorkersApi(`/api/v1/subscriptions/${id}/update-payment`, {
+      method: 'POST',
+      token,
+      body: data,
+    });
+  },
+};
+
 // 기본 내보내기
 export default {
   auth: authApi,
@@ -751,5 +827,6 @@ export default {
   portfolio: portfolioApi,
   roadmap: roadmapApi,
   notices: noticesApi,
+  subscriptions: subscriptionsApi,
   call: callWorkersApi,
 };
