@@ -43,7 +43,7 @@ import {
 import { Checkbox } from '@/components/ui/checkbox'
 import { RichTextEditor } from '@/components/admin/editor/RichTextEditor'
 import { useToast } from '@/hooks/use-toast'
-import { supabase } from '@/integrations/supabase/client'
+import { storageApi } from '@/integrations/cloudflare/client'
 import { useAuth } from '@/hooks/useAuth'
 import type { BlogPostWithRelations } from '@/types/blog'
 import { VersionHistory, AutoSaveIndicator, VersionCompareDialog } from '@/components/admin/version'
@@ -236,20 +236,14 @@ export function BlogPostForm({ post, mode }: BlogPostFormProps) {
     setIsUploading(true)
 
     try {
-      // Upload to Supabase Storage
-      const fileName = `${Date.now()}-${file.name}`
-      const { data, error } = await supabase.storage
-        .from('blog-images')
-        .upload(fileName, file)
+      // Upload to R2 Storage via Workers API
+      const fileName = `blog-images/${Date.now()}-${file.name}`
+      const { data, error } = await storageApi.upload(fileName, file)
 
-      if (error) throw error
+      if (error) throw new Error(error)
 
-      // Get public URL
-      const { data: urlData } = supabase.storage
-        .from('blog-images')
-        .getPublicUrl(data.path)
-
-      const imageUrl = urlData.publicUrl
+      // Get public URL from response
+      const imageUrl = data?.url || ''
       form.setValue('featured_image', imageUrl, { shouldValidate: true })
       setPreviewImage(imageUrl)
 

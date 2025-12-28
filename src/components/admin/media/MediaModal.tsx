@@ -24,9 +24,8 @@ import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { formatFileSize, formatDate } from '@/lib/cms-utils';
 import type { MediaItem } from '@/types/cms.types';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { rewriteStorageUrl } from '@/lib/storage/url-rewriter';
+import { getMediaPublicUrl } from '@/lib/media-utils';
 
 // =====================================================
 // Types
@@ -45,9 +44,8 @@ export interface MediaModalProps {
 // =====================================================
 
 function getPublicUrl(storagePath: string): string {
-  const { data } = supabase.storage.from('media-library').getPublicUrl(storagePath);
-  // Supabase URL을 R2 URL로 변환
-  return rewriteStorageUrl(data.publicUrl) || data.publicUrl;
+  // R2 URL 직접 생성 (Supabase 제거)
+  return getMediaPublicUrl(storagePath, true);
 }
 
 // =====================================================

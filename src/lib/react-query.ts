@@ -9,9 +9,8 @@
  */
 
 import { useQuery, useMutation, useQueryClient, UseQueryOptions, UseMutationOptions, QueryKey, QueryClient } from '@tanstack/react-query'
-import { supabase } from '@/integrations/supabase/client'
-import { handleSupabaseError, handleApiError } from './errors'
-import type { PostgrestError } from '@supabase/supabase-js'
+import { servicesApi, blogApi } from '@/integrations/cloudflare/client'
+import { handleApiError } from './errors'
 
 // ===================================================================
 // Optimized Cache Times (TASK-078)
@@ -117,15 +116,16 @@ export const commonQueryOptions = {
 }
 
 // ===================================================================
-// Supabase Query Wrapper
+// Workers API Query Wrapper
 // ===================================================================
 
 /**
- * Supabase 쿼리 결과 타입
+ * Workers API 쿼리 결과 타입
  */
-export interface SupabaseQueryResult<T> {
+export interface WorkersQueryResult<T> {
   data: T | null
-  error: PostgrestError | null
+  error: string | null
+  status: number
 }
 
 /**
@@ -301,6 +301,7 @@ export function createPaginatedQueryKey(
  * 서비스 상세 데이터 프리페치
  *
  * 서비스 목록 페이지에서 상세 페이지 데이터를 미리 로드
+ * Workers API 사용 (Supabase 마이그레이션 완료)
  *
  * @example
  * ```tsx
@@ -319,34 +320,9 @@ export async function prefetchServiceDetail(
   await queryClient.prefetchQuery({
     queryKey: ['services-platform', 'detail-slug', slug],
     queryFn: async () => {
-      const { data: service, error: serviceError } = await supabase
-        .from('services')
-        .select('*')
-        .eq('slug', slug)
-        .maybeSingle()
-
-      if (serviceError) throw serviceError
-      if (!service) return null
-
-      // 패키지와 플랜도 함께 로드
-      const [packagesResult, plansResult] = await Promise.all([
-        supabase
-          .from('service_packages')
-          .select('*')
-          .eq('service_id', service.id)
-          .order('display_order', { ascending: true }),
-        supabase
-          .from('subscription_plans')
-          .select('*')
-          .eq('service_id', service.id)
-          .order('display_order', { ascending: true }),
-      ])
-
-      return {
-        ...service,
-        packages: packagesResult.data || [],
-        plans: plansResult.data || [],
-      }
+      const { data, error } = await servicesApi.getBySlug(slug)
+      if (error) throw new Error(error)
+      return data
     },
     ...domainCacheConfig.services,
   })
@@ -354,6 +330,7 @@ export async function prefetchServiceDetail(
 
 /**
  * 블로그 게시물 상세 데이터 프리페치
+ * Workers API 사용 (Supabase 마이그레이션 완료)
  */
 export async function prefetchBlogPost(
   queryClient: QueryClient,
@@ -362,14 +339,8 @@ export async function prefetchBlogPost(
   await queryClient.prefetchQuery({
     queryKey: ['blogPosts', 'slug', slug],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('blog_posts')
-        .select('*, author:profiles(full_name, avatar_url)')
-        .eq('slug', slug)
-        .eq('status', 'published')
-        .maybeSingle()
-
-      if (error) throw error
+      const { data, error } = await blogApi.getBySlug(slug)
+      if (error) throw new Error(error)
       return data
     },
     ...domainCacheConfig.blogPosts,

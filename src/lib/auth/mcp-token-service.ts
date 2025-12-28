@@ -8,7 +8,7 @@
  * @module lib/auth/mcp-token-service
  */
 
-import { supabase } from '@/integrations/supabase/client';
+import { callWorkersApi } from '@/integrations/cloudflare/client';
 import { generateAccessToken, generateRefreshToken, verifyToken, decodeToken } from './jwt';
 import type { JWTPayload } from '@/types/mcp-auth.types';
 

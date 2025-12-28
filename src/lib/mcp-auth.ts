@@ -6,7 +6,6 @@
  * @module lib/mcp-auth
  */
 
-import { supabase } from '@/integrations/supabase/client';
 import type {
   MCPTokenRequest,
   MCPTokenResponse,
@@ -95,11 +94,17 @@ export function removeTokenFromStorage(): void {
 // ============================================================================
 
 /**
- * 현재 사용자의 Supabase JWT 토큰 가져오기
+ * 현재 사용자의 Workers JWT 토큰 가져오기
  */
 async function getUserToken(): Promise<string | null> {
-  const { data: { session } } = await supabase.auth.getSession();
-  return session?.access_token ?? null;
+  try {
+    const stored = localStorage.getItem('workers_auth_tokens');
+    if (!stored) return null;
+    const tokens = JSON.parse(stored);
+    return tokens?.accessToken ?? null;
+  } catch {
+    return null;
+  }
 }
 
 /**

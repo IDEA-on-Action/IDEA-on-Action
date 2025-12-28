@@ -11,13 +11,15 @@ import Header from '@/components/Header'
 import Footer from '@/components/Footer'
 import { PaymentStatus } from '@/components/payment/PaymentStatus'
 import { usePayment } from '@/hooks/usePayment'
-import { supabase } from '@/integrations/supabase/client'
+import { ordersApi } from '@/integrations/cloudflare/client'
+import { useAuth } from '@/hooks/useAuth'
 import { Loader2 } from 'lucide-react'
 import { devError } from '@/lib/errors'
 
 export default function PaymentSuccess() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
+  const { workersTokens } = useAuth()
 
   // URL 파라미터
   const orderId = searchParams.get('order_id')
@@ -53,18 +55,15 @@ export default function PaymentSuccess() {
       hasProcessed.current = true
 
       try {
-        // 1. 주문 정보 조회
-        const { data: order, error: orderError } = await supabase
-          .from('orders')
-          .select('order_number, total_amount')
-          .eq('id', orderId)
-          .single()
+        // 1. 주문 정보 조회 (Workers API)
+        const { data: order, error: orderError } = await ordersApi.getById(workersTokens?.accessToken || '', orderId)
 
         if (orderError || !order) throw new Error('주문 정보를 찾을 수 없습니다.')
+        const orderData = order as { order_number: string; total_amount: number }
 
         setOrderInfo({
-          orderNumber: order.order_number,
-          amount: order.total_amount,
+          orderNumber: orderData.order_number,
+          amount: orderData.total_amount,
         })
 
         // 2. 결제 승인

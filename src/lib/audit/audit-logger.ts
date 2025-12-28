@@ -3,7 +3,7 @@
  * 감사 로그 이벤트 기록 유틸리티
  */
 
-import { supabase } from '@/integrations/supabase/client';
+import { callWorkersApi } from '@/integrations/cloudflare/client';
 import type {
   CreateAuditLogInput,
   AuditContext,

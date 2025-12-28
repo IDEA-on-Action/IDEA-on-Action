@@ -11,7 +11,8 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useState } from 'react'
-import { supabase } from '@/integrations/supabase/client'
+import { storageApi } from '@/integrations/cloudflare/client'
+import { useAuth } from '@/hooks/useAuth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -97,19 +98,13 @@ export function ServiceForm({ service, categories, onSubmit, onCancel }: Service
         const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`
         const filePath = `service-images/${fileName}`
 
-        // Supabase Storage에 업로드
-        const { data, error } = await supabase.storage
-          .from('services')
-          .upload(filePath, file)
+        // R2 Storage에 업로드 via Workers API
+        const { data, error } = await storageApi.upload(filePath, file)
 
-        if (error) throw error
+        if (error) throw new Error(error)
 
-        // Public URL 가져오기
-        const {
-          data: { publicUrl },
-        } = supabase.storage.from('services').getPublicUrl(data.path)
-
-        return publicUrl
+        // Public URL 반환
+        return data?.url || ''
       })
 
       const uploadedUrls = await Promise.all(uploadPromises)

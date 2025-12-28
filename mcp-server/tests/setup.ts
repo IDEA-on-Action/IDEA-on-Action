@@ -13,9 +13,11 @@ import { vi } from 'vitest';
  * 테스트용 환경 변수 설정
  */
 export function setupTestEnvironment(): void {
-  vi.stubEnv('SUPABASE_URL', 'https://test-project.supabase.co');
-  vi.stubEnv('SUPABASE_SERVICE_ROLE_KEY', 'test-service-role-key-32-chars-long');
-  vi.stubEnv('SUPABASE_ANON_KEY', 'test-anon-key-32-characters-long');
+  // Workers API 환경 변수
+  vi.stubEnv('WORKERS_API_URL', 'https://api.test.ideaonaction.ai');
+  vi.stubEnv('WORKERS_API_SERVICE_KEY', 'test-workers-api-service-key-32-chars');
+
+  // JWT 환경 변수 (토큰 검증용)
   vi.stubEnv('SUPABASE_JWT_SECRET', 'test-jwt-secret-key-32-characters-long');
 }
 
@@ -165,24 +167,39 @@ export function createExpiredJWTPayload(overrides: Record<string, unknown> = {})
 }
 
 /**
- * Supabase 클라이언트 Mock 생성
+ * Workers API Mock 응답 생성
  */
-export function createMockSupabaseClient(data: unknown = null, error: unknown = null) {
+export function createMockWorkersApiResponse<T>(data: T | null, error: string | null = null) {
   return {
-    from: vi.fn().mockReturnValue({
-      select: vi.fn().mockReturnValue({
-        eq: vi.fn().mockReturnValue({
-          single: vi.fn().mockResolvedValue({ data, error }),
-        }),
-      }),
-    }),
-    auth: {
-      getUser: vi.fn().mockResolvedValue({
-        data: data ? { user: data } : null,
-        error,
-      }),
-    },
+    data,
+    error,
+    status: error ? 500 : 200,
   };
+}
+
+/**
+ * Workers API fetch Mock 생성
+ */
+export function createMockFetch(responses: Map<string, { data: unknown; status: number }>) {
+  return vi.fn().mockImplementation((url: string) => {
+    const urlObj = new URL(url);
+    const path = urlObj.pathname;
+
+    const response = responses.get(path);
+    if (response) {
+      return Promise.resolve({
+        ok: response.status >= 200 && response.status < 300,
+        status: response.status,
+        json: () => Promise.resolve(response.data),
+      });
+    }
+
+    return Promise.resolve({
+      ok: false,
+      status: 404,
+      json: () => Promise.resolve({ error: 'Not Found' }),
+    });
+  });
 }
 
 /**
@@ -202,4 +219,18 @@ export async function expectAsyncError(
       }
     }
   }
+}
+
+/**
+ * Workers API 통합 데이터 엔드포인트 Mock
+ */
+export function setupIntegrationDataMock(integrationData = mockIntegrationData) {
+  const responses = new Map([
+    [
+      `/api/v1/admin/users/${mockUser.id}/integration`,
+      { data: integrationData, status: 200 },
+    ],
+  ]);
+
+  global.fetch = createMockFetch(responses);
 }

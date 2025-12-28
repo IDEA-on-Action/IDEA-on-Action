@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+ 
 /**
  * usePermissions Advanced Features 테스트
  *
@@ -118,12 +118,10 @@ function PermissionGate({
   // Simulate permission check
   const permissions = Array.isArray(permission) ? permission : [permission];
 
-  let hasAccess = false;
-  if (mode === 'any') {
-    hasAccess = useCanAccessAny(permissions, organizationId);
-  } else {
-    hasAccess = useCanAccessAll(permissions, organizationId);
-  }
+  // React Hook 규칙 준수: 조건부 호출 대신 항상 두 훅 모두 호출
+  const hasAny = useCanAccessAny(permissions, organizationId);
+  const hasAll = useCanAccessAll(permissions, organizationId);
+  const hasAccess = mode === 'any' ? hasAny : hasAll;
 
   return hasAccess ? <>{children}</> : <>{fallback}</>;
 }

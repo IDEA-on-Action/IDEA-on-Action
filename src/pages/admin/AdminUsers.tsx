@@ -12,7 +12,7 @@ import { useState, useEffect } from 'react'
 import { Helmet } from 'react-helmet-async'
 import { useAdmins, useCreateAdmin, useUpdateAdmin, useDeleteAdmin, useCurrentAdminRole } from '@/hooks/useAdmins'
 import { useAuth } from '@/hooks/useAuth'
-import { supabase } from '@/integrations/supabase/client'
+import { usersApi } from '@/integrations/cloudflare/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {

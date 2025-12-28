@@ -10,7 +10,7 @@
 import { useState, useCallback } from 'react';
 import ExcelJS from 'exceljs';
 import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/integrations/supabase/client';
+// Workers API는 generators에서 직접 사용됨
 import type {
   UseXlsxExportOptions,
   UseXlsxExportResult,
@@ -171,9 +171,9 @@ async function fetchDefaultSheets(
   dateRange?: UseXlsxExportOptions['dateRange']
 ): Promise<SheetConfig[]> {
   const [eventsResult, issuesResult, healthResult] = await Promise.all([
-    fetchEvents(supabase, dateRange),
-    fetchIssues(supabase, dateRange),
-    fetchHealth(supabase),
+    fetchEvents(dateRange),
+    fetchIssues(dateRange),
+    fetchHealth(),
   ]);
 
   const kpiResult = calculateKPI(eventsResult, issuesResult);

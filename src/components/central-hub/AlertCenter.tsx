@@ -37,7 +37,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import { serviceEventsApi, serviceIssuesApi } from '@/integrations/cloudflare/client';
+import { useAuth } from '@/hooks/useAuth';
 import {
   useRealtimeEventStream,
   type StreamItem,
@@ -806,6 +807,19 @@ export function AlertCenter({
   const handleDeleteSelected = async () => {
     if (selectedItems.size === 0) return;
 
+    // Workers 인증 토큰 확인
+    const stored = localStorage.getItem('workers_auth_tokens');
+    const tokens = stored ? JSON.parse(stored) : null;
+    const accessToken = tokens?.accessToken;
+    if (!accessToken) {
+      toast({
+        title: '인증 오류',
+        description: '로그인이 필요합니다.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     try {
       // 선택된 항목들을 이벤트와 이슈로 분리
       const eventsToDelete: string[] = [];
@@ -823,24 +837,18 @@ export function AlertCenter({
         }
       });
 
-      // DB에서 삭제 (병렬 처리)
+      // Workers API를 통해 삭제 (병렬 처리)
       const deletePromises: Promise<unknown>[] = [];
 
       if (eventsToDelete.length > 0) {
         deletePromises.push(
-          supabase
-            .from('service_events')
-            .delete()
-            .in('id', eventsToDelete)
+          serviceEventsApi.deleteMany(accessToken, eventsToDelete)
         );
       }
 
       if (issuesToDelete.length > 0) {
         deletePromises.push(
-          supabase
-            .from('service_issues')
-            .delete()
-            .in('id', issuesToDelete)
+          serviceIssuesApi.deleteMany(accessToken, issuesToDelete)
         );
       }
 

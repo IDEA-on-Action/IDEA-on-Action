@@ -8,7 +8,7 @@
  */
 
 import ExcelJS from 'exceljs';
-import { supabase } from '@/integrations/supabase/client';
+import { dataImportApi } from '@/integrations/cloudflare/client';
 import type {
   ImportConfig,
   ImportResult,
@@ -358,28 +358,38 @@ export function mapColumns(
 }
 
 // ============================================================================
-// Supabase 삽입
+// Workers API 삽입
 // ============================================================================
 
 /**
- * Supabase 테이블에 데이터 삽입
+ * Workers API를 통해 테이블에 데이터 삽입
  *
  * @param tableName - 테이블명
  * @param data - 삽입할 데이터 배열
  * @returns 삽입 결과
  */
-export async function importToSupabase(
+export async function importToDatabase(
   tableName: string,
   data: Record<string, unknown>[]
 ): Promise<{ success: boolean; insertedIds: string[]; error?: Error }> {
   try {
-    const { data: insertedData, error } = await supabase
-      .from(tableName)
-      .insert(data)
-      .select('id');
+    // Workers 인증 토큰 확인
+    const stored = localStorage.getItem('workers_auth_tokens');
+    const tokens = stored ? JSON.parse(stored) : null;
+    const accessToken = tokens?.accessToken;
+
+    if (!accessToken) {
+      throw new Error('인증이 필요합니다.');
+    }
+
+    const { data: insertedData, error } = await dataImportApi.batchInsert(
+      accessToken,
+      tableName,
+      data
+    );
 
     if (error) {
-      throw new Error(`DB 삽입 실패: ${error.message}`);
+      throw new Error(`DB 삽입 실패: ${error}`);
     }
 
     const insertedIds = (insertedData || []).map((item: { id: string }) => item.id);
@@ -396,6 +406,9 @@ export async function importToSupabase(
     };
   }
 }
+
+// 하위 호환성을 위한 별칭
+export const importToSupabase = importToDatabase;
 
 // ============================================================================
 // 배치 처리

@@ -4,7 +4,7 @@
  * @module skills/xlsx/generators/healthSheet
  */
 
-import type { SupabaseClient } from '@supabase/supabase-js';
+import { serviceHealthApi } from '@/integrations/cloudflare/client';
 import type { ServiceHealth } from '@/types/central-hub.types';
 import { SERVICE_INFO } from '@/types/central-hub.types';
 import type { HealthSheetRow, ColumnConfig } from '@/types/skills.types';
@@ -26,18 +26,12 @@ export const healthColumns: ColumnConfig[] = [
 /**
  * 서비스 헬스 데이터 조회
  *
- * @param supabase - Supabase 클라이언트
  * @returns 헬스 시트 행 배열
  */
-export async function fetchHealth(
-  supabase: SupabaseClient
-): Promise<HealthSheetRow[]> {
-  const { data, error } = await supabase
-    .from('service_health')
-    .select('*')
-    .order('service_id', { ascending: true });
+export async function fetchHealth(): Promise<HealthSheetRow[]> {
+  const { data, error } = await serviceHealthApi.list();
 
-  if (error) throw error;
+  if (error) throw new Error(error);
 
   return ((data || []) as ServiceHealth[]).map((health) => ({
     service: SERVICE_INFO[health.service_id]?.name || health.service_id,

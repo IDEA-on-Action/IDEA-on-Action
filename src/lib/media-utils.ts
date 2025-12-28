@@ -8,8 +8,7 @@
  * - 새 업로드는 useR2Storage 사용 권장
  */
 
-import { supabase } from '@/integrations/supabase/client';
-import { rewriteStorageUrl, getImageVariant as r2ImageVariant } from '@/lib/storage/url-rewriter';
+import { getImageVariant as r2ImageVariant } from '@/lib/storage/url-rewriter';
 
 // =====================================================
 // Constants
@@ -36,16 +35,11 @@ export const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
 /**
  * Get public URL for a storage path
- * 마이그레이션 후: R2 URL 반환
+ * R2 URL 반환 (Supabase 완전 마이그레이션 완료)
  */
-export function getMediaPublicUrl(storagePath: string, useR2 = true): string {
-  if (useR2) {
-    // R2 URL 직접 생성
-    return `${R2_PUBLIC_URL}/${MEDIA_BUCKET}/${storagePath}`;
-  }
-  // 레거시 Supabase URL
-  const { data } = supabase.storage.from(MEDIA_BUCKET).getPublicUrl(storagePath);
-  return data.publicUrl;
+export function getMediaPublicUrl(storagePath: string, _useR2 = true): string {
+  // R2 URL 직접 생성 (Supabase 제거)
+  return `${R2_PUBLIC_URL}/${MEDIA_BUCKET}/${storagePath}`;
 }
 
 /**

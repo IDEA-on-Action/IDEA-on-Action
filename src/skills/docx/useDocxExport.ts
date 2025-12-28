@@ -8,7 +8,7 @@
 
 import { useState, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/integrations/supabase/client';
+// Workers API는 generators에서 직접 사용됨
 import type {
   UseDocxExportOptions,
   UseDocxExportResult,
@@ -157,9 +157,9 @@ async function generateDefaultConfig(
   dateRange?: UseDocxExportOptions['dateRange']
 ): Promise<DocxExportConfig> {
   const [eventsResult, issuesResult, healthResult] = await Promise.all([
-    fetchEvents(supabase, dateRange),
-    fetchIssues(supabase, dateRange),
-    fetchHealth(supabase),
+    fetchEvents(dateRange),
+    fetchIssues(dateRange),
+    fetchHealth(),
   ]);
 
   const sections: DocxSection[] = [

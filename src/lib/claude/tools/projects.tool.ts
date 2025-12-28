@@ -7,7 +7,7 @@
  */
 
 import type { ToolHandler } from '../tools';
-import { supabase } from '@/integrations/supabase/client';
+import { projectsApi } from '@/integrations/cloudflare/client';
 
 // ============================================================================
 // Types
@@ -73,27 +73,15 @@ export const projectsTool: ToolHandler = {
   execute: async (input: Record<string, unknown>) => {
     const { status, limit = 10, search } = input as GetProjectsInput;
 
-    // 쿼리 빌드
-    let query = supabase.from('projects').select('*');
-
-    // 상태 필터
-    if (status) {
-      query = query.eq('status', status);
-    }
-
-    // 검색 필터
-    if (search) {
-      query = query.or(`title.ilike.%${search}%,description.ilike.%${search}%`);
-    }
-
-    // 정렬 및 제한
-    query = query.order('created_at', { ascending: false }).limit(Math.min(limit, 50));
-
-    // 실행
-    const { data, error } = await query;
+    // Workers API를 통해 프로젝트 조회
+    const { data, error } = await projectsApi.list({
+      status,
+      search,
+      limit: Math.min(limit, 50),
+    });
 
     if (error) {
-      throw new Error(`프로젝트 조회 실패: ${error.message}`);
+      throw new Error(`프로젝트 조회 실패: ${error}`);
     }
 
     return {

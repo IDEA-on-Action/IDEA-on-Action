@@ -267,8 +267,8 @@ async function main(): Promise<void> {
   } catch (error) {
     console.error('[MCP Server] Environment validation failed:', error);
     console.error('[MCP Server] Required environment variables:');
-    console.error('  - SUPABASE_URL');
-    console.error('  - SUPABASE_SERVICE_ROLE_KEY or SUPABASE_ANON_KEY');
+    console.error('  - WORKERS_API_URL (default: https://api.ideaonaction.ai)');
+    console.error('  - WORKERS_API_SERVICE_KEY (for admin operations)');
     console.error('  - SUPABASE_JWT_SECRET (for token verification)');
     process.exit(1);
   }

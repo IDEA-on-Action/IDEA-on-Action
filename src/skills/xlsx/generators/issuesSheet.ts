@@ -4,7 +4,7 @@
  * @module skills/xlsx/generators/issuesSheet
  */
 
-import type { SupabaseClient } from '@supabase/supabase-js';
+import { serviceIssuesApi } from '@/integrations/cloudflare/client';
 import type { ServiceIssue } from '@/types/central-hub.types';
 import { SERVICE_INFO } from '@/types/central-hub.types';
 import type {
@@ -32,29 +32,19 @@ export const issueColumns: ColumnConfig[] = [
 /**
  * 이슈 데이터 조회
  *
- * @param supabase - Supabase 클라이언트
  * @param dateRange - 날짜 필터 (선택)
  * @returns 이슈 시트 행 배열
  */
 export async function fetchIssues(
-  supabase: SupabaseClient,
   dateRange?: DateRange
 ): Promise<IssueSheetRow[]> {
-  let query = supabase
-    .from('service_issues')
-    .select('*')
-    .order('created_at', { ascending: false })
-    .limit(1000);
+  const { data, error } = await serviceIssuesApi.list({
+    limit: 1000,
+    date_from: dateRange?.from?.toISOString(),
+    date_to: dateRange?.to?.toISOString(),
+  });
 
-  if (dateRange) {
-    query = query
-      .gte('created_at', dateRange.from.toISOString())
-      .lte('created_at', dateRange.to.toISOString());
-  }
-
-  const { data, error } = await query;
-
-  if (error) throw error;
+  if (error) throw new Error(error);
 
   return ((data || []) as ServiceIssue[]).map((issue) => ({
     id: issue.id,

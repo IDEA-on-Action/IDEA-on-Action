@@ -10,7 +10,7 @@
 
 import { useMemo, type FC, type ReactNode } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { supabase } from '@/integrations/supabase/client'
+import { permissionsApi, adminsApi } from '@/integrations/cloudflare/client'
 import { useAuth } from '@/hooks/useAuth'
 import { PermissionContext } from '@/contexts/permissionContextValue'
 import type { Permission } from '@/types/rbac'

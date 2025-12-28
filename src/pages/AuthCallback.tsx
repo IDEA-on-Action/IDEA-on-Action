@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
 import { setUser as setSentryUser } from '@/lib/sentry';
 
 // Workers 인증 토큰 저장 키
@@ -137,44 +136,10 @@ const AuthCallback = () => {
         return;
       }
 
-      // 2. Supabase OAuth 콜백 확인 (해시 파라미터)
-      const hashParams = new URLSearchParams(window.location.hash.substring(1));
-      const hashError = hashParams.get('error');
-      const errorDescription = hashParams.get('error_description');
-
-      if (hashError) {
-        console.error('Supabase OAuth Error:', hashError, errorDescription);
-        setStatus('error');
-        setErrorMessage(errorDescription || hashError);
-        setTimeout(() => {
-          navigate('/login?error=' + encodeURIComponent(errorDescription || hashError), { replace: true });
-        }, 1500);
-        return;
-      }
-
-      // Supabase 세션 확인
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-
-      if (sessionError) {
-        console.error('Session Error:', sessionError);
-        setStatus('error');
-        setErrorMessage('세션 확인 실패');
-        setTimeout(() => {
-          navigate('/login', { replace: true });
-        }, 1500);
-        return;
-      }
-
-      if (session) {
-        setStatus('success');
-        localStorage.setItem(AUTH_PROVIDER_KEY, 'supabase');
-        setTimeout(() => {
-          navigate('/', { replace: true });
-        }, 500);
-      } else {
-        // 세션도 없고 토큰도 없으면 로그인 페이지로
-        navigate('/login', { replace: true });
-      }
+      // Workers OAuth 토큰이 없으면 로그인 페이지로
+      // (Supabase OAuth 폴백 제거 - Workers 전용)
+      console.log('Workers OAuth 토큰이 없음, 로그인 페이지로 이동');
+      navigate('/login', { replace: true });
     };
 
     handleCallback();

@@ -7,9 +7,10 @@
 import { useNavigate, useParams } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { supabase } from '@/integrations/supabase/client'
+import { servicesApi } from '@/integrations/cloudflare/client'
 import { ServiceForm } from '@/components/admin/ServiceForm'
 import { useToast } from '@/hooks/use-toast'
+import { useAuth } from '@/hooks/useAuth'
 import { Loader2, ArrowLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Link } from 'react-router-dom'
@@ -20,18 +21,14 @@ export default function EditService() {
   const navigate = useNavigate()
   const { toast } = useToast()
   const queryClient = useQueryClient()
+  const { workersTokens } = useAuth()
 
   // 서비스 데이터 가져오기
   const { data: service, isLoading: serviceLoading } = useQuery({
     queryKey: ['service', id],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('services')
-        .select('*')
-        .eq('id', id!)
-        .single()
-
-      if (error) throw error
+      const { data, error } = await servicesApi.getById(id!)
+      if (error) throw new Error(error)
       return data as Service
     },
     enabled: !!id,
@@ -41,13 +38,9 @@ export default function EditService() {
   const { data: categories, isLoading: categoriesLoading } = useQuery({
     queryKey: ['service-categories'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('service_categories')
-        .select('*')
-        .order('name')
-
-      if (error) throw error
-      return data
+      const { data, error } = await servicesApi.getCategories()
+      if (error) throw new Error(error)
+      return data as Array<{ id: string; name: string }>
     },
   })
 
@@ -71,12 +64,8 @@ export default function EditService() {
         updated_at: new Date().toISOString(),
       }
 
-      const { error } = await supabase
-        .from('services')
-        .update(serviceData)
-        .eq('id', id!)
-
-      if (error) throw error
+      const { error } = await servicesApi.update(workersTokens?.accessToken || '', id!, serviceData)
+      if (error) throw new Error(error)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['service', id] })

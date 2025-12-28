@@ -12,7 +12,8 @@
 import { Helmet } from 'react-helmet-async'
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { supabase } from '@/integrations/supabase/client'
+import { servicesApi, ordersApi, paymentsApi } from '@/integrations/cloudflare/client'
+import { useAuth } from '@/hooks/useAuth'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Package, FileText, Users, TrendingUp, Plus, ArrowRight, DollarSign, ShoppingCart } from 'lucide-react'
@@ -36,24 +37,30 @@ const ChartSkeleton = () => (
 )
 
 export default function Dashboard() {
+  const { workersTokens } = useAuth()
+
   // 통계 데이터
   const { data: stats } = useQuery({
     queryKey: ['admin-stats'],
     queryFn: async () => {
+      const token = workersTokens?.accessToken || ''
       const [servicesRes, categoriesRes, ordersRes, paymentsRes] = await Promise.all([
-        supabase.from('services').select('id, status', { count: 'exact' }),
-        supabase.from('service_categories').select('id', { count: 'exact' }),
-        supabase.from('orders').select('id, status, total_amount, created_at'),
-        supabase.from('payments').select('id, amount, provider, status'),
+        servicesApi.list(),
+        servicesApi.getCategories(),
+        ordersApi.list(token),
+        paymentsApi.history(token),
       ])
 
-      const totalServices = servicesRes.count || 0
-      const activeServices =
-        servicesRes.data?.filter((s) => s.status === 'active').length || 0
-      const totalCategories = categoriesRes.count || 0
+      const services = (servicesRes.data as Array<{ id: string; status: string }>) || []
+      const categories = (categoriesRes.data as Array<{ id: string }>) || []
+      const orders = (ordersRes.data as Array<{ id: string; status: string; total_amount: number; created_at: string }>) || []
+      const payments = (paymentsRes.data as Array<{ id: string; amount: number; provider: string; status: string }>) || []
+
+      const totalServices = services.length
+      const activeServices = services.filter((s) => s.status === 'active').length
+      const totalCategories = categories.length
 
       // 주문 통계
-      const orders = ordersRes.data || []
       const totalOrders = orders.length
       const completedOrders = orders.filter((o) => o.status === 'delivered').length
       const totalRevenue = orders
@@ -85,7 +92,6 @@ export default function Dashboard() {
       })
 
       // 결제 수단별 통계
-      const payments = paymentsRes.data || []
       const paymentsByProvider = payments
         .filter((p) => p.status === 'completed')
         .reduce((acc, p) => {
@@ -107,7 +113,7 @@ export default function Dashboard() {
       return {
         totalServices,
         activeServices,
-        draftServices: servicesRes.data?.filter((s) => s.status === 'draft').length || 0,
+        draftServices: services.filter((s) => s.status === 'draft').length,
         totalCategories,
         totalOrders,
         completedOrders,
@@ -123,13 +129,8 @@ export default function Dashboard() {
   const { data: recentServices } = useQuery({
     queryKey: ['recent-services'],
     queryFn: async () => {
-      const { data } = await supabase
-        .from('services')
-        .select('id, title, status, created_at')
-        .order('created_at', { ascending: false })
-        .limit(5)
-
-      return data
+      const { data } = await servicesApi.list({ limit: 5, sort_by: 'created_at:desc' })
+      return data as Array<{ id: string; title: string; status: string; created_at: string }> | null
     },
   })
 

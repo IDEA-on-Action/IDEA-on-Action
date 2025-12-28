@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useMemo } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { subscriptionsApi } from '@/integrations/cloudflare/client';
+import { useAuth } from '@/hooks/useAuth';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   ServiceId,
@@ -57,12 +58,15 @@ export function MCPPermissionProvider({ children }: { children: React.ReactNode 
       }
     }
 
-    // 2. 캐시 미스 - DB 조회
+    // 2. 캐시 미스 - Workers API 조회
     setIsLoading(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      // Workers 인증 토큰 확인
+      const stored = localStorage.getItem('workers_auth_tokens');
+      const tokens = stored ? JSON.parse(stored) : null;
+      const accessToken = tokens?.accessToken;
 
-      if (!user) {
+      if (!accessToken) {
         const noAuthInfo: PermissionInfo = {
           permission: 'none',
           reason: 'subscription_required',
@@ -74,19 +78,8 @@ export function MCPPermissionProvider({ children }: { children: React.ReactNode 
         return noAuthInfo;
       }
 
-      // 서비스별 구독 확인
-      const { data: subscriptions, error } = await supabase
-        .from('subscriptions')
-        .select(`
-          *,
-          plan:subscription_plans (
-            id,
-            plan_name,
-            features
-          )
-        `)
-        .eq('user_id', user.id)
-        .eq('status', 'active');
+      // Workers API를 통해 서비스별 구독 확인
+      const { data: subscriptions, error } = await subscriptionsApi.getActiveSubscriptions(accessToken);
 
       if (error) {
         console.error('[MCPPermissionContext] 구독 조회 오류:', error);

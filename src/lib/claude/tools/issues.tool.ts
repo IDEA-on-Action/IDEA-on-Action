@@ -7,7 +7,7 @@
  */
 
 import type { ToolHandler } from '../tools';
-import { supabase } from '@/integrations/supabase/client';
+import { serviceIssuesApi } from '@/integrations/cloudflare/client';
 import type { ServiceId, IssueStatus } from '@/types/central-hub.types';
 
 // ============================================================================
@@ -74,25 +74,15 @@ export const issuesTool: ToolHandler = {
   execute: async (input: Record<string, unknown>) => {
     const { service_id, status, limit = 10 } = input as GetIssuesInput;
 
-    // 쿼리 빌드
-    let query = supabase.from('service_issues').select('*');
-
-    // 필터 적용
-    if (service_id) {
-      query = query.eq('service_id', service_id);
-    }
-    if (status) {
-      query = query.eq('status', status);
-    }
-
-    // 정렬 및 제한
-    query = query.order('created_at', { ascending: false }).limit(Math.min(limit, 50));
-
-    // 실행
-    const { data, error } = await query;
+    // Workers API를 통해 이슈 조회
+    const { data, error } = await serviceIssuesApi.list({
+      service_id,
+      status,
+      limit: Math.min(limit, 50),
+    });
 
     if (error) {
-      throw new Error(`이슈 조회 실패: ${error.message}`);
+      throw new Error(`이슈 조회 실패: ${error}`);
     }
 
     return {

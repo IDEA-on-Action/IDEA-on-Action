@@ -11,7 +11,8 @@ import Header from '@/components/Header'
 import Footer from '@/components/Footer'
 import { PaymentMethodSelector } from '@/components/payment/PaymentMethodSelector'
 import { usePayment } from '@/hooks/usePayment'
-import { supabase } from '@/integrations/supabase/client'
+import { ordersApi } from '@/integrations/cloudflare/client'
+import { useAuth } from '@/hooks/useAuth'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { AlertCircle, Loader2 } from 'lucide-react'
 import type { PaymentProvider } from '@/lib/payments/types'
@@ -28,6 +29,7 @@ export default function Payment() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const orderId = searchParams.get('order_id')
+  const { workersTokens } = useAuth()
 
   const [orderInfo, setOrderInfo] = useState<OrderInfo | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -45,24 +47,23 @@ export default function Payment() {
 
     const fetchOrderInfo = async () => {
       try {
-        const { data: order, error: orderError } = await supabase
-          .from('orders')
-          .select('id, order_number, total_amount, order_items(service_title)')
-          .eq('id', orderId)
-          .single()
+        // Workers API로 주문 정보 조회
+        const { data: order, error: orderError } = await ordersApi.getById(workersTokens?.accessToken || '', orderId)
 
-        if (orderError) throw orderError
+        if (orderError) throw new Error(orderError)
         if (!order) throw new Error('주문을 찾을 수 없습니다.')
 
+        const orderData = order as { id: string; order_number: string; total_amount: number; order_items?: Array<{ service_title: string }> }
+
         // 첫 번째 아이템 이름 (+ N개 형식)
-        const firstItem = order.order_items?.[0]?.service_title || '상품'
-        const itemCount = order.order_items?.length || 0
+        const firstItem = orderData.order_items?.[0]?.service_title || '상품'
+        const itemCount = orderData.order_items?.length || 0
         const itemName = itemCount > 1 ? `${firstItem} 외 ${itemCount - 1}개` : firstItem
 
         setOrderInfo({
-          id: order.id,
-          orderNumber: order.order_number,
-          totalAmount: order.total_amount,
+          id: orderData.id,
+          orderNumber: orderData.order_number,
+          totalAmount: orderData.total_amount,
           itemName,
         })
       } catch (err) {
@@ -74,7 +75,7 @@ export default function Payment() {
     }
 
     fetchOrderInfo()
-  }, [orderId])
+  }, [orderId, workersTokens])
 
   // 결제 수단 선택 핸들러
   const handleSelectPaymentMethod = async (provider: PaymentProvider) => {

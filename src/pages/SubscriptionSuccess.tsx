@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { CheckCircle2, ArrowRight, Calendar, Loader2, AlertCircle } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
-import { supabase } from '@/integrations/supabase/client'
+import { subscriptionsApi, paymentsApi, servicesApi } from '@/integrations/cloudflare/client'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 
 interface PlanInfo {
@@ -48,24 +48,19 @@ export default function SubscriptionSuccess() {
       return
     }
 
-    // 2. sessionStorage에 없으면 DB에서 플랜 정보 조회
+    // 2. sessionStorage에 없으면 Workers API에서 플랜 정보 조회
     const fetchPlanInfo = async () => {
       if (!planId || !serviceId) return
 
       try {
-        const { data: plan, error: planError } = await supabase
-          .from('subscription_plans')
-          .select('id, plan_name, price, billing_cycle')
-          .eq('id', planId)
-          .single()
+        const [planRes, serviceRes] = await Promise.all([
+          subscriptionsApi.getPlan(planId),
+          servicesApi.getById(serviceId),
+        ])
 
-        const { data: service, error: serviceError } = await supabase
-          .from('services')
-          .select('title')
-          .eq('id', serviceId)
-          .single()
-
-        if (plan && service) {
+        if (planRes.data && serviceRes.data) {
+          const plan = planRes.data as { id: string; plan_name: string; price: number; billing_cycle: 'monthly' | 'quarterly' | 'yearly' }
+          const service = serviceRes.data as { title: string }
           setPlanInfo({
             plan_id: plan.id,
             plan_name: plan.plan_name,
@@ -133,37 +128,31 @@ export default function SubscriptionSuccess() {
           timestamp: new Date().toISOString(),
         })
 
-        // 0. Supabase 세션 명시적 재설정 (auth 헤더 보장)
-        const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession()
-        if (sessionError || !currentSession) {
-          console.error('❌ Supabase 세션 확인 실패:', sessionError)
+        // 0. Workers 인증 토큰 확인
+        const stored = localStorage.getItem('workers_auth_tokens')
+        const tokens = stored ? JSON.parse(stored) : null
+        const accessToken = tokens?.accessToken
+        if (!accessToken) {
+          console.error('❌ Workers 인증 토큰 없음')
           throw new Error('세션이 만료되었습니다. 페이지를 새로고침해주세요.')
         }
 
-        // 세션 토큰 명시적 설정 (auth 헤더 강제 갱신)
-        await supabase.auth.setSession({
-          access_token: currentSession.access_token,
-          refresh_token: currentSession.refresh_token,
-        })
+        console.log('✅ Workers 인증 토큰 확인 완료')
 
-        console.log('✅ Supabase 세션 설정 완료:', {
-          user_id: currentSession.user.id,
-          expires_at: currentSession.expires_at,
-        })
-
-        // 1. Edge Function을 통해 실제 billingKey 발급
-        console.log('🔄 Edge Function으로 빌링키 발급 요청...', {
+        // 1. Workers API를 통해 실제 billingKey 발급
+        console.log('🔄 Workers API로 빌링키 발급 요청...', {
           authKey: authKey.substring(0, 10) + '...',
           customerKey: customerKey.substring(0, 10) + '...',
         })
 
-        const { data: billingKeyData, error: functionError } = await supabase.functions.invoke('issue-billing-key', {
-          body: { authKey, customerKey },
+        const { data: billingKeyData, error: functionError } = await paymentsApi.issueBillingKey(accessToken, {
+          authKey,
+          customerKey,
         })
 
         if (functionError) {
-          console.error('❌ Edge Function 에러:', functionError)
-          throw new Error(`빌링키 발급 실패: ${functionError.message}`)
+          console.error('❌ Workers API 에러:', functionError)
+          throw new Error(`빌링키 발급 실패: ${functionError}`)
         }
 
         if (!billingKeyData?.success) {
@@ -178,32 +167,25 @@ export default function SubscriptionSuccess() {
         })
 
         // 2. 빌링키 저장
-        console.log('📤 billing_keys INSERT 요청:', {
-          user_id: currentSession.user.id,
+        console.log('📤 빌링키 저장 요청:', {
           billing_key: billingKeyData.billingKey.substring(0, 10) + '...',
           customer_key: customerKey.substring(0, 10) + '...',
         })
 
-        const { data: billingKey, error: billingKeyError } = await supabase
-          .from('billing_keys')
-          .insert({
-            user_id: currentSession.user.id, // session에서 직접 user_id 사용
-            billing_key: billingKeyData.billingKey, // 실제 빌링키 사용
-            customer_key: customerKey,
-            card_type: billingKeyData.cardCompany, // 카드사명 추가
-            card_number: billingKeyData.cardNumber, // 카드번호 추가
-            is_active: true,
-          })
-          .select()
-          .single()
+        const { data: billingKey, error: billingKeyError } = await paymentsApi.saveBillingKey(accessToken, {
+          billing_key: billingKeyData.billingKey,
+          customer_key: customerKey,
+          card_type: billingKeyData.cardCompany,
+          card_number: billingKeyData.cardNumber,
+          is_active: true,
+        })
 
         if (billingKeyError) {
           console.error('❌ 빌링키 저장 에러:', billingKeyError)
-          console.error('❌ 에러 상세:', JSON.stringify(billingKeyError, null, 2))
-          throw new Error(`빌링키 저장 실패: ${billingKeyError.message}`)
+          throw new Error(`빌링키 저장 실패: ${billingKeyError}`)
         }
 
-        console.log('✅ 빌링키 저장 성공:', billingKey.id)
+        console.log('✅ 빌링키 저장 성공:', billingKey?.id)
 
         // 3. 구독 생성 (14일 무료 체험)
         const trialEndDate = new Date()
@@ -221,29 +203,24 @@ export default function SubscriptionSuccess() {
 
         console.log('📝 구독 생성 시도...')
 
-        const { data: subscription, error: subscriptionError } = await supabase
-          .from('subscriptions')
-          .insert({
-            user_id: currentSession.user.id, // session에서 직접 user_id 사용
-            service_id: serviceId,
-            plan_id: planInfo.plan_id,
-            billing_key_id: billingKey.id,
-            status: 'trial',
-            trial_end_date: trialEndDate.toISOString(),
-            current_period_start: new Date().toISOString(),
-            current_period_end: currentPeriodEnd.toISOString(),
-            next_billing_date: trialEndDate.toISOString(), // 14일 후 첫 결제
-            cancel_at_period_end: false,
-          })
-          .select()
-          .single()
+        const { data: subscription, error: subscriptionError } = await subscriptionsApi.create(accessToken, {
+          service_id: serviceId,
+          plan_id: planInfo.plan_id,
+          billing_key_id: billingKey?.id,
+          status: 'trial',
+          trial_end_date: trialEndDate.toISOString(),
+          current_period_start: new Date().toISOString(),
+          current_period_end: currentPeriodEnd.toISOString(),
+          next_billing_date: trialEndDate.toISOString(), // 14일 후 첫 결제
+          cancel_at_period_end: false,
+        })
 
         if (subscriptionError) {
           console.error('❌ 구독 생성 에러:', subscriptionError)
-          throw new Error(`구독 생성 실패: ${subscriptionError.message}`)
+          throw new Error(`구독 생성 실패: ${subscriptionError}`)
         }
 
-        console.log('✅ 구독 생성 성공:', subscription.id)
+        console.log('✅ 구독 생성 성공:', subscription?.id)
 
         // 4. sessionStorage 정리
         sessionStorage.removeItem('subscription_plan_info')

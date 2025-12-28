@@ -7,7 +7,7 @@
  */
 
 import type { ToolHandler } from '../tools';
-import { supabase } from '@/integrations/supabase/client';
+import { serviceEventsApi } from '@/integrations/cloudflare/client';
 import type { ServiceId, EventType } from '@/types/central-hub.types';
 
 // ============================================================================
@@ -80,28 +80,16 @@ export const eventsTool: ToolHandler = {
   execute: async (input: Record<string, unknown>) => {
     const { service_id, event_type, project_id, limit = 10 } = input as GetEventsInput;
 
-    // 쿼리 빌드
-    let query = supabase.from('service_events').select('*');
-
-    // 필터 적용
-    if (service_id) {
-      query = query.eq('service_id', service_id);
-    }
-    if (event_type) {
-      query = query.eq('event_type', event_type);
-    }
-    if (project_id) {
-      query = query.eq('project_id', project_id);
-    }
-
-    // 정렬 및 제한
-    query = query.order('created_at', { ascending: false }).limit(Math.min(limit, 100));
-
-    // 실행
-    const { data, error } = await query;
+    // Workers API를 통해 이벤트 조회
+    const { data, error } = await serviceEventsApi.list({
+      service_id,
+      event_type,
+      project_id,
+      limit: Math.min(limit, 100),
+    });
 
     if (error) {
-      throw new Error(`이벤트 조회 실패: ${error.message}`);
+      throw new Error(`이벤트 조회 실패: ${error}`);
     }
 
     return {

@@ -4,7 +4,7 @@
  * @module skills/xlsx/generators/eventsSheet
  */
 
-import type { SupabaseClient } from '@supabase/supabase-js';
+import { serviceEventsApi } from '@/integrations/cloudflare/client';
 import type { ServiceEvent } from '@/types/central-hub.types';
 import { SERVICE_INFO } from '@/types/central-hub.types';
 import type {
@@ -30,29 +30,19 @@ export const eventColumns: ColumnConfig[] = [
 /**
  * 이벤트 데이터 조회
  *
- * @param supabase - Supabase 클라이언트
  * @param dateRange - 날짜 필터 (선택)
  * @returns 이벤트 시트 행 배열
  */
 export async function fetchEvents(
-  supabase: SupabaseClient,
   dateRange?: DateRange
 ): Promise<EventSheetRow[]> {
-  let query = supabase
-    .from('service_events')
-    .select('*')
-    .order('created_at', { ascending: false })
-    .limit(1000);
+  const { data, error } = await serviceEventsApi.list({
+    limit: 1000,
+    date_from: dateRange?.from?.toISOString(),
+    date_to: dateRange?.to?.toISOString(),
+  });
 
-  if (dateRange) {
-    query = query
-      .gte('created_at', dateRange.from.toISOString())
-      .lte('created_at', dateRange.to.toISOString());
-  }
-
-  const { data, error } = await query;
-
-  if (error) throw error;
+  if (error) throw new Error(error);
 
   return ((data || []) as ServiceEvent[]).map((event) => ({
     id: event.id,

@@ -20,8 +20,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { formatFileSize, formatRelativeTime } from '@/lib/cms-utils';
 import type { MediaItem as MediaItemType } from '@/types/cms.types';
-import { supabase } from '@/integrations/supabase/client';
-import { rewriteStorageUrl } from '@/lib/storage/url-rewriter';
+import { getMediaPublicUrl } from '@/lib/media-utils';
 
 // =====================================================
 // Types
@@ -44,9 +43,8 @@ export interface MediaItemProps {
 // =====================================================
 
 function getPublicUrl(storagePath: string): string {
-  const { data } = supabase.storage.from('media-library').getPublicUrl(storagePath);
-  // Supabase URL을 R2 URL로 변환
-  return rewriteStorageUrl(data.publicUrl) || data.publicUrl;
+  // R2 URL 직접 생성 (Supabase 제거)
+  return getMediaPublicUrl(storagePath, true);
 }
 
 // =====================================================

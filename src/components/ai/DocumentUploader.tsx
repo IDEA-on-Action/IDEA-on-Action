@@ -36,7 +36,8 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Textarea } from '@/components/ui/textarea'
 import { Progress } from '@/components/ui/progress'
-import { supabase } from '@/integrations/supabase/client'
+import { storageApi, ragApi } from '@/integrations/cloudflare/client'
+import { useAuth } from '@/hooks/useAuth'
 
 // ============================================================================
 // 타입 정의
@@ -239,9 +240,14 @@ export const DocumentUploader = React.forwardRef<
     try {
       setUploadState({ status: 'uploading', progress: 0 })
 
-      // 1. 사용자 인증 확인
-      const { data: { user }, error: authError } = await supabase.auth.getUser()
-      if (authError || !user) {
+      // 1. Workers 인증 토큰 확인
+      const stored = localStorage.getItem('workers_auth_tokens')
+      if (!stored) {
+        throw new Error('로그인이 필요합니다.')
+      }
+      const tokens = JSON.parse(stored)
+      const accessToken = tokens?.accessToken
+      if (!accessToken) {
         throw new Error('로그인이 필요합니다.')
       }
 
@@ -254,34 +260,29 @@ export const DocumentUploader = React.forwardRef<
       if (mode === 'file' && selectedFile) {
         sourceType = 'file'
 
-        // 파일 업로드 (Storage)
+        // 파일 업로드 (R2 Storage via Workers API)
         const fileExt = selectedFile.name.split('.').pop()?.toLowerCase() || 'txt'
         const timestamp = Date.now()
-        const fileName = `${timestamp}_${selectedFile.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`
-        storageFilePath = `${user.id}/${fileName}`
+        const fileName = `rag-documents/${timestamp}_${selectedFile.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`
+        storageFilePath = fileName
 
         setUploadState({ status: 'uploading', progress: 20, message: '파일 업로드 중...' })
 
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from('rag-documents')
-          .upload(storageFilePath, selectedFile, {
-            cacheControl: '3600',
-            upsert: false,
-          })
+        const { data: uploadData, error: uploadError } = await storageApi.upload(fileName, selectedFile)
 
         if (uploadError) {
-          throw new Error(`파일 업로드 실패: ${uploadError.message}`)
+          throw new Error(`파일 업로드 실패: ${uploadError}`)
         }
 
         // 파일 내용 읽기 (텍스트 파일인 경우)
         if (fileExt === 'txt' || fileExt === 'md') {
           content = await selectedFile.text()
         } else {
-          // PDF나 다른 형식은 나중에 Edge Function에서 처리
+          // PDF나 다른 형식은 나중에 Workers에서 처리
           content = `[${selectedFile.name}] - 파일 내용은 임베딩 처리 시 추출됩니다.`
         }
 
-        sourceUrl = uploadData.path
+        sourceUrl = uploadData?.url || storageFilePath
 
       } else if (mode === 'url' && url) {
         sourceType = 'url'
@@ -295,46 +296,41 @@ export const DocumentUploader = React.forwardRef<
 
       setUploadState({ status: 'processing', progress: 50, message: '문서 생성 중...' })
 
-      // 3. rag_documents 테이블에 문서 메타데이터 삽입
-      const { data: docData, error: docError } = await supabase
-        .from('rag_documents')
-        .insert({
-          user_id: user.id,
-          title: title.trim(),
-          content: content,
-          source_type: sourceType,
-          source_url: sourceUrl,
-          service_id: serviceId === 'general' ? null : serviceId,
-          tags: tags,
-          status: 'active',
-          embedding_status: 'pending',
-          metadata: {
-            uploaded_at: new Date().toISOString(),
-            file_name: selectedFile?.name,
-            file_size: selectedFile?.size,
-            storage_path: storageFilePath,
-          },
-        })
-        .select('id')
-        .single()
+      // 3. Workers API를 통해 RAG 문서 생성
+      const { data: docData, error: docError } = await ragApi.createDocument(accessToken, {
+        title: title.trim(),
+        content: content,
+        source_type: sourceType,
+        source_url: sourceUrl,
+        service_id: serviceId === 'general' ? null : serviceId,
+        tags: tags,
+        status: 'active',
+        embedding_status: 'pending',
+        metadata: {
+          uploaded_at: new Date().toISOString(),
+          file_name: selectedFile?.name,
+          file_size: selectedFile?.size,
+          storage_path: storageFilePath,
+        },
+      })
 
       if (docError) {
         // Storage에 업로드한 파일 삭제
         if (storageFilePath) {
-          await supabase.storage.from('rag-documents').remove([storageFilePath])
+          await storageApi.delete(storageFilePath)
         }
-        throw new Error(`문서 생성 실패: ${docError.message}`)
+        throw new Error(`문서 생성 실패: ${docError}`)
       }
 
       setUploadState({ status: 'processing', progress: 75, message: '임베딩 대기 중...' })
 
-      // 4. 임베딩 처리는 백그라운드 작업으로 Edge Function이 처리
+      // 4. 임베딩 처리는 백그라운드 작업으로 Workers가 처리
       // 여기서는 pending 상태로 남겨두고 완료
 
       setUploadState({ status: 'success', progress: 100, message: '업로드 완료!' })
 
       // 콜백 호출
-      onUploadComplete?.(docData.id)
+      onUploadComplete?.(docData?.id || '')
 
       // 리셋
       setTimeout(() => {

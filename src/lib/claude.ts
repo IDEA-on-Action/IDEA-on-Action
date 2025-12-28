@@ -10,7 +10,7 @@
  * @module lib/claude
  */
 
-import { supabase } from '@/integrations/supabase/client';
+import { callWorkersApi } from '@/integrations/cloudflare/client';
 import { devError, devLog } from '@/lib/errors';
 
 // ============================================================================
