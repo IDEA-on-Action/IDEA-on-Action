@@ -7,7 +7,7 @@
  */
 
 import { useState, useEffect } from 'react'
-import { useNavigate, useLocation, Link } from 'react-router-dom'
+import { useNavigate, useLocation, Link, useSearchParams } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import { useAuth } from '@/hooks/useAuth'
 import { Button } from '@/components/ui/button'
@@ -18,15 +18,38 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Loader2, AlertCircle, Home } from 'lucide-react'
 import logoSymbol from '@/assets/logo-symbol.png'
 
+// 에러 코드 → 사용자 친화적 메시지 매핑
+const ERROR_MESSAGES: Record<string, string> = {
+  email_required: 'GitHub 계정에 확인된 이메일이 없습니다. GitHub 설정에서 이메일을 추가해주세요.',
+  invalid_state: '보안 검증에 실패했습니다. 다시 시도해주세요.',
+  token_exchange_failed: '인증 토큰 교환에 실패했습니다. 잠시 후 다시 시도해주세요.',
+  userinfo_failed: '사용자 정보를 가져올 수 없습니다. 다시 시도해주세요.',
+  internal_error: '서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.',
+  access_denied: '로그인이 취소되었습니다.',
+}
+
 export default function Login() {
   const navigate = useNavigate()
   const location = useLocation()
+  const [searchParams] = useSearchParams()
   const { signInWithGoogle, signInWithGithub, signInWithKakao, signInWithEmail, user } = useAuth()
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // URL에서 에러 파라미터 처리
+  useEffect(() => {
+    const urlError = searchParams.get('error')
+    const urlMessage = searchParams.get('message')
+
+    if (urlError) {
+      // 사용자 친화적 메시지가 있으면 사용, 없으면 기본 메시지
+      const friendlyMessage = urlMessage || ERROR_MESSAGES[urlError] || `로그인 실패: ${urlError}`
+      setError(friendlyMessage)
+    }
+  }, [searchParams])
 
   // 이미 로그인되어 있으면 리다이렉트
   useEffect(() => {

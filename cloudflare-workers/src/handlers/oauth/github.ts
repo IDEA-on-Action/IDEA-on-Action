@@ -93,6 +93,8 @@ github.get('/callback', async (c) => {
   const redirectUri = c.env.GITHUB_REDIRECT_URI || `${c.env.WORKER_URL}/oauth/github/callback`;
   const frontendUrl = c.env.FRONTEND_URL || 'https://www.ideaonaction.ai';
 
+  console.log('[GitHub OAuth] 콜백 시작');
+
   const { code, state, error, error_description } = c.req.query();
 
   // 에러 처리
@@ -102,17 +104,21 @@ github.get('/callback', async (c) => {
   }
 
   if (!code || !state) {
+    console.error('[GitHub OAuth] code 또는 state 없음');
     return c.redirect(`${frontendUrl}/login?error=invalid_request`);
   }
 
   // State 검증
   const storedData = await kv.get(`oauth:github:${state}`);
   if (!storedData) {
+    console.error('[GitHub OAuth] state 검증 실패');
     return c.redirect(`${frontendUrl}/login?error=invalid_state`);
   }
   await kv.delete(`oauth:github:${state}`);
 
   try {
+    console.log('[GitHub OAuth] 토큰 교환 시작...');
+
     // 액세스 토큰 교환
     const tokenResponse = await fetch(GITHUB_TOKEN_URL, {
       method: 'POST',
@@ -128,37 +134,52 @@ github.get('/callback', async (c) => {
       }),
     });
 
+    const tokenText = await tokenResponse.text();
+    console.log('[GitHub OAuth] 토큰 응답:', tokenResponse.status, tokenText.slice(0, 200));
+
     if (!tokenResponse.ok) {
-      const errorData = await tokenResponse.text();
-      console.error('[GitHub OAuth] 토큰 교환 실패:', errorData);
+      console.error('[GitHub OAuth] 토큰 교환 실패:', tokenText);
       return c.redirect(`${frontendUrl}/login?error=token_exchange_failed`);
     }
 
-    const tokens = await tokenResponse.json() as {
+    const tokens = JSON.parse(tokenText) as {
       access_token: string;
       token_type: string;
       scope: string;
       error?: string;
+      error_description?: string;
     };
 
     if (tokens.error) {
-      console.error('[GitHub OAuth] 토큰 에러:', tokens.error);
+      console.error('[GitHub OAuth] 토큰 에러:', tokens.error, tokens.error_description);
       return c.redirect(`${frontendUrl}/login?error=${tokens.error}`);
     }
+
+    if (!tokens.access_token) {
+      console.error('[GitHub OAuth] access_token 없음:', tokens);
+      return c.redirect(`${frontendUrl}/login?error=no_access_token`);
+    }
+
+    console.log('[GitHub OAuth] 토큰 획득 성공, 사용자 정보 조회 중...');
 
     // 사용자 정보 가져오기
     const userResponse = await fetch(GITHUB_USER_URL, {
       headers: {
         Authorization: `Bearer ${tokens.access_token}`,
         'Accept': 'application/vnd.github.v3+json',
+        'User-Agent': 'IDEA-on-Action-OAuth',
       },
     });
 
+    const userText = await userResponse.text();
+    console.log('[GitHub OAuth] 사용자 정보 응답:', userResponse.status, userText.slice(0, 300));
+
     if (!userResponse.ok) {
+      console.error('[GitHub OAuth] 사용자 정보 조회 실패:', userResponse.status, userText);
       return c.redirect(`${frontendUrl}/login?error=userinfo_failed`);
     }
 
-    const userInfo = await userResponse.json() as {
+    const userInfo = JSON.parse(userText) as {
       id: number;
       login: string;
       name: string;
@@ -166,30 +187,48 @@ github.get('/callback', async (c) => {
       avatar_url: string;
     };
 
+    console.log('[GitHub OAuth] 사용자:', userInfo.login, userInfo.email);
+
     // 이메일이 없는 경우 이메일 API 호출
     let email = userInfo.email;
     if (!email) {
+      console.log('[GitHub OAuth] 공개 이메일 없음, 이메일 API 호출 중...');
+
       const emailsResponse = await fetch(GITHUB_EMAILS_URL, {
         headers: {
           Authorization: `Bearer ${tokens.access_token}`,
           'Accept': 'application/vnd.github.v3+json',
+          'User-Agent': 'IDEA-on-Action-OAuth',
         },
       });
 
+      const emailsText = await emailsResponse.text();
+      console.log('[GitHub OAuth] 이메일 API 응답:', emailsResponse.status, emailsText.slice(0, 500));
+
       if (emailsResponse.ok) {
-        const emails = await emailsResponse.json() as Array<{
+        const emails = JSON.parse(emailsText) as Array<{
           email: string;
           primary: boolean;
           verified: boolean;
         }>;
+        console.log('[GitHub OAuth] 이메일 목록:', emails.length, '개');
+        if (emails.length > 0) {
+          console.log('[GitHub OAuth] 이메일 상세:', JSON.stringify(emails.slice(0, 3)));
+        }
         const primaryEmail = emails.find(e => e.primary && e.verified);
-        email = primaryEmail?.email || emails[0]?.email;
+        email = primaryEmail?.email || emails.find(e => e.verified)?.email || emails[0]?.email;
+        console.log('[GitHub OAuth] 선택된 이메일:', email);
+      } else {
+        console.error('[GitHub OAuth] 이메일 API 실패:', emailsResponse.status, emailsText);
       }
     }
 
     if (!email) {
-      return c.redirect(`${frontendUrl}/login?error=email_required`);
+      console.error('[GitHub OAuth] 이메일을 찾을 수 없음 - GitHub 계정에 이메일이 없거나 비공개 설정됨');
+      return c.redirect(`${frontendUrl}/login?error=email_required&message=${encodeURIComponent('GitHub 계정에 확인된 이메일이 없습니다. GitHub 설정에서 이메일을 추가하고 인증해주세요.')}`);
     }
+
+    console.log('[GitHub OAuth] 최종 이메일:', email);
 
     // 사용자 찾기 또는 생성
     let user = await db
