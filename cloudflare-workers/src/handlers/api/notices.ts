@@ -8,20 +8,19 @@ import { AppType } from '../../types';
 
 const notices = new Hono<AppType>();
 
-// 공지사항 타입
+// 공지사항 타입 (D1 스키마 매칭)
 interface Notice {
   id: string;
   title: string;
-  title_ko: string;
+  slug: string;
   content: string;
-  content_ko: string;
-  type: 'general' | 'important' | 'maintenance' | 'update';
+  type: string;
+  priority: string;
+  status: string;  // 'draft' | 'published' | 'archived'
   is_pinned: number;
-  is_published: number;
+  view_count: number;
   published_at: string | null;
   expires_at: string | null;
-  view_count: number;
-  author_id: string;
   created_at: string;
   updated_at: string;
 }
@@ -32,7 +31,7 @@ notices.get('/', async (c) => {
   const { type, include_expired, limit, offset } = c.req.query();
 
   try {
-    let sql = 'SELECT * FROM notices WHERE is_published = 1';
+    let sql = "SELECT * FROM notices WHERE status = 'published'";
     const params: (string | number)[] = [];
 
     // 타입 필터
@@ -57,19 +56,8 @@ notices.get('/', async (c) => {
 
     const result = await db.prepare(sql).bind(...params).all<Notice>();
 
-    // 작성자 정보 추가
-    const noticesWithAuthor = await Promise.all(
-      (result.results || []).map(async (notice) => {
-        const author = await db
-          .prepare('SELECT id, name, avatar_url FROM users WHERE id = ?')
-          .bind(notice.author_id)
-          .first();
-        return { ...notice, author };
-      })
-    );
-
     return c.json({
-      data: noticesWithAuthor,
+      data: result.results || [],
       meta: {
         total: result.results?.length || 0,
         limit: limitNum,
@@ -90,7 +78,7 @@ notices.get('/pinned', async (c) => {
     const result = await db
       .prepare(`
         SELECT * FROM notices
-        WHERE is_published = 1 AND is_pinned = 1
+        WHERE status = 'published' AND is_pinned = 1
         AND (expires_at IS NULL OR expires_at > ?)
         ORDER BY published_at DESC
         LIMIT 5
@@ -126,17 +114,10 @@ notices.get('/:id', async (c) => {
       .bind(id)
       .run();
 
-    // 작성자 정보
-    const author = await db
-      .prepare('SELECT id, name, avatar_url FROM users WHERE id = ?')
-      .bind(notice.author_id)
-      .first();
-
     return c.json({
       data: {
         ...notice,
         view_count: notice.view_count + 1,
-        author,
       },
     });
   } catch (error) {
@@ -159,23 +140,29 @@ notices.post('/', async (c) => {
     const now = new Date().toISOString();
     const id = crypto.randomUUID();
 
+    // slug 생성 (title 기반 또는 직접 제공)
+    const slug = body.slug || body.title.toLowerCase().replace(/[^a-z0-9가-힣]+/g, '-').replace(/^-|-$/g, '');
+
+    // status 결정 (published이면 published_at 설정)
+    const status = body.status || (body.is_published ? 'published' : 'draft');
+    const publishedAt = status === 'published' ? now : null;
+
     await db
       .prepare(`
-        INSERT INTO notices (id, title, title_ko, content, content_ko, type, is_pinned, is_published, published_at, expires_at, view_count, author_id, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?)
+        INSERT INTO notices (id, title, slug, content, type, priority, status, is_pinned, view_count, published_at, expires_at, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?)
       `)
       .bind(
         id,
         body.title,
-        body.title_ko || body.title,
+        slug,
         body.content || '',
-        body.content_ko || body.content || '',
         body.type || 'general',
+        body.priority || 'normal',
+        status,
         body.is_pinned ? 1 : 0,
-        body.is_published ? 1 : 0,
-        body.is_published ? now : null,
+        publishedAt,
         body.expires_at || null,
-        user.id,
         now,
         now
       )
@@ -211,14 +198,13 @@ notices.patch('/:id', async (c) => {
     const values: (string | number | null)[] = [now];
 
     const allowedFields = [
-      'title', 'title_ko', 'content', 'content_ko',
-      'type', 'is_pinned', 'is_published', 'expires_at'
+      'title', 'slug', 'content', 'type', 'priority', 'status', 'is_pinned', 'expires_at'
     ];
 
     for (const field of allowedFields) {
       if (body[field] !== undefined) {
         updates.push(`${field} = ?`);
-        if (field === 'is_pinned' || field === 'is_published') {
+        if (field === 'is_pinned') {
           values.push(body[field] ? 1 : 0);
         } else {
           values.push(body[field]);
@@ -226,8 +212,8 @@ notices.patch('/:id', async (c) => {
       }
     }
 
-    // 발행 상태가 true로 변경되면 published_at 설정
-    if (body.is_published === true) {
+    // status가 'published'로 변경되면 published_at 설정
+    if (body.status === 'published') {
       const existing = await db
         .prepare('SELECT published_at FROM notices WHERE id = ?')
         .bind(id)
