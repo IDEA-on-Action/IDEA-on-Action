@@ -3,9 +3,12 @@
  * Phase 11 Week 2: Notices System
  *
  * Provides CRUD operations for notices
+ *
+ * @migration Supabase → Cloudflare Workers (읽기 전용 API 전환)
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { noticesApi } from '@/integrations/cloudflare/client'
 import { supabase } from '@/integrations/supabase/client'
 import type {
   Notice,
@@ -29,7 +32,7 @@ const QUERY_KEYS = {
 }
 
 // =====================================================
-// 1. FETCH NOTICES (List with Author)
+// 1. FETCH NOTICES (List with Author) - Workers API
 // =====================================================
 interface UseNoticesOptions {
   filters?: NoticeFilters
@@ -50,76 +53,46 @@ export function useNotices(options: UseNoticesOptions = {}) {
 
   return useQuery({
     queryKey: QUERY_KEYS.list({ ...filters, sortBy, sortOrder } as NoticeFilters),
-    staleTime: 1000 * 60 * 5, // 5분간 캐시 유지 (CMS Phase 4 최적화)
+    staleTime: 1000 * 60 * 5, // 5분간 캐시 유지
     queryFn: async () => {
-      // Note: auth.users 테이블은 FK 조인이 불가능하므로 author 정보는 별도 조회 필요
-      let query = supabase
-        .from('notices')
-        .select('*')
+      // Workers API 호출
+      const response = await noticesApi.list({
+        type: filters.type,
+        include_expired: filters.include_expired,
+        limit,
+        offset,
+      })
 
-      // Apply filters
-      if (filters.status) {
-        query = query.eq('status', filters.status)
-      }
-      if (filters.type) {
-        query = query.eq('type', filters.type)
-      }
-      if (filters.author_id) {
-        query = query.eq('author_id', filters.author_id)
-      }
-      if (filters.is_pinned !== undefined) {
-        query = query.eq('is_pinned', filters.is_pinned)
+      if (response.error) {
+        console.error('[useNotices] API 오류:', response.error)
+        return []
       }
 
-      // Exclude expired notices unless explicitly requested
-      if (!filters.include_expired) {
-        query = query.or('expires_at.is.null,expires_at.gt.' + new Date().toISOString())
-      }
-
-      // Apply sorting
-      // Pinned notices always come first
-      if (sortBy === 'published_at') {
-        query = query.order('is_pinned', { ascending: false })
-        query = query.order(sortBy, { ascending: sortOrder === 'asc', nullsFirst: false })
-      } else {
-        query = query.order('is_pinned', { ascending: false })
-        query = query.order(sortBy, { ascending: sortOrder === 'asc' })
-      }
-
-      // Apply pagination
-      if (limit) {
-        query = query.range(offset, offset + limit - 1)
-      }
-
-      const { data, error } = await query
-
-      if (error) throw error
-
-      return (data || []) as NoticeWithAuthor[]
+      const result = response.data as { data: NoticeWithAuthor[] } | null
+      return result?.data || []
     },
   })
 }
 
 // =====================================================
-// 2. FETCH NOTICE BY ID (Detail with Author)
+// 2. FETCH NOTICE BY ID (Detail with Author) - Workers API
 // =====================================================
 export function useNotice(id: string | undefined) {
   return useQuery({
     queryKey: QUERY_KEYS.detail(id || ''),
-    staleTime: 1000 * 60 * 10, // 10분간 캐시 유지 (CMS Phase 4 최적화)
+    staleTime: 1000 * 60 * 10, // 10분간 캐시 유지
     queryFn: async () => {
       if (!id) throw new Error('Notice ID is required')
 
-      // Note: auth.users 테이블은 FK 조인이 불가능하므로 author 정보는 별도 조회 필요
-      const { data, error } = await supabase
-        .from('notices')
-        .select('*')
-        .eq('id', id)
-        .single()
+      const response = await noticesApi.getById(id)
 
-      if (error) throw error
+      if (response.error) {
+        console.error('[useNotice] API 오류:', response.error)
+        return null
+      }
 
-      return data as NoticeWithAuthor
+      const result = response.data as { data: NoticeWithAuthor } | null
+      return result?.data || null
     },
     enabled: !!id,
   })

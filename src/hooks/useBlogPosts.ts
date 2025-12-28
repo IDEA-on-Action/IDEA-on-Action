@@ -3,10 +3,14 @@
  * Phase 11 Week 1: Blog System
  *
  * Provides CRUD operations for blog posts
+ *
+ * @migration Supabase → Cloudflare Workers (읽기 전용 API 전환)
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { blogApi } from '@/integrations/cloudflare/client'
 import { supabase } from '@/integrations/supabase/client'
+import { useAuth } from './useAuth'
 import type {
   BlogPost,
   BlogPostWithRelations,
@@ -35,7 +39,7 @@ const QUERY_KEYS = {
 }
 
 // =====================================================
-// 1. FETCH POSTS (List with Relations)
+// 1. FETCH POSTS (List with Relations) - Workers API
 // =====================================================
 interface UsePostsOptions {
   filters?: BlogPostFilters
@@ -56,82 +60,24 @@ export function useBlogPosts(options: UsePostsOptions = {}) {
 
   return useQuery({
     queryKey: QUERY_KEYS.list({ ...filters, sortBy, sortOrder } as BlogPostFilters),
-    staleTime: 1000 * 60 * 5, // 5분간 캐시 유지 (CMS Phase 4 최적화)
+    staleTime: 1000 * 60 * 5, // 5분간 캐시 유지
     queryFn: async () => {
-      let query = supabase
-        .from('blog_posts')
-        .select(`
-          *,
-          category:post_categories(id, name, slug),
-          tags:post_tag_relations(tag:post_tags(id, name, slug))
-        `)
-
-      // Apply filters
-      if (filters.status) {
-        query = query.eq('status', filters.status)
-      }
-      if (filters.post_type) {
-        query = query.eq('post_type', filters.post_type)
-      }
-      if (filters.category_id) {
-        query = query.eq('category_id', filters.category_id)
-      }
-      if (filters.tag_id) {
-        // Filter by tag using join
-        query = query.in('id',
-          supabase
-            .from('post_tag_relations')
-            .select('post_id')
-            .eq('tag_id', filters.tag_id)
-        )
-      }
-      if (filters.author_id) {
-        query = query.eq('author_id', filters.author_id)
-      }
-      if (filters.search) {
-        query = query.or(`title.ilike.%${filters.search}%,excerpt.ilike.%${filters.search}%`)
-      }
-
-      // Apply sorting
-      query = query.order(sortBy, { ascending: sortOrder === 'asc' })
-
-      // Apply pagination
-      if (limit) {
-        query = query.range(offset, offset + limit - 1)
-      }
-
-      const { data, error } = await query
-
-      if (error) throw error
-
-      // Fetch authors separately
-      const authorIds = [...new Set((data || []).map((post: BlogPost) => post.author_id).filter(Boolean))]
-      const authorsMap = new Map<string, { user_id: string; display_name: string | null; avatar_url: string | null }>()
-      
-      if (authorIds.length > 0) {
-        const { data: authors, error: authorsError } = await supabase
-          .from('user_profiles')
-          .select('user_id, display_name, avatar_url')
-          .in('user_id', authorIds)
-
-        if (!authorsError && authors) {
-          authors.forEach(author => {
-            authorsMap.set(author.user_id, author)
-          })
-        }
-      }
-
-      // Transform data to include tags and authors as array
-      const posts: BlogPostWithRelations[] = (data || []).map((post: unknown) => {
-        const p = post as BlogPost & { tags?: Array<{ tag: PostTag }> }
-        return {
-          ...p,
-          author: authorsMap.get(p.author_id) || undefined,
-          tags: p.tags?.map((t) => t.tag).filter(Boolean) || [],
-        }
+      // Workers API 호출
+      const response = await blogApi.getPosts({
+        status: filters.status,
+        category_id: filters.category_id,
+        search: filters.search,
+        limit,
+        offset,
       })
 
-      return posts
+      if (response.error) {
+        console.error('[useBlogPosts] API 오류:', response.error)
+        return []
+      }
+
+      const result = response.data as { data: BlogPostWithRelations[] } | null
+      return result?.data || []
     },
   })
 }
@@ -187,50 +133,24 @@ export function useBlogPost(id: string | undefined) {
 }
 
 // =====================================================
-// 3. FETCH POST BY SLUG (Public route)
+// 3. FETCH POST BY SLUG (Public route) - Workers API
 // =====================================================
 export function useBlogPostBySlug(slug: string | undefined) {
   return useQuery({
     queryKey: QUERY_KEYS.detailBySlug(slug || ''),
-    staleTime: 1000 * 60 * 10, // 10분간 캐시 유지 (CMS Phase 4 최적화)
+    staleTime: 1000 * 60 * 10, // 10분간 캐시 유지
     queryFn: async () => {
       if (!slug) throw new Error('Post slug is required')
 
-      const { data, error } = await supabase
-        .from('blog_posts')
-        .select(`
-          *,
-          category:post_categories(id, name, slug, description),
-          tags:post_tag_relations(tag:post_tags(id, name, slug))
-        `)
-        .eq('slug', slug)
-        .single()
+      const response = await blogApi.getPost(slug)
 
-      if (error) throw error
-
-      // Fetch author separately
-      let author: { user_id: string; display_name: string | null; avatar_url: string | null } | undefined
-      if (data.author_id) {
-        const { data: authorData, error: authorError } = await supabase
-          .from('user_profiles')
-          .select('user_id, display_name, avatar_url')
-          .eq('user_id', data.author_id)
-          .single()
-
-        if (!authorError && authorData) {
-          author = authorData
-        }
+      if (response.error) {
+        console.error('[useBlogPostBySlug] API 오류:', response.error)
+        return null
       }
 
-      // Transform data
-      const d = data as BlogPost & { tags?: Array<{ tag: PostTag }> }
-      const post: BlogPostWithRelations = {
-        ...d,
-        author,
-        tags: d.tags?.map((t) => t.tag).filter(Boolean) || [],
-      }
-
-      return post
+      const result = response.data as { data: BlogPostWithRelations } | null
+      return result?.data || null
     },
     enabled: !!slug,
   })
@@ -391,39 +311,43 @@ export function useIncrementViewCount() {
 }
 
 // =====================================================
-// 8. FETCH CATEGORIES
+// 8. FETCH CATEGORIES - Workers API
 // =====================================================
 export function useCategories() {
   return useQuery({
     queryKey: QUERY_KEYS.categories,
-    staleTime: 1000 * 60 * 30, // 30분간 캐시 유지 (카테고리는 자주 변경 안 됨)
+    staleTime: 1000 * 60 * 30, // 30분간 캐시 유지
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('post_categories')
-        .select('*')
-        .order('name')
+      const response = await blogApi.getCategories()
 
-      if (error) throw error
-      return data as PostCategory[]
+      if (response.error) {
+        console.error('[useCategories] API 오류:', response.error)
+        return []
+      }
+
+      const result = response.data as { data: PostCategory[] } | null
+      return result?.data || []
     },
   })
 }
 
 // =====================================================
-// 9. FETCH TAGS
+// 9. FETCH TAGS - Workers API
 // =====================================================
 export function useTags() {
   return useQuery({
     queryKey: QUERY_KEYS.tags,
-    staleTime: 1000 * 60 * 30, // 30분간 캐시 유지 (태그는 자주 변경 안 됨)
+    staleTime: 1000 * 60 * 30, // 30분간 캐시 유지
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('post_tags')
-        .select('*')
-        .order('name')
+      const response = await blogApi.getTags()
 
-      if (error) throw error
-      return data as PostTag[]
+      if (response.error) {
+        console.error('[useTags] API 오류:', response.error)
+        return []
+      }
+
+      const result = response.data as { data: PostTag[] } | null
+      return result?.data || []
     },
   })
 }

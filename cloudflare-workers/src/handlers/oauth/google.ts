@@ -32,20 +32,28 @@ async function generateCodeChallenge(verifier: string): Promise<string> {
     .replace(/=/g, '');
 }
 
-// JWT 생성
+// JWT 생성 (사용자 정보 포함)
 async function generateJWT(
   userId: string,
   email: string,
   secret: string,
-  expiresIn: string = '7d'
+  options: {
+    expiresIn?: string;
+    name?: string | null;
+    avatarUrl?: string | null;
+    type?: 'access' | 'refresh';
+  } = {}
 ): Promise<string> {
+  const { expiresIn = '7d', name, avatarUrl, type = 'access' } = options;
   const encoder = new TextEncoder();
   const secretKey = encoder.encode(secret);
 
   return new SignJWT({
     sub: userId,
     email,
-    type: 'access',
+    name: name || null,
+    avatar_url: avatarUrl || null,
+    type,
   })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
@@ -248,9 +256,19 @@ google.get('/callback', async (c) => {
       .bind(now, user.id)
       .run();
 
-    // JWT 생성
-    const accessToken = await generateJWT(user.id, user.email, jwtSecret, '7d');
-    const refreshToken = await generateJWT(user.id, user.email, jwtSecret, '30d');
+    // JWT 생성 (사용자 정보 포함)
+    const accessToken = await generateJWT(user.id, user.email, jwtSecret, {
+      expiresIn: '7d',
+      name: userInfo.name,
+      avatarUrl: userInfo.picture,
+      type: 'access',
+    });
+    const refreshToken = await generateJWT(user.id, user.email, jwtSecret, {
+      expiresIn: '30d',
+      name: userInfo.name,
+      avatarUrl: userInfo.picture,
+      type: 'refresh',
+    });
 
     // 세션 저장
     await kv.put(`session:${user.id}:${accessToken.slice(-16)}`, JSON.stringify({

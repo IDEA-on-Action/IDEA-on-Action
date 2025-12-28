@@ -1,3 +1,18 @@
+/**
+ * useSubscriptions Hook
+ *
+ * 구독 관련 데이터를 조회 및 관리하는 React Query 훅
+ * - 내 구독 목록 조회
+ * - 구독 취소
+ * - 구독 업그레이드/다운그레이드
+ * - 결제 내역 조회
+ *
+ * @migration Supabase 유지 (인증 기반 개인 데이터 + 뮤테이션)
+ * - useMySubscriptions: 인증 필요한 개인 데이터
+ * - useCancelSubscription: 뮤테이션 (Supabase 유지)
+ * - useUpgradeSubscription: 뮤테이션 (Supabase 유지)
+ * - useSubscriptionPayments: 인증 필요한 개인 데이터
+ */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'

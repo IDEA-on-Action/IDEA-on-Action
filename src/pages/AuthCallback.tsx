@@ -24,9 +24,23 @@ interface WorkersTokens {
 }
 
 /**
+ * JWT 페이로드 타입
+ */
+interface JwtPayload {
+  sub: string;
+  email: string;
+  name?: string | null;
+  avatar_url?: string | null;
+  type?: 'access' | 'refresh';
+  iss?: string;
+  iat?: number;
+  exp?: number;
+}
+
+/**
  * JWT 페이로드에서 사용자 정보 추출
  */
-function parseJwtPayload(token: string): { sub: string; email: string } | null {
+function parseJwtPayload(token: string): JwtPayload | null {
   try {
     const parts = token.split('.');
     if (parts.length !== 3) return null;
@@ -81,7 +95,7 @@ const AuthCallback = () => {
           return;
         }
 
-        // Workers 토큰 저장
+        // Workers 토큰 저장 (JWT에서 사용자 정보 추출)
         const tokens: WorkersTokens = {
           accessToken,
           refreshToken,
@@ -89,7 +103,8 @@ const AuthCallback = () => {
           user: {
             id: payload.sub,
             email: payload.email,
-            name: payload.email.split('@')[0], // 기본 이름
+            name: payload.name || payload.email.split('@')[0], // JWT에서 이름 사용, 없으면 이메일에서 추출
+            avatarUrl: payload.avatar_url || null, // JWT에서 아바타 URL 사용
           },
         };
 

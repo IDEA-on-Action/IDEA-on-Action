@@ -1,170 +1,185 @@
-import { useQueryClient } from '@tanstack/react-query';
+/**
+ * useRoadmapItems Hook
+ *
+ * Cloudflare Workers API에서 로드맵 데이터를 조회하는 React Query 훅
+ * - 전체 목록 조회
+ * - 카테고리/상태별 필터링
+ * - 공개 로드맵 조회
+ *
+ * @migration Supabase → Cloudflare Workers (읽기 전용 API 전환)
+ */
+
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { roadmapApi } from '@/integrations/cloudflare/client';
 import { supabase } from '@/integrations/supabase/client';
-import { useSupabaseQuery, useSupabaseMutation, supabaseQuery } from '@/lib/react-query';
 import type { RoadmapItem } from '@/types/v2';
 
+// =====================================================
+// QUERY KEYS
+// =====================================================
+const QUERY_KEYS = {
+  all: ['roadmap-items'] as const,
+  lists: () => [...QUERY_KEYS.all, 'list'] as const,
+  list: (filters?: Record<string, unknown>) => [...QUERY_KEYS.lists(), filters] as const,
+  details: () => [...QUERY_KEYS.all, 'detail'] as const,
+  detail: (id: string) => [...QUERY_KEYS.details(), id] as const,
+  category: (category: string | undefined) => [...QUERY_KEYS.all, 'category', category] as const,
+  status: (status: string | undefined) => [...QUERY_KEYS.all, 'status', status] as const,
+  published: () => [...QUERY_KEYS.all, 'published'] as const,
+};
+
+// =====================================================
+// 1. FETCH ROADMAP ITEMS - Workers API
+// =====================================================
 /**
  * Hook to fetch all roadmap items
  */
 export const useRoadmapItems = () => {
-  return useSupabaseQuery<RoadmapItem[]>({
-    queryKey: ['roadmap-items'],
+  return useQuery<RoadmapItem[]>({
+    queryKey: QUERY_KEYS.lists(),
+    staleTime: 5 * 60 * 1000, // 5분간 캐시 유지
     queryFn: async () => {
-      return await supabaseQuery(
-        async () => {
-          const result = await supabase
-            .from('roadmap_items')
-            .select('*')
-            .order('priority', { ascending: false })
-            .order('created_at', { ascending: false });
-          return { data: result.data, error: result.error };
-        },
-        {
-          table: 'roadmap_items',
-          operation: 'Roadmap 아이템 목록 조회',
-          fallbackValue: [],
-        }
-      );
+      const response = await roadmapApi.list();
+
+      if (response.error) {
+        console.error('[useRoadmapItems] API 오류:', response.error);
+        return [];
+      }
+
+      const result = response.data as { data: RoadmapItem[] } | null;
+      return result?.data || [];
     },
-    table: 'roadmap_items',
-    operation: 'Roadmap 아이템 목록 조회',
-    fallbackValue: [],
-    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 };
 
+// =====================================================
+// 2. FETCH ROADMAP ITEM BY ID - Workers API
+// =====================================================
 /**
  * Hook to fetch a single roadmap item by ID
  */
 export const useRoadmapItem = (id: string) => {
-  return useSupabaseQuery<RoadmapItem>({
-    queryKey: ['roadmap-items', id],
+  return useQuery<RoadmapItem | null>({
+    queryKey: QUERY_KEYS.detail(id),
+    staleTime: 5 * 60 * 1000,
     queryFn: async () => {
-      return await supabaseQuery(
-        async () => {
-          const result = await supabase
-            .from('roadmap_items')
-            .select('*')
-            .eq('id', id)
-            .single();
-          return { data: result.data, error: result.error };
-        },
-        {
-          table: 'roadmap_items',
-          operation: 'Roadmap 아이템 상세 조회',
-          fallbackValue: null,
-        }
-      );
+      if (!id) return null;
+
+      const response = await roadmapApi.getById(id);
+
+      if (response.error) {
+        console.error('[useRoadmapItem] API 오류:', response.error);
+        return null;
+      }
+
+      const result = response.data as { data: RoadmapItem } | null;
+      return result?.data || null;
     },
-    table: 'roadmap_items',
-    operation: 'Roadmap 아이템 상세 조회',
-    fallbackValue: null,
     enabled: !!id,
   });
 };
 
+// =====================================================
+// 3. FETCH ROADMAP ITEMS BY CATEGORY - Workers API
+// =====================================================
 /**
  * Hook to fetch roadmap items by category
  */
 export const useRoadmapItemsByCategory = (category?: RoadmapItem['category']) => {
-  return useSupabaseQuery<RoadmapItem[]>({
-    queryKey: ['roadmap-items', 'category', category],
-    queryFn: async () => {
-      return await supabaseQuery(
-        async () => {
-          let query = supabase
-            .from('roadmap_items')
-            .select('*')
-            .order('priority', { ascending: false })
-            .order('created_at', { ascending: false });
-
-          if (category) {
-            query = query.eq('category', category);
-          }
-
-          const result = await query;
-          return { data: result.data, error: result.error };
-        },
-        {
-          table: 'roadmap_items',
-          operation: 'Roadmap 아이템 카테고리별 조회',
-          fallbackValue: [],
-        }
-      );
-    },
-    table: 'roadmap_items',
-    operation: 'Roadmap 아이템 카테고리별 조회',
-    fallbackValue: [],
+  return useQuery<RoadmapItem[]>({
+    queryKey: QUERY_KEYS.category(category),
     staleTime: 5 * 60 * 1000,
+    queryFn: async () => {
+      if (category) {
+        const response = await roadmapApi.getByCategory(category);
+
+        if (response.error) {
+          console.error('[useRoadmapItemsByCategory] API 오류:', response.error);
+          return [];
+        }
+
+        const result = response.data as { data: RoadmapItem[] } | null;
+        return result?.data || [];
+      }
+
+      // category가 없으면 전체 조회
+      const response = await roadmapApi.list();
+
+      if (response.error) {
+        console.error('[useRoadmapItemsByCategory] API 오류:', response.error);
+        return [];
+      }
+
+      const result = response.data as { data: RoadmapItem[] } | null;
+      return result?.data || [];
+    },
   });
 };
 
+// =====================================================
+// 4. FETCH ROADMAP ITEMS BY STATUS - Workers API
+// =====================================================
 /**
  * Hook to fetch roadmap items by status
  */
 export const useRoadmapItemsByStatus = (status?: RoadmapItem['status']) => {
-  return useSupabaseQuery<RoadmapItem[]>({
-    queryKey: ['roadmap-items', 'status', status],
-    queryFn: async () => {
-      return await supabaseQuery(
-        async () => {
-          let query = supabase
-            .from('roadmap_items')
-            .select('*')
-            .order('priority', { ascending: false })
-            .order('created_at', { ascending: false });
-
-          if (status) {
-            query = query.eq('status', status);
-          }
-
-          const result = await query;
-          return { data: result.data, error: result.error };
-        },
-        {
-          table: 'roadmap_items',
-          operation: 'Roadmap 아이템 상태별 조회',
-          fallbackValue: [],
-        }
-      );
-    },
-    table: 'roadmap_items',
-    operation: 'Roadmap 아이템 상태별 조회',
-    fallbackValue: [],
+  return useQuery<RoadmapItem[]>({
+    queryKey: QUERY_KEYS.status(status),
     staleTime: 5 * 60 * 1000,
+    queryFn: async () => {
+      if (status) {
+        const response = await roadmapApi.getByStatus(status);
+
+        if (response.error) {
+          console.error('[useRoadmapItemsByStatus] API 오류:', response.error);
+          return [];
+        }
+
+        const result = response.data as { data: RoadmapItem[] } | null;
+        return result?.data || [];
+      }
+
+      // status가 없으면 전체 조회
+      const response = await roadmapApi.list();
+
+      if (response.error) {
+        console.error('[useRoadmapItemsByStatus] API 오류:', response.error);
+        return [];
+      }
+
+      const result = response.data as { data: RoadmapItem[] } | null;
+      return result?.data || [];
+    },
   });
 };
 
+// =====================================================
+// 5. FETCH PUBLISHED ROADMAP ITEMS - Workers API
+// =====================================================
 /**
  * Hook to fetch only published roadmap items (public-facing)
  */
 export const usePublishedRoadmapItems = () => {
-  return useSupabaseQuery<RoadmapItem[]>({
-    queryKey: ['roadmap-items', 'published'],
-    queryFn: async () => {
-      return await supabaseQuery(
-        async () => {
-          const result = await supabase
-            .from('roadmap_items')
-            .select('*')
-            .eq('published', true)
-            .order('priority', { ascending: false })
-            .order('created_at', { ascending: false });
-          return { data: result.data, error: result.error };
-        },
-        {
-          table: 'roadmap_items',
-          operation: '공개 Roadmap 아이템 조회',
-          fallbackValue: [],
-        }
-      );
-    },
-    table: 'roadmap_items',
-    operation: '공개 Roadmap 아이템 조회',
-    fallbackValue: [],
+  return useQuery<RoadmapItem[]>({
+    queryKey: QUERY_KEYS.published(),
     staleTime: 5 * 60 * 1000,
+    queryFn: async () => {
+      const response = await roadmapApi.getPublished();
+
+      if (response.error) {
+        console.error('[usePublishedRoadmapItems] API 오류:', response.error);
+        return [];
+      }
+
+      const result = response.data as { data: RoadmapItem[] } | null;
+      return result?.data || [];
+    },
   });
 };
+
+// =====================================================
+// CRUD MUTATIONS (Admin only) - Supabase 유지
+// =====================================================
 
 /**
  * Hook to create a new roadmap item (Admin only)
@@ -172,7 +187,7 @@ export const usePublishedRoadmapItems = () => {
 export const useCreateRoadmapItem = () => {
   const queryClient = useQueryClient();
 
-  return useSupabaseMutation<RoadmapItem, Omit<RoadmapItem, 'id' | 'created_at' | 'updated_at'>>({
+  return useMutation({
     mutationFn: async (item: Omit<RoadmapItem, 'id' | 'created_at' | 'updated_at'>) => {
       // Validate progress is 0-100
       if (item.progress < 0 || item.progress > 100) {
@@ -188,10 +203,8 @@ export const useCreateRoadmapItem = () => {
       if (error) throw error;
       return data as RoadmapItem;
     },
-    table: 'roadmap_items',
-    operation: 'Roadmap 아이템 생성',
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['roadmap-items'] });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.all });
     },
   });
 };
@@ -202,7 +215,7 @@ export const useCreateRoadmapItem = () => {
 export const useUpdateRoadmapItem = () => {
   const queryClient = useQueryClient();
 
-  return useSupabaseMutation<RoadmapItem, { id: string; updates: Partial<RoadmapItem> }>({
+  return useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<RoadmapItem> }) => {
       // Validate progress if provided
       if (updates.progress !== undefined && (updates.progress < 0 || updates.progress > 100)) {
@@ -219,11 +232,9 @@ export const useUpdateRoadmapItem = () => {
       if (error) throw error;
       return data as RoadmapItem;
     },
-    table: 'roadmap_items',
-    operation: 'Roadmap 아이템 수정',
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['roadmap-items'] });
-      queryClient.invalidateQueries({ queryKey: ['roadmap-items', data.id] });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.detail(data.id) });
     },
   });
 };
@@ -234,7 +245,7 @@ export const useUpdateRoadmapItem = () => {
 export const useDeleteRoadmapItem = () => {
   const queryClient = useQueryClient();
 
-  return useSupabaseMutation<string, string>({
+  return useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
         .from('roadmap_items')
@@ -244,10 +255,8 @@ export const useDeleteRoadmapItem = () => {
       if (error) throw error;
       return id;
     },
-    table: 'roadmap_items',
-    operation: 'Roadmap 아이템 삭제',
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['roadmap-items'] });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.all });
     },
   });
 };

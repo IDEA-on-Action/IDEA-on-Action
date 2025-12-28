@@ -85,3 +85,8 @@ Thumbs.db
 .flaskenv*
 !.env.project
 !.env.vault
+
+# Migration files (R2 migration checkpoint and mappings)
+.migration-checkpoint.json
+.migration-url-mapping.json
+.migration-url-mapping.csv

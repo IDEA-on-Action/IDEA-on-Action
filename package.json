@@ -52,7 +52,10 @@
     "migrate:r2:dry": "npx tsx scripts/migrate-to-r2.ts --dry-run --verbose",
     "migrate:d1:extract": "npx tsx scripts/migrate-to-d1.ts",
     "migrate:d1:execute": "npx tsx scripts/d1-execute.ts",
-    "migrate:d1:all": "npx tsx scripts/d1-execute.ts --combined"
+    "migrate:d1:all": "npx tsx scripts/d1-execute.ts --combined",
+    "migrate:supabase-to-d1": "npx tsx scripts/migrate-supabase-to-d1.ts --all",
+    "migrate:supabase-to-d1:dry": "npx tsx scripts/migrate-supabase-to-d1.ts --all --dry-run",
+    "migrate:supabase-to-d1:table": "npx tsx scripts/migrate-supabase-to-d1.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
@@ -140,6 +143,7 @@
     "zustand": "^5.0.8"
   },
   "devDependencies": {
+    "@aws-sdk/client-s3": "^3.958.0",
     "@axe-core/playwright": "^4.10.2",
     "@eslint/js": "^9.32.0",
     "@lhci/cli": "^0.15.1",

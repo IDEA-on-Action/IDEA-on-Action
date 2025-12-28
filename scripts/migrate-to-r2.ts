@@ -6,10 +6,12 @@
  * 2. 각 버킷의 파일 목록 추출
  * 3. R2에 파일 업로드 (스트리밍 처리)
  * 4. media_library 테이블 URL 업데이트
+ * 5. URL 매핑 테이블 생성 (JSON/CSV)
+ * 6. 중단 시 재개 가능 (체크포인트 파일)
  *
  * 사용법:
  * ```bash
- * npx tsx scripts/migrate-to-r2.ts [--dry-run] [--bucket <name>] [--batch-size <n>]
+ * npx tsx scripts/migrate-to-r2.ts [--dry-run] [--bucket <name>] [--batch-size <n>] [--resume]
  * ```
  *
  * 환경 변수 (.env.local):
@@ -19,7 +21,15 @@
  * - R2_ACCESS_KEY_ID: R2 API 접근 키 ID
  * - R2_SECRET_ACCESS_KEY: R2 API 비밀 키
  * - R2_BUCKET_NAME: R2 버킷 이름 (기본값: idea-on-action-media)
- * - R2_PUBLIC_URL: R2 공개 URL (기본값: https://media.ideaonaction.ai)
+ * - R2_PUBLIC_URL: R2 공개 URL (기본값: https://api.ideaonaction.ai/storage)
+ *
+ * 체크포인트 파일 (.migration-checkpoint.json):
+ * - 마이그레이션 진행 상황 저장
+ * - --resume 옵션으로 이어서 실행 가능
+ *
+ * URL 매핑 출력:
+ * - .migration-url-mapping.json: JSON 형식 매핑 테이블
+ * - .migration-url-mapping.csv: CSV 형식 매핑 테이블
  *
  * @module scripts/migrate-to-r2
  */
@@ -65,6 +75,8 @@ interface MigrationOptions {
   skipExisting: boolean;
   updateDatabase: boolean;
   verbose: boolean;
+  resume: boolean;
+  generateMapping: boolean;
 }
 
 interface FileInfo {
@@ -95,6 +107,28 @@ interface MigrationStats {
   endTime?: number;
 }
 
+interface UrlMapping {
+  oldUrl: string;
+  newUrl: string;
+  bucket: string;
+  path: string;
+  migratedAt: string;
+}
+
+interface Checkpoint {
+  lastProcessedFile: string | null;
+  completedFiles: string[];
+  failedFiles: string[];
+  stats: MigrationStats;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// 체크포인트 파일 경로
+const CHECKPOINT_FILE = path.join(process.cwd(), '.migration-checkpoint.json');
+const MAPPING_JSON_FILE = path.join(process.cwd(), '.migration-url-mapping.json');
+const MAPPING_CSV_FILE = path.join(process.cwd(), '.migration-url-mapping.csv');
+
 // ============================================================================
 // 설정
 // ============================================================================
@@ -102,17 +136,20 @@ interface MigrationStats {
 const CONFIG = {
   supabase: {
     url: process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || '',
-    serviceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY || '',
+    serviceRoleKey: process.env.VITE_SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || '',
+    // 기존 URL 형식
+    storageUrl: 'https://zykjdneewbzyazfukzyg.supabase.co/storage/v1/object/public',
   },
   r2: {
     accountId: process.env.R2_ACCOUNT_ID || '',
     accessKeyId: process.env.R2_ACCESS_KEY_ID || '',
     secretAccessKey: process.env.R2_SECRET_ACCESS_KEY || '',
     bucketName: process.env.R2_BUCKET_NAME || 'idea-on-action-media',
-    publicUrl: process.env.R2_PUBLIC_URL || 'https://media.ideaonaction.ai',
+    // 새 URL 형식 (Workers를 통한 서빙)
+    publicUrl: process.env.R2_PUBLIC_URL || 'https://api.ideaonaction.ai/storage',
   },
-  // 마이그레이션할 Supabase 버킷 목록
-  sourceBuckets: ['media-library', 'avatars', 'documents', 'uploads'],
+  // 마이그레이션할 Supabase 버킷 목록 (media-library, rag-documents 포함)
+  sourceBuckets: ['media-library', 'rag-documents', 'avatars', 'documents', 'uploads'],
   // 청크 크기 (스트리밍용)
   chunkSize: 5 * 1024 * 1024, // 5MB
 };
@@ -250,6 +287,120 @@ function getMimeType(filename: string): string {
   };
 
   return mimeTypes[ext] || 'application/octet-stream';
+}
+
+// ============================================================================
+// 체크포인트 관리
+// ============================================================================
+
+/**
+ * 체크포인트 로드
+ */
+function loadCheckpoint(): Checkpoint | null {
+  try {
+    if (fs.existsSync(CHECKPOINT_FILE)) {
+      const data = fs.readFileSync(CHECKPOINT_FILE, 'utf-8');
+      return JSON.parse(data) as Checkpoint;
+    }
+  } catch (error) {
+    console.warn('⚠️ 체크포인트 파일 로드 실패:', error);
+  }
+  return null;
+}
+
+/**
+ * 체크포인트 저장
+ */
+function saveCheckpoint(checkpoint: Checkpoint): void {
+  try {
+    checkpoint.updatedAt = new Date().toISOString();
+    fs.writeFileSync(CHECKPOINT_FILE, JSON.stringify(checkpoint, null, 2));
+  } catch (error) {
+    console.error('⚠️ 체크포인트 저장 실패:', error);
+  }
+}
+
+/**
+ * 체크포인트 초기화
+ */
+function initCheckpoint(stats: MigrationStats): Checkpoint {
+  return {
+    lastProcessedFile: null,
+    completedFiles: [],
+    failedFiles: [],
+    stats,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+}
+
+/**
+ * 체크포인트 삭제 (마이그레이션 완료 시)
+ */
+function clearCheckpoint(): void {
+  try {
+    if (fs.existsSync(CHECKPOINT_FILE)) {
+      fs.unlinkSync(CHECKPOINT_FILE);
+    }
+  } catch (error) {
+    console.warn('⚠️ 체크포인트 삭제 실패:', error);
+  }
+}
+
+// ============================================================================
+// URL 매핑 관리
+// ============================================================================
+
+/**
+ * URL 매핑 저장 (JSON)
+ */
+function saveMappingJson(mappings: UrlMapping[]): void {
+  try {
+    fs.writeFileSync(MAPPING_JSON_FILE, JSON.stringify(mappings, null, 2));
+    console.log(`📄 URL 매핑 JSON 저장: ${MAPPING_JSON_FILE}`);
+  } catch (error) {
+    console.error('⚠️ URL 매핑 JSON 저장 실패:', error);
+  }
+}
+
+/**
+ * URL 매핑 저장 (CSV)
+ */
+function saveMappingCsv(mappings: UrlMapping[]): void {
+  try {
+    const header = 'old_url,new_url,bucket,path,migrated_at\n';
+    const rows = mappings.map(m =>
+      `"${m.oldUrl}","${m.newUrl}","${m.bucket}","${m.path}","${m.migratedAt}"`
+    ).join('\n');
+    fs.writeFileSync(MAPPING_CSV_FILE, header + rows);
+    console.log(`📄 URL 매핑 CSV 저장: ${MAPPING_CSV_FILE}`);
+  } catch (error) {
+    console.error('⚠️ URL 매핑 CSV 저장 실패:', error);
+  }
+}
+
+/**
+ * 기존 매핑 로드
+ */
+function loadExistingMappings(): UrlMapping[] {
+  try {
+    if (fs.existsSync(MAPPING_JSON_FILE)) {
+      const data = fs.readFileSync(MAPPING_JSON_FILE, 'utf-8');
+      return JSON.parse(data) as UrlMapping[];
+    }
+  } catch (error) {
+    console.warn('⚠️ 기존 매핑 파일 로드 실패:', error);
+  }
+  return [];
+}
+
+/**
+ * Supabase URL에서 R2 URL로 변환
+ */
+function convertToR2Url(bucket: string, filePath: string): { oldUrl: string; newUrl: string } {
+  const oldUrl = `${CONFIG.supabase.storageUrl}/${bucket}/${filePath}`;
+  const newUrl = `${CONFIG.r2.publicUrl}/${bucket}/${filePath}`;
+  return { oldUrl, newUrl };
 }
 
 // ============================================================================
@@ -510,17 +661,30 @@ async function updateMediaLibraryUrls(
 }
 
 /**
- * 배치로 파일 마이그레이션
+ * 배치로 파일 마이그레이션 (체크포인트 및 URL 매핑 지원)
  */
 async function migrateBatch(
   files: FileInfo[],
   options: MigrationOptions,
-  stats: MigrationStats
+  stats: MigrationStats,
+  checkpoint: Checkpoint,
+  urlMappings: UrlMapping[]
 ): Promise<MigrationResult[]> {
   const results: MigrationResult[] = [];
+  const completedSet = new Set(checkpoint.completedFiles);
 
   for (let i = 0; i < files.length; i++) {
     const file = files[i];
+    const fileKey = `${file.bucket}/${file.path}`;
+
+    // 이미 완료된 파일은 스킵 (재개 모드)
+    if (options.resume && completedSet.has(fileKey)) {
+      if (options.verbose) {
+        console.log(`  ⏭️ 이미 처리됨 (재개 모드): ${fileKey}`);
+      }
+      stats.skippedCount++;
+      continue;
+    }
 
     // 진행률 표시
     const progress = i + 1;
@@ -530,17 +694,47 @@ async function migrateBatch(
     const result = await migrateFileToR2(file, options);
     results.push(result);
 
+    // 체크포인트 업데이트
+    checkpoint.lastProcessedFile = fileKey;
+
     if (result.success) {
       stats.successCount++;
       stats.totalSize += file.size;
+      checkpoint.completedFiles.push(fileKey);
+
+      // URL 매핑 추가
+      if (options.generateMapping) {
+        const { oldUrl, newUrl } = convertToR2Url(file.bucket, file.path);
+        urlMappings.push({
+          oldUrl,
+          newUrl,
+          bucket: file.bucket,
+          path: file.path,
+          migratedAt: new Date().toISOString(),
+        });
+      }
     } else if (result.error?.includes('스킵')) {
       stats.skippedCount++;
     } else {
       stats.errorCount++;
+      checkpoint.failedFiles.push(fileKey);
+    }
+
+    // 10개 파일마다 체크포인트 저장 (중단 대비)
+    if (i % 10 === 0 && !options.dryRun) {
+      checkpoint.stats = stats;
+      saveCheckpoint(checkpoint);
     }
   }
 
   console.log(); // 줄바꿈
+
+  // 최종 체크포인트 저장
+  if (!options.dryRun) {
+    checkpoint.stats = stats;
+    saveCheckpoint(checkpoint);
+  }
+
   return results;
 }
 
@@ -560,6 +754,8 @@ function parseArgs(): MigrationOptions {
     skipExisting: true,
     updateDatabase: true,
     verbose: false,
+    resume: false,
+    generateMapping: true,
   };
 
   for (let i = 0; i < args.length; i++) {
@@ -590,6 +786,19 @@ function parseArgs(): MigrationOptions {
       case '--no-update-db':
         options.updateDatabase = false;
         break;
+      case '--resume':
+      case '-r':
+        options.resume = true;
+        break;
+      case '--no-resume':
+        options.resume = false;
+        break;
+      case '--generate-mapping':
+        options.generateMapping = true;
+        break;
+      case '--no-mapping':
+        options.generateMapping = false;
+        break;
       case '--verbose':
       case '-v':
         options.verbose = true;
@@ -610,6 +819,10 @@ Supabase Storage → Cloudflare R2 마이그레이션 스크립트
   --no-skip-existing      기존 파일도 덮어쓰기
   --update-db             media_library URL 업데이트 (기본값)
   --no-update-db          데이터베이스 업데이트 스킵
+  --resume, -r            이전 중단 지점부터 재개
+  --no-resume             처음부터 새로 시작
+  --generate-mapping      URL 매핑 테이블 생성 (기본값)
+  --no-mapping            URL 매핑 테이블 생성 안 함
   --verbose, -v           상세 로그 출력
   --help, -h              도움말 표시
 
@@ -620,11 +833,21 @@ Supabase Storage → Cloudflare R2 마이그레이션 스크립트
   R2_ACCESS_KEY_ID        R2 API 접근 키 ID
   R2_SECRET_ACCESS_KEY    R2 API 비밀 키
   R2_BUCKET_NAME          R2 버킷 이름 (기본값: idea-on-action-media)
-  R2_PUBLIC_URL           R2 공개 URL (기본값: https://media.ideaonaction.ai)
+  R2_PUBLIC_URL           R2 공개 URL (기본값: https://api.ideaonaction.ai/storage)
+
+출력 파일:
+  .migration-checkpoint.json   체크포인트 (중단 시 재개용)
+  .migration-url-mapping.json  URL 매핑 테이블 (JSON)
+  .migration-url-mapping.csv   URL 매핑 테이블 (CSV)
+
+URL 변환:
+  Before: https://zykjdneewbzyazfukzyg.supabase.co/storage/v1/object/public/{bucket}/{path}
+  After:  https://api.ideaonaction.ai/storage/{bucket}/{path}
 
 예시:
   npx tsx scripts/migrate-to-r2.ts --dry-run
   npx tsx scripts/migrate-to-r2.ts --bucket media-library --verbose
+  npx tsx scripts/migrate-to-r2.ts --resume --verbose
   npx tsx scripts/migrate-to-r2.ts --batch-size 20 --no-update-db
         `);
         process.exit(0);
@@ -651,6 +874,27 @@ async function main(): Promise<void> {
     console.log('⚠️  DRY RUN 모드: 실제 마이그레이션은 수행하지 않습니다.\n');
   }
 
+  // 체크포인트 확인 (재개 모드)
+  let checkpoint: Checkpoint | null = null;
+  let urlMappings: UrlMapping[] = [];
+
+  if (options.resume) {
+    checkpoint = loadCheckpoint();
+    if (checkpoint) {
+      console.log('📌 이전 체크포인트 발견:');
+      console.log(`   생성 시간: ${checkpoint.createdAt}`);
+      console.log(`   마지막 파일: ${checkpoint.lastProcessedFile || '없음'}`);
+      console.log(`   완료 파일: ${checkpoint.completedFiles.length}개`);
+      console.log(`   실패 파일: ${checkpoint.failedFiles.length}개`);
+      console.log('   이전 지점부터 재개합니다...\n');
+
+      // 기존 매핑 로드
+      urlMappings = loadExistingMappings();
+    } else {
+      console.log('ℹ️ 이전 체크포인트가 없습니다. 처음부터 시작합니다.\n');
+    }
+  }
+
   // 설정 확인
   console.log('📋 설정 확인:');
   console.log(`   Supabase URL: ${CONFIG.supabase.url || '(미설정)'}`);
@@ -659,6 +903,8 @@ async function main(): Promise<void> {
   console.log(`   배치 크기: ${options.batchSize}`);
   console.log(`   기존 파일 스킵: ${options.skipExisting ? '예' : '아니오'}`);
   console.log(`   DB 업데이트: ${options.updateDatabase ? '예' : '아니오'}`);
+  console.log(`   재개 모드: ${options.resume ? '예' : '아니오'}`);
+  console.log(`   URL 매핑 생성: ${options.generateMapping ? '예' : '아니오'}`);
   console.log('');
 
   // 클라이언트 초기화 테스트
@@ -681,8 +927,8 @@ async function main(): Promise<void> {
   }
   console.log('');
 
-  // 통계 초기화
-  const stats: MigrationStats = {
+  // 통계 초기화 (재개 시 이전 통계 사용)
+  const stats: MigrationStats = checkpoint?.stats || {
     totalFiles: 0,
     successCount: 0,
     errorCount: 0,
@@ -690,6 +936,11 @@ async function main(): Promise<void> {
     totalSize: 0,
     startTime: Date.now(),
   };
+
+  // 체크포인트 초기화
+  if (!checkpoint) {
+    checkpoint = initCheckpoint(stats);
+  }
 
   // 버킷 목록 가져오기
   console.log('📦 버킷 목록 조회 중...');
@@ -734,7 +985,7 @@ async function main(): Promise<void> {
 
     // 배치로 마이그레이션
     console.log('  마이그레이션 시작...');
-    const results = await migrateBatch(files, options, stats);
+    const results = await migrateBatch(files, options, stats, checkpoint, urlMappings);
     allResults.push(...results);
 
     const bucketSuccess = results.filter(r => r.success).length;
@@ -746,6 +997,13 @@ async function main(): Promise<void> {
   if (options.updateDatabase && allResults.length > 0) {
     const updatedCount = await updateMediaLibraryUrls(allResults, options);
     console.log(`  데이터베이스 ${updatedCount}개 레코드 업데이트됨`);
+  }
+
+  // URL 매핑 저장
+  if (options.generateMapping && urlMappings.length > 0 && !options.dryRun) {
+    console.log('\n📄 URL 매핑 테이블 저장 중...');
+    saveMappingJson(urlMappings);
+    saveMappingCsv(urlMappings);
   }
 
   // 완료 통계
@@ -766,11 +1024,24 @@ async function main(): Promise<void> {
   console.log(`     소요 시간: ${formatDuration(duration)}`);
   console.log('');
 
+  if (options.generateMapping && urlMappings.length > 0) {
+    console.log(`  📄 URL 매핑: ${urlMappings.length}개 항목 저장됨`);
+    console.log(`     JSON: ${MAPPING_JSON_FILE}`);
+    console.log(`     CSV:  ${MAPPING_CSV_FILE}`);
+    console.log('');
+  }
+
   if (stats.errorCount > 0) {
     console.log('⚠️ 일부 파일 마이그레이션에 실패했습니다.');
-    console.log('   --verbose 옵션으로 다시 실행하여 상세 오류를 확인하세요.');
+    console.log('   --resume 옵션으로 재개하거나, --verbose 옵션으로 상세 오류를 확인하세요.');
+    console.log(`   실패한 파일: ${checkpoint.failedFiles.length}개`);
   } else {
     console.log('✅ 모든 파일이 성공적으로 마이그레이션되었습니다.');
+    // 성공 시 체크포인트 삭제
+    if (!options.dryRun) {
+      clearCheckpoint();
+      console.log('   체크포인트 파일이 삭제되었습니다.');
+    }
   }
 
   if (options.dryRun) {

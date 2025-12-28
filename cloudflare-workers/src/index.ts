@@ -21,6 +21,15 @@ import sessions from './handlers/api/sessions';
 import teams from './handlers/api/teams';
 import permissions from './handlers/api/permissions';
 
+// API Handlers (Frontend Migration)
+import services from './handlers/api/services';
+import orders from './handlers/api/orders';
+import cart from './handlers/api/cart';
+import blog from './handlers/api/blog';
+import notices from './handlers/api/notices';
+import portfolio from './handlers/api/portfolio';
+import roadmap from './handlers/api/roadmap';
+
 // OAuth Handlers (Wave 3)
 import authorize from './handlers/oauth/authorize';
 import token from './handlers/oauth/token';
@@ -114,6 +123,15 @@ app.route('/api/v1/users', users);
 app.route('/api/v1/sessions', sessions);
 app.route('/api/v1/teams', teams);
 app.route('/api/v1/permissions', permissions);
+
+// API v1 (Frontend Migration)
+app.route('/api/v1/services', services);
+app.route('/api/v1/orders', orders);
+app.route('/api/v1/cart', cart);
+app.route('/api/v1/blog', blog);
+app.route('/api/v1/notices', notices);
+app.route('/api/v1/portfolio', portfolio);
+app.route('/api/v1/roadmap', roadmap);
 
 // OAuth 2.0 (Wave 3)
 app.route('/oauth/authorize', authorize);

@@ -349,6 +349,335 @@ export const healthApi = {
   },
 };
 
+/**
+ * 서비스 API
+ */
+export const servicesApi = {
+  list: async (params?: {
+    status?: string;
+    category_id?: string;
+    sort_by?: string;
+    limit?: number;
+    offset?: number;
+  }) => {
+    const query = new URLSearchParams();
+    if (params?.status) query.set('status', params.status);
+    if (params?.category_id) query.set('category_id', params.category_id);
+    if (params?.sort_by) query.set('sort_by', params.sort_by);
+    if (params?.limit) query.set('limit', String(params.limit));
+    if (params?.offset) query.set('offset', String(params.offset));
+    const queryString = query.toString();
+    return callWorkersApi(`/api/v1/services${queryString ? `?${queryString}` : ''}`);
+  },
+
+  getById: async (id: string) => {
+    return callWorkersApi(`/api/v1/services/${id}`);
+  },
+
+  getBySlug: async (slug: string) => {
+    return callWorkersApi(`/api/v1/services/slug/${slug}`);
+  },
+
+  getCategories: async () => {
+    return callWorkersApi('/api/v1/services/categories/list');
+  },
+
+  getCategoryCount: async (categoryId: string) => {
+    return callWorkersApi(`/api/v1/services/categories/${categoryId}/count`);
+  },
+
+  create: async (token: string, data: Record<string, unknown>) => {
+    return callWorkersApi('/api/v1/services', {
+      method: 'POST',
+      token,
+      body: data,
+    });
+  },
+
+  update: async (token: string, id: string, data: Record<string, unknown>) => {
+    return callWorkersApi(`/api/v1/services/${id}`, {
+      method: 'PATCH',
+      token,
+      body: data,
+    });
+  },
+
+  delete: async (token: string, id: string) => {
+    return callWorkersApi(`/api/v1/services/${id}`, {
+      method: 'DELETE',
+      token,
+    });
+  },
+};
+
+/**
+ * 주문 API
+ */
+export const ordersApi = {
+  list: async (token: string, params?: { status?: string; limit?: number; offset?: number }) => {
+    const query = new URLSearchParams();
+    if (params?.status) query.set('status', params.status);
+    if (params?.limit) query.set('limit', String(params.limit));
+    if (params?.offset) query.set('offset', String(params.offset));
+    const queryString = query.toString();
+    return callWorkersApi(`/api/v1/orders${queryString ? `?${queryString}` : ''}`, { token });
+  },
+
+  getById: async (token: string, id: string) => {
+    return callWorkersApi(`/api/v1/orders/${id}`, { token });
+  },
+
+  create: async (token: string, data: { items: Array<{ service_id: string; package_id?: string; quantity?: number }>; notes?: string }) => {
+    return callWorkersApi('/api/v1/orders', {
+      method: 'POST',
+      token,
+      body: data,
+    });
+  },
+
+  update: async (token: string, id: string, data: Record<string, unknown>) => {
+    return callWorkersApi(`/api/v1/orders/${id}`, {
+      method: 'PATCH',
+      token,
+      body: data,
+    });
+  },
+
+  cancel: async (token: string, id: string) => {
+    return callWorkersApi(`/api/v1/orders/${id}`, {
+      method: 'DELETE',
+      token,
+    });
+  },
+};
+
+/**
+ * 장바구니 API
+ */
+export const cartApi = {
+  get: async (token: string) => {
+    return callWorkersApi('/api/v1/cart', { token });
+  },
+
+  add: async (token: string, data: { service_id: string; package_id?: string; quantity?: number }) => {
+    return callWorkersApi('/api/v1/cart', {
+      method: 'POST',
+      token,
+      body: data,
+    });
+  },
+
+  updateQuantity: async (token: string, id: string, quantity: number) => {
+    return callWorkersApi(`/api/v1/cart/${id}`, {
+      method: 'PATCH',
+      token,
+      body: { quantity },
+    });
+  },
+
+  remove: async (token: string, id: string) => {
+    return callWorkersApi(`/api/v1/cart/${id}`, {
+      method: 'DELETE',
+      token,
+    });
+  },
+
+  clear: async (token: string) => {
+    return callWorkersApi('/api/v1/cart', {
+      method: 'DELETE',
+      token,
+    });
+  },
+
+  checkout: async (token: string) => {
+    return callWorkersApi('/api/v1/cart/checkout', {
+      method: 'POST',
+      token,
+    });
+  },
+};
+
+/**
+ * 블로그 API
+ */
+export const blogApi = {
+  getPosts: async (params?: {
+    status?: string;
+    category_id?: string;
+    tag?: string;
+    search?: string;
+    limit?: number;
+    offset?: number;
+  }) => {
+    const query = new URLSearchParams();
+    if (params?.status) query.set('status', params.status);
+    if (params?.category_id) query.set('category_id', params.category_id);
+    if (params?.tag) query.set('tag', params.tag);
+    if (params?.search) query.set('search', params.search);
+    if (params?.limit) query.set('limit', String(params.limit));
+    if (params?.offset) query.set('offset', String(params.offset));
+    const queryString = query.toString();
+    return callWorkersApi(`/api/v1/blog/posts${queryString ? `?${queryString}` : ''}`);
+  },
+
+  getPost: async (slug: string) => {
+    return callWorkersApi(`/api/v1/blog/posts/${slug}`);
+  },
+
+  getCategories: async () => {
+    return callWorkersApi('/api/v1/blog/categories');
+  },
+
+  getTags: async () => {
+    return callWorkersApi('/api/v1/blog/tags');
+  },
+
+  createPost: async (token: string, data: Record<string, unknown>) => {
+    return callWorkersApi('/api/v1/blog/posts', {
+      method: 'POST',
+      token,
+      body: data,
+    });
+  },
+
+  updatePost: async (token: string, id: string, data: Record<string, unknown>) => {
+    return callWorkersApi(`/api/v1/blog/posts/${id}`, {
+      method: 'PATCH',
+      token,
+      body: data,
+    });
+  },
+
+  deletePost: async (token: string, id: string) => {
+    return callWorkersApi(`/api/v1/blog/posts/${id}`, {
+      method: 'DELETE',
+      token,
+    });
+  },
+};
+
+/**
+ * 포트폴리오 API (D1 스키마 매칭)
+ */
+export const portfolioApi = {
+  list: async (params?: {
+    category?: string;
+    featured?: boolean;
+    status?: 'draft' | 'published' | 'archived';
+    limit?: number;
+    offset?: number;
+  }) => {
+    const query = new URLSearchParams();
+    if (params?.category) query.set('category', params.category);
+    if (params?.featured) query.set('featured', 'true');
+    if (params?.status) query.set('status', params.status);
+    if (params?.limit) query.set('limit', String(params.limit));
+    if (params?.offset) query.set('offset', String(params.offset));
+    const queryString = query.toString();
+    return callWorkersApi(`/api/v1/portfolio${queryString ? `?${queryString}` : ''}`);
+  },
+
+  getFeatured: async () => {
+    return callWorkersApi('/api/v1/portfolio/featured');
+  },
+
+  getByCategory: async (category: string) => {
+    return callWorkersApi(`/api/v1/portfolio/category/${category}`);
+  },
+
+  getById: async (id: string) => {
+    return callWorkersApi(`/api/v1/portfolio/${id}`);
+  },
+
+  getBySlug: async (slug: string) => {
+    return callWorkersApi(`/api/v1/portfolio/slug/${slug}`);
+  },
+};
+
+/**
+ * 로드맵 API (D1 스키마 매칭)
+ */
+export const roadmapApi = {
+  list: async (params?: {
+    category?: string;
+    status?: 'planned' | 'in_progress' | 'completed' | 'cancelled';
+    priority?: 'low' | 'medium' | 'high' | 'critical';
+    limit?: number;
+    offset?: number;
+  }) => {
+    const query = new URLSearchParams();
+    if (params?.category) query.set('category', params.category);
+    if (params?.status) query.set('status', params.status);
+    if (params?.priority) query.set('priority', params.priority);
+    if (params?.limit) query.set('limit', String(params.limit));
+    if (params?.offset) query.set('offset', String(params.offset));
+    const queryString = query.toString();
+    return callWorkersApi(`/api/v1/roadmap${queryString ? `?${queryString}` : ''}`);
+  },
+
+  getActive: async () => {
+    return callWorkersApi('/api/v1/roadmap/active');
+  },
+
+  getByCategory: async (category: string) => {
+    return callWorkersApi(`/api/v1/roadmap/category/${category}`);
+  },
+
+  getByStatus: async (status: string) => {
+    return callWorkersApi(`/api/v1/roadmap/status/${status}`);
+  },
+
+  getById: async (id: string) => {
+    return callWorkersApi(`/api/v1/roadmap/${id}`);
+  },
+};
+
+/**
+ * 공지사항 API
+ */
+export const noticesApi = {
+  list: async (params?: { type?: string; include_expired?: boolean; limit?: number; offset?: number }) => {
+    const query = new URLSearchParams();
+    if (params?.type) query.set('type', params.type);
+    if (params?.include_expired) query.set('include_expired', 'true');
+    if (params?.limit) query.set('limit', String(params.limit));
+    if (params?.offset) query.set('offset', String(params.offset));
+    const queryString = query.toString();
+    return callWorkersApi(`/api/v1/notices${queryString ? `?${queryString}` : ''}`);
+  },
+
+  getPinned: async () => {
+    return callWorkersApi('/api/v1/notices/pinned');
+  },
+
+  getById: async (id: string) => {
+    return callWorkersApi(`/api/v1/notices/${id}`);
+  },
+
+  create: async (token: string, data: Record<string, unknown>) => {
+    return callWorkersApi('/api/v1/notices', {
+      method: 'POST',
+      token,
+      body: data,
+    });
+  },
+
+  update: async (token: string, id: string, data: Record<string, unknown>) => {
+    return callWorkersApi(`/api/v1/notices/${id}`, {
+      method: 'PATCH',
+      token,
+      body: data,
+    });
+  },
+
+  delete: async (token: string, id: string) => {
+    return callWorkersApi(`/api/v1/notices/${id}`, {
+      method: 'DELETE',
+      token,
+    });
+  },
+};
+
 // 기본 내보내기
 export default {
   auth: authApi,
@@ -359,5 +688,12 @@ export default {
   storage: storageApi,
   realtime: realtimeApi,
   health: healthApi,
+  services: servicesApi,
+  orders: ordersApi,
+  cart: cartApi,
+  blog: blogApi,
+  portfolio: portfolioApi,
+  roadmap: roadmapApi,
+  notices: noticesApi,
   call: callWorkersApi,
 };
