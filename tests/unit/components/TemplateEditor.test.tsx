@@ -7,10 +7,21 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { TemplateEditor } from '@/components/admin/TemplateEditor';
 
 // Mock dependencies
 vi.mock('@/hooks/useTemplateEditor');
+
+vi.mock('@/hooks/useAuth', () => ({
+  useAuth: vi.fn(() => ({
+    workersTokens: { accessToken: 'test-token' },
+    workersUser: { id: 'user-123', email: 'test@example.com' },
+    isAuthenticated: true,
+    loading: false,
+  })),
+}));
 
 vi.mock('@dnd-kit/core', () => ({
   DndContext: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
@@ -51,6 +62,22 @@ vi.mock('@dnd-kit/utilities', () => ({
 // Import the mocked hook
 import { useTemplateEditor } from '@/hooks/useTemplateEditor';
 
+// Test wrapper with required providers
+const createWrapper = () => {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+
+  return ({ children }: { children: React.ReactNode }) => (
+    <MemoryRouter>
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    </MemoryRouter>
+  );
+};
+
 describe('TemplateEditor', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -85,7 +112,7 @@ describe('TemplateEditor', () => {
   // ========================================================================
 
   it('컴포넌트가 정상적으로 렌더링되어야 함', () => {
-    render(<TemplateEditor />);
+    render(<TemplateEditor />, { wrapper: createWrapper() });
 
     expect(screen.getByText('템플릿 에디터')).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: /에디터/i })).toBeInTheDocument();
@@ -117,7 +144,7 @@ describe('TemplateEditor', () => {
       error: null,
     });
 
-    render(<TemplateEditor />);
+    render(<TemplateEditor />, { wrapper: createWrapper() });
 
     expect(screen.queryByText('템플릿 에디터')).not.toBeInTheDocument();
   });
@@ -149,7 +176,7 @@ describe('TemplateEditor', () => {
       error,
     });
 
-    render(<TemplateEditor />);
+    render(<TemplateEditor />, { wrapper: createWrapper() });
 
     expect(screen.getByText('테스트 에러')).toBeInTheDocument();
   });
@@ -186,7 +213,7 @@ describe('TemplateEditor', () => {
     });
 
     const user = userEvent.setup();
-    render(<TemplateEditor />);
+    render(<TemplateEditor />, { wrapper: createWrapper() });
 
     // "섹션 관리" 헤더 근처에 있는 첫 번째 "섹션 추가" 버튼 클릭
     const addButtons = screen.getAllByRole('button', { name: /섹션 추가|첫 섹션 추가/i });
@@ -234,7 +261,7 @@ describe('TemplateEditor', () => {
       error: null,
     });
 
-    render(<TemplateEditor />);
+    render(<TemplateEditor />, { wrapper: createWrapper() });
 
     expect(screen.getByDisplayValue('테스트 섹션')).toBeInTheDocument();
   });
@@ -271,7 +298,7 @@ describe('TemplateEditor', () => {
     });
 
     const user = userEvent.setup();
-    render(<TemplateEditor />);
+    render(<TemplateEditor />, { wrapper: createWrapper() });
 
     const saveButton = screen.getByRole('button', { name: /저장/i });
     await user.click(saveButton);
@@ -304,7 +331,7 @@ describe('TemplateEditor', () => {
       error: null,
     });
 
-    render(<TemplateEditor />);
+    render(<TemplateEditor />, { wrapper: createWrapper() });
 
     const saveButton = screen.getByRole('button', { name: /저장/i });
     expect(saveButton).toBeDisabled();
@@ -335,7 +362,7 @@ describe('TemplateEditor', () => {
       error: null,
     });
 
-    render(<TemplateEditor />);
+    render(<TemplateEditor />, { wrapper: createWrapper() });
 
     const saveButton = screen.getByRole('button', { name: /저장/i });
     expect(saveButton).toBeDisabled();
@@ -372,7 +399,7 @@ describe('TemplateEditor', () => {
       error: null,
     });
 
-    render(<TemplateEditor />);
+    render(<TemplateEditor />, { wrapper: createWrapper() });
 
     const exportButton = screen.getByRole('button', { name: /내보내기/i });
     expect(exportButton).toBeInTheDocument();
@@ -403,7 +430,7 @@ describe('TemplateEditor', () => {
       error: null,
     });
 
-    render(<TemplateEditor />);
+    render(<TemplateEditor />, { wrapper: createWrapper() });
 
     const importButton = screen.getByRole('button', { name: /가져오기/i });
     expect(importButton).toBeInTheDocument();
@@ -438,7 +465,7 @@ describe('TemplateEditor', () => {
       error: null,
     });
 
-    render(<TemplateEditor />);
+    render(<TemplateEditor />, { wrapper: createWrapper() });
 
     const previewTab = screen.getByRole('tab', { name: /미리보기/i });
     expect(previewTab).toBeInTheDocument();
@@ -469,7 +496,7 @@ describe('TemplateEditor', () => {
       error: null,
     });
 
-    render(<TemplateEditor />);
+    render(<TemplateEditor />, { wrapper: createWrapper() });
 
     const editorTab = screen.getByRole('tab', { name: /에디터/i });
     expect(editorTab).toHaveAttribute('data-state', 'active');

@@ -12,6 +12,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { MemoryRouter } from 'react-router-dom';
 import { MCPProtected } from '@/components/mcp/MCPProtected';
 import * as useMCPPermissionHook from '@/hooks/useMCPPermission';
 import React from 'react';
@@ -19,12 +20,6 @@ import React from 'react';
 // Mock dependencies
 vi.mock('@/hooks/useMCPPermission', () => ({
   useMCPServicePermission: vi.fn(),
-}));
-
-vi.mock('react-router-dom', () => ({
-  Link: ({ children, to }: { children: React.ReactNode; to: string }) => (
-    <a href={to}>{children}</a>
-  ),
 }));
 
 // Test wrapper
@@ -37,7 +32,9 @@ const createWrapper = () => {
   });
 
   return ({ children }: { children: React.ReactNode }) => (
-    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    <MemoryRouter>
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    </MemoryRouter>
   );
 };
 

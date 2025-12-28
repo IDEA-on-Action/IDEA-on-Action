@@ -11,15 +11,29 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import {
+  QueryClient,
+  QueryClientProvider,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
+import { MemoryRouter } from 'react-router-dom';
 import React from 'react';
 
-// Supabase 클라이언트 모킹
-vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
-    from: vi.fn(),
-  },
+// useAuth 모킹
+vi.mock('@/hooks/useAuth', () => ({
+  useAuth: vi.fn(() => ({
+    workersTokens: { accessToken: 'test-token' },
+    workersUser: { id: 'user-123', email: 'test@example.com' },
+    isAuthenticated: true,
+    loading: false,
+  })),
+}));
+
+// Workers API 모킹
+vi.mock('@/integrations/cloudflare/client', () => ({
+  callWorkersApi: vi.fn(),
 }));
 
 // Toast 모킹
@@ -39,36 +53,69 @@ interface TestEntity {
   updated_at?: string;
 }
 
-// Supabase 쿼리 빌더 모킹 타입
-type MockQueryBuilder = ReturnType<typeof supabase.from>;
-
 // Mock implementations for bulk operations
 // These would be added to src/hooks/useCRUD.ts
 
 function useBulkDelete<T>(table: string) {
-  // TODO: Implement this hook
-  return {
-    mutate: vi.fn(),
-    mutateAsync: vi.fn(async (ids: string[]) => {
-      return ids;
-    }),
-    isLoading: false,
-    isSuccess: false,
-    isError: false,
-  };
+  const queryClient = useQueryClient();
+
+  const mutation = useMutation({
+    mutationFn: async (ids: string[]) => {
+      if (ids.length === 0) {
+        return [];
+      }
+
+      const { callWorkersApi } = await import('@/integrations/cloudflare/client');
+      const response = await callWorkersApi({
+        path: `/api/${table}`,
+        method: 'DELETE',
+        body: { ids },
+      });
+
+      if (!response.success) {
+        const { toast } = await import('sonner');
+        toast.error(response.error);
+        throw new Error(response.error);
+      }
+
+      return response.data?.deletedIds || ids;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [table, 'list'] });
+    },
+  });
+
+  return mutation;
 }
 
 function useBulkUpdate<T>(table: string) {
-  // TODO: Implement this hook
-  return {
-    mutate: vi.fn(),
-    mutateAsync: vi.fn(async (params: { ids: string[]; values: Partial<T> }) => {
-      return params.ids.map((id) => ({ id, ...params.values }));
-    }),
-    isLoading: false,
-    isSuccess: false,
-    isError: false,
-  };
+  const queryClient = useQueryClient();
+
+  const mutation = useMutation({
+    mutationFn: async (params: { ids: string[]; values: Partial<T> }) => {
+      if (params.ids.length === 0) {
+        return [];
+      }
+
+      const { callWorkersApi } = await import('@/integrations/cloudflare/client');
+      const response = await callWorkersApi({
+        path: `/api/${table}`,
+        method: 'PATCH',
+        body: { ids: params.ids, values: params.values },
+      });
+
+      if (!response.success) {
+        throw new Error(response.error);
+      }
+
+      return response.data || params.ids.map((id) => ({ id, ...params.values }));
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [table, 'list'] });
+    },
+  });
+
+  return mutation;
 }
 
 type ExportFormat = 'csv' | 'json';
@@ -80,16 +127,44 @@ interface ExportOptions {
 }
 
 function useExport<T>(table: string) {
-  // TODO: Implement this hook
-  return {
-    mutate: vi.fn(),
-    mutateAsync: vi.fn(async (options: ExportOptions) => {
-      return new Blob(['mock data'], { type: 'text/csv' });
-    }),
-    isLoading: false,
-    isSuccess: false,
-    isError: false,
-  };
+  const mutation = useMutation({
+    mutationFn: async (options: ExportOptions) => {
+      const { callWorkersApi } = await import('@/integrations/cloudflare/client');
+      const response = await callWorkersApi({
+        path: `/api/${table}/export`,
+        method: 'POST',
+        body: {
+          format: options.format,
+          columns: options.columns,
+          filters: options.filters,
+        },
+      });
+
+      if (!response.success) {
+        throw new Error(response.error);
+      }
+
+      const data = response.data;
+      const mimeType = options.format === 'csv' ? 'text/csv' : 'application/json';
+
+      let content: string;
+      if (options.format === 'csv') {
+        if (data.length === 0) {
+          content = '';
+        } else {
+          const headers = Object.keys(data[0]).join(',');
+          const rows = data.map((item: any) => Object.values(item).join(','));
+          content = [headers, ...rows].join('\n');
+        }
+      } else {
+        content = JSON.stringify(data, null, 2);
+      }
+
+      return new Blob([content], { type: mimeType });
+    },
+  });
+
+  return mutation;
 }
 
 interface CountOptions {
@@ -97,14 +172,24 @@ interface CountOptions {
 }
 
 function useCount(table: string) {
-  // TODO: Implement this hook
-  return {
-    data: 0,
-    isLoading: false,
-    isSuccess: false,
-    isError: false,
-    refetch: vi.fn(),
-  };
+  const query = useQuery({
+    queryKey: [table, 'count'],
+    queryFn: async () => {
+      const { callWorkersApi } = await import('@/integrations/cloudflare/client');
+      const response = await callWorkersApi({
+        path: `/api/${table}/count`,
+        method: 'GET',
+      });
+
+      if (!response.success) {
+        throw new Error(response.error);
+      }
+
+      return response.data?.count || 0;
+    },
+  });
+
+  return query;
 }
 
 describe('useBulkDelete', () => {
@@ -120,7 +205,9 @@ describe('useBulkDelete', () => {
     });
 
     wrapper = ({ children }: { children: React.ReactNode }) => (
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+      <MemoryRouter>
+        <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+      </MemoryRouter>
     );
 
     vi.clearAllMocks();
@@ -133,15 +220,12 @@ describe('useBulkDelete', () => {
   it('여러 항목을 한 번에 삭제해야 함', async () => {
     // Setup
     const ids = ['1', '2', '3'];
-    const mockDelete = vi.fn().mockReturnThis();
-    const mockIn = vi.fn().mockResolvedValue({
-      error: null,
-    });
+    const { callWorkersApi } = await import('@/integrations/cloudflare/client');
 
-    vi.mocked(supabase.from).mockReturnValue({
-      delete: mockDelete,
-      in: mockIn,
-    } as any);
+    vi.mocked(callWorkersApi).mockResolvedValue({
+      success: true,
+      data: { deletedIds: ids },
+    });
 
     // Execute
     const { result } = renderHook(() => useBulkDelete<TestEntity>('test_table'), { wrapper });
@@ -150,21 +234,22 @@ describe('useBulkDelete', () => {
 
     // Assert
     expect(deletedIds).toEqual(ids);
-    expect(mockDelete).toHaveBeenCalled();
-    expect(mockIn).toHaveBeenCalledWith('id', ids);
+    expect(callWorkersApi).toHaveBeenCalledWith(
+      expect.objectContaining({
+        path: expect.stringContaining('test_table'),
+        method: 'DELETE',
+      })
+    );
   });
 
   it('삭제 성공 시 쿼리를 무효화해야 함', async () => {
     // Setup
-    const mockDelete = vi.fn().mockReturnThis();
-    const mockIn = vi.fn().mockResolvedValue({
-      error: null,
-    });
+    const { callWorkersApi } = await import('@/integrations/cloudflare/client');
 
-    vi.mocked(supabase.from).mockReturnValue({
-      delete: mockDelete,
-      in: mockIn,
-    } as any);
+    vi.mocked(callWorkersApi).mockResolvedValue({
+      success: true,
+      data: { deletedIds: ['1', '2'] },
+    });
 
     const invalidateQueriesSpy = vi.spyOn(queryClient, 'invalidateQueries');
 
@@ -183,10 +268,7 @@ describe('useBulkDelete', () => {
 
   it('빈 배열을 전달하면 아무 작업도 하지 않아야 함', async () => {
     // Setup
-    const mockDelete = vi.fn();
-    vi.mocked(supabase.from).mockReturnValue({
-      delete: mockDelete,
-    } as any);
+    const { callWorkersApi } = await import('@/integrations/cloudflare/client');
 
     // Execute
     const { result } = renderHook(() => useBulkDelete<TestEntity>('test_table'), { wrapper });
@@ -194,21 +276,18 @@ describe('useBulkDelete', () => {
     await result.current.mutateAsync([]);
 
     // Assert
-    expect(mockDelete).not.toHaveBeenCalled();
+    expect(callWorkersApi).not.toHaveBeenCalled();
   });
 
   it('삭제 실패 시 에러를 처리해야 함', async () => {
     // Setup
     const { toast } = await import('sonner');
-    const mockDelete = vi.fn().mockReturnThis();
-    const mockIn = vi.fn().mockResolvedValue({
-      error: { message: 'Delete failed' },
-    });
+    const { callWorkersApi } = await import('@/integrations/cloudflare/client');
 
-    vi.mocked(supabase.from).mockReturnValue({
-      delete: mockDelete,
-      in: mockIn,
-    } as any);
+    vi.mocked(callWorkersApi).mockResolvedValue({
+      success: false,
+      error: 'Delete failed',
+    });
 
     // Execute
     const { result } = renderHook(() => useBulkDelete<TestEntity>('test_table'), { wrapper });
@@ -228,15 +307,12 @@ describe('useBulkDelete', () => {
   it('대량의 항목도 한 번에 삭제할 수 있어야 함', async () => {
     // Setup
     const ids = Array.from({ length: 100 }, (_, i) => String(i + 1));
-    const mockDelete = vi.fn().mockReturnThis();
-    const mockIn = vi.fn().mockResolvedValue({
-      error: null,
-    });
+    const { callWorkersApi } = await import('@/integrations/cloudflare/client');
 
-    vi.mocked(supabase.from).mockReturnValue({
-      delete: mockDelete,
-      in: mockIn,
-    } as any);
+    vi.mocked(callWorkersApi).mockResolvedValue({
+      success: true,
+      data: { deletedIds: ids },
+    });
 
     // Execute
     const { result } = renderHook(() => useBulkDelete<TestEntity>('test_table'), { wrapper });
@@ -245,7 +321,6 @@ describe('useBulkDelete', () => {
 
     // Assert
     expect(deletedIds).toEqual(ids);
-    expect(mockIn).toHaveBeenCalledWith('id', ids);
   });
 });
 
@@ -262,7 +337,9 @@ describe('useBulkUpdate', () => {
     });
 
     wrapper = ({ children }: { children: React.ReactNode }) => (
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+      <MemoryRouter>
+        <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+      </MemoryRouter>
     );
 
     vi.clearAllMocks();
@@ -277,19 +354,12 @@ describe('useBulkUpdate', () => {
     const ids = ['1', '2', '3'];
     const values = { value: 999 };
     const updatedItems = ids.map((id) => ({ id, name: 'Test', value: 999 }));
+    const { callWorkersApi } = await import('@/integrations/cloudflare/client');
 
-    const mockUpdate = vi.fn().mockReturnThis();
-    const mockIn = vi.fn().mockReturnThis();
-    const mockSelect = vi.fn().mockResolvedValue({
+    vi.mocked(callWorkersApi).mockResolvedValue({
+      success: true,
       data: updatedItems,
-      error: null,
     });
-
-    vi.mocked(supabase.from).mockReturnValue({
-      update: mockUpdate,
-      in: mockIn,
-      select: mockSelect,
-    } as any);
 
     // Execute
     const { result } = renderHook(() => useBulkUpdate<TestEntity>('test_table'), { wrapper });
@@ -298,8 +368,12 @@ describe('useBulkUpdate', () => {
 
     // Assert
     expect(result_data).toHaveLength(3);
-    expect(mockUpdate).toHaveBeenCalledWith(values);
-    expect(mockIn).toHaveBeenCalledWith('id', ids);
+    expect(callWorkersApi).toHaveBeenCalledWith(
+      expect.objectContaining({
+        method: 'PATCH',
+        body: expect.objectContaining({ ids, values }),
+      })
+    );
   });
 
   it('업데이트된 항목을 반환해야 함', async () => {
@@ -307,19 +381,12 @@ describe('useBulkUpdate', () => {
     const ids = ['1', '2'];
     const values = { name: 'Updated', value: 100 };
     const updatedItems = ids.map((id) => ({ id, ...values }));
+    const { callWorkersApi } = await import('@/integrations/cloudflare/client');
 
-    const mockUpdate = vi.fn().mockReturnThis();
-    const mockIn = vi.fn().mockReturnThis();
-    const mockSelect = vi.fn().mockResolvedValue({
+    vi.mocked(callWorkersApi).mockResolvedValue({
+      success: true,
       data: updatedItems,
-      error: null,
     });
-
-    vi.mocked(supabase.from).mockReturnValue({
-      update: mockUpdate,
-      in: mockIn,
-      select: mockSelect,
-    } as any);
 
     // Execute
     const { result } = renderHook(() => useBulkUpdate<TestEntity>('test_table'), { wrapper });
@@ -332,18 +399,12 @@ describe('useBulkUpdate', () => {
 
   it('업데이트 성공 시 쿼리를 무효화해야 함', async () => {
     // Setup
-    const mockUpdate = vi.fn().mockReturnThis();
-    const mockIn = vi.fn().mockReturnThis();
-    const mockSelect = vi.fn().mockResolvedValue({
-      data: [],
-      error: null,
-    });
+    const { callWorkersApi } = await import('@/integrations/cloudflare/client');
 
-    vi.mocked(supabase.from).mockReturnValue({
-      update: mockUpdate,
-      in: mockIn,
-      select: mockSelect,
-    } as any);
+    vi.mocked(callWorkersApi).mockResolvedValue({
+      success: true,
+      data: [],
+    });
 
     const invalidateQueriesSpy = vi.spyOn(queryClient, 'invalidateQueries');
 
@@ -362,10 +423,7 @@ describe('useBulkUpdate', () => {
 
   it('빈 배열을 전달하면 아무 작업도 하지 않아야 함', async () => {
     // Setup
-    const mockUpdate = vi.fn();
-    vi.mocked(supabase.from).mockReturnValue({
-      update: mockUpdate,
-    } as any);
+    const { callWorkersApi } = await import('@/integrations/cloudflare/client');
 
     // Execute
     const { result } = renderHook(() => useBulkUpdate<TestEntity>('test_table'), { wrapper });
@@ -373,26 +431,19 @@ describe('useBulkUpdate', () => {
     await result.current.mutateAsync({ ids: [], values: { value: 100 } });
 
     // Assert
-    expect(mockUpdate).not.toHaveBeenCalled();
+    expect(callWorkersApi).not.toHaveBeenCalled();
   });
 
   it('부분 업데이트가 가능해야 함', async () => {
     // Setup
     const ids = ['1', '2'];
     const values = { value: 200 }; // name은 업데이트하지 않음
+    const { callWorkersApi } = await import('@/integrations/cloudflare/client');
 
-    const mockUpdate = vi.fn().mockReturnThis();
-    const mockIn = vi.fn().mockReturnThis();
-    const mockSelect = vi.fn().mockResolvedValue({
+    vi.mocked(callWorkersApi).mockResolvedValue({
+      success: true,
       data: ids.map((id) => ({ id, name: 'Existing', value: 200 })),
-      error: null,
     });
-
-    vi.mocked(supabase.from).mockReturnValue({
-      update: mockUpdate,
-      in: mockIn,
-      select: mockSelect,
-    } as any);
 
     // Execute
     const { result } = renderHook(() => useBulkUpdate<TestEntity>('test_table'), { wrapper });
@@ -400,7 +451,11 @@ describe('useBulkUpdate', () => {
     await result.current.mutateAsync({ ids, values });
 
     // Assert
-    expect(mockUpdate).toHaveBeenCalledWith(values);
+    expect(callWorkersApi).toHaveBeenCalledWith(
+      expect.objectContaining({
+        body: expect.objectContaining({ values }),
+      })
+    );
   });
 });
 
@@ -417,7 +472,9 @@ describe('useExport', () => {
     });
 
     wrapper = ({ children }: { children: React.ReactNode }) => (
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+      <MemoryRouter>
+        <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+      </MemoryRouter>
     );
 
     vi.clearAllMocks();
@@ -429,15 +486,12 @@ describe('useExport', () => {
       { id: '1', name: 'Item 1', value: 10 },
       { id: '2', name: 'Item 2', value: 20 },
     ];
+    const { callWorkersApi } = await import('@/integrations/cloudflare/client');
 
-    const mockSelect = vi.fn().mockResolvedValue({
+    vi.mocked(callWorkersApi).mockResolvedValue({
+      success: true,
       data: mockData,
-      error: null,
     });
-
-    vi.mocked(supabase.from).mockReturnValue({
-      select: mockSelect,
-    } as any);
 
     // Execute
     const { result } = renderHook(() => useExport<TestEntity>('test_table'), { wrapper });
@@ -455,15 +509,12 @@ describe('useExport', () => {
       { id: '1', name: 'Item 1', value: 10 },
       { id: '2', name: 'Item 2', value: 20 },
     ];
+    const { callWorkersApi } = await import('@/integrations/cloudflare/client');
 
-    const mockSelect = vi.fn().mockResolvedValue({
+    vi.mocked(callWorkersApi).mockResolvedValue({
+      success: true,
       data: mockData,
-      error: null,
     });
-
-    vi.mocked(supabase.from).mockReturnValue({
-      select: mockSelect,
-    } as any);
 
     // Execute
     const { result } = renderHook(() => useExport<TestEntity>('test_table'), { wrapper });
@@ -481,15 +532,12 @@ describe('useExport', () => {
       { id: '1', name: 'Item 1' },
       { id: '2', name: 'Item 2' },
     ];
+    const { callWorkersApi } = await import('@/integrations/cloudflare/client');
 
-    const mockSelect = vi.fn().mockResolvedValue({
+    vi.mocked(callWorkersApi).mockResolvedValue({
+      success: true,
       data: mockData,
-      error: null,
     });
-
-    vi.mocked(supabase.from).mockReturnValue({
-      select: mockSelect,
-    } as any);
 
     // Execute
     const { result } = renderHook(() => useExport<TestEntity>('test_table'), { wrapper });
@@ -500,23 +548,24 @@ describe('useExport', () => {
     });
 
     // Assert
-    expect(mockSelect).toHaveBeenCalledWith('id,name');
+    expect(callWorkersApi).toHaveBeenCalledWith(
+      expect.objectContaining({
+        body: expect.objectContaining({
+          columns: ['id', 'name'],
+        }),
+      })
+    );
   });
 
   it('필터를 적용하여 내보낼 수 있어야 함', async () => {
     // Setup
     const mockData = [{ id: '1', name: 'Filtered', value: 10 }];
+    const { callWorkersApi } = await import('@/integrations/cloudflare/client');
 
-    const mockSelect = vi.fn().mockReturnThis();
-    const mockEq = vi.fn().mockResolvedValue({
+    vi.mocked(callWorkersApi).mockResolvedValue({
+      success: true,
       data: mockData,
-      error: null,
     });
-
-    vi.mocked(supabase.from).mockReturnValue({
-      select: mockSelect,
-      eq: mockEq,
-    } as any);
 
     // Execute
     const { result } = renderHook(() => useExport<TestEntity>('test_table'), { wrapper });
@@ -527,7 +576,13 @@ describe('useExport', () => {
     });
 
     // Assert
-    expect(mockEq).toHaveBeenCalledWith('name', 'Filtered');
+    expect(callWorkersApi).toHaveBeenCalledWith(
+      expect.objectContaining({
+        body: expect.objectContaining({
+          filters: { name: 'Filtered' },
+        }),
+      })
+    );
   });
 
   it('CSV 헤더가 포함되어야 함', async () => {
@@ -536,21 +591,24 @@ describe('useExport', () => {
       { id: '1', name: 'Item 1', value: 10 },
       { id: '2', name: 'Item 2', value: 20 },
     ];
+    const { callWorkersApi } = await import('@/integrations/cloudflare/client');
 
-    const mockSelect = vi.fn().mockResolvedValue({
+    vi.mocked(callWorkersApi).mockResolvedValue({
+      success: true,
       data: mockData,
-      error: null,
     });
-
-    vi.mocked(supabase.from).mockReturnValue({
-      select: mockSelect,
-    } as any);
 
     // Execute
     const { result } = renderHook(() => useExport<TestEntity>('test_table'), { wrapper });
 
     const blob = await result.current.mutateAsync({ format: 'csv' });
-    const text = await blob.text();
+
+    // FileReader를 사용하여 Blob 내용 읽기
+    const text = await new Promise<string>((resolve) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.readAsText(blob);
+    });
 
     // Assert
     expect(text).toContain('id,name,value'); // CSV 헤더
@@ -558,14 +616,12 @@ describe('useExport', () => {
 
   it('빈 데이터도 내보낼 수 있어야 함', async () => {
     // Setup
-    const mockSelect = vi.fn().mockResolvedValue({
-      data: [],
-      error: null,
-    });
+    const { callWorkersApi } = await import('@/integrations/cloudflare/client');
 
-    vi.mocked(supabase.from).mockReturnValue({
-      select: mockSelect,
-    } as any);
+    vi.mocked(callWorkersApi).mockResolvedValue({
+      success: true,
+      data: [],
+    });
 
     // Execute
     const { result } = renderHook(() => useExport<TestEntity>('test_table'), { wrapper });
@@ -590,7 +646,9 @@ describe('useCount', () => {
     });
 
     wrapper = ({ children }: { children: React.ReactNode }) => (
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+      <MemoryRouter>
+        <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+      </MemoryRouter>
     );
 
     vi.clearAllMocks();
@@ -598,15 +656,12 @@ describe('useCount', () => {
 
   it('전체 항목 수를 반환해야 함', async () => {
     // Setup
-    const mockSelect = vi.fn().mockResolvedValue({
-      data: null,
-      error: null,
-      count: 42,
-    });
+    const { callWorkersApi } = await import('@/integrations/cloudflare/client');
 
-    vi.mocked(supabase.from).mockReturnValue({
-      select: mockSelect,
-    } as any);
+    vi.mocked(callWorkersApi).mockResolvedValue({
+      success: true,
+      data: { count: 42 },
+    });
 
     // Execute
     const { result } = renderHook(() => useCount('test_table'), { wrapper });
@@ -621,17 +676,12 @@ describe('useCount', () => {
 
   it('필터를 적용한 항목 수를 반환해야 함', async () => {
     // Setup
-    const mockSelect = vi.fn().mockReturnThis();
-    const mockEq = vi.fn().mockResolvedValue({
-      data: null,
-      error: null,
-      count: 5,
-    });
+    const { callWorkersApi } = await import('@/integrations/cloudflare/client');
 
-    vi.mocked(supabase.from).mockReturnValue({
-      select: mockSelect,
-      eq: mockEq,
-    } as any);
+    vi.mocked(callWorkersApi).mockResolvedValue({
+      success: true,
+      data: { count: 5 },
+    });
 
     // Execute
     const { result } = renderHook(() => useCount('test_table'), { wrapper });
@@ -644,15 +694,12 @@ describe('useCount', () => {
 
   it('데이터가 없으면 0을 반환해야 함', async () => {
     // Setup
-    const mockSelect = vi.fn().mockResolvedValue({
-      data: null,
-      error: null,
-      count: 0,
-    });
+    const { callWorkersApi } = await import('@/integrations/cloudflare/client');
 
-    vi.mocked(supabase.from).mockReturnValue({
-      select: mockSelect,
-    } as any);
+    vi.mocked(callWorkersApi).mockResolvedValue({
+      success: true,
+      data: { count: 0 },
+    });
 
     // Execute
     const { result } = renderHook(() => useCount('test_table'), { wrapper });
@@ -665,15 +712,12 @@ describe('useCount', () => {
 
   it('에러 발생 시 에러 상태를 반환해야 함', async () => {
     // Setup
-    const mockSelect = vi.fn().mockResolvedValue({
-      data: null,
-      error: { message: 'Count error' },
-      count: null,
-    });
+    const { callWorkersApi } = await import('@/integrations/cloudflare/client');
 
-    vi.mocked(supabase.from).mockReturnValue({
-      select: mockSelect,
-    } as any);
+    vi.mocked(callWorkersApi).mockResolvedValue({
+      success: false,
+      error: 'Count error',
+    });
 
     // Execute
     const { result } = renderHook(() => useCount('test_table'), { wrapper });
@@ -686,21 +730,17 @@ describe('useCount', () => {
 
   it('refetch 함수가 작동해야 함', async () => {
     // Setup
-    const mockSelect = vi.fn()
+    const { callWorkersApi } = await import('@/integrations/cloudflare/client');
+
+    vi.mocked(callWorkersApi)
       .mockResolvedValueOnce({
-        data: null,
-        error: null,
-        count: 10,
+        success: true,
+        data: { count: 10 },
       })
       .mockResolvedValueOnce({
-        data: null,
-        error: null,
-        count: 15,
+        success: true,
+        data: { count: 15 },
       });
-
-    vi.mocked(supabase.from).mockReturnValue({
-      select: mockSelect,
-    } as any);
 
     // Execute
     const { result } = renderHook(() => useCount('test_table'), { wrapper });

@@ -2,7 +2,7 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { BrowserRouter } from 'react-router-dom';
+import { MemoryRouter } from 'react-router-dom';
 import Status from '@/pages/Status';
 import type { Project, Bounty, Log } from '@/types/v2';
 import React, { type ReactNode } from 'react';
@@ -221,9 +221,9 @@ describe('Status Page', () => {
   });
 
   const wrapper = ({ children }: { children: ReactNode }) => (
-    <QueryClientProvider client={queryClient}>
-      <BrowserRouter>{children}</BrowserRouter>
-    </QueryClientProvider>
+    <MemoryRouter>
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    </MemoryRouter>
   );
 
   describe('기본 렌더링', () => {
