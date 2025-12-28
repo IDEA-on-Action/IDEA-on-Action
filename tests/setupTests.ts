@@ -52,6 +52,55 @@ vi.mock('sonner', () => ({
   },
 }))
 
+// Supabase Client Mock (테스트 호환성)
+// 테스트에서 vi.mocked(supabase.auth.getUser).mockResolvedValue(...) 형태로 오버라이드
+const createQueryBuilder = () => {
+  const builder: Record<string, unknown> = {}
+  const methods = ['select', 'insert', 'update', 'delete', 'eq', 'neq', 'gt', 'gte', 'lt', 'lte',
+    'like', 'ilike', 'is', 'in', 'contains', 'containedBy', 'range', 'order', 'limit', 'match', 'upsert']
+  methods.forEach(method => {
+    builder[method] = vi.fn().mockReturnValue(builder)
+  })
+  builder['single'] = vi.fn().mockResolvedValue({ data: null, error: null })
+  builder['maybeSingle'] = vi.fn().mockResolvedValue({ data: null, error: null })
+  builder['then'] = vi.fn((cb) => Promise.resolve({ data: null, error: null }).then(cb))
+  return builder
+}
+
+vi.mock('@/integrations/supabase/client', () => ({
+  supabase: {
+    from: vi.fn().mockImplementation(() => createQueryBuilder()),
+    auth: {
+      getUser: vi.fn().mockResolvedValue({ data: { user: null }, error: null }),
+      getSession: vi.fn().mockResolvedValue({ data: { session: null }, error: null }),
+      signInWithPassword: vi.fn().mockResolvedValue({ data: null, error: null }),
+      signInWithOAuth: vi.fn().mockResolvedValue({ data: null, error: null }),
+      signUp: vi.fn().mockResolvedValue({ data: null, error: null }),
+      signOut: vi.fn().mockResolvedValue({ error: null }),
+      resetPasswordForEmail: vi.fn().mockResolvedValue({ data: null, error: null }),
+      updateUser: vi.fn().mockResolvedValue({ data: null, error: null }),
+      onAuthStateChange: vi.fn().mockReturnValue({
+        data: { subscription: { unsubscribe: vi.fn() } }
+      }),
+    },
+    storage: {
+      from: vi.fn().mockReturnValue({
+        upload: vi.fn().mockResolvedValue({ data: null, error: null }),
+        download: vi.fn().mockResolvedValue({ data: null, error: null }),
+        remove: vi.fn().mockResolvedValue({ data: null, error: null }),
+        getPublicUrl: vi.fn().mockReturnValue({ data: { publicUrl: 'https://example.com/file' } }),
+        list: vi.fn().mockResolvedValue({ data: [], error: null }),
+      }),
+    },
+    rpc: vi.fn().mockResolvedValue({ data: null, error: null }),
+    channel: vi.fn().mockReturnValue({
+      on: vi.fn().mockReturnThis(),
+      subscribe: vi.fn(),
+      unsubscribe: vi.fn(),
+    }),
+  },
+}))
+
 // ResizeObserver 폴리필 (Radix UI 컴포넌트용)
 global.ResizeObserver = vi.fn().mockImplementation(() => ({
   observe: vi.fn(),
