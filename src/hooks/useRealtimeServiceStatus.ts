@@ -1,16 +1,17 @@
 /**
  * useRealtimeServiceStatus Hook
  *
- * Supabase Realtime을 활용한 서비스 상태 실시간 동기화 훅
+ * Workers WebSocket을 활용한 서비스 상태 실시간 동기화 훅
  * service_health 테이블 변경을 실시간으로 감지하고 연결 상태를 관리합니다.
  *
+ * @migration Supabase → Cloudflare Workers (완전 마이그레이션 완료)
  * @module hooks/useRealtimeServiceStatus
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { RealtimeChannel, REALTIME_SUBSCRIBE_STATES } from '@supabase/supabase-js';
-import { supabase } from '@/integrations/supabase/client';
+import { realtimeApi } from '@/integrations/cloudflare/client';
+import { useAuth } from '@/hooks/useAuth';
 import type { ServiceHealth, ServiceId, HealthStatus } from '@/types/central-hub.types';
 import { serviceHealthKeys } from './useServiceHealth';
 
@@ -125,7 +126,8 @@ export function useRealtimeServiceStatus(
   } = options;
 
   const queryClient = useQueryClient();
-  const channelRef = useRef<RealtimeChannel | null>(null);
+  const { user } = useAuth();
+  const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const previousStatusRef = useRef<Map<ServiceId, HealthStatus>>(new Map());
 
@@ -170,9 +172,9 @@ export function useRealtimeServiceStatus(
       reconnectTimeoutRef.current = null;
     }
 
-    if (channelRef.current) {
-      supabase.removeChannel(channelRef.current);
-      channelRef.current = null;
+    if (wsRef.current) {
+      wsRef.current.close();
+      wsRef.current = null;
     }
 
     updateConnectionState({
@@ -181,33 +183,52 @@ export function useRealtimeServiceStatus(
     });
   }, [updateConnectionState]);
 
-  // 채널 연결
+  // WebSocket 연결
   const connect = useCallback(() => {
     // 기존 연결 정리
-    if (channelRef.current) {
-      supabase.removeChannel(channelRef.current);
+    if (wsRef.current) {
+      wsRef.current.close();
     }
 
     updateConnectionState({ status: 'connecting' });
 
     // 채널 이름 생성
-    const channelName = serviceId
-      ? `realtime-service-status-${serviceId}`
-      : 'realtime-service-status-all';
+    const roomId = serviceId
+      ? `service-status-${serviceId}`
+      : 'service-status-all';
 
-    // Realtime 채널 생성
-    const channel = supabase
-      .channel(channelName)
-      .on<ServiceHealth>(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'service_health',
-          filter: serviceId ? `service_id=eq.${serviceId}` : undefined,
-        },
-        (payload) => {
-          const newStatus = payload.new as ServiceHealth;
+    // Workers WebSocket 연결
+    const ws = realtimeApi.connect(roomId, user?.id);
+    wsRef.current = ws;
+
+    ws.onopen = () => {
+      console.log('[ServiceStatus] WebSocket 연결됨');
+      // 서비스 상태 구독 요청
+      ws.send(JSON.stringify({
+        type: 'subscribe',
+        channel: 'service_health',
+        filter: serviceId || undefined,
+      }));
+    };
+
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+
+        // 구독 확인 응답
+        if (data.type === 'subscribed') {
+          updateConnectionState({
+            status: 'connected',
+            error: null,
+            lastConnectedAt: new Date(),
+            reconnectAttempts: 0,
+          });
+          return;
+        }
+
+        // 서비스 상태 업데이트
+        if (data.type === 'service_health_update') {
+          const newStatus = data.payload as ServiceHealth;
           const currentServiceId = newStatus.service_id as ServiceId;
 
           // 이전 상태 조회
@@ -241,75 +262,43 @@ export function useRealtimeServiceStatus(
             });
           }
         }
-      )
-      .subscribe((status, err) => {
-        switch (status) {
-          case REALTIME_SUBSCRIBE_STATES.SUBSCRIBED:
-            updateConnectionState({
-              status: 'connected',
-              error: null,
-              lastConnectedAt: new Date(),
-              reconnectAttempts: 0,
-            });
-            break;
+      } catch (e) {
+        console.error('[ServiceStatus] WebSocket 메시지 파싱 에러:', e);
+      }
+    };
 
-          case REALTIME_SUBSCRIBE_STATES.CLOSED:
-            updateConnectionState({ status: 'disconnected' });
-            break;
-
-          case REALTIME_SUBSCRIBE_STATES.CHANNEL_ERROR:
-            updateConnectionState({
-              status: 'error',
-              error: err ? new Error(String(err)) : new Error('채널 에러 발생'),
-            });
-
-            // 자동 재연결
-            if (autoReconnect) {
-              setConnectionState((prev) => {
-                if (prev.reconnectAttempts < maxReconnectAttempts) {
-                  reconnectTimeoutRef.current = setTimeout(() => {
-                    connect();
-                  }, reconnectInterval);
-
-                  return {
-                    ...prev,
-                    reconnectAttempts: prev.reconnectAttempts + 1,
-                  };
-                }
-                return prev;
-              });
-            }
-            break;
-
-          case REALTIME_SUBSCRIBE_STATES.TIMED_OUT:
-            updateConnectionState({
-              status: 'error',
-              error: new Error('연결 시간 초과'),
-            });
-
-            // 자동 재연결
-            if (autoReconnect) {
-              setConnectionState((prev) => {
-                if (prev.reconnectAttempts < maxReconnectAttempts) {
-                  reconnectTimeoutRef.current = setTimeout(() => {
-                    connect();
-                  }, reconnectInterval);
-
-                  return {
-                    ...prev,
-                    reconnectAttempts: prev.reconnectAttempts + 1,
-                  };
-                }
-                return prev;
-              });
-            }
-            break;
-        }
+    ws.onerror = (error) => {
+      console.error('[ServiceStatus] WebSocket 에러:', error);
+      updateConnectionState({
+        status: 'error',
+        error: new Error('WebSocket 연결 오류'),
       });
 
-    channelRef.current = channel;
+      // 자동 재연결
+      if (autoReconnect) {
+        setConnectionState((prev) => {
+          if (prev.reconnectAttempts < maxReconnectAttempts) {
+            reconnectTimeoutRef.current = setTimeout(() => {
+              connect();
+            }, reconnectInterval);
+
+            return {
+              ...prev,
+              reconnectAttempts: prev.reconnectAttempts + 1,
+            };
+          }
+          return prev;
+        });
+      }
+    };
+
+    ws.onclose = () => {
+      console.log('[ServiceStatus] WebSocket 연결 종료');
+      updateConnectionState({ status: 'disconnected' });
+    };
   }, [
     serviceId,
+    user?.id,
     autoReconnect,
     maxReconnectAttempts,
     reconnectInterval,

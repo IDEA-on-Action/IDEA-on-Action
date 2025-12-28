@@ -1,5 +1,6 @@
 /**
  * useAdmins Hook
+ * @migration Supabase -> Cloudflare Workers (완전 마이그레이션 완료)
  *
  * CMS Phase 1: Admin 사용자 관리를 위한 React Query 훅
  * - 관리자 목록 조회 (이메일 포함)
@@ -8,11 +9,23 @@
  * - 현재 사용자 관리자 권한 확인
  */
 
-import { supabase } from '@/integrations/supabase/client'
-import { useSupabaseQuery, supabaseQuery } from '@/lib/react-query'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
-import type { Admin, AdminWithEmail, AdminRole } from '@/types/v2'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { adminsApi } from '@/integrations/cloudflare/client'
+import { useAuth } from './useAuth'
+import type { AdminRole } from '@/types/v2'
 import { toast } from 'sonner'
+
+// ===================================================================
+// Types
+// ===================================================================
+
+export interface AdminWithEmail {
+  id: string
+  user_id: string
+  email: string
+  role: AdminRole
+  created_at: string
+}
 
 // ===================================================================
 // Query Keys
@@ -24,6 +37,8 @@ export const adminKeys = {
   list: (role?: AdminRole) => (role ? [...adminKeys.all, 'list', role] as const : [...adminKeys.all, 'list'] as const),
   details: () => [...adminKeys.all, 'detail'] as const,
   detail: (userId: string) => [...adminKeys.all, 'detail', userId] as const,
+  isAdmin: () => ['isAdmin'] as const,
+  currentRole: () => ['currentAdminRole'] as const,
 }
 
 // ===================================================================
@@ -34,33 +49,20 @@ export const adminKeys = {
  * 모든 관리자 목록 조회 (이메일 포함)
  */
 export function useAdmins() {
-  return useSupabaseQuery<AdminWithEmail[]>({
+  const { getAccessToken, isAuthenticated } = useAuth()
+
+  return useQuery({
     queryKey: adminKeys.lists(),
     queryFn: async () => {
-      return await supabaseQuery(
-        async () => {
-          // admins 테이블에서 email 포함하여 조회
-          const { data: admins, error } = await supabase
-            .from('admins')
-            .select('*')
-            .order('created_at', { ascending: false })
+      const token = getAccessToken()
+      if (!token) throw new Error('인증이 필요합니다')
 
-          if (error) {
-            return { data: null, error }
-          }
+      const result = await adminsApi.list(token)
+      if (result.error) throw new Error(result.error)
 
-          return { data: (admins || []) as AdminWithEmail[], error: null }
-        },
-        {
-          table: 'admins',
-          operation: '관리자 목록 조회',
-          fallbackValue: [],
-        }
-      )
+      return (result.data?.admins || []) as AdminWithEmail[]
     },
-    table: 'admins',
-    operation: '관리자 목록 조회',
-    fallbackValue: [],
+    enabled: isAuthenticated,
     staleTime: 1000 * 60 * 5, // 5분
   })
 }
@@ -69,34 +71,21 @@ export function useAdmins() {
  * 단일 관리자 조회
  */
 export function useAdmin(userId: string) {
-  return useSupabaseQuery<AdminWithEmail | null>({
+  const { getAccessToken, isAuthenticated } = useAuth()
+
+  return useQuery({
     queryKey: adminKeys.detail(userId),
     queryFn: async () => {
-      return await supabaseQuery(
-        async () => {
-          const { data: admin, error } = await supabase
-            .from('admins')
-            .select('*')
-            .eq('user_id', userId)
-            .maybeSingle()
+      const token = getAccessToken()
+      if (!token) throw new Error('인증이 필요합니다')
 
-          if (error) {
-            return { data: null, error }
-          }
+      const result = await adminsApi.list(token)
+      if (result.error) throw new Error(result.error)
 
-          return { data: admin as AdminWithEmail | null, error: null }
-        },
-        {
-          table: 'admins',
-          operation: `관리자 조회 (user_id: ${userId})`,
-          fallbackValue: null,
-        }
-      )
+      const admin = result.data?.admins?.find(a => a.user_id === userId)
+      return admin as AdminWithEmail | null
     },
-    table: 'admins',
-    operation: `관리자 조회 (user_id: ${userId})`,
-    fallbackValue: null,
-    enabled: !!userId,
+    enabled: isAuthenticated && !!userId,
     staleTime: 1000 * 60 * 5, // 5분
   })
 }
@@ -105,79 +94,45 @@ export function useAdmin(userId: string) {
  * 역할별 관리자 목록 조회
  */
 export function useAdminsByRole(role: AdminRole) {
-  return useSupabaseQuery<AdminWithEmail[]>({
+  const { getAccessToken, isAuthenticated } = useAuth()
+
+  return useQuery({
     queryKey: adminKeys.list(role),
     queryFn: async () => {
-      return await supabaseQuery(
-        async () => {
-          const { data: admins, error } = await supabase
-            .from('admins')
-            .select('*')
-            .eq('role', role)
-            .order('created_at', { ascending: false })
+      const token = getAccessToken()
+      if (!token) throw new Error('인증이 필요합니다')
 
-          if (error) {
-            return { data: null, error }
-          }
+      const result = await adminsApi.listByRole(token, role)
+      if (result.error) throw new Error(result.error)
 
-          return { data: (admins || []) as AdminWithEmail[], error: null }
-        },
-        {
-          table: 'admins',
-          operation: `역할별 관리자 조회 (role: ${role})`,
-          fallbackValue: [],
-        }
-      )
+      return (result.data?.admins || []) as AdminWithEmail[]
     },
-    table: 'admins',
-    operation: `역할별 관리자 조회 (role: ${role})`,
-    fallbackValue: [],
-    enabled: !!role,
+    enabled: isAuthenticated && !!role,
     staleTime: 1000 * 60 * 5, // 5분
   })
 }
 
 /**
  * 현재 사용자가 관리자인지 확인
- * NOTE: useAuth()를 호출하면 순환 참조 발생하므로 직접 Supabase auth 사용
  */
 export function useIsAdmin() {
-  return useSupabaseQuery<boolean>({
-    queryKey: ['isAdmin'],
+  const { getAccessToken, isAuthenticated, workersUser } = useAuth()
+
+  return useQuery({
+    queryKey: adminKeys.isAdmin(),
     queryFn: async () => {
-      // Supabase auth 세션에서 직접 사용자 ID 가져오기
-      const { data: { user } } = await supabase.auth.getUser()
+      const token = getAccessToken()
+      if (!token || !workersUser?.id) return false
 
-      if (!user?.id) {
-        return false
-      }
+      const result = await adminsApi.checkIsAdmin(token)
+      if (result.error) return false
 
-      return await supabaseQuery(
-        async () => {
-          const { data, error } = await supabase
-            .from('admins')
-            .select('id')
-            .eq('user_id', user.id)
-            .maybeSingle()
-
-          if (error) {
-            return { data: false, error }
-          }
-
-          return { data: !!data, error: null }
-        },
-        {
-          table: 'admins',
-          operation: '관리자 권한 확인',
-          fallbackValue: false,
-        }
-      )
+      return result.data?.isAdmin || false
     },
-    table: 'admins',
-    operation: '관리자 권한 확인',
-    fallbackValue: false,
-    enabled: !!user?.id,
-    staleTime: 1000 * 60 * 5, // 5분
+    enabled: isAuthenticated,
+    staleTime: 0, // 캐시 사용 안 함 - 매번 최신 데이터 조회
+    gcTime: 0,
+    refetchOnMount: 'always',
   })
 }
 
@@ -186,40 +141,20 @@ export function useIsAdmin() {
  * @returns AdminRole | null
  */
 export function useCurrentAdminRole() {
-  return useSupabaseQuery<AdminRole | null>({
-    queryKey: ['currentAdminRole'],
+  const { getAccessToken, isAuthenticated, workersUser } = useAuth()
+
+  return useQuery({
+    queryKey: adminKeys.currentRole(),
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser()
+      const token = getAccessToken()
+      if (!token || !workersUser?.id) return null
 
-      if (!user?.id) {
-        return null
-      }
+      const result = await adminsApi.checkIsAdmin(token)
+      if (result.error) return null
 
-      return await supabaseQuery(
-        async () => {
-          const { data, error } = await supabase
-            .from('admins')
-            .select('role')
-            .eq('user_id', user.id)
-            .maybeSingle()
-
-          if (error) {
-            return { data: null, error }
-          }
-
-          return { data: data?.role || null, error: null }
-        },
-        {
-          table: 'admins',
-          operation: '관리자 역할 조회',
-          fallbackValue: null,
-        }
-      )
+      return (result.data?.role as AdminRole) || null
     },
-    table: 'admins',
-    operation: '관리자 역할 조회',
-    fallbackValue: null,
-    enabled: true,
+    enabled: isAuthenticated,
     staleTime: 1000 * 60 * 5, // 5분
     gcTime: 1000 * 60 * 10, // 10분
   })
@@ -234,16 +169,17 @@ export function useCurrentAdminRole() {
  */
 export function useCreateAdmin() {
   const queryClient = useQueryClient()
+  const { getAccessToken } = useAuth()
 
   return useMutation({
     mutationFn: async (params: { user_id: string; role: AdminRole }) => {
-      const { data, error } = await supabase.from('admins').insert(params).select().single()
+      const token = getAccessToken()
+      if (!token) throw new Error('인증이 필요합니다')
 
-      if (error) {
-        throw error
-      }
+      const result = await adminsApi.create(token, params)
+      if (result.error) throw new Error(result.error)
 
-      return data as Admin
+      return result.data
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: adminKeys.all })
@@ -261,20 +197,20 @@ export function useCreateAdmin() {
  */
 export function useUpdateAdmin() {
   const queryClient = useQueryClient()
+  const { getAccessToken } = useAuth()
 
   return useMutation({
     mutationFn: async (params: { id: string; role: AdminRole }) => {
-      const { data, error } = await supabase.from('admins').update({ role: params.role }).eq('id', params.id).select().single()
+      const token = getAccessToken()
+      if (!token) throw new Error('인증이 필요합니다')
 
-      if (error) {
-        throw error
-      }
+      const result = await adminsApi.update(token, params.id, { role: params.role })
+      if (result.error) throw new Error(result.error)
 
-      return data as Admin
+      return result.data
     },
-    onSuccess: (data) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: adminKeys.all })
-      queryClient.invalidateQueries({ queryKey: adminKeys.detail(data.user_id) })
       toast.success('관리자 정보가 수정되었습니다.')
     },
     onError: (error: Error) => {
@@ -289,14 +225,17 @@ export function useUpdateAdmin() {
  */
 export function useDeleteAdmin() {
   const queryClient = useQueryClient()
+  const { getAccessToken } = useAuth()
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from('admins').delete().eq('id', id)
+      const token = getAccessToken()
+      if (!token) throw new Error('인증이 필요합니다')
 
-      if (error) {
-        throw error
-      }
+      const result = await adminsApi.delete(token, id)
+      if (result.error) throw new Error(result.error)
+
+      return result.data
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: adminKeys.all })

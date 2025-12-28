@@ -1,5 +1,6 @@
 /**
  * Newsletter Drafts Hooks
+ * @migration Supabase -> Cloudflare Workers (완전 마이그레이션 완료)
  *
  * 뉴스레터 드래프트 및 스케줄 발송 관리 훅
  *
@@ -7,7 +8,8 @@
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { supabase } from '@/integrations/supabase/client'
+import { newsletterApi } from '@/integrations/cloudflare/client'
+import { useAuth } from '@/hooks/useAuth'
 import { toast } from 'sonner'
 
 // ============================================
@@ -93,41 +95,35 @@ export interface DraftFilters {
  * 뉴스레터 드래프트 목록 조회
  */
 export function useNewsletterDrafts(filters?: DraftFilters) {
+  const { workersTokens } = useAuth()
+
   return useQuery({
     queryKey: ['newsletter-drafts', filters],
     queryFn: async () => {
-      let query = supabase
-        .from('newsletter_drafts')
-        .select('*', { count: 'exact' })
-        .order('created_at', { ascending: false })
-
-      // 상태 필터
-      if (filters?.status && filters.status !== 'all') {
-        query = query.eq('status', filters.status)
+      const token = workersTokens?.accessToken
+      if (!token) {
+        throw new Error('인증이 필요합니다.')
       }
 
-      // 검색 (제목)
-      if (filters?.search) {
-        query = query.ilike('subject', `%${filters.search}%`)
+      const result = await newsletterApi.getDrafts(token, {
+        status: filters?.status,
+        search: filters?.search,
+        limit: filters?.limit || 20,
+        offset: filters?.offset || 0,
+      })
+
+      if (result.error) {
+        console.error('Newsletter drafts query error:', result.error)
+        throw new Error(`드래프트 목록 조회 실패: ${result.error}`)
       }
 
-      // 페이지네이션
-      const limit = filters?.limit || 20
-      const offset = filters?.offset || 0
-      query = query.range(offset, offset + limit - 1)
-
-      const { data, error, count } = await query
-
-      if (error) {
-        console.error('Newsletter drafts query error:', error)
-        throw new Error(`드래프트 목록 조회 실패: ${error.message}`)
-      }
-
+      const responseData = result.data as { data: NewsletterDraft[]; count: number }
       return {
-        data: data as NewsletterDraft[],
-        count,
+        data: responseData.data as NewsletterDraft[],
+        count: responseData.count,
       }
     },
+    enabled: !!workersTokens?.accessToken,
     staleTime: 30 * 1000, // 30초
   })
 }
@@ -140,25 +136,28 @@ export function useNewsletterDrafts(filters?: DraftFilters) {
  * 뉴스레터 드래프트 상세 조회
  */
 export function useNewsletterDraft(id: string | undefined) {
+  const { workersTokens } = useAuth()
+
   return useQuery({
     queryKey: ['newsletter-draft', id],
     queryFn: async () => {
       if (!id) throw new Error('ID가 필요합니다')
 
-      const { data, error } = await supabase
-        .from('newsletter_drafts')
-        .select('*')
-        .eq('id', id)
-        .single()
-
-      if (error) {
-        console.error('Newsletter draft query error:', error)
-        throw new Error(`드래프트 조회 실패: ${error.message}`)
+      const token = workersTokens?.accessToken
+      if (!token) {
+        throw new Error('인증이 필요합니다.')
       }
 
-      return data as NewsletterDraft
+      const result = await newsletterApi.getDraft(token, id)
+
+      if (result.error) {
+        console.error('Newsletter draft query error:', result.error)
+        throw new Error(`드래프트 조회 실패: ${result.error}`)
+      }
+
+      return result.data as NewsletterDraft
     },
-    enabled: !!id,
+    enabled: !!id && !!workersTokens?.accessToken,
     staleTime: 60 * 1000, // 1분
   })
 }
@@ -172,36 +171,29 @@ export function useNewsletterDraft(id: string | undefined) {
  */
 export function useCreateNewsletterDraft() {
   const queryClient = useQueryClient()
+  const { workersTokens } = useAuth()
 
   return useMutation({
     mutationFn: async (request: CreateDraftRequest) => {
-      // 현재 사용자 ID 가져오기
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
+      const token = workersTokens?.accessToken
+      if (!token) {
+        throw new Error('인증이 필요합니다.')
+      }
 
-      const insertData = {
+      const result = await newsletterApi.createDraft(token, {
         subject: request.subject,
         content: request.content,
         preview: request.preview || request.content.substring(0, 200),
-        status: request.scheduled_at ? 'scheduled' : 'draft',
         scheduled_at: request.scheduled_at,
         segment_filter: request.segment_filter || {},
-        created_by: user?.id,
+      })
+
+      if (result.error) {
+        console.error('Create newsletter draft error:', result.error)
+        throw new Error(`드래프트 생성 실패: ${result.error}`)
       }
 
-      const { data, error } = await supabase
-        .from('newsletter_drafts')
-        .insert(insertData)
-        .select()
-        .single()
-
-      if (error) {
-        console.error('Create newsletter draft error:', error)
-        throw new Error(`드래프트 생성 실패: ${error.message}`)
-      }
-
-      return data as NewsletterDraft
+      return result.data as NewsletterDraft
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['newsletter-drafts'] })
@@ -226,9 +218,15 @@ export function useCreateNewsletterDraft() {
  */
 export function useUpdateNewsletterDraft() {
   const queryClient = useQueryClient()
+  const { workersTokens } = useAuth()
 
   return useMutation({
     mutationFn: async (request: UpdateDraftRequest) => {
+      const token = workersTokens?.accessToken
+      if (!token) {
+        throw new Error('인증이 필요합니다.')
+      }
+
       const { id, ...updates } = request
 
       // preview 자동 생성
@@ -236,19 +234,14 @@ export function useUpdateNewsletterDraft() {
         updates.preview = updates.content.substring(0, 200)
       }
 
-      const { data, error } = await supabase
-        .from('newsletter_drafts')
-        .update(updates)
-        .eq('id', id)
-        .select()
-        .single()
+      const result = await newsletterApi.updateDraft(token, id, updates)
 
-      if (error) {
-        console.error('Update newsletter draft error:', error)
-        throw new Error(`드래프트 수정 실패: ${error.message}`)
+      if (result.error) {
+        console.error('Update newsletter draft error:', result.error)
+        throw new Error(`드래프트 수정 실패: ${result.error}`)
       }
 
-      return data as NewsletterDraft
+      return result.data as NewsletterDraft
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['newsletter-drafts'] })
@@ -270,17 +263,20 @@ export function useUpdateNewsletterDraft() {
  */
 export function useDeleteNewsletterDraft() {
   const queryClient = useQueryClient()
+  const { workersTokens } = useAuth()
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from('newsletter_drafts')
-        .delete()
-        .eq('id', id)
+      const token = workersTokens?.accessToken
+      if (!token) {
+        throw new Error('인증이 필요합니다.')
+      }
 
-      if (error) {
-        console.error('Delete newsletter draft error:', error)
-        throw new Error(`드래프트 삭제 실패: ${error.message}`)
+      const result = await newsletterApi.deleteDraft(token, id)
+
+      if (result.error) {
+        console.error('Delete newsletter draft error:', result.error)
+        throw new Error(`드래프트 삭제 실패: ${result.error}`)
       }
     },
     onSuccess: () => {
@@ -302,25 +298,23 @@ export function useDeleteNewsletterDraft() {
  */
 export function useScheduleNewsletterDraft() {
   const queryClient = useQueryClient()
+  const { workersTokens } = useAuth()
 
   return useMutation({
     mutationFn: async (request: ScheduleDraftRequest) => {
-      const { data, error } = await supabase
-        .from('newsletter_drafts')
-        .update({
-          status: 'scheduled',
-          scheduled_at: request.scheduled_at,
-        })
-        .eq('id', request.id)
-        .select()
-        .single()
-
-      if (error) {
-        console.error('Schedule newsletter draft error:', error)
-        throw new Error(`예약 설정 실패: ${error.message}`)
+      const token = workersTokens?.accessToken
+      if (!token) {
+        throw new Error('인증이 필요합니다.')
       }
 
-      return data as NewsletterDraft
+      const result = await newsletterApi.scheduleDraft(token, request.id, request.scheduled_at)
+
+      if (result.error) {
+        console.error('Schedule newsletter draft error:', result.error)
+        throw new Error(`예약 설정 실패: ${result.error}`)
+      }
+
+      return result.data as NewsletterDraft
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['newsletter-drafts'] })
@@ -344,25 +338,23 @@ export function useScheduleNewsletterDraft() {
  */
 export function useCancelScheduledNewsletter() {
   const queryClient = useQueryClient()
+  const { workersTokens } = useAuth()
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const { data, error } = await supabase
-        .from('newsletter_drafts')
-        .update({
-          status: 'cancelled',
-          scheduled_at: null,
-        })
-        .eq('id', id)
-        .select()
-        .single()
-
-      if (error) {
-        console.error('Cancel scheduled newsletter error:', error)
-        throw new Error(`예약 취소 실패: ${error.message}`)
+      const token = workersTokens?.accessToken
+      if (!token) {
+        throw new Error('인증이 필요합니다.')
       }
 
-      return data as NewsletterDraft
+      const result = await newsletterApi.cancelSchedule(token, id)
+
+      if (result.error) {
+        console.error('Cancel scheduled newsletter error:', result.error)
+        throw new Error(`예약 취소 실패: ${result.error}`)
+      }
+
+      return result.data as NewsletterDraft
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['newsletter-drafts'] })
@@ -376,7 +368,7 @@ export function useCancelScheduledNewsletter() {
 }
 
 // ============================================
-// 즉시 발송 (Edge Function 호출)
+// 즉시 발송 (Workers API 호출)
 // ============================================
 
 /**
@@ -384,19 +376,23 @@ export function useCancelScheduledNewsletter() {
  */
 export function useSendNewsletter() {
   const queryClient = useQueryClient()
+  const { workersTokens } = useAuth()
 
   return useMutation({
     mutationFn: async (request: SendDraftRequest): Promise<NewsletterSendResult> => {
-      const { data, error } = await supabase.functions.invoke('newsletter-send', {
-        body: request,
-      })
-
-      if (error) {
-        console.error('Send newsletter error:', error)
-        throw new Error(`발송 실패: ${error.message}`)
+      const token = workersTokens?.accessToken
+      if (!token) {
+        throw new Error('인증이 필요합니다.')
       }
 
-      return data as NewsletterSendResult
+      const result = await newsletterApi.sendNewsletter(token, request)
+
+      if (result.error) {
+        console.error('Send newsletter error:', result.error)
+        throw new Error(`발송 실패: ${result.error}`)
+      }
+
+      return result.data as NewsletterSendResult
     },
     onSuccess: (result, request) => {
       queryClient.invalidateQueries({ queryKey: ['newsletter-drafts'] })
@@ -433,38 +429,26 @@ export interface NewsletterDraftStats {
  * 뉴스레터 드래프트 통계
  */
 export function useNewsletterDraftStats() {
+  const { workersTokens } = useAuth()
+
   return useQuery({
     queryKey: ['newsletter-draft-stats'],
     queryFn: async () => {
-      // newsletter_stats 뷰 조회
-      const { data, error } = await supabase
-        .from('newsletter_stats')
-        .select('*')
-        .single()
-
-      if (error) {
-        // 뷰가 없는 경우 직접 계산
-        const { data: drafts, error: draftsError } = await supabase
-          .from('newsletter_drafts')
-          .select('status, sent_count, recipient_count')
-
-        if (draftsError) {
-          console.error('Newsletter draft stats error:', draftsError)
-          throw new Error(`통계 조회 실패: ${draftsError.message}`)
-        }
-
-        return {
-          draft_count: drafts.filter((d) => d.status === 'draft').length,
-          scheduled_count: drafts.filter((d) => d.status === 'scheduled').length,
-          sent_count: drafts.filter((d) => d.status === 'sent').length,
-          failed_count: drafts.filter((d) => d.status === 'failed').length,
-          total_emails_sent: drafts.reduce((sum, d) => sum + (d.sent_count || 0), 0),
-          total_recipients: drafts.reduce((sum, d) => sum + (d.recipient_count || 0), 0),
-        } as NewsletterDraftStats
+      const token = workersTokens?.accessToken
+      if (!token) {
+        throw new Error('인증이 필요합니다.')
       }
 
-      return data as NewsletterDraftStats
+      const result = await newsletterApi.getDraftStats(token)
+
+      if (result.error) {
+        console.error('Newsletter draft stats error:', result.error)
+        throw new Error(`통계 조회 실패: ${result.error}`)
+      }
+
+      return result.data as NewsletterDraftStats
     },
+    enabled: !!workersTokens?.accessToken,
     staleTime: 60 * 1000, // 1분
   })
 }

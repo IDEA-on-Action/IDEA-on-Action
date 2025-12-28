@@ -4,10 +4,12 @@
  * 컨텐츠 버전 관리 (변경 이력 추적, 복원) 훅
  *
  * @module useContentVersions
+ * @migration Supabase → Cloudflare Workers (완전 마이그레이션 완료)
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { supabase } from '@/integrations/supabase/client'
+import { callWorkersApi } from '@/integrations/cloudflare/client'
+import { useAuth } from '@/hooks/useAuth'
 import { toast } from 'sonner'
 
 // ============================================
@@ -71,6 +73,8 @@ export function useContentVersions(
   contentId: string | undefined,
   limit = 20
 ) {
+  const { workersTokens } = useAuth()
+
   return useQuery({
     queryKey: ['content-versions', contentType, contentId, limit],
     queryFn: async () => {
@@ -78,18 +82,17 @@ export function useContentVersions(
         throw new Error('content_type과 content_id가 필요합니다')
       }
 
-      const { data, error } = await supabase.rpc('get_content_versions', {
-        p_content_type: contentType,
-        p_content_id: contentId,
-        p_limit: limit,
-      })
+      const response = await callWorkersApi<ContentVersionSummary[]>(
+        `/api/v1/versions/${contentType}/${contentId}?limit=${limit}`,
+        { token: workersTokens?.accessToken }
+      )
 
-      if (error) {
-        console.error('Content versions query error:', error)
-        throw new Error(`버전 히스토리 조회 실패: ${error.message}`)
+      if (response.error) {
+        console.error('Content versions query error:', response.error)
+        throw new Error(`버전 히스토리 조회 실패: ${response.error}`)
       }
 
-      return data as ContentVersionSummary[]
+      return (response.data || []) as ContentVersionSummary[]
     },
     enabled: !!contentType && !!contentId,
     staleTime: 60 * 1000, // 1분
@@ -104,6 +107,8 @@ export function useContentVersions(
  * 특정 버전의 상세 내용 조회
  */
 export function useContentVersionDetail(versionId: string | undefined) {
+  const { workersTokens } = useAuth()
+
   return useQuery({
     queryKey: ['content-version-detail', versionId],
     queryFn: async () => {
@@ -111,20 +116,21 @@ export function useContentVersionDetail(versionId: string | undefined) {
         throw new Error('version_id가 필요합니다')
       }
 
-      const { data, error } = await supabase.rpc('get_content_version_detail', {
-        p_version_id: versionId,
-      })
+      const response = await callWorkersApi<ContentVersion>(
+        `/api/v1/versions/detail/${versionId}`,
+        { token: workersTokens?.accessToken }
+      )
 
-      if (error) {
-        console.error('Content version detail error:', error)
-        throw new Error(`버전 상세 조회 실패: ${error.message}`)
+      if (response.error) {
+        console.error('Content version detail error:', response.error)
+        throw new Error(`버전 상세 조회 실패: ${response.error}`)
       }
 
-      if (!data || data.length === 0) {
+      if (!response.data) {
         throw new Error('버전을 찾을 수 없습니다')
       }
 
-      return data[0] as ContentVersion
+      return response.data as ContentVersion
     },
     enabled: !!versionId,
     staleTime: 5 * 60 * 1000, // 5분 (버전 데이터는 불변)
@@ -140,31 +146,34 @@ export function useContentVersionDetail(versionId: string | undefined) {
  */
 export function useCreateContentVersion() {
   const queryClient = useQueryClient()
+  const { workersTokens, user } = useAuth()
 
   return useMutation({
     mutationFn: async (request: CreateVersionRequest) => {
-      // 현재 사용자 ID
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
+      const response = await callWorkersApi<string>(
+        '/api/v1/versions',
+        {
+          method: 'POST',
+          token: workersTokens?.accessToken,
+          body: {
+            content_type: request.content_type,
+            content_id: request.content_id,
+            title: request.title,
+            content: request.content,
+            metadata: request.metadata || {},
+            change_summary: request.change_summary || null,
+            changed_fields: request.changed_fields || null,
+            user_id: user?.id || null,
+          },
+        }
+      )
 
-      const { data, error } = await supabase.rpc('create_content_version', {
-        p_content_type: request.content_type,
-        p_content_id: request.content_id,
-        p_title: request.title,
-        p_content: request.content,
-        p_metadata: request.metadata || {},
-        p_change_summary: request.change_summary || null,
-        p_changed_fields: request.changed_fields || null,
-        p_user_id: user?.id || null,
-      })
-
-      if (error) {
-        console.error('Create content version error:', error)
-        throw new Error(`버전 생성 실패: ${error.message}`)
+      if (response.error) {
+        console.error('Create content version error:', response.error)
+        throw new Error(`버전 생성 실패: ${response.error}`)
       }
 
-      return data as string // 새 버전 ID 반환
+      return response.data as string // 새 버전 ID 반환
     },
     onSuccess: (_, request) => {
       queryClient.invalidateQueries({
@@ -187,6 +196,7 @@ export function useCreateContentVersion() {
  */
 export function useRestoreContentVersion() {
   const queryClient = useQueryClient()
+  const { workersTokens, user } = useAuth()
 
   return useMutation({
     mutationFn: async ({
@@ -198,22 +208,21 @@ export function useRestoreContentVersion() {
       contentType: ContentType
       contentId: string
     }) => {
-      // 현재 사용자 ID
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
+      const response = await callWorkersApi<string>(
+        `/api/v1/versions/${versionId}/restore`,
+        {
+          method: 'POST',
+          token: workersTokens?.accessToken,
+          body: { user_id: user?.id || null },
+        }
+      )
 
-      const { data, error } = await supabase.rpc('restore_content_version', {
-        p_version_id: versionId,
-        p_user_id: user?.id || null,
-      })
-
-      if (error) {
-        console.error('Restore content version error:', error)
-        throw new Error(`버전 복원 실패: ${error.message}`)
+      if (response.error) {
+        console.error('Restore content version error:', response.error)
+        throw new Error(`버전 복원 실패: ${response.error}`)
       }
 
-      return { newVersionId: data as string, contentType, contentId }
+      return { newVersionId: response.data as string, contentType, contentId }
     },
     onSuccess: ({ contentType, contentId }) => {
       queryClient.invalidateQueries({
@@ -235,6 +244,8 @@ export function useRestoreContentVersion() {
  * 두 버전 간 차이 비교
  */
 export function useCompareVersions(versionId1: string | undefined, versionId2: string | undefined) {
+  const { workersTokens } = useAuth()
+
   return useQuery({
     queryKey: ['compare-versions', versionId1, versionId2],
     queryFn: async () => {
@@ -242,17 +253,17 @@ export function useCompareVersions(versionId1: string | undefined, versionId2: s
         throw new Error('비교할 두 버전 ID가 필요합니다')
       }
 
-      const { data, error } = await supabase.rpc('compare_content_versions', {
-        p_version_id_1: versionId1,
-        p_version_id_2: versionId2,
-      })
+      const response = await callWorkersApi<VersionComparison[]>(
+        `/api/v1/versions/compare?v1=${versionId1}&v2=${versionId2}`,
+        { token: workersTokens?.accessToken }
+      )
 
-      if (error) {
-        console.error('Compare versions error:', error)
-        throw new Error(`버전 비교 실패: ${error.message}`)
+      if (response.error) {
+        console.error('Compare versions error:', response.error)
+        throw new Error(`버전 비교 실패: ${response.error}`)
       }
 
-      return data as VersionComparison[]
+      return (response.data || []) as VersionComparison[]
     },
     enabled: !!versionId1 && !!versionId2,
     staleTime: 5 * 60 * 1000, // 5분
@@ -275,19 +286,22 @@ export interface ContentVersionStats {
  * 컨텐츠 버전 통계 조회
  */
 export function useContentVersionStats() {
+  const { workersTokens } = useAuth()
+
   return useQuery({
     queryKey: ['content-version-stats'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('content_version_stats')
-        .select('*')
+      const response = await callWorkersApi<ContentVersionStats[]>(
+        '/api/v1/versions/stats',
+        { token: workersTokens?.accessToken }
+      )
 
-      if (error) {
-        console.error('Content version stats error:', error)
-        throw new Error(`통계 조회 실패: ${error.message}`)
+      if (response.error) {
+        console.error('Content version stats error:', response.error)
+        throw new Error(`통계 조회 실패: ${response.error}`)
       }
 
-      return data as ContentVersionStats[]
+      return (response.data || []) as ContentVersionStats[]
     },
     staleTime: 5 * 60 * 1000, // 5분
   })

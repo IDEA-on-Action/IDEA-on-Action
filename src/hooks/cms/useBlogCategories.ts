@@ -1,33 +1,28 @@
+/**
+ * @migration Supabase → Cloudflare Workers (완전 마이그레이션 완료)
+ */
 import { useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useSupabaseQuery, useSupabaseMutation, supabaseQuery } from '@/lib/react-query';
+import { blogApi, callWorkersApi } from '@/integrations/cloudflare/client';
+import { useAuth } from '@/hooks/useAuth';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import type { BlogCategory, BlogCategoryInsert, BlogCategoryUpdate } from '@/types/cms.types';
 
 /**
  * Hook to fetch all blog categories (sorted by name)
  */
 export const useBlogCategories = () => {
-  return useSupabaseQuery<BlogCategory[]>({
+  return useQuery<BlogCategory[]>({
     queryKey: ['blog_categories'],
     queryFn: async () => {
-      return await supabaseQuery(
-        async () => {
-          const result = await supabase
-            .from('blog_categories')
-            .select('*')
-            .order('name', { ascending: true });
-          return { data: result.data, error: result.error };
-        },
-        {
-          table: 'blog_categories',
-          operation: '블로그 카테고리 목록 조회',
-          fallbackValue: [],
-        }
-      );
+      const response = await blogApi.getCategories();
+      if (response.error) {
+        console.error('블로그 카테고리 목록 조회 실패:', response.error);
+        return [];
+      }
+      // name 기준 정렬
+      const categories = (response.data as BlogCategory[]) || [];
+      return categories.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
     },
-    table: 'blog_categories',
-    operation: '블로그 카테고리 목록 조회',
-    fallbackValue: [],
     staleTime: 10 * 60 * 1000, // 10 minutes (카테고리는 상대적으로 정적)
   });
 };
@@ -36,28 +31,16 @@ export const useBlogCategories = () => {
  * Hook to fetch a single blog category by ID
  */
 export const useBlogCategory = (id: string) => {
-  return useSupabaseQuery<BlogCategory>({
+  return useQuery<BlogCategory | null>({
     queryKey: ['blog_categories', id],
     queryFn: async () => {
-      return await supabaseQuery(
-        async () => {
-          const result = await supabase
-            .from('blog_categories')
-            .select('*')
-            .eq('id', id)
-            .single();
-          return { data: result.data, error: result.error };
-        },
-        {
-          table: 'blog_categories',
-          operation: '블로그 카테고리 상세 조회',
-          fallbackValue: null,
-        }
-      );
+      const response = await callWorkersApi<BlogCategory>(`/api/v1/blog/categories/${id}`);
+      if (response.error) {
+        console.error('블로그 카테고리 상세 조회 실패:', response.error);
+        return null;
+      }
+      return response.data;
     },
-    table: 'blog_categories',
-    operation: '블로그 카테고리 상세 조회',
-    fallbackValue: null,
     enabled: !!id,
     staleTime: 10 * 60 * 1000,
   });
@@ -67,28 +50,16 @@ export const useBlogCategory = (id: string) => {
  * Hook to fetch a single blog category by slug
  */
 export const useBlogCategoryBySlug = (slug: string) => {
-  return useSupabaseQuery<BlogCategory>({
+  return useQuery<BlogCategory | null>({
     queryKey: ['blog_categories', 'slug', slug],
     queryFn: async () => {
-      return await supabaseQuery(
-        async () => {
-          const result = await supabase
-            .from('blog_categories')
-            .select('*')
-            .eq('slug', slug)
-            .single();
-          return { data: result.data, error: result.error };
-        },
-        {
-          table: 'blog_categories',
-          operation: '블로그 카테고리 slug 조회',
-          fallbackValue: null,
-        }
-      );
+      const response = await callWorkersApi<BlogCategory>(`/api/v1/blog/categories/slug/${slug}`);
+      if (response.error) {
+        console.error('블로그 카테고리 slug 조회 실패:', response.error);
+        return null;
+      }
+      return response.data;
     },
-    table: 'blog_categories',
-    operation: '블로그 카테고리 slug 조회',
-    fallbackValue: null,
     enabled: !!slug,
     staleTime: 10 * 60 * 1000,
   });
@@ -99,25 +70,27 @@ export const useBlogCategoryBySlug = (slug: string) => {
  */
 export const useCreateBlogCategory = () => {
   const queryClient = useQueryClient();
+  const { workersTokens } = useAuth();
 
-  return useSupabaseMutation<BlogCategory, BlogCategoryInsert>({
+  return useMutation<BlogCategory, Error, BlogCategoryInsert>({
     mutationFn: async (category: BlogCategoryInsert) => {
       // Validate hex color code (optional)
       if (category.color && !/^#[0-9A-Fa-f]{6}$/.test(category.color)) {
         throw new Error('Invalid hex color code. Expected format: #RRGGBB');
       }
 
-      const { data, error } = await supabase
-        .from('blog_categories')
-        .insert([category])
-        .select()
-        .single();
+      const response = await callWorkersApi<BlogCategory>('/api/v1/blog/categories', {
+        method: 'POST',
+        token: workersTokens?.accessToken,
+        body: category,
+      });
 
-      if (error) throw error;
-      return data as BlogCategory;
+      if (response.error) {
+        throw new Error(response.error);
+      }
+
+      return response.data as BlogCategory;
     },
-    table: 'blog_categories',
-    operation: '블로그 카테고리 생성',
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['blog_categories'] });
     },
@@ -129,26 +102,27 @@ export const useCreateBlogCategory = () => {
  */
 export const useUpdateBlogCategory = () => {
   const queryClient = useQueryClient();
+  const { workersTokens } = useAuth();
 
-  return useSupabaseMutation<BlogCategory, { id: string; updates: BlogCategoryUpdate }>({
+  return useMutation<BlogCategory, Error, { id: string; updates: BlogCategoryUpdate }>({
     mutationFn: async ({ id, updates }: { id: string; updates: BlogCategoryUpdate }) => {
       // Validate hex color code (optional)
       if (updates.color && !/^#[0-9A-Fa-f]{6}$/.test(updates.color)) {
         throw new Error('Invalid hex color code. Expected format: #RRGGBB');
       }
 
-      const { data, error } = await supabase
-        .from('blog_categories')
-        .update(updates)
-        .eq('id', id)
-        .select()
-        .single();
+      const response = await callWorkersApi<BlogCategory>(`/api/v1/blog/categories/${id}`, {
+        method: 'PATCH',
+        token: workersTokens?.accessToken,
+        body: updates,
+      });
 
-      if (error) throw error;
-      return data as BlogCategory;
+      if (response.error) {
+        throw new Error(response.error);
+      }
+
+      return response.data as BlogCategory;
     },
-    table: 'blog_categories',
-    operation: '블로그 카테고리 수정',
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['blog_categories'] });
       queryClient.invalidateQueries({ queryKey: ['blog_categories', data.id] });
@@ -162,19 +136,21 @@ export const useUpdateBlogCategory = () => {
  */
 export const useDeleteBlogCategory = () => {
   const queryClient = useQueryClient();
+  const { workersTokens } = useAuth();
 
-  return useSupabaseMutation<string, string>({
+  return useMutation<string, Error, string>({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from('blog_categories')
-        .delete()
-        .eq('id', id);
+      const response = await callWorkersApi(`/api/v1/blog/categories/${id}`, {
+        method: 'DELETE',
+        token: workersTokens?.accessToken,
+      });
 
-      if (error) throw error;
+      if (response.error) {
+        throw new Error(response.error);
+      }
+
       return id;
     },
-    table: 'blog_categories',
-    operation: '블로그 카테고리 삭제',
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['blog_categories'] });
     },
@@ -187,21 +163,22 @@ export const useDeleteBlogCategory = () => {
  */
 export const useUpdateCategoryPostCount = () => {
   const queryClient = useQueryClient();
+  const { workersTokens } = useAuth();
 
-  return useSupabaseMutation<BlogCategory, { id: string; count: number }>({
+  return useMutation<BlogCategory, Error, { id: string; count: number }>({
     mutationFn: async ({ id, count }: { id: string; count: number }) => {
-      const { data, error } = await supabase
-        .from('blog_categories')
-        .update({ post_count: count })
-        .eq('id', id)
-        .select()
-        .single();
+      const response = await callWorkersApi<BlogCategory>(`/api/v1/blog/categories/${id}`, {
+        method: 'PATCH',
+        token: workersTokens?.accessToken,
+        body: { post_count: count },
+      });
 
-      if (error) throw error;
-      return data as BlogCategory;
+      if (response.error) {
+        throw new Error(response.error);
+      }
+
+      return response.data as BlogCategory;
     },
-    table: 'blog_categories',
-    operation: '카테고리 포스트 개수 업데이트',
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['blog_categories'] });
       queryClient.invalidateQueries({ queryKey: ['blog_categories', data.id] });

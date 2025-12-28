@@ -8,11 +8,14 @@
  * - useRestoreVersion - Restore to previous version
  * - useVersionDiff - Compare two versions
  * - useAutoSave - Auto-save functionality
+ *
+ * @migration Supabase → Cloudflare Workers (완전 마이그레이션 완료)
  */
 
 import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { callWorkersApi } from '@/integrations/cloudflare/client';
+import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { useDebounce } from '@/hooks/useDebounce';
 import type {
@@ -63,26 +66,31 @@ const DEFAULT_PAGE_SIZE = 20;
 
 export function useVersionHistory(params: VersionHistoryParams) {
   const { content_type, content_id, limit = DEFAULT_PAGE_SIZE, include_auto_saves = false } = params;
+  const { workersTokens } = useAuth();
 
   return useInfiniteQuery({
     queryKey: VERSION_KEYS.history(content_type, content_id),
     queryFn: async ({ pageParam = 0 }) => {
-      const { data, error } = await supabase.rpc('get_version_history', {
-        p_content_type: content_type,
-        p_content_id: content_id,
-        p_limit: limit,
-        p_offset: pageParam,
-        p_include_auto_saves: include_auto_saves,
+      const queryParams = new URLSearchParams({
+        limit: String(limit),
+        offset: String(pageParam),
+        include_auto_saves: String(include_auto_saves),
       });
 
-      if (error) {
-        console.error('[useVersionHistory] Error:', error);
-        throw error;
+      const response = await callWorkersApi<ContentVersionWithCreator[]>(
+        `/api/v1/version-control/${content_type}/${content_id}/history?${queryParams}`,
+        { token: workersTokens?.accessToken }
+      );
+
+      if (response.error) {
+        console.error('[useVersionHistory] Error:', response.error);
+        throw new Error(response.error);
       }
 
+      const versions = (response.data || []) as ContentVersionWithCreator[];
       return {
-        versions: (data || []) as ContentVersionWithCreator[],
-        nextOffset: data && data.length === limit ? pageParam + limit : undefined,
+        versions,
+        nextOffset: versions.length === limit ? pageParam + limit : undefined,
       };
     },
     initialPageParam: 0,
@@ -101,21 +109,22 @@ export function useVersionCount(
   content_id: string,
   include_auto_saves = false
 ) {
+  const { workersTokens } = useAuth();
+
   return useQuery({
     queryKey: VERSION_KEYS.count(content_type, content_id),
     queryFn: async () => {
-      const { data, error } = await supabase.rpc('count_content_versions', {
-        p_content_type: content_type,
-        p_content_id: content_id,
-        p_include_auto_saves: include_auto_saves,
-      });
+      const response = await callWorkersApi<{ count: number }>(
+        `/api/v1/version-control/${content_type}/${content_id}/count?include_auto_saves=${include_auto_saves}`,
+        { token: workersTokens?.accessToken }
+      );
 
-      if (error) {
-        console.error('[useVersionCount] Error:', error);
-        throw error;
+      if (response.error) {
+        console.error('[useVersionCount] Error:', response.error);
+        throw new Error(response.error);
       }
 
-      return data as number;
+      return response.data?.count ?? 0;
     },
     enabled: !!content_id,
     staleTime: 1000 * 60 * 5,
@@ -131,21 +140,22 @@ export function useVersion(
   content_id: string,
   version_number: number
 ) {
+  const { workersTokens } = useAuth();
+
   return useQuery({
     queryKey: VERSION_KEYS.version(content_type, content_id, version_number),
     queryFn: async () => {
-      const { data, error } = await supabase.rpc('get_content_version', {
-        p_content_type: content_type,
-        p_content_id: content_id,
-        p_version_number: version_number,
-      });
+      const response = await callWorkersApi<ContentVersion>(
+        `/api/v1/version-control/${content_type}/${content_id}/versions/${version_number}`,
+        { token: workersTokens?.accessToken }
+      );
 
-      if (error) {
-        console.error('[useVersion] Error:', error);
-        throw error;
+      if (response.error) {
+        console.error('[useVersion] Error:', response.error);
+        throw new Error(response.error);
       }
 
-      return data as ContentVersion | null;
+      return response.data as ContentVersion | null;
     },
     enabled: !!content_id && version_number > 0,
     staleTime: 1000 * 60 * 10, // 10 minutes (versions are immutable)
@@ -161,21 +171,22 @@ export function useLatestVersion(
   content_id: string,
   include_auto_saves = false
 ) {
+  const { workersTokens } = useAuth();
+
   return useQuery({
     queryKey: VERSION_KEYS.latest(content_type, content_id),
     queryFn: async () => {
-      const { data, error } = await supabase.rpc('get_latest_content_version', {
-        p_content_type: content_type,
-        p_content_id: content_id,
-        p_include_auto_saves: include_auto_saves,
-      });
+      const response = await callWorkersApi<ContentVersion>(
+        `/api/v1/version-control/${content_type}/${content_id}/latest?include_auto_saves=${include_auto_saves}`,
+        { token: workersTokens?.accessToken }
+      );
 
-      if (error) {
-        console.error('[useLatestVersion] Error:', error);
-        throw error;
+      if (response.error) {
+        console.error('[useLatestVersion] Error:', response.error);
+        throw new Error(response.error);
       }
 
-      return data as ContentVersion | null;
+      return response.data as ContentVersion | null;
     },
     enabled: !!content_id,
     staleTime: 1000 * 60 * 2, // 2 minutes
@@ -188,23 +199,29 @@ export function useLatestVersion(
 
 export function useCreateVersion() {
   const queryClient = useQueryClient();
+  const { workersTokens } = useAuth();
 
   return useMutation({
     mutationFn: async (params: ContentVersionInsert) => {
-      const { data, error } = await supabase.rpc('create_content_version', {
-        p_content_type: params.content_type,
-        p_content_id: params.content_id,
-        p_content_snapshot: params.content_snapshot,
-        p_change_summary: params.change_summary || null,
-        p_is_auto_save: params.is_auto_save || false,
-      });
+      const response = await callWorkersApi<ContentVersion>(
+        `/api/v1/version-control/${params.content_type}/${params.content_id}/versions`,
+        {
+          method: 'POST',
+          token: workersTokens?.accessToken,
+          body: {
+            content_snapshot: params.content_snapshot,
+            change_summary: params.change_summary || null,
+            is_auto_save: params.is_auto_save || false,
+          },
+        }
+      );
 
-      if (error) {
-        console.error('[useCreateVersion] Error:', error);
-        throw error;
+      if (response.error) {
+        console.error('[useCreateVersion] Error:', response.error);
+        throw new Error(response.error);
       }
 
-      return data as ContentVersion;
+      return response.data as ContentVersion;
     },
     onSuccess: (data, variables) => {
       // Invalidate related queries
@@ -240,6 +257,7 @@ interface UseRestoreVersionOptions {
 export function useRestoreVersion(options: UseRestoreVersionOptions = {}) {
   const queryClient = useQueryClient();
   const createVersion = useCreateVersion();
+  const { workersTokens } = useAuth();
 
   return useMutation({
     mutationFn: async ({
@@ -252,19 +270,15 @@ export function useRestoreVersion(options: UseRestoreVersionOptions = {}) {
       version_number: number;
     }): Promise<RestoreResult> => {
       // Fetch the version to restore
-      const { data: versionData, error: fetchError } = await supabase.rpc(
-        'get_content_version',
-        {
-          p_content_type: content_type,
-          p_content_id: content_id,
-          p_version_number: version_number,
-        }
+      const versionResponse = await callWorkersApi<ContentVersion>(
+        `/api/v1/version-control/${content_type}/${content_id}/versions/${version_number}`,
+        { token: workersTokens?.accessToken }
       );
 
-      if (fetchError) throw fetchError;
-      if (!versionData) throw new Error('Version not found');
+      if (versionResponse.error) throw new Error(versionResponse.error);
+      if (!versionResponse.data) throw new Error('Version not found');
 
-      const version = versionData as ContentVersion;
+      const version = versionResponse.data;
 
       // Create a new version with the restored content
       const newVersion = await createVersion.mutateAsync({
@@ -311,28 +325,28 @@ export function useVersionDiff(
   from_version: number,
   to_version: number
 ) {
+  const { workersTokens } = useAuth();
+
   return useQuery({
     queryKey: ['version_diff', content_type, content_id, from_version, to_version],
     queryFn: async (): Promise<VersionDiff> => {
       // Fetch both versions
-      const [fromResult, toResult] = await Promise.all([
-        supabase.rpc('get_content_version', {
-          p_content_type: content_type,
-          p_content_id: content_id,
-          p_version_number: from_version,
-        }),
-        supabase.rpc('get_content_version', {
-          p_content_type: content_type,
-          p_content_id: content_id,
-          p_version_number: to_version,
-        }),
+      const [fromResponse, toResponse] = await Promise.all([
+        callWorkersApi<ContentVersion>(
+          `/api/v1/version-control/${content_type}/${content_id}/versions/${from_version}`,
+          { token: workersTokens?.accessToken }
+        ),
+        callWorkersApi<ContentVersion>(
+          `/api/v1/version-control/${content_type}/${content_id}/versions/${to_version}`,
+          { token: workersTokens?.accessToken }
+        ),
       ]);
 
-      if (fromResult.error) throw fromResult.error;
-      if (toResult.error) throw toResult.error;
+      if (fromResponse.error) throw new Error(fromResponse.error);
+      if (toResponse.error) throw new Error(toResponse.error);
 
-      const fromVersion = fromResult.data as ContentVersion;
-      const toVersion = toResult.data as ContentVersion;
+      const fromVersion = fromResponse.data as ContentVersion;
+      const toVersion = toResponse.data as ContentVersion;
 
       if (!fromVersion || !toVersion) {
         throw new Error('One or both versions not found');
@@ -370,6 +384,7 @@ interface UseAutoSaveOptions {
 export function useAutoSave(options: UseAutoSaveOptions) {
   const { content_type, content_id, config: userConfig, onSaved } = options;
   const config = { ...DEFAULT_AUTO_SAVE_CONFIG, ...userConfig };
+  const { workersTokens } = useAuth();
 
   const [status, setStatus] = useState<AutoSaveStatus>('idle');
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
@@ -429,12 +444,15 @@ export function useAutoSave(options: UseAutoSaveOptions) {
         setLastSavedAt(new Date().toISOString());
         setStatus('saved');
 
-        // Cleanup old auto-saves
-        await supabase.rpc('cleanup_old_auto_saves', {
-          p_content_type: content_type,
-          p_content_id: content_id,
-          p_keep_count: config.max_auto_saves,
-        });
+        // Cleanup old auto-saves via API
+        await callWorkersApi(
+          `/api/v1/version-control/${content_type}/${content_id}/cleanup-auto-saves`,
+          {
+            method: 'POST',
+            token: workersTokens?.accessToken,
+            body: { keep_count: config.max_auto_saves },
+          }
+        );
 
         if (onSaved) {
           onSaved(version);
@@ -451,7 +469,7 @@ export function useAutoSave(options: UseAutoSaveOptions) {
         setStatus('error');
       }
     },
-    [config.enabled, config.max_auto_saves, content_id, content_type, createVersion, isOnline, onSaved, status]
+    [config.enabled, config.max_auto_saves, content_id, content_type, createVersion, isOnline, onSaved, status, workersTokens?.accessToken]
   );
 
   // Auto-save when debounced content changes

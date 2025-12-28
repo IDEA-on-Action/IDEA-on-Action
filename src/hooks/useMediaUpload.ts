@@ -1,5 +1,6 @@
 /**
  * Media Upload Hook
+ * @migration Supabase -> Cloudflare Workers (완전 마이그레이션 완료)
  *
  * Specialized hook for media file uploads with progress tracking.
  * Separate from useMediaLibrary for better reusability across different components.
@@ -31,18 +32,25 @@
 
 import { useState, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { mediaApi } from '@/integrations/cloudflare/client';
+import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
-import {
-  MEDIA_BUCKET,
-  ALLOWED_IMAGE_TYPES,
-  MAX_FILE_SIZE,
-  validateMediaFile,
-  generateUniqueFilename,
-  getImageDimensions,
-} from '@/lib/media-utils';
 import { mediaQueryKeys } from '@/hooks/useMediaLibrary';
-import type { MediaItem, MediaItemInsert } from '@/types/cms.types';
+import type { MediaItem } from '@/types/cms.types';
+
+// =====================================================
+// Constants
+// =====================================================
+
+const MEDIA_BUCKET = 'cms-media';
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const ALLOWED_IMAGE_TYPES = [
+  'image/jpeg',
+  'image/png',
+  'image/gif',
+  'image/webp',
+  'image/svg+xml',
+];
 
 // =====================================================
 // Types
@@ -89,11 +97,71 @@ export interface UploadResult {
 }
 
 // =====================================================
+// Helper Functions
+// =====================================================
+
+/**
+ * Validate media file
+ */
+function validateMediaFile(file: File): { valid: boolean; error?: string } {
+  if (file.size > MAX_FILE_SIZE) {
+    return { valid: false, error: `파일 크기가 ${MAX_FILE_SIZE / 1024 / 1024}MB를 초과합니다.` };
+  }
+
+  if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+    return { valid: false, error: `지원하지 않는 파일 형식입니다: ${file.type}` };
+  }
+
+  return { valid: true };
+}
+
+/**
+ * Generate unique filename
+ */
+function generateUniqueFilename(originalName: string): string {
+  const ext = originalName.split('.').pop();
+  const uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+  return `${Date.now()}-${uuid}.${ext}`;
+}
+
+/**
+ * Get image dimensions from file
+ */
+async function getImageDimensions(file: File): Promise<{ width: number; height: number } | null> {
+  return new Promise((resolve) => {
+    if (!file.type.startsWith('image/')) {
+      resolve(null);
+      return;
+    }
+
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      resolve({ width: img.width, height: img.height });
+    };
+
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      resolve(null);
+    };
+
+    img.src = url;
+  });
+}
+
+// =====================================================
 // Hook Implementation
 // =====================================================
 
 export function useMediaUpload() {
   const queryClient = useQueryClient();
+  const { workersTokens } = useAuth();
 
   // State
   const [isUploading, setIsUploading] = useState(false);
@@ -128,42 +196,21 @@ export function useMediaUpload() {
   };
 
   // ===================================================================
-  // Storage Path Generator
-  // ===================================================================
-
-  /**
-   * Generate storage path for the file
-   */
-  const generateStoragePath = useCallback(async (
-    file: File,
-    options?: UploadOptions
-  ): Promise<string> => {
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      throw new Error('사용자 인증이 필요합니다.');
-    }
-
-    const uniqueFilename = options?.filename || generateUniqueFilename(file.name);
-    const year = new Date().getFullYear();
-    const month = String(new Date().getMonth() + 1).padStart(2, '0');
-
-    const folder = options?.folder || `${user.id}/${year}/${month}`;
-
-    return `${folder}/${uniqueFilename}`;
-  }, []);
-
-  // ===================================================================
   // Single File Upload
   // ===================================================================
 
   /**
-   * Upload a single media file to Supabase Storage
+   * Upload a single media file to Cloudflare Workers Storage
    */
   const uploadMedia = useCallback(async (
     file: File,
     options?: UploadOptions
   ): Promise<UploadResult> => {
+    const token = workersTokens?.accessToken;
+    if (!token) {
+      return { success: false, error: '인증이 필요합니다.' };
+    }
+
     const fileId = getFileId(file);
 
     // Initialize progress
@@ -178,12 +225,6 @@ export function useMediaUpload() {
     setError(null);
 
     try {
-      // Get user
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        throw new Error('사용자 인증이 필요합니다.');
-      }
-
       // Validate file
       const validation = validateMediaFile(file);
       if (!validation.valid) {
@@ -193,80 +234,37 @@ export function useMediaUpload() {
       // Update status to uploading
       updateProgress(fileId, { status: 'uploading', progress: 10 });
 
-      // Generate storage path
-      const storagePath = await generateStoragePath(file, options);
-
-      // Update progress
-      updateProgress(fileId, { progress: 30 });
-
-      // Upload to Supabase Storage
-      const { error: uploadError } = await supabase.storage
-        .from(MEDIA_BUCKET)
-        .upload(storagePath, file, {
-          cacheControl: '31536000', // 1 year
-          upsert: false,
-        });
-
-      if (uploadError) {
-        throw new Error(`업로드 실패: ${uploadError.message}`);
-      }
-
-      // Update progress
-      updateProgress(fileId, { status: 'processing', progress: 60 });
-
       // Get image dimensions
       const dimensions = await getImageDimensions(file);
 
       // Update progress
-      updateProgress(fileId, { progress: 80 });
+      updateProgress(fileId, { progress: 30 });
 
-      // Skip database insert if requested
-      if (options?.skipDatabaseInsert) {
-        const { data: urlData } = supabase.storage
-          .from(MEDIA_BUCKET)
-          .getPublicUrl(storagePath);
+      // Upload to Cloudflare Workers
+      const result = await mediaApi.upload(token, [file], {
+        folder: options?.folder,
+        altText: options?.altText,
+      });
 
-        updateProgress(fileId, {
-          status: 'success',
-          progress: 100,
-        });
-
-        return {
-          success: true,
-          url: urlData.publicUrl,
-        };
+      if (result.error) {
+        throw new Error(`업로드 실패: ${result.error}`);
       }
 
-      // Insert metadata into database
-      const insertData: MediaItemInsert = {
-        filename: storagePath.split('/').pop() || file.name,
-        original_filename: file.name,
-        file_size: file.size,
-        mime_type: file.type,
-        storage_path: storagePath,
-        uploaded_by: user.id,
-        width: dimensions?.width || null,
-        height: dimensions?.height || null,
-        alt_text: options?.altText || null,
-      };
+      // Update progress
+      updateProgress(fileId, { status: 'processing', progress: 80 });
 
-      const { data: mediaItem, error: insertError } = await supabase
-        .from('media_library')
-        .insert(insertData)
-        .select()
-        .single();
+      const uploadedItems = result.data as MediaItem[];
+      const mediaItem = uploadedItems && uploadedItems.length > 0 ? uploadedItems[0] : null;
 
-      if (insertError) {
-        // Cleanup uploaded file on database error
-        await supabase.storage.from(MEDIA_BUCKET).remove([storagePath]);
-        throw new Error(`데이터베이스 저장 실패: ${insertError.message}`);
+      if (!mediaItem) {
+        throw new Error('업로드된 미디어 항목을 찾을 수 없습니다.');
       }
 
       // Update progress to complete
       updateProgress(fileId, {
         status: 'success',
         progress: 100,
-        result: mediaItem as MediaItem,
+        result: mediaItem,
       });
 
       // Invalidate media library queries
@@ -274,7 +272,8 @@ export function useMediaUpload() {
 
       return {
         success: true,
-        data: mediaItem as MediaItem,
+        data: mediaItem,
+        url: mediaApi.getPublicUrl(mediaItem.storage_path),
       };
     } catch (err) {
       const errorMessage = (err as Error).message;
@@ -290,7 +289,7 @@ export function useMediaUpload() {
         error: errorMessage,
       };
     }
-  }, [queryClient, updateProgress, generateStoragePath]);
+  }, [workersTokens, queryClient, updateProgress]);
 
   // ===================================================================
   // Multiple Files Upload

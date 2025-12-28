@@ -1,5 +1,6 @@
 /**
  * Newsletter Admin Hooks
+ * @migration Supabase -> Cloudflare Workers (완전 마이그레이션 완료)
  *
  * 관리자용 뉴스레터 구독자 관리 훅
  *
@@ -7,7 +8,8 @@
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { newsletterApi } from '@/integrations/cloudflare/client';
+import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import type {
   NewsletterSubscriber,
@@ -34,55 +36,39 @@ import type {
  * ```
  */
 export function useNewsletterSubscribers(filters?: NewsletterFilters) {
+  const { workersTokens } = useAuth();
+
   return useQuery<NewsletterSubscribersResponse>({
     queryKey: ['newsletter-subscribers', filters],
     queryFn: async () => {
-      // Base query
-      let query = supabase
-        .from('newsletter_subscriptions')
-        .select('*', { count: 'exact' });
-
-      // Status filter
-      if (filters?.status && filters.status !== 'all') {
-        query = query.eq('status', filters.status);
+      const token = workersTokens?.accessToken;
+      if (!token) {
+        throw new Error('인증이 필요합니다.');
       }
 
-      // Email search (case-insensitive)
-      if (filters?.search) {
-        query = query.ilike('email', `%${filters.search}%`);
+      const result = await newsletterApi.getSubscribers(token, {
+        status: filters?.status,
+        search: filters?.search,
+        dateFrom: filters?.dateFrom,
+        dateTo: filters?.dateTo,
+        orderBy: filters?.orderBy,
+        orderDirection: filters?.orderDirection,
+        limit: filters?.limit || 50,
+        offset: filters?.offset || 0,
+      });
+
+      if (result.error) {
+        console.error('Newsletter subscribers query error:', result.error);
+        throw new Error(`구독자 목록을 불러오는데 실패했습니다: ${result.error}`);
       }
 
-      // Date range filter
-      if (filters?.dateFrom) {
-        query = query.gte('subscribed_at', filters.dateFrom);
-      }
-      if (filters?.dateTo) {
-        query = query.lte('subscribed_at', filters.dateTo);
-      }
-
-      // Ordering
-      const orderBy = filters?.orderBy || 'subscribed_at';
-      const orderDirection = filters?.orderDirection || 'desc';
-      query = query.order(orderBy, { ascending: orderDirection === 'asc' });
-
-      // Pagination
-      const limit = filters?.limit || 50;
-      const offset = filters?.offset || 0;
-      query = query.range(offset, offset + limit - 1);
-
-      // Execute query
-      const { data, error, count } = await query;
-
-      if (error) {
-        console.error('Newsletter subscribers query error:', error);
-        throw new Error(`구독자 목록을 불러오는데 실패했습니다: ${error.message}`);
-      }
-
+      const responseData = result.data as { data: NewsletterSubscriber[]; count: number };
       return {
-        data: data as NewsletterSubscriber[],
-        count,
+        data: responseData.data,
+        count: responseData.count,
       };
     },
+    enabled: !!workersTokens?.accessToken,
     staleTime: 30 * 1000, // 30초
   });
 }
@@ -100,51 +86,42 @@ export function useNewsletterSubscribers(filters?: NewsletterFilters) {
  * ```
  */
 export function useNewsletterAdminStats() {
+  const { workersTokens } = useAuth();
+
   return useQuery<NewsletterStats>({
     queryKey: ['newsletter-admin-stats'],
     queryFn: async () => {
-      // Fetch all subscribers
-      const { data: all, error: allError } = await supabase
-        .from('newsletter_subscriptions')
-        .select('status, subscribed_at');
-
-      if (allError) {
-        console.error('Newsletter stats query error:', allError);
-        throw new Error(`통계를 불러오는데 실패했습니다: ${allError.message}`);
+      const token = workersTokens?.accessToken;
+      if (!token) {
+        throw new Error('인증이 필요합니다.');
       }
 
-      // Status counts
-      const total = all.length;
-      const pending = all.filter((s) => s.status === 'pending').length;
-      const confirmed = all.filter((s) => s.status === 'confirmed').length;
-      const unsubscribed = all.filter((s) => s.status === 'unsubscribed').length;
+      const result = await newsletterApi.getStats(token);
 
-      // Growth calculations (daily, weekly, monthly)
-      const now = new Date();
-      const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-      const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-      const oneMonthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      if (result.error) {
+        console.error('Newsletter stats query error:', result.error);
+        throw new Error(`통계를 불러오는데 실패했습니다: ${result.error}`);
+      }
 
-      const daily = all.filter((s) => new Date(s.subscribed_at) >= oneDayAgo).length;
-      const weekly = all.filter((s) => new Date(s.subscribed_at) >= oneWeekAgo).length;
-      const monthly = all.filter((s) => new Date(s.subscribed_at) >= oneMonthAgo).length;
-
-      // Churn rate (unsubscribed / total * 100)
-      const churn_rate = total > 0 ? (unsubscribed / total) * 100 : 0;
+      const data = result.data as {
+        total: number;
+        pending: number;
+        confirmed: number;
+        unsubscribed: number;
+        growth?: { daily: number; weekly: number; monthly: number };
+        churn_rate?: number;
+      };
 
       return {
-        total,
-        pending,
-        confirmed,
-        unsubscribed,
-        growth: {
-          daily,
-          weekly,
-          monthly,
-        },
-        churn_rate: Math.round(churn_rate * 10) / 10, // 소수점 1자리
+        total: data.total,
+        pending: data.pending,
+        confirmed: data.confirmed,
+        unsubscribed: data.unsubscribed,
+        growth: data.growth || { daily: 0, weekly: 0, monthly: 0 },
+        churn_rate: data.churn_rate || (data.total > 0 ? (data.unsubscribed / data.total) * 100 : 0),
       };
     },
+    enabled: !!workersTokens?.accessToken,
     staleTime: 60 * 1000, // 1분 (통계는 덜 자주 갱신)
   });
 }
@@ -165,39 +142,29 @@ export function useNewsletterAdminStats() {
  */
 export function useUpdateSubscriberStatus() {
   const queryClient = useQueryClient();
+  const { workersTokens } = useAuth();
 
   return useMutation({
     mutationFn: async ({ id, status }: UpdateSubscriberStatusRequest) => {
-      // Prepare update data
-      const updates: Partial<NewsletterSubscriber> = { status };
-
-      // Set timestamp based on status
-      if (status === 'confirmed') {
-        updates.confirmed_at = new Date().toISOString();
-      } else if (status === 'unsubscribed') {
-        updates.unsubscribed_at = new Date().toISOString();
+      const token = workersTokens?.accessToken;
+      if (!token) {
+        throw new Error('인증이 필요합니다.');
       }
 
-      // Execute update
-      const { data, error } = await supabase
-        .from('newsletter_subscriptions')
-        .update(updates)
-        .eq('id', id)
-        .select()
-        .single();
+      const result = await newsletterApi.updateStatus(token, id, status);
 
-      if (error) {
-        console.error('Update subscriber status error:', error);
+      if (result.error) {
+        console.error('Update subscriber status error:', result.error);
 
         // Handle specific errors
-        if (error.code === '42501') {
+        if (result.status === 403) {
           throw new Error('권한이 없습니다. 관리자 계정으로 로그인해주세요.');
         }
 
-        throw new Error(`상태 변경에 실패했습니다: ${error.message}`);
+        throw new Error(`상태 변경에 실패했습니다: ${result.error}`);
       }
 
-      return data as NewsletterSubscriber;
+      return result.data as NewsletterSubscriber;
     },
     onSuccess: (data) => {
       // Invalidate queries to refetch fresh data
@@ -232,23 +199,26 @@ export function useUpdateSubscriberStatus() {
  */
 export function useDeleteSubscriber() {
   const queryClient = useQueryClient();
+  const { workersTokens } = useAuth();
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from('newsletter_subscriptions')
-        .delete()
-        .eq('id', id);
+      const token = workersTokens?.accessToken;
+      if (!token) {
+        throw new Error('인증이 필요합니다.');
+      }
 
-      if (error) {
-        console.error('Delete subscriber error:', error);
+      const result = await newsletterApi.deleteSubscriber(token, id);
+
+      if (result.error) {
+        console.error('Delete subscriber error:', result.error);
 
         // Handle specific errors
-        if (error.code === '42501') {
+        if (result.status === 403) {
           throw new Error('권한이 없습니다. 관리자 계정으로 로그인해주세요.');
         }
 
-        throw new Error(`구독자 삭제에 실패했습니다: ${error.message}`);
+        throw new Error(`구독자 삭제에 실패했습니다: ${result.error}`);
       }
     },
     onSuccess: () => {
@@ -278,22 +248,25 @@ export function useDeleteSubscriber() {
  */
 export function useBulkDeleteSubscribers() {
   const queryClient = useQueryClient();
+  const { workersTokens } = useAuth();
 
   return useMutation({
     mutationFn: async (ids: string[]) => {
-      const { error } = await supabase
-        .from('newsletter_subscriptions')
-        .delete()
-        .in('id', ids);
+      const token = workersTokens?.accessToken;
+      if (!token) {
+        throw new Error('인증이 필요합니다.');
+      }
 
-      if (error) {
-        console.error('Bulk delete subscribers error:', error);
+      const result = await newsletterApi.bulkDeleteSubscribers(token, ids);
 
-        if (error.code === '42501') {
+      if (result.error) {
+        console.error('Bulk delete subscribers error:', result.error);
+
+        if (result.status === 403) {
           throw new Error('권한이 없습니다. 관리자 계정으로 로그인해주세요.');
         }
 
-        throw new Error(`일괄 삭제에 실패했습니다: ${error.message}`);
+        throw new Error(`일괄 삭제에 실패했습니다: ${result.error}`);
       }
     },
     onSuccess: (_, ids) => {
@@ -325,42 +298,41 @@ export function useBulkDeleteSubscribers() {
  * ```
  */
 export function useExportNewsletterCSV() {
+  const { workersTokens } = useAuth();
+
   return useMutation({
     mutationFn: async (filters?: NewsletterFilters) => {
+      const token = workersTokens?.accessToken;
+      if (!token) {
+        throw new Error('인증이 필요합니다.');
+      }
+
       // 전체 구독자 조회 (페이지네이션 없이)
-      let query = supabase
-        .from('newsletter_subscriptions')
-        .select('*')
-        .order('subscribed_at', { ascending: false });
+      const result = await newsletterApi.getSubscribers(token, {
+        status: filters?.status,
+        search: filters?.search,
+        dateFrom: filters?.dateFrom,
+        dateTo: filters?.dateTo,
+        orderBy: 'subscribed_at',
+        orderDirection: 'desc',
+        limit: 10000, // 최대 제한
+        offset: 0,
+      });
 
-      // 필터 적용
-      if (filters?.status && filters.status !== 'all') {
-        query = query.eq('status', filters.status);
-      }
-      if (filters?.search) {
-        query = query.ilike('email', `%${filters.search}%`);
-      }
-      if (filters?.dateFrom) {
-        query = query.gte('subscribed_at', filters.dateFrom);
-      }
-      if (filters?.dateTo) {
-        query = query.lte('subscribed_at', filters.dateTo);
+      if (result.error) {
+        console.error('CSV export query error:', result.error);
+        throw new Error(`CSV 내보내기 실패: ${result.error}`);
       }
 
-      const { data, error } = await query;
-
-      if (error) {
-        console.error('CSV export query error:', error);
-        throw new Error(`CSV 내보내기 실패: ${error.message}`);
-      }
+      const responseData = result.data as { data: NewsletterSubscriber[] };
 
       // CSV 생성
-      const csv = generateCSV(data as NewsletterSubscriber[]);
+      const csv = generateCSV(responseData.data);
 
       // 파일 다운로드
       downloadCSV(csv, `newsletter-subscribers-${getDateString()}.csv`);
 
-      return data.length;
+      return responseData.data.length;
     },
     onSuccess: (count) => {
       toast.success(`${count}명의 구독자 데이터를 내보냈습니다.`);
@@ -424,7 +396,7 @@ function generateCSV(subscribers: NewsletterSubscriber[]): string {
  */
 function downloadCSV(csvContent: string, filename: string): void {
   // BOM 추가 (Excel에서 한글 깨짐 방지)
-  const BOM = '﻿';
+  const BOM = '\ufeff';
   const blob = new Blob([BOM + csvContent], {
     type: 'text/csv;charset=utf-8;',
   });

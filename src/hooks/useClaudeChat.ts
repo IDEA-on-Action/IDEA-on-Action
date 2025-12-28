@@ -8,12 +8,14 @@
  * - 로딩/에러 상태 관리
  * - 토큰 사용량 추적
  *
- * @version 1.0.0
+ * @version 1.1.0
+ * @migration Supabase → Cloudflare Workers (완전 마이그레이션 완료)
  */
 
 import { useState, useCallback, useEffect } from 'react'
 import { useMutation } from '@tanstack/react-query'
-import { supabase } from '@/integrations/supabase/client'
+import { callWorkersApi } from '@/integrations/cloudflare/client'
+import { useAuth } from '@/hooks/useAuth'
 import { devError } from '@/lib/errors'
 
 // ============================================================================
@@ -151,7 +153,7 @@ const DEFAULT_SYSTEM_PROMPT = `당신은 IDEA on Action의 AI 어시스턴트입
 - 간결하고 명확한 설명
 - 한국어와 영어 모두 지원`
 
-const SUPABASE_FUNCTION_URL = '/functions/v1/claude-ai'
+const WORKERS_API_URL = import.meta.env.VITE_WORKERS_API_URL || 'https://api.ideaonaction.ai'
 
 // ============================================================================
 // 유틸리티 함수
@@ -194,36 +196,25 @@ function saveMessagesToStorage(key: string, messages: ClaudeMessage[]): void {
   }
 }
 
-/**
- * 인증 토큰 가져오기
- */
-async function getAuthToken(): Promise<string | null> {
-  try {
-    const { data: { session } } = await supabase.auth.getSession()
-    return session?.access_token || null
-  } catch (err) {
-    devError(err, { operation: '인증 토큰 가져오기' })
-    return null
-  }
-}
-
 // ============================================================================
 // API 호출 함수
 // ============================================================================
 
 /**
- * Claude API 호출 (비스트리밍)
+ * Claude API 호출 (비스트리밍) - Workers API
  */
 async function callClaudeAPI(
   messages: Array<{ role: MessageRole; content: string }>,
-  options: ChatRequestOptions & { system?: string }
+  options: ChatRequestOptions & { system?: string },
+  token: string | undefined
 ): Promise<ClaudeAPIResponse> {
-  const token = await getAuthToken()
   if (!token) {
     throw new Error('인증이 필요합니다. 로그인 후 다시 시도해주세요.')
   }
 
-  const { data, error } = await supabase.functions.invoke('claude-ai/chat', {
+  const result = await callWorkersApi<ClaudeAPIResponse>('/api/v1/ai/chat', {
+    method: 'POST',
+    token,
     body: {
       messages,
       model: options.model,
@@ -233,30 +224,26 @@ async function callClaudeAPI(
     },
   })
 
-  if (error) {
-    throw new Error(error.message || 'AI 응답을 받는 중 오류가 발생했습니다.')
+  if (result.error) {
+    throw new Error(result.error || 'AI 응답을 받는 중 오류가 발생했습니다.')
   }
 
-  return data as ClaudeAPIResponse
+  return result.data as ClaudeAPIResponse
 }
 
 /**
- * Claude API 스트리밍 호출
+ * Claude API 스트리밍 호출 - Workers API
  */
 async function* callClaudeAPIStream(
   messages: Array<{ role: MessageRole; content: string }>,
-  options: ChatRequestOptions & { system?: string }
+  options: ChatRequestOptions & { system?: string },
+  token: string | undefined
 ): AsyncGenerator<string, void, unknown> {
-  const token = await getAuthToken()
   if (!token) {
     throw new Error('인증이 필요합니다. 로그인 후 다시 시도해주세요.')
   }
 
-  // Supabase Functions URL
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-  const functionUrl = `${supabaseUrl}${SUPABASE_FUNCTION_URL}/chat/stream`
-
-  const response = await fetch(functionUrl, {
+  const response = await fetch(`${WORKERS_API_URL}/api/v1/ai/chat/stream`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -348,6 +335,10 @@ export function useClaudeChat(options: UseClaudeChatOptions = {}): UseClaudeChat
     onError,
   } = options
 
+  // Workers 인증 토큰
+  const { workersTokens } = useAuth()
+  const token = workersTokens?.accessToken
+
   // 상태
   const [messages, setMessages] = useState<ClaudeMessage[]>(initialMessages)
   const [isStreaming, setIsStreaming] = useState(false)
@@ -394,13 +385,13 @@ export function useClaudeChat(options: UseClaudeChatOptions = {}): UseClaudeChat
       // 사용자 메시지 추가
       apiMessages.push({ role: 'user' as const, content })
 
-      // API 호출
+      // API 호출 (Workers API)
       const response = await callClaudeAPI(apiMessages, {
         model: opts?.model || defaultModel,
         maxTokens: opts?.maxTokens || maxTokens,
         temperature: opts?.temperature || temperature,
         system: opts?.system || systemPrompt,
-      })
+      }, token)
 
       if (!response.success || !response.data) {
         throw new Error(response.error?.message || 'AI 응답을 받는 중 오류가 발생했습니다.')
@@ -455,14 +446,14 @@ export function useClaudeChat(options: UseClaudeChatOptions = {}): UseClaudeChat
           }))
           apiMessages.push({ role: 'user' as const, content: content.trim() })
 
-          // 스트리밍 응답 처리
+          // 스트리밍 응답 처리 (Workers API)
           let fullContent = ''
           for await (const chunk of callClaudeAPIStream(apiMessages, {
             model: requestOptions?.model || defaultModel,
             maxTokens: requestOptions?.maxTokens || maxTokens,
             temperature: requestOptions?.temperature || temperature,
             system: requestOptions?.system || systemPrompt,
-          })) {
+          }, token)) {
             fullContent += chunk
 
             // 실시간으로 메시지 업데이트
@@ -547,6 +538,7 @@ export function useClaudeChat(options: UseClaudeChatOptions = {}): UseClaudeChat
       mutation,
       onSuccess,
       onError,
+      token,
     ]
   )
 

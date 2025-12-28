@@ -2,10 +2,12 @@
  * 결제 포털 훅
  *
  * @description 구독 플랜 변경, 결제 수단 관리, 구독 취소 등
+ *
+ * @migration Supabase -> Cloudflare Workers (완전 마이그레이션 완료)
  */
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { subscriptionsApi, callWorkersApi } from '@/integrations/cloudflare/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import type {
@@ -49,27 +51,21 @@ export interface UseBillingPortalResult {
  * ```
  */
 export function useBillingPortal(): UseBillingPortalResult {
-  const { user } = useAuth();
+  const { user, workersTokens } = useAuth();
   const queryClient = useQueryClient();
 
   // 플랜 업그레이드/다운그레이드
   const upgradeMutation = useMutation({
     mutationFn: async ({ subscription_id, new_plan_id, prorate }: UpgradeSubscriptionRequest) => {
-      if (!user) throw new Error('로그인이 필요합니다.');
+      if (!user || !workersTokens?.accessToken) throw new Error('로그인이 필요합니다.');
 
-      const { data, error } = await supabase
-        .from('subscriptions')
-        .update({
-          plan_id: new_plan_id,
-          updated_at: new Date().toISOString(),
-          metadata: { prorate: prorate ?? true },
-        })
-        .eq('id', subscription_id)
-        .eq('user_id', user.id)
-        .select()
-        .single();
+      const { data, error } = await subscriptionsApi.changePlan(
+        workersTokens.accessToken,
+        subscription_id,
+        { new_plan_id }
+      );
 
-      if (error) throw error;
+      if (error) throw new Error(error);
       return data;
     },
     onSuccess: () => {
@@ -90,33 +86,18 @@ export function useBillingPortal(): UseBillingPortalResult {
       cancel_at_period_end,
       reason,
     }: CancelSubscriptionRequest) => {
-      if (!user) throw new Error('로그인이 필요합니다.');
+      if (!user || !workersTokens?.accessToken) throw new Error('로그인이 필요합니다.');
 
-      const updateData: {
-        cancel_at_period_end: boolean;
-        metadata?: { cancel_reason: string };
-        status?: string;
-        cancelled_at?: string;
-      } = {
-        cancel_at_period_end,
-        metadata: reason ? { cancel_reason: reason } : undefined,
-      };
+      const { data, error } = await subscriptionsApi.cancel(
+        workersTokens.accessToken,
+        subscription_id,
+        {
+          cancel_immediately: !cancel_at_period_end,
+          reason,
+        }
+      );
 
-      // 즉시 취소인 경우 status 변경
-      if (!cancel_at_period_end) {
-        updateData.status = 'cancelled';
-        updateData.cancelled_at = new Date().toISOString();
-      }
-
-      const { data, error } = await supabase
-        .from('subscriptions')
-        .update(updateData)
-        .eq('id', subscription_id)
-        .eq('user_id', user.id)
-        .select()
-        .single();
-
-      if (error) throw error;
+      if (error) throw new Error(error);
       return data;
     },
     onSuccess: (_, variables) => {
@@ -135,24 +116,15 @@ export function useBillingPortal(): UseBillingPortalResult {
   // 구독 갱신
   const renewMutation = useMutation({
     mutationFn: async (subscriptionId: string) => {
-      if (!user) throw new Error('로그인이 필요합니다.');
+      if (!user || !workersTokens?.accessToken) throw new Error('로그인이 필요합니다.');
 
       // 만료된 구독을 다시 활성화
-      const { data, error } = await supabase
-        .from('subscriptions')
-        .update({
-          status: 'active',
-          cancel_at_period_end: false,
-          cancelled_at: null,
-          valid_until: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // +30일
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', subscriptionId)
-        .eq('user_id', user.id)
-        .select()
-        .single();
+      const { data, error } = await subscriptionsApi.resume(
+        workersTokens.accessToken,
+        subscriptionId
+      );
 
-      if (error) throw error;
+      if (error) throw new Error(error);
       return data;
     },
     onSuccess: () => {
@@ -169,20 +141,15 @@ export function useBillingPortal(): UseBillingPortalResult {
   // 결제 수단 업데이트
   const updatePaymentMutation = useMutation({
     mutationFn: async ({ subscriptionId, billingKeyId }: { subscriptionId: string; billingKeyId: string }) => {
-      if (!user) throw new Error('로그인이 필요합니다.');
+      if (!user || !workersTokens?.accessToken) throw new Error('로그인이 필요합니다.');
 
-      const { data, error } = await supabase
-        .from('subscriptions')
-        .update({
-          billing_key_id: billingKeyId,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', subscriptionId)
-        .eq('user_id', user.id)
-        .select()
-        .single();
+      const { data, error } = await subscriptionsApi.updatePayment(
+        workersTokens.accessToken,
+        subscriptionId,
+        { billing_key_id: billingKeyId }
+      );
 
-      if (error) throw error;
+      if (error) throw new Error(error);
       return data;
     },
     onSuccess: () => {

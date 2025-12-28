@@ -1,11 +1,14 @@
 /**
  * Phase 14 Week 3: 실시간 대시보드 훅
- * Supabase Realtime 구독 및 자동 새로고침
+ * Workers WebSocket 구독 및 자동 새로고침
+ *
+ * @migration Supabase → Cloudflare Workers (완전 마이그레이션 완료)
  */
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { supabase } from '@/integrations/supabase/client'
+import { realtimeApi, callWorkersApi } from '@/integrations/cloudflare/client'
+import { useAuth } from '@/hooks/useAuth'
 import { devLog, devError } from '@/lib/errors'
 
 // ============================================
@@ -28,73 +31,58 @@ export interface LiveOrder {
 
 /**
  * 실시간 대시보드 데이터 구독
- * orders, analytics_events 테이블 변경 감지
+ * Workers WebSocket을 통한 orders, analytics_events 변경 감지
  */
 export function useRealtimeDashboard() {
   const queryClient = useQueryClient()
+  const { user, workersTokens } = useAuth()
   const [liveOrders, setLiveOrders] = useState<LiveOrder[]>([])
+  const wsRef = useRef<WebSocket | null>(null)
 
   useEffect(() => {
-    // 최근 10개 주문 초기 로드
+    // 최근 10개 주문 초기 로드 (Workers API 사용)
     const loadRecentOrders = async () => {
-      const { data, error } = await supabase
-        .from('orders')
-        .select(`
-          id,
-          order_number,
-          user_id,
-          total_amount,
-          status,
-          created_at,
-          items:order_items(count)
-        `)
-        .order('created_at', { ascending: false })
-        .limit(10)
+      const result = await callWorkersApi<{
+        id: string
+        order_number: string
+        user_id: string
+        total_amount: number
+        status: string
+        created_at: string
+        items_count: number
+      }[]>('/api/v1/orders/recent?limit=10', {
+        token: workersTokens?.accessToken,
+      })
 
-      if (error) {
-        devError(error, { operation: '최근 주문 로드', table: 'orders' })
+      if (result.error) {
+        devError(new Error(result.error), { operation: '최근 주문 로드', table: 'orders' })
         return
       }
 
-      // items_count 계산 (order_items 조인으로 실제 개수)
-      const ordersWithCount = (data || []).map((order) => ({
-        id: order.id,
-        order_number: order.order_number,
-        user_id: order.user_id,
-        total_amount: order.total_amount,
-        status: order.status,
-        created_at: order.created_at,
-        items_count: Array.isArray(order.items) ? order.items.length : 0,
-      }))
-
-      setLiveOrders(ordersWithCount)
+      setLiveOrders(result.data || [])
     }
 
     loadRecentOrders()
 
-    // orders 테이블 실시간 구독
-    const ordersChannel = supabase
-      .channel('realtime-orders')
-      .on(
-        'postgres_changes',
-        {
-          event: '*', // INSERT, UPDATE, DELETE 모두 감지
-          schema: 'public',
-          table: 'orders',
-        },
-        (payload) => {
-          devLog('Orders change detected:', payload)
+    // Workers WebSocket 연결
+    const ws = realtimeApi.connect('dashboard', user?.id)
+    wsRef.current = ws
 
-          // 새 주문 추가
-          if (payload.eventType === 'INSERT') {
-            const newOrder = payload.new as {
-              id: string
-              order_number: string
-              user_id: string
-              total_amount: number
-              status: string
-              created_at: string
-            }
+    ws.onopen = () => {
+      devLog('Dashboard WebSocket 연결됨')
+      // 주문 및 분석 이벤트 구독
+      ws.send(JSON.stringify({ type: 'subscribe', channels: ['orders', 'analytics_events'] }))
+    }
+
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data)
+        devLog('Dashboard WebSocket 메시지:', data)
+
+        // 주문 변경 처리
+        if (data.type === 'order_change') {
+          if (data.eventType === 'INSERT') {
+            const newOrder = data.payload as LiveOrder
             setLiveOrders((prev) => [
               {
                 id: newOrder.id,
@@ -103,7 +91,7 @@ export function useRealtimeDashboard() {
                 total_amount: newOrder.total_amount,
                 status: newOrder.status,
                 created_at: newOrder.created_at,
-                items_count: 1,
+                items_count: newOrder.items_count || 1,
               },
               ...prev.slice(0, 9), // 최근 10개만 유지
             ])
@@ -114,36 +102,37 @@ export function useRealtimeDashboard() {
           queryClient.invalidateQueries({ queryKey: ['revenue-by-date'] })
           queryClient.invalidateQueries({ queryKey: ['total-revenue'] })
         }
-      )
-      .subscribe()
 
-    // analytics_events 테이블 실시간 구독
-    const eventsChannel = supabase
-      .channel('realtime-analytics-events')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'analytics_events',
-        },
-        (payload) => {
-          devLog('Analytics event detected:', payload)
+        // 분석 이벤트 처리
+        if (data.type === 'analytics_event') {
+          devLog('Analytics event detected:', data.payload)
 
           // 이벤트 관련 쿼리 무효화
           queryClient.invalidateQueries({ queryKey: ['analytics-events'] })
           queryClient.invalidateQueries({ queryKey: ['event-counts'] })
           queryClient.invalidateQueries({ queryKey: ['bounce-rate'] })
         }
-      )
-      .subscribe()
+      } catch (e) {
+        devError(e as Error, { operation: 'WebSocket 메시지 파싱' })
+      }
+    }
+
+    ws.onerror = (error) => {
+      devError(new Error('WebSocket 연결 오류'), { operation: 'Dashboard WebSocket' })
+    }
+
+    ws.onclose = () => {
+      devLog('Dashboard WebSocket 연결 종료')
+    }
 
     // Cleanup
     return () => {
-      supabase.removeChannel(ordersChannel)
-      supabase.removeChannel(eventsChannel)
+      if (wsRef.current) {
+        wsRef.current.close()
+        wsRef.current = null
+      }
     }
-  }, [queryClient])
+  }, [queryClient, user?.id, workersTokens?.accessToken])
 
   return { liveOrders }
 }

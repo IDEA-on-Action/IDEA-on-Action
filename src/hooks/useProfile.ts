@@ -1,5 +1,6 @@
 /**
  * useProfile Hook
+ * @migration Supabase -> Cloudflare Workers (완전 마이그레이션 완료)
  *
  * React Query를 사용한 사용자 프로필 관리
  * - 프로필 조회, 수정
@@ -8,7 +9,7 @@
  */
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { supabase } from '@/integrations/supabase/client'
+import { callWorkersApi, storageApi } from '@/integrations/cloudflare/client'
 import { useAuth } from './useAuth'
 import { toast } from 'sonner'
 import { devError } from '@/lib/errors'
@@ -75,45 +76,48 @@ export interface ConnectedAccount {
 // ===================================================================
 
 export function useProfile() {
-  const { user } = useAuth()
+  const { user, workersTokens } = useAuth()
 
   return useQuery<UserProfile | null>({
     queryKey: ['profile', user?.id],
     queryFn: async () => {
       if (!user) return null
 
-      const { data, error } = await supabase
-        .from('user_profiles')
-        .select('*')
-        .eq('user_id', user.id)
-        .single()
+      const token = workersTokens?.accessToken
+      const { data, error } = await callWorkersApi<UserProfile>(
+        `/api/v1/users/${user.id}/profile`,
+        { token }
+      )
 
       if (error) {
         // 프로필이 없으면 생성
-        if (error.code === 'PGRST116') {
-          const { data: newProfile, error: createError } = await supabase
-            .from('user_profiles')
-            .insert({
-              user_id: user.id,
-              display_name: user.user_metadata?.name || user.email?.split('@')[0],
-              preferences: {},
-              location: {},
-            })
-            .select()
-            .single()
+        if (error.includes('not found') || error.includes('404')) {
+          const { data: newProfile, error: createError } = await callWorkersApi<UserProfile>(
+            `/api/v1/users/${user.id}/profile`,
+            {
+              method: 'POST',
+              token,
+              body: {
+                user_id: user.id,
+                display_name: user.user_metadata?.name || user.email?.split('@')[0],
+                preferences: {},
+                location: {},
+              },
+            }
+          )
 
-          if (createError) throw createError
-          return newProfile as UserProfile
+          if (createError) throw new Error(createError)
+          return newProfile
         }
 
-        throw error
+        throw new Error(error)
       }
 
       // avatar_url을 R2 URL로 변환
-      return {
+      return data ? {
         ...data,
         avatar_url: rewriteStorageUrl(data.avatar_url),
-      } as UserProfile
+      } : null
     },
     enabled: !!user,
     staleTime: 1000 * 60 * 5, // 5분
@@ -126,26 +130,29 @@ export function useProfile() {
 
 export function useUpdateProfile() {
   const queryClient = useQueryClient()
-  const { user } = useAuth()
+  const { user, workersTokens } = useAuth()
 
   return useMutation({
     mutationFn: async (params: UpdateProfileParams) => {
       if (!user) throw new Error('로그인이 필요합니다.')
 
-      const { data, error } = await supabase
-        .from('user_profiles')
-        .update({
-          display_name: params.display_name,
-          bio: params.bio,
-          phone: params.phone,
-          location: params.location,
-          preferences: params.preferences,
-        })
-        .eq('user_id', user.id)
-        .select()
-        .single()
+      const token = workersTokens?.accessToken
+      const { data, error } = await callWorkersApi<UserProfile>(
+        `/api/v1/users/${user.id}/profile`,
+        {
+          method: 'PATCH',
+          token,
+          body: {
+            display_name: params.display_name,
+            bio: params.bio,
+            phone: params.phone,
+            location: params.location,
+            preferences: params.preferences,
+          },
+        }
+      )
 
-      if (error) throw error
+      if (error) throw new Error(error)
       return data as UserProfile
     },
     onSuccess: () => {
@@ -165,11 +172,14 @@ export function useUpdateProfile() {
 
 export function useUploadAvatar() {
   const queryClient = useQueryClient()
-  const { user } = useAuth()
+  const { user, workersTokens } = useAuth()
 
   return useMutation({
     mutationFn: async (file: File) => {
       if (!user) throw new Error('로그인이 필요합니다.')
+
+      const token = workersTokens?.accessToken
+      if (!token) throw new Error('인증 토큰이 없습니다.')
 
       // 파일 검증
       const maxSize = 5 * 1024 * 1024 // 5MB
@@ -182,47 +192,37 @@ export function useUploadAvatar() {
         throw new Error('JPG, PNG, WEBP 형식만 지원합니다.')
       }
 
-      // 파일명 생성 (user_id + timestamp)
-      const fileExt = file.name.split('.').pop()
-      const fileName = `${user.id}-${Date.now()}.${fileExt}`
-      const filePath = `avatars/${fileName}`
-
       // 기존 아바타 삭제 (있으면)
-      const { data: profile } = await supabase
-        .from('user_profiles')
-        .select('avatar_url')
-        .eq('user_id', user.id)
-        .single()
+      const { data: profile } = await callWorkersApi<UserProfile>(
+        `/api/v1/users/${user.id}/profile`,
+        { token }
+      )
 
       if (profile?.avatar_url) {
         const oldPath = profile.avatar_url.split('/').pop()
         if (oldPath) {
-          await supabase.storage.from('avatars').remove([`avatars/${oldPath}`])
+          await storageApi.delete(token, oldPath)
         }
       }
 
-      // 새 아바타 업로드
-      const { error: uploadError } = await supabase.storage
-        .from('avatars')
-        .upload(filePath, file, {
-          cacheControl: '3600',
-          upsert: false,
-        })
+      // R2로 새 아바타 업로드
+      const uploadResult = await storageApi.upload(token, file, 'avatars')
 
-      if (uploadError) throw uploadError
+      if (uploadResult.error) throw new Error(uploadResult.error)
 
-      // Public URL 생성
-      const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(filePath)
+      const avatarUrl = uploadResult.data?.url
 
       // 프로필 업데이트
-      const { data, error: updateError } = await supabase
-        .from('user_profiles')
-        .update({ avatar_url: urlData.publicUrl })
-        .eq('user_id', user.id)
-        .select()
-        .single()
+      const { data, error: updateError } = await callWorkersApi<UserProfile>(
+        `/api/v1/users/${user.id}/profile`,
+        {
+          method: 'PATCH',
+          token,
+          body: { avatar_url: avatarUrl },
+        }
+      )
 
-      if (updateError) throw updateError
+      if (updateError) throw new Error(updateError)
       return data as UserProfile
     },
     onSuccess: () => {
@@ -241,21 +241,21 @@ export function useUploadAvatar() {
 // ===================================================================
 
 export function useConnectedAccounts() {
-  const { user } = useAuth()
+  const { user, workersTokens } = useAuth()
 
   return useQuery<ConnectedAccount[]>({
     queryKey: ['connected-accounts', user?.id],
     queryFn: async () => {
       if (!user) return []
 
-      const { data, error } = await supabase
-        .from('connected_accounts')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('connected_at', { ascending: false })
+      const token = workersTokens?.accessToken
+      const { data, error } = await callWorkersApi<ConnectedAccount[]>(
+        `/api/v1/users/${user.id}/connected-accounts`,
+        { token }
+      )
 
-      if (error) throw error
-      return data as ConnectedAccount[]
+      if (error) throw new Error(error)
+      return data || []
     },
     enabled: !!user,
     staleTime: 1000 * 60 * 5, // 5분
@@ -268,29 +268,37 @@ export function useConnectedAccounts() {
 
 export function useDisconnectAccount() {
   const queryClient = useQueryClient()
+  const { user, workersTokens } = useAuth()
 
   return useMutation({
     mutationFn: async (accountId: string) => {
-      // 주 계정인지 확인
-      const { data: account, error: checkError } = await supabase
-        .from('connected_accounts')
-        .select('is_primary, provider')
-        .eq('id', accountId)
-        .single()
+      if (!user) throw new Error('로그인이 필요합니다.')
 
-      if (checkError) throw checkError
+      const token = workersTokens?.accessToken
+
+      // 주 계정인지 확인
+      const { data: account, error: checkError } = await callWorkersApi<{ is_primary: boolean; provider: string }>(
+        `/api/v1/users/${user.id}/connected-accounts/${accountId}`,
+        { token }
+      )
+
+      if (checkError) throw new Error(checkError)
+      if (!account) throw new Error('계정을 찾을 수 없습니다.')
 
       if (account.is_primary) {
         throw new Error('주 계정은 연결 해제할 수 없습니다.')
       }
 
       // 연결 해제
-      const { error } = await supabase
-        .from('connected_accounts')
-        .delete()
-        .eq('id', accountId)
+      const { error } = await callWorkersApi(
+        `/api/v1/users/${user.id}/connected-accounts/${accountId}`,
+        {
+          method: 'DELETE',
+          token,
+        }
+      )
 
-      if (error) throw error
+      if (error) throw new Error(error)
       return { success: true, provider: account.provider }
     },
     onSuccess: (result) => {

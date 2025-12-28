@@ -1,33 +1,26 @@
-import { useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useSupabaseQuery, useSupabaseMutation, supabaseQuery } from '@/lib/react-query';
+/**
+ * useBounties Hook
+ * @migration Supabase -> Cloudflare Workers (완전 마이그레이션 완료)
+ */
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { bountiesApi } from '@/integrations/cloudflare/client';
+import { useAuth } from '@/hooks/useAuth';
 import type { Bounty } from '@/types/v2';
 
 /**
  * Hook to fetch all bounties
  */
 export const useBounties = () => {
-  return useSupabaseQuery<Bounty[]>({
+  return useQuery<Bounty[]>({
     queryKey: ['bounties'],
     queryFn: async () => {
-      return await supabaseQuery(
-        async () => {
-          const result = await supabase
-            .from('bounties')
-            .select('*')
-            .order('created_at', { ascending: false });
-          return { data: result.data, error: result.error };
-        },
-        {
-          table: 'bounties',
-          operation: 'Bounty 목록 조회',
-          fallbackValue: [],
-        }
-      );
+      const result = await bountiesApi.list();
+      if (result.error) {
+        console.error('Bounties 조회 오류:', result.error);
+        return [];
+      }
+      return (result.data as Bounty[]) || [];
     },
-    table: 'bounties',
-    operation: 'Bounty 목록 조회',
-    fallbackValue: [],
     staleTime: 1 * 60 * 1000, // 1 minute
   });
 };
@@ -36,33 +29,16 @@ export const useBounties = () => {
  * Hook to fetch bounties by status
  */
 export const useBountiesByStatus = (status?: Bounty['status']) => {
-  return useSupabaseQuery<Bounty[]>({
+  return useQuery<Bounty[]>({
     queryKey: ['bounties', 'status', status],
     queryFn: async () => {
-      return await supabaseQuery(
-        async () => {
-          let query = supabase
-            .from('bounties')
-            .select('*')
-            .order('created_at', { ascending: false });
-
-          if (status) {
-            query = query.eq('status', status);
-          }
-
-          const result = await query;
-          return { data: result.data, error: result.error };
-        },
-        {
-          table: 'bounties',
-          operation: 'Bounty 상태별 조회',
-          fallbackValue: [],
-        }
-      );
+      const result = await bountiesApi.list({ status: status || undefined });
+      if (result.error) {
+        console.error('Bounties 상태별 조회 오류:', result.error);
+        return [];
+      }
+      return (result.data as Bounty[]) || [];
     },
-    table: 'bounties',
-    operation: 'Bounty 상태별 조회',
-    fallbackValue: [],
     staleTime: 1 * 60 * 1000,
   });
 };
@@ -71,28 +47,16 @@ export const useBountiesByStatus = (status?: Bounty['status']) => {
  * Hook to fetch a single bounty by ID
  */
 export const useBounty = (id: number) => {
-  return useSupabaseQuery<Bounty>({
+  return useQuery<Bounty | null>({
     queryKey: ['bounties', id],
     queryFn: async () => {
-      return await supabaseQuery(
-        async () => {
-          const result = await supabase
-            .from('bounties')
-            .select('*')
-            .eq('id', id)
-            .single();
-          return { data: result.data, error: result.error };
-        },
-        {
-          table: 'bounties',
-          operation: 'Bounty 상세 조회',
-          fallbackValue: null,
-        }
-      );
+      const result = await bountiesApi.getById(id);
+      if (result.error) {
+        console.error('Bounty 상세 조회 오류:', result.error);
+        return null;
+      }
+      return (result.data as Bounty) || null;
     },
-    table: 'bounties',
-    operation: 'Bounty 상세 조회',
-    fallbackValue: null,
     enabled: !!id,
   });
 };
@@ -102,18 +66,19 @@ export const useBounty = (id: number) => {
  */
 export const useApplyToBounty = () => {
   const queryClient = useQueryClient();
+  const { workersTokens } = useAuth();
 
-  return useSupabaseMutation<unknown, number>({
-    mutationFn: async (bountyId: number) => {
-      const { data, error } = await supabase.rpc('apply_to_bounty', {
-        bounty_id: bountyId,
-      });
-
-      if (error) throw error;
-      return data;
+  return useMutation<unknown, Error, number>({
+    mutationFn: async (bountyId) => {
+      if (!workersTokens?.accessToken) {
+        throw new Error('인증이 필요합니다');
+      }
+      const result = await bountiesApi.apply(workersTokens.accessToken, bountyId);
+      if (result.error) {
+        throw new Error(result.error);
+      }
+      return result.data;
     },
-    table: 'bounties',
-    operation: 'Bounty 지원',
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bounties'] });
     },
@@ -125,20 +90,19 @@ export const useApplyToBounty = () => {
  */
 export const useCreateBounty = () => {
   const queryClient = useQueryClient();
+  const { workersTokens } = useAuth();
 
-  return useSupabaseMutation<Bounty, Omit<Bounty, 'id' | 'created_at' | 'updated_at' | 'applicants'>>({
-    mutationFn: async (bounty: Omit<Bounty, 'id' | 'created_at' | 'updated_at' | 'applicants'>) => {
-      const { data, error } = await supabase
-        .from('bounties')
-        .insert([{ ...bounty, applicants: [] }])
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data as Bounty;
+  return useMutation<Bounty, Error, Omit<Bounty, 'id' | 'created_at' | 'updated_at' | 'applicants'>>({
+    mutationFn: async (bounty) => {
+      if (!workersTokens?.accessToken) {
+        throw new Error('인증이 필요합니다');
+      }
+      const result = await bountiesApi.create(workersTokens.accessToken, { ...bounty, applicants: [] });
+      if (result.error) {
+        throw new Error(result.error);
+      }
+      return result.data as Bounty;
     },
-    table: 'bounties',
-    operation: 'Bounty 생성',
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bounties'] });
     },
@@ -150,21 +114,19 @@ export const useCreateBounty = () => {
  */
 export const useUpdateBounty = () => {
   const queryClient = useQueryClient();
+  const { workersTokens } = useAuth();
 
-  return useSupabaseMutation<Bounty, { id: number; updates: Partial<Bounty> }>({
-    mutationFn: async ({ id, updates }: { id: number; updates: Partial<Bounty> }) => {
-      const { data, error } = await supabase
-        .from('bounties')
-        .update(updates)
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data as Bounty;
+  return useMutation<Bounty, Error, { id: number; updates: Partial<Bounty> }>({
+    mutationFn: async ({ id, updates }) => {
+      if (!workersTokens?.accessToken) {
+        throw new Error('인증이 필요합니다');
+      }
+      const result = await bountiesApi.update(workersTokens.accessToken, id, updates);
+      if (result.error) {
+        throw new Error(result.error);
+      }
+      return result.data as Bounty;
     },
-    table: 'bounties',
-    operation: 'Bounty 수정',
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bounties'] });
     },
@@ -176,19 +138,19 @@ export const useUpdateBounty = () => {
  */
 export const useDeleteBounty = () => {
   const queryClient = useQueryClient();
+  const { workersTokens } = useAuth();
 
-  return useSupabaseMutation<number, number>({
-    mutationFn: async (id: number) => {
-      const { error } = await supabase
-        .from('bounties')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
+  return useMutation<number, Error, number>({
+    mutationFn: async (id) => {
+      if (!workersTokens?.accessToken) {
+        throw new Error('인증이 필요합니다');
+      }
+      const result = await bountiesApi.delete(workersTokens.accessToken, id);
+      if (result.error) {
+        throw new Error(result.error);
+      }
       return id;
     },
-    table: 'bounties',
-    operation: 'Bounty 삭제',
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bounties'] });
     },
@@ -200,24 +162,19 @@ export const useDeleteBounty = () => {
  */
 export const useAssignBounty = () => {
   const queryClient = useQueryClient();
+  const { workersTokens } = useAuth();
 
-  return useSupabaseMutation<Bounty, { bountyId: number; userId: string }>({
-    mutationFn: async ({ bountyId, userId }: { bountyId: number; userId: string }) => {
-      const { data, error } = await supabase
-        .from('bounties')
-        .update({
-          assignee_id: userId,
-          status: 'assigned',
-        })
-        .eq('id', bountyId)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data as Bounty;
+  return useMutation<Bounty, Error, { bountyId: number; userId: string }>({
+    mutationFn: async ({ bountyId, userId }) => {
+      if (!workersTokens?.accessToken) {
+        throw new Error('인증이 필요합니다');
+      }
+      const result = await bountiesApi.assign(workersTokens.accessToken, bountyId, userId);
+      if (result.error) {
+        throw new Error(result.error);
+      }
+      return result.data as Bounty;
     },
-    table: 'bounties',
-    operation: 'Bounty 할당',
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bounties'] });
     },

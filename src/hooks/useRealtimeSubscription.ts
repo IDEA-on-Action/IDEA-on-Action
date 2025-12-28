@@ -1,7 +1,7 @@
 /**
  * Real-time Subscription Hook
  *
- * Provides real-time updates for Supabase tables using Postgres Changes.
+ * Provides real-time updates using Workers WebSocket.
  *
  * Features:
  * - Subscribe to table changes (INSERT/UPDATE/DELETE)
@@ -9,6 +9,8 @@
  * - Connection status tracking
  * - Automatic reconnection
  * - Unsubscribe on unmount
+ *
+ * @migration Supabase → Cloudflare Workers (완전 마이그레이션 완료)
  *
  * @example
  * const { status } = useRealtimeSubscription<PortfolioItem>(
@@ -23,8 +25,8 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import type { RealtimeChannel, RealtimePostgresChangesPayload } from '@supabase/supabase-js';
+import { realtimeApi } from '@/integrations/cloudflare/client';
+import { useAuth } from '@/hooks/useAuth';
 
 // ===================================================================
 // Types
@@ -41,6 +43,17 @@ export type RealtimeEvent = 'INSERT' | 'UPDATE' | 'DELETE' | '*';
 export type ConnectionStatus = 'connected' | 'disconnected' | 'connecting' | 'error';
 
 /**
+ * Workers WebSocket 페이로드 타입
+ */
+interface RealtimeChangePayload<T = Record<string, unknown>> {
+  type: 'db_change';
+  table: string;
+  eventType: 'INSERT' | 'UPDATE' | 'DELETE';
+  new: T;
+  old: T;
+}
+
+/**
  * Subscription options
  */
 export interface UseRealtimeSubscriptionOptions {
@@ -54,7 +67,7 @@ export interface UseRealtimeSubscriptionOptions {
   enabled?: boolean;
 
   /** Custom change handler (called before cache invalidation) */
-  onChange?: (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => void;
+  onChange?: (payload: RealtimeChangePayload<Record<string, unknown>>) => void;
 
   /** Schema name (default: 'public') */
   schema?: string;
@@ -92,15 +105,15 @@ export function useRealtimeSubscription<T = Record<string, unknown>>(
     event = '*',
     enabled = true,
     onChange,
-    schema = 'public',
     invalidateList = true,
     invalidateDetail = true,
     debounceMs = 0,
   } = options;
 
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   const [status, setStatus] = useState<ConnectionStatus>('disconnected');
-  const [channel, setChannel] = useState<RealtimeChannel | null>(null);
+  const wsRef = useRef<WebSocket | null>(null);
   const [error, setError] = useState<Error | null>(null);
 
   // Debounced invalidation
@@ -127,7 +140,7 @@ export function useRealtimeSubscription<T = Record<string, unknown>>(
    * Handle INSERT events
    */
   const handleInsert = useCallback(
-    (payload: RealtimePostgresChangesPayload<T>) => {
+    (payload: RealtimeChangePayload<T>) => {
       console.log(`[Realtime] INSERT on ${table}:`, payload.new);
 
       const newData = payload.new as T & { id: string };
@@ -141,7 +154,7 @@ export function useRealtimeSubscription<T = Record<string, unknown>>(
       invalidateQueries();
 
       // Call custom handler
-      onChange?.(payload as RealtimePostgresChangesPayload<Record<string, unknown>>);
+      onChange?.(payload as RealtimeChangePayload<Record<string, unknown>>);
     },
     [table, queryKey, queryClient, invalidateDetail, invalidateQueries, onChange]
   );
@@ -150,7 +163,7 @@ export function useRealtimeSubscription<T = Record<string, unknown>>(
    * Handle UPDATE events
    */
   const handleUpdate = useCallback(
-    (payload: RealtimePostgresChangesPayload<T>) => {
+    (payload: RealtimeChangePayload<T>) => {
       console.log(`[Realtime] UPDATE on ${table}:`, payload.new);
 
       const updatedData = payload.new as T & { id: string };
@@ -164,7 +177,7 @@ export function useRealtimeSubscription<T = Record<string, unknown>>(
       invalidateQueries();
 
       // Call custom handler
-      onChange?.(payload as RealtimePostgresChangesPayload<Record<string, unknown>>);
+      onChange?.(payload as RealtimeChangePayload<Record<string, unknown>>);
     },
     [table, queryKey, queryClient, invalidateDetail, invalidateQueries, onChange]
   );
@@ -173,7 +186,7 @@ export function useRealtimeSubscription<T = Record<string, unknown>>(
    * Handle DELETE events
    */
   const handleDelete = useCallback(
-    (payload: RealtimePostgresChangesPayload<T>) => {
+    (payload: RealtimeChangePayload<T>) => {
       console.log(`[Realtime] DELETE on ${table}:`, payload.old);
 
       const deletedData = payload.old as T & { id: string };
@@ -187,7 +200,7 @@ export function useRealtimeSubscription<T = Record<string, unknown>>(
       invalidateQueries();
 
       // Call custom handler
-      onChange?.(payload as RealtimePostgresChangesPayload<Record<string, unknown>>);
+      onChange?.(payload as RealtimeChangePayload<Record<string, unknown>>);
     },
     [table, queryKey, queryClient, invalidateDetail, invalidateQueries, onChange]
   );
@@ -205,71 +218,75 @@ export function useRealtimeSubscription<T = Record<string, unknown>>(
     setStatus('connecting');
     setError(null);
 
-    // Create channel
-    const channelName = `${table}-changes-${Date.now()}`;
-    const realtimeChannel = supabase.channel(channelName);
+    // Workers WebSocket 연결
+    const ws = realtimeApi.connect(`table-${table}`, user?.id);
+    wsRef.current = ws;
 
-    // Configure postgres_changes subscription
-    realtimeChannel.on(
-      'postgres_changes',
-      {
-        event,
-        schema,
+    ws.onopen = () => {
+      console.log(`[Realtime] ${table} WebSocket 연결됨`);
+      // 테이블 구독 요청
+      ws.send(JSON.stringify({
+        type: 'subscribe',
         table,
+        event,
         filter,
-      },
-      (payload) => {
-        // Route to appropriate handler
-        switch (payload.eventType) {
-          case 'INSERT':
-            handleInsert(payload as RealtimePostgresChangesPayload<T>);
-            break;
-          case 'UPDATE':
-            handleUpdate(payload as RealtimePostgresChangesPayload<T>);
-            break;
-          case 'DELETE':
-            handleDelete(payload as RealtimePostgresChangesPayload<T>);
-            break;
-          default:
-            console.warn(`[Realtime] Unknown event type: ${payload.eventType}`);
+      }));
+    };
+
+    ws.onmessage = (msgEvent) => {
+      try {
+        const data = JSON.parse(msgEvent.data);
+
+        // 구독 확인 응답
+        if (data.type === 'subscribed') {
+          console.log(`[Realtime] ${table} subscription status: SUBSCRIBED`);
+          setStatus('connected');
+          setError(null);
+          return;
         }
+
+        // 테이블 변경 이벤트
+        if (data.type === 'db_change' && data.table === table) {
+          const payload = data as RealtimeChangePayload<T>;
+
+          // Route to appropriate handler
+          switch (payload.eventType) {
+            case 'INSERT':
+              handleInsert(payload);
+              break;
+            case 'UPDATE':
+              handleUpdate(payload);
+              break;
+            case 'DELETE':
+              handleDelete(payload);
+              break;
+            default:
+              console.warn(`[Realtime] Unknown event type: ${payload.eventType}`);
+          }
+        }
+      } catch (e) {
+        console.error(`[Realtime] ${table} WebSocket 메시지 파싱 에러:`, e);
       }
-    );
+    };
 
-    // Subscribe
-    realtimeChannel
-      .subscribe((subscribeStatus) => {
-        console.log(`[Realtime] ${table} subscription status:`, subscribeStatus);
+    ws.onerror = (error) => {
+      console.error(`[Realtime] ${table} WebSocket 에러:`, error);
+      setStatus('error');
+      setError(new Error('WebSocket 연결 오류'));
+    };
 
-        switch (subscribeStatus) {
-          case 'SUBSCRIBED':
-            setStatus('connected');
-            setError(null);
-            break;
-          case 'CHANNEL_ERROR':
-            setStatus('error');
-            setError(new Error('Channel error'));
-            break;
-          case 'TIMED_OUT':
-            setStatus('error');
-            setError(new Error('Subscription timed out'));
-            break;
-          case 'CLOSED':
-            setStatus('disconnected');
-            break;
-          default:
-            setStatus('connecting');
-        }
-      });
-
-    setChannel(realtimeChannel);
+    ws.onclose = () => {
+      console.log(`[Realtime] Unsubscribing from ${table}`);
+      setStatus('disconnected');
+    };
 
     // Cleanup on unmount or dependency change
     return () => {
       console.log(`[Realtime] Unsubscribing from ${table}`);
-      realtimeChannel.unsubscribe();
-      supabase.removeChannel(realtimeChannel);
-      setChannel(null);
+      if (wsRef.current) {
+        wsRef.current.close();
+        wsRef.current = null;
+      }
       setStatus('disconnected');
 
       if (debounceTimerRef.current) {
@@ -280,9 +297,9 @@ export function useRealtimeSubscription<T = Record<string, unknown>>(
     table,
     queryKey,
     event,
-    schema,
     filter,
     enabled,
+    user?.id,
     handleInsert,
     handleUpdate,
     handleDelete,
@@ -296,26 +313,25 @@ export function useRealtimeSubscription<T = Record<string, unknown>>(
    * Manually trigger reconnection
    */
   const reconnect = useCallback(() => {
-    if (channel) {
-      channel.unsubscribe();
-      supabase.removeChannel(channel);
+    if (wsRef.current) {
+      wsRef.current.close();
+      wsRef.current = null;
     }
 
     // Trigger re-subscription by toggling enabled state
     setStatus('connecting');
-  }, [channel]);
+  }, []);
 
   /**
    * Manually unsubscribe
    */
   const unsubscribe = useCallback(() => {
-    if (channel) {
-      channel.unsubscribe();
-      supabase.removeChannel(channel);
-      setChannel(null);
+    if (wsRef.current) {
+      wsRef.current.close();
+      wsRef.current = null;
       setStatus('disconnected');
     }
-  }, [channel]);
+  }, []);
 
   // ===================================================================
   // Return API

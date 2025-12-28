@@ -5,12 +5,14 @@
  * HTTP 전송 모드를 통해 MCP 서버에 연결하여 사용자 인증, 구독 정보,
  * 권한 확인 등의 기능을 제공합니다.
  *
+ * @migration Supabase → Cloudflare Workers (완전 마이그레이션 완료)
  * @see mcp-server/README.md - MCP 서버 문서
  * @see mcp-server/src/index.ts - MCP 서버 HTTP 엔드포인트
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { supabase } from '@/integrations/supabase/client'
+import { callWorkersApi } from '@/integrations/cloudflare/client'
+import { useAuth } from '@/hooks/useAuth'
 import { cacheConfig, createQueryKeys } from '@/lib/react-query'
 
 // ===================================================================
@@ -173,12 +175,12 @@ interface ListPermissionsToolResponse {
 // ===================================================================
 
 /**
- * MCP 서버 URL
- * 환경 변수가 없으면 기본 로컬 개발 서버 사용
+ * Workers API URL
+ * 환경 변수가 없으면 기본 프로덕션 URL 사용
  */
-const MCP_SERVER_URL =
-  (typeof import.meta !== 'undefined' && import.meta.env?.VITE_MCP_SERVER_URL) ||
-  'http://localhost:3001'
+const WORKERS_API_URL =
+  (typeof import.meta !== 'undefined' && import.meta.env?.VITE_WORKERS_API_URL) ||
+  'https://api.ideaonaction.ai'
 
 // ===================================================================
 // Query Key 팩토리
@@ -201,17 +203,12 @@ export const mcpQueryKeys = {
 // ===================================================================
 
 /**
- * 현재 인증된 사용자의 JWT 토큰 가져오기
+ * Workers 토큰을 사용하여 MCP 서버에 요청
+ * 이 함수는 훅 내부에서 토큰을 전달받아 사용합니다.
  */
-async function getAuthToken(): Promise<string | null> {
-  const {
-    data: { session },
-  } = await supabase.auth.getSession()
-  return session?.access_token ?? null
-}
 
 /**
- * MCP 서버에 JSON-RPC 요청 보내기
+ * Workers API를 통해 MCP 서버에 JSON-RPC 요청 보내기
  *
  * @param method - JSON-RPC 메서드 (예: 'tools/call', 'resources/read')
  * @param params - 메서드 파라미터
@@ -229,25 +226,21 @@ async function mcpRequest<T>(
     id: Date.now(),
   }
 
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-  }
-
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`
-  }
-
-  const response = await fetch(`${MCP_SERVER_URL}/mcp`, {
+  const result = await callWorkersApi<MCPResponse<T>>('/mcp/rpc', {
     method: 'POST',
-    headers,
-    body: JSON.stringify(request),
+    body: request,
+    token: token || undefined,
   })
 
-  if (!response.ok) {
-    throw new Error(`MCP 서버 요청 실패: ${response.status} ${response.statusText}`)
+  if (result.error) {
+    throw new Error(`MCP 서버 요청 실패: ${result.error}`)
   }
 
-  const data = (await response.json()) as MCPResponse<T>
+  const data = result.data
+
+  if (!data) {
+    throw new Error('MCP 응답이 없습니다')
+  }
 
   if (data.error) {
     throw new Error(`MCP 에러 (${data.error.code}): ${data.error.message}`)
@@ -347,15 +340,18 @@ async function readResourceInternal<T = unknown>(
  * ```
  */
 export function useMCPClient() {
+  const { workersTokens } = useAuth()
+  const token = workersTokens?.accessToken || null
+
   // 헬스 체크 쿼리
   const healthQuery = useQuery({
     queryKey: mcpQueryKeys.health(),
     queryFn: async (): Promise<MCPHealthCheck> => {
-      const response = await fetch(`${MCP_SERVER_URL}/health`)
-      if (!response.ok) {
+      const result = await callWorkersApi<MCPHealthCheck>('/mcp/health')
+      if (result.error) {
         throw new Error('MCP 서버 헬스 체크 실패')
       }
-      return response.json() as Promise<MCPHealthCheck>
+      return result.data as MCPHealthCheck
     },
     // 헬스 체크는 자주 확인
     ...cacheConfig.short,
@@ -367,11 +363,11 @@ export function useMCPClient() {
   const infoQuery = useQuery({
     queryKey: mcpQueryKeys.info(),
     queryFn: async (): Promise<MCPServerInfo> => {
-      const response = await fetch(`${MCP_SERVER_URL}/info`)
-      if (!response.ok) {
+      const result = await callWorkersApi<MCPServerInfo>('/mcp/info')
+      if (result.error) {
         throw new Error('MCP 서버 정보 조회 실패')
       }
-      return response.json() as Promise<MCPServerInfo>
+      return result.data as MCPServerInfo
     },
     // 서버 정보는 거의 변하지 않음
     ...cacheConfig.static,
@@ -387,7 +383,6 @@ export function useMCPClient() {
       name: string
       args?: Record<string, unknown>
     }) => {
-      const token = await getAuthToken()
       return callToolInternal(name, args, token)
     },
   })
@@ -395,7 +390,6 @@ export function useMCPClient() {
   // 리소스 읽기 뮤테이션
   const readResourceMutation = useMutation({
     mutationFn: async ({ uri }: { uri: string }) => {
-      const token = await getAuthToken()
       return readResourceInternal(uri, token)
     },
   })
@@ -451,12 +445,12 @@ export function useMCPClient() {
  */
 export function useCompassSubscription() {
   const queryClient = useQueryClient()
+  const { workersTokens } = useAuth()
+  const token = workersTokens?.accessToken || null
 
   const query = useQuery({
     queryKey: mcpQueryKeys.subscription(),
     queryFn: async (): Promise<CompassSubscription | null> => {
-      const token = await getAuthToken()
-
       if (!token) {
         // 인증되지 않은 경우 null 반환
         return null
@@ -505,6 +499,7 @@ export function useCompassSubscription() {
     // 구독 정보는 일반 캐시 시간 적용
     ...cacheConfig.default,
     retry: 1,
+    enabled: !!token,
   })
 
   return {
@@ -578,11 +573,12 @@ export function useCompassPermission(
     enabled?: boolean
   }
 ) {
+  const { workersTokens } = useAuth()
+  const token = workersTokens?.accessToken || null
+
   const query = useQuery({
     queryKey: mcpQueryKeys.permission(permission),
     queryFn: async (): Promise<PermissionCheck> => {
-      const token = await getAuthToken()
-
       if (!token) {
         // 인증되지 않은 경우 권한 없음
         return {
@@ -630,7 +626,7 @@ export function useCompassPermission(
     // 권한 정보는 일반 캐시 시간 적용
     ...cacheConfig.default,
     retry: 1,
-    enabled: options?.enabled ?? true,
+    enabled: (options?.enabled ?? true) && !!token,
   })
 
   return {

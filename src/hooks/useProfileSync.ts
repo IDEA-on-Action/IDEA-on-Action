@@ -1,5 +1,6 @@
 /**
  * useProfileSync Hook
+ * @migration Supabase -> Cloudflare Workers (완전 마이그레이션 완료)
  *
  * ideaonaction ↔ Minu 프로필 실시간 동기화 관리
  * - 동기화 상태 조회
@@ -8,7 +9,7 @@
  */
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { supabase } from '@/integrations/supabase/client'
+import { callWorkersApi, realtimeApi } from '@/integrations/cloudflare/client'
 import { useAuth } from './useAuth'
 import { toast } from 'sonner'
 import { devError } from '@/lib/errors'
@@ -116,28 +117,28 @@ interface SyncResponse {
  * ```
  */
 export function useProfileSyncStatus() {
-  const { user } = useAuth()
+  const { user, workersTokens } = useAuth()
 
   return useQuery<ProfileSyncStatus | null>({
     queryKey: ['profile-sync-status', user?.id],
     queryFn: async () => {
       if (!user) return null
 
-      const { data, error } = await supabase
-        .from('profile_sync_status')
-        .select('*')
-        .eq('user_id', user.id)
-        .single()
+      const token = workersTokens?.accessToken
+      const { data, error } = await callWorkersApi<ProfileSyncStatus>(
+        `/api/v1/users/${user.id}/sync-status`,
+        { token }
+      )
 
       if (error) {
         // 상태가 없으면 null 반환 (에러 아님)
-        if (error.code === 'PGRST116') {
+        if (error.includes('not found') || error.includes('404')) {
           return null
         }
-        throw error
+        throw new Error(error)
       }
 
-      return data as ProfileSyncStatus
+      return data
     },
     enabled: !!user,
     staleTime: 1000 * 60 * 1, // 1분
@@ -170,39 +171,33 @@ export function useProfileSyncStatus() {
  */
 export function useTriggerProfileSync() {
   const queryClient = useQueryClient()
-  const { user } = useAuth()
+  const { user, workersTokens } = useAuth()
 
   return useMutation({
     mutationFn: async (params: TriggerSyncParams = {}) => {
       if (!user) throw new Error('로그인이 필요합니다.')
 
-      // Edge Function 호출
-      const { data: session } = await supabase.auth.getSession()
-      if (!session.session) throw new Error('인증 세션이 없습니다.')
+      const token = workersTokens?.accessToken
+      if (!token) throw new Error('인증 토큰이 없습니다.')
 
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/profile-sync/sync`,
+      const { data, error } = await callWorkersApi<SyncResponse>(
+        '/api/v1/profile-sync/sync',
         {
           method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${session.session.access_token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
+          token,
+          body: {
             user_id: user.id,
             direction: params.direction || 'bidirectional',
             force: params.force || false,
-          }),
+          },
         }
       )
 
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error?.message || '동기화에 실패했습니다.')
+      if (error) {
+        throw new Error(error || '동기화에 실패했습니다.')
       }
 
-      const result: SyncResponse = await response.json()
-      return result
+      return data as SyncResponse
     },
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['profile-sync-status'] })
@@ -254,22 +249,21 @@ export function useTriggerProfileSync() {
  * ```
  */
 export function useProfileSyncHistory(limit = 10) {
-  const { user } = useAuth()
+  const { user, workersTokens } = useAuth()
 
   return useQuery<ProfileSyncHistory[]>({
     queryKey: ['profile-sync-history', user?.id, limit],
     queryFn: async () => {
       if (!user) return []
 
-      const { data, error } = await supabase
-        .from('profile_sync_history')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('synced_at', { ascending: false })
-        .limit(limit)
+      const token = workersTokens?.accessToken
+      const { data, error } = await callWorkersApi<ProfileSyncHistory[]>(
+        `/api/v1/users/${user.id}/sync-history?limit=${limit}`,
+        { token }
+      )
 
-      if (error) throw error
-      return data as ProfileSyncHistory[]
+      if (error) throw new Error(error)
+      return data || []
     },
     enabled: !!user,
     staleTime: 1000 * 60 * 5, // 5분
@@ -306,31 +300,31 @@ export function useRealtimeProfileSync() {
     queryFn: () => {
       if (!user) return null
 
-      const channel = supabase
-        .channel(`profile-sync:${user.id}`)
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'profile_sync_status',
-            filter: `user_id=eq.${user.id}`,
-          },
-          (payload) => {
-            console.log('Profile sync status changed:', payload)
+      // Workers Realtime WebSocket 연결
+      const ws = realtimeApi.connect(`profile-sync-${user.id}`, user.id)
 
-            // 동기화 상태 쿼리 무효화
-            queryClient.invalidateQueries({ queryKey: ['profile-sync-status', user.id] })
+      ws.onmessage = (event) => {
+        try {
+          const payload = JSON.parse(event.data)
+          console.log('Profile sync status changed:', payload)
 
-            // 동기화 완료 시 프로필 쿼리도 무효화
-            if (payload.new && (payload.new as ProfileSyncStatus).sync_status === 'synced') {
-              queryClient.invalidateQueries({ queryKey: ['profile', user.id] })
-            }
+          // 동기화 상태 쿼리 무효화
+          queryClient.invalidateQueries({ queryKey: ['profile-sync-status', user.id] })
+
+          // 동기화 완료 시 프로필 쿼리도 무효화
+          if (payload.sync_status === 'synced') {
+            queryClient.invalidateQueries({ queryKey: ['profile', user.id] })
           }
-        )
-        .subscribe()
+        } catch (e) {
+          console.error('Realtime message parse error:', e)
+        }
+      }
 
-      return channel
+      ws.onerror = (error) => {
+        console.error('WebSocket error:', error)
+      }
+
+      return ws
     },
     enabled: !!user,
     staleTime: Infinity, // 구독은 계속 유지

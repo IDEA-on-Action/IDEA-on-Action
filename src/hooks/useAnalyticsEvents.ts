@@ -1,72 +1,15 @@
 /**
+ * useAnalyticsEvents Hook
+ * @migration Supabase -> Cloudflare Workers (완전 마이그레이션 완료)
+ *
  * Phase 14: 분석 이벤트 훅
  * 사용자 행동 분석, 퍼널 분석, 이탈률 계산
  */
 
 import { useQuery } from '@tanstack/react-query'
-import { supabase } from '@/integrations/supabase/client'
-
-// RPC 함수 경고 메시지 표시 여부 추적 (한 번만 표시)
-type RPCFunctionName = 'calculate_funnel' | 'calculate_bounce_rate' | 'get_event_counts'
-
-const rpcWarningShown: Record<RPCFunctionName, boolean> = {
-  calculate_funnel: false,
-  calculate_bounce_rate: false,
-  get_event_counts: false,
-}
-
-// 개발 환경에서만 경고 표시
-const shouldShowWarning = (): boolean => {
-  return import.meta.env.DEV && import.meta.env.MODE !== 'test'
-}
-
-// 경고 메시지 표시 (한 번만, debug 레벨로 조용하게)
-const showRPCWarning = (functionName: RPCFunctionName, errorType: '404' | '401' = '404'): void => {
-  if (!shouldShowWarning()) return
-  if (rpcWarningShown[functionName]) return
-  
-  rpcWarningShown[functionName] = true
-  
-  if (errorType === '401') {
-    console.debug(
-      `[Analytics] ${functionName} RPC 함수 호출 권한이 없습니다. 익명 사용자 권한이 필요합니다.\n` +
-      `마이그레이션 파일: supabase/migrations/20251111000002_analytics_functions.sql\n` +
-      `적용 방법: Supabase Dashboard → SQL Editor → 마이그레이션 파일에서 anon 권한 추가 확인`
-    )
-  } else {
-    console.debug(
-      `[Analytics] ${functionName} RPC 함수가 존재하지 않습니다. 마이그레이션을 적용해주세요.\n` +
-      `마이그레이션 파일: supabase/migrations/20251111000002_analytics_functions.sql\n` +
-      `적용 방법: Supabase Dashboard → SQL Editor → 마이그레이션 파일 실행`
-    )
-  }
-}
-
-// Supabase 에러 타입 (PostgrestError)
-interface SupabaseError {
-  status?: number
-  code?: string
-  message?: string
-}
-
-// 401 또는 404 에러인지 확인하는 헬퍼 함수
-const isRPCError = (error: unknown): '401' | '404' | 'other' => {
-  if (!error) return 'other'
-
-  const err = error as SupabaseError
-
-  // 401 Unauthorized 에러 확인
-  if (err.status === 401 || err.code === 'PGRST301' || err.message?.includes('401') || err.message?.includes('Unauthorized')) {
-    return '401'
-  }
-
-  // 404 Not Found 에러 확인
-  if (err.code === 'PGRST116' || err.message?.includes('404') || err.message?.includes('does not exist')) {
-    return '404'
-  }
-
-  return 'other'
-}
+import { callWorkersApi } from '@/integrations/cloudflare/client'
+import { useAuth } from './useAuth'
+import { devLog } from '@/lib/errors'
 
 // ============================================
 // 타입 정의
@@ -129,41 +72,43 @@ export interface EventCount {
  * 필터링 및 페이지네이션 지원
  */
 export function useAnalyticsEvents(filters?: EventFilters, limit = 1000) {
+  const { workersTokens } = useAuth()
+
   return useQuery({
     queryKey: ['analytics-events', filters, limit],
     queryFn: async () => {
-      let query = supabase
-        .from('analytics_events')
-        .select('*')
-        .order('created_at', { ascending: false })
+      const token = workersTokens?.accessToken
+      let url = `/api/v1/analytics/events?limit=${limit}&order_by=created_at:desc`
 
       // 필터 적용
       if (filters?.eventName) {
-        query = query.eq('event_name', filters.eventName)
+        url += `&event_name=${encodeURIComponent(filters.eventName)}`
       }
 
       if (filters?.startDate) {
-        query = query.gte('created_at', filters.startDate.toISOString())
+        url += `&start_date=${filters.startDate.toISOString()}`
       }
 
       if (filters?.endDate) {
-        query = query.lte('created_at', filters.endDate.toISOString())
+        url += `&end_date=${filters.endDate.toISOString()}`
       }
 
       if (filters?.userId) {
-        query = query.eq('user_id', filters.userId)
+        url += `&user_id=${filters.userId}`
       }
 
       if (filters?.sessionId) {
-        query = query.eq('session_id', filters.sessionId)
+        url += `&session_id=${filters.sessionId}`
       }
 
-      query = query.limit(limit)
+      const { data, error } = await callWorkersApi<AnalyticsEvent[]>(url, { token })
 
-      const { data, error } = await query
+      if (error) {
+        devLog('Analytics events query error:', error)
+        return []
+      }
 
-      if (error) throw error
-      return data as AnalyticsEvent[]
+      return data || []
     },
     staleTime: 5 * 60 * 1000, // 5분 캐싱
   })
@@ -178,42 +123,46 @@ export function useAnalyticsEvents(filters?: EventFilters, limit = 1000) {
  * 회원가입 → 서비스 조회 → 장바구니 → 결제 → 구매
  */
 export function useFunnelAnalysis(startDate: Date, endDate: Date) {
+  const { workersTokens } = useAuth()
+
   return useQuery({
     queryKey: ['funnel-analysis', startDate, endDate],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc('calculate_funnel', {
-        start_date: startDate.toISOString(),
-        end_date: endDate.toISOString(),
-      })
+      const token = workersTokens?.accessToken
+      const url = `/api/v1/analytics/funnel?start_date=${startDate.toISOString()}&end_date=${endDate.toISOString()}`
 
-      // RPC 함수 에러 처리 (401 또는 404) 빈 데이터 반환
+      const { data, error } = await callWorkersApi<{
+        signup_count: number
+        view_service_count: number
+        add_to_cart_count: number
+        checkout_count: number
+        purchase_count: number
+      }>(url, { token })
+
+      // 에러 시 빈 데이터 반환
       if (error) {
-        const errorType = isRPCError(error)
-        if (errorType === '401' || errorType === '404') {
-          showRPCWarning('calculate_funnel', errorType)
-          return {
-            signup: 0,
-            viewService: 0,
-            addToCart: 0,
-            checkout: 0,
-            purchase: 0,
-            conversionRate: {
-              signupToView: 0,
-              viewToCart: 0,
-              cartToCheckout: 0,
-              checkoutToPurchase: 0,
-            },
-          } as FunnelData
-        }
-        throw error
+        devLog('Funnel analysis not available:', error)
+        return {
+          signup: 0,
+          viewService: 0,
+          addToCart: 0,
+          checkout: 0,
+          purchase: 0,
+          conversionRate: {
+            signupToView: 0,
+            viewToCart: 0,
+            cartToCheckout: 0,
+            checkoutToPurchase: 0,
+          },
+        } as FunnelData
       }
 
       // 전환율 계산
-      const signup = data?.[0]?.signup_count || 0
-      const viewService = data?.[0]?.view_service_count || 0
-      const addToCart = data?.[0]?.add_to_cart_count || 0
-      const checkout = data?.[0]?.checkout_count || 0
-      const purchase = data?.[0]?.purchase_count || 0
+      const signup = data?.signup_count || 0
+      const viewService = data?.view_service_count || 0
+      const addToCart = data?.add_to_cart_count || 0
+      const checkout = data?.checkout_count || 0
+      const purchase = data?.purchase_count || 0
 
       return {
         signup,
@@ -230,7 +179,7 @@ export function useFunnelAnalysis(startDate: Date, endDate: Date) {
       } as FunnelData
     },
     staleTime: 10 * 60 * 1000, // 10분 캐싱 (무거운 쿼리)
-    retry: false, // 401/404 에러는 재시도하지 않음
+    retry: false,
   })
 }
 
@@ -243,30 +192,31 @@ export function useFunnelAnalysis(startDate: Date, endDate: Date) {
  * 이탈률 = (단일 이벤트 세션 / 전체 세션) * 100
  */
 export function useBounceRate(startDate: Date, endDate: Date) {
+  const { workersTokens } = useAuth()
+
   return useQuery({
     queryKey: ['bounce-rate', startDate, endDate],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc('calculate_bounce_rate', {
-        start_date: startDate.toISOString(),
-        end_date: endDate.toISOString(),
-      })
+      const token = workersTokens?.accessToken
+      const url = `/api/v1/analytics/bounce-rate?start_date=${startDate.toISOString()}&end_date=${endDate.toISOString()}`
 
-      // RPC 함수 에러 처리 (401 또는 404) 빈 데이터 반환
+      const { data, error } = await callWorkersApi<{
+        total_sessions: number
+        bounced_sessions: number
+      }>(url, { token })
+
+      // 에러 시 빈 데이터 반환
       if (error) {
-        const errorType = isRPCError(error)
-        if (errorType === '401' || errorType === '404') {
-          showRPCWarning('calculate_bounce_rate', errorType)
-          return {
-            totalSessions: 0,
-            bouncedSessions: 0,
-            bounceRate: 0,
-          } as BounceRateData
-        }
-        throw error
+        devLog('Bounce rate not available:', error)
+        return {
+          totalSessions: 0,
+          bouncedSessions: 0,
+          bounceRate: 0,
+        } as BounceRateData
       }
 
-      const totalSessions = data?.[0]?.total_sessions || 0
-      const bouncedSessions = data?.[0]?.bounced_sessions || 0
+      const totalSessions = data?.total_sessions || 0
+      const bouncedSessions = data?.bounced_sessions || 0
 
       return {
         totalSessions,
@@ -275,7 +225,7 @@ export function useBounceRate(startDate: Date, endDate: Date) {
       } as BounceRateData
     },
     staleTime: 10 * 60 * 1000, // 10분 캐싱
-    retry: false, // 401/404 에러는 재시도하지 않음
+    retry: false,
   })
 }
 
@@ -288,29 +238,26 @@ export function useBounceRate(startDate: Date, endDate: Date) {
  * 상위 N개 이벤트 조회
  */
 export function useEventCounts(startDate: Date, endDate: Date, topN = 20) {
+  const { workersTokens } = useAuth()
+
   return useQuery({
     queryKey: ['event-counts', startDate, endDate, topN],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc('get_event_counts', {
-        start_date: startDate.toISOString(),
-        end_date: endDate.toISOString(),
-      })
+      const token = workersTokens?.accessToken
+      const url = `/api/v1/analytics/event-counts?start_date=${startDate.toISOString()}&end_date=${endDate.toISOString()}&limit=${topN}`
 
-      // RPC 함수 에러 처리 (401 또는 404) 빈 배열 반환
+      const { data, error } = await callWorkersApi<EventCount[]>(url, { token })
+
+      // 에러 시 빈 배열 반환
       if (error) {
-        const errorType = isRPCError(error)
-        if (errorType === '401' || errorType === '404') {
-          showRPCWarning('get_event_counts', errorType)
-          return [] as EventCount[]
-        }
-        throw error
+        devLog('Event counts not available:', error)
+        return [] as EventCount[]
       }
 
-      // 상위 N개만 반환
-      return (data as EventCount[])?.slice(0, topN) || []
+      return data || []
     },
     staleTime: 10 * 60 * 1000, // 10분 캐싱
-    retry: false, // 401/404 에러는 재시도하지 않음
+    retry: false,
   })
 }
 
@@ -323,22 +270,28 @@ export function useEventCounts(startDate: Date, endDate: Date, topN = 20) {
  * 디버깅 및 상세 분석용
  */
 export function useSessionTimeline(sessionId: string) {
+  const { workersTokens } = useAuth()
+
   return useQuery({
     queryKey: ['session-timeline', sessionId],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc('get_session_timeline', {
-        p_session_id: sessionId,
-      })
+      const token = workersTokens?.accessToken
+      const url = `/api/v1/analytics/sessions/${sessionId}/timeline`
 
-      if (error) throw error
-
-      return data as Array<{
+      const { data, error } = await callWorkersApi<Array<{
         id: string
         event_name: string
         event_params: Record<string, unknown>
         page_url: string
         created_at: string
-      }>
+      }>>(url, { token })
+
+      if (error) {
+        devLog('Session timeline error:', error)
+        return []
+      }
+
+      return data || []
     },
     enabled: !!sessionId, // sessionId가 있을 때만 실행
     staleTime: 5 * 60 * 1000, // 5분 캐싱
@@ -353,21 +306,25 @@ export function useSessionTimeline(sessionId: string) {
  * 실시간 이벤트 스트림 구독
  * 새로운 이벤트가 발생하면 자동 업데이트
  */
-export function useRealtimeEvents(
-  onNewEvent?: (event: AnalyticsEvent) => void
-) {
+export function useRealtimeEvents() {
+  const { workersTokens } = useAuth()
+
   return useQuery({
     queryKey: ['realtime-events'],
     queryFn: async () => {
       // 최근 10개 이벤트 조회
-      const { data, error } = await supabase
-        .from('analytics_events')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(10)
+      const token = workersTokens?.accessToken
+      const { data, error } = await callWorkersApi<AnalyticsEvent[]>(
+        '/api/v1/analytics/events?limit=10&order_by=created_at:desc',
+        { token }
+      )
 
-      if (error) throw error
-      return data as AnalyticsEvent[]
+      if (error) {
+        devLog('Realtime events error:', error)
+        return []
+      }
+
+      return data || []
     },
     staleTime: 30 * 1000, // 30초 캐싱 (자주 업데이트)
   })
@@ -382,18 +339,23 @@ export function useRealtimeEvents(
  * 사용자 행동 패턴 분석용
  */
 export function useUserEventHistory(userId: string, limit = 100) {
+  const { workersTokens } = useAuth()
+
   return useQuery({
     queryKey: ['user-event-history', userId, limit],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('analytics_events')
-        .select('*')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false })
-        .limit(limit)
+      const token = workersTokens?.accessToken
+      const { data, error } = await callWorkersApi<AnalyticsEvent[]>(
+        `/api/v1/analytics/events?user_id=${userId}&limit=${limit}&order_by=created_at:desc`,
+        { token }
+      )
 
-      if (error) throw error
-      return data as AnalyticsEvent[]
+      if (error) {
+        devLog('User event history error:', error)
+        return []
+      }
+
+      return data || []
     },
     enabled: !!userId,
     staleTime: 5 * 60 * 1000, // 5분 캐싱

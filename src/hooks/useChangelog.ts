@@ -1,5 +1,7 @@
 /**
  * useChangelog Hook
+ * @migration Supabase -> Cloudflare Workers (완전 마이그레이션 완료)
+ *
  * TASK-022: Changelog 관련 React Query 훅
  *
  * Provides read operations for changelog entries
@@ -9,7 +11,9 @@
  */
 
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { callWorkersApi } from '@/integrations/cloudflare/client';
+import { useAuth } from './useAuth';
+import { devLog } from '@/lib/errors';
 
 // =====================================================
 // TYPES
@@ -66,6 +70,7 @@ const QUERY_KEYS = {
   list: (options?: UseChangelogOptions) => [...QUERY_KEYS.lists(), options] as const,
   details: () => [...QUERY_KEYS.all, 'detail'] as const,
   detail: (id: string) => [...QUERY_KEYS.details(), id] as const,
+  byProjectSlug: (slug: string, limit?: number) => [...QUERY_KEYS.all, 'project-slug', slug, limit] as const,
 };
 
 // =====================================================
@@ -89,32 +94,34 @@ const QUERY_KEYS = {
  * ```
  */
 export function useChangelog(options?: UseChangelogOptions) {
+  const { workersTokens } = useAuth();
+
   return useQuery({
     queryKey: QUERY_KEYS.list(options),
     queryFn: async () => {
-      let query = supabase
-        .from('changelog_entries')
-        .select(`
-          *,
-          project:projects(id, title, slug)
-        `)
-        .order('released_at', { ascending: false });
+      const token = workersTokens?.accessToken;
+      const params = new URLSearchParams();
+      params.append('order_by', 'released_at:desc');
+      params.append('include', 'project');
 
       if (options?.projectId) {
-        query = query.eq('project_id', options.projectId);
+        params.append('project_id', options.projectId);
       }
       if (options?.limit) {
-        query = query.limit(options.limit);
+        params.append('limit', options.limit.toString());
       }
 
-      const { data, error } = await query;
+      const { data, error } = await callWorkersApi<ChangelogEntry[]>(
+        `/api/v1/changelog-entries?${params.toString()}`,
+        { token }
+      );
 
       if (error) {
-        console.error('[useChangelog] 조회 에러:', error);
-        throw error;
+        devLog('Changelog 조회 에러:', error);
+        return [] as ChangelogEntry[];
       }
 
-      return (data ?? []) as ChangelogEntry[];
+      return data || [];
     },
     staleTime: 5 * 60 * 1000, // 5분간 캐시 유지
   });
@@ -136,21 +143,20 @@ export function useChangelog(options?: UseChangelogOptions) {
  * ```
  */
 export function useChangelogEntry(id: string) {
+  const { workersTokens } = useAuth();
+
   return useQuery({
     queryKey: QUERY_KEYS.detail(id),
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('changelog_entries')
-        .select(`
-          *,
-          project:projects(id, title, slug)
-        `)
-        .eq('id', id)
-        .single();
+      const token = workersTokens?.accessToken;
+      const { data, error } = await callWorkersApi<ChangelogEntry>(
+        `/api/v1/changelog-entries/${id}?include=project`,
+        { token }
+      );
 
       if (error) {
-        console.error('[useChangelogEntry] 조회 에러:', error);
-        throw error;
+        devLog('ChangelogEntry 조회 에러:', error);
+        throw new Error(error);
       }
 
       return data as ChangelogEntry;
@@ -177,40 +183,43 @@ export function useChangelogEntry(id: string) {
  * ```
  */
 export function useChangelogByProjectSlug(projectSlug: string, limit?: number) {
-  return useQuery({
-    queryKey: ['changelog', 'project-slug', projectSlug, limit],
-    queryFn: async () => {
-      // 먼저 프로젝트 ID 조회
-      const { data: project, error: projectError } = await supabase
-        .from('projects')
-        .select('id')
-        .eq('slug', projectSlug)
-        .single();
+  const { workersTokens } = useAuth();
 
-      if (projectError) {
-        console.error('[useChangelogByProjectSlug] 프로젝트 조회 에러:', projectError);
-        throw projectError;
+  return useQuery({
+    queryKey: QUERY_KEYS.byProjectSlug(projectSlug, limit),
+    queryFn: async () => {
+      const token = workersTokens?.accessToken;
+
+      // 먼저 프로젝트 ID 조회
+      const { data: project, error: projectError } = await callWorkersApi<{ id: string }>(
+        `/api/v1/projects/by-slug/${projectSlug}`,
+        { token }
+      );
+
+      if (projectError || !project) {
+        devLog('프로젝트 조회 에러:', projectError);
+        return [] as ChangelogEntry[];
       }
 
       // 해당 프로젝트의 changelog 조회
-      let query = supabase
-        .from('changelog_entries')
-        .select('*')
-        .eq('project_id', project.id)
-        .order('released_at', { ascending: false });
-
+      const params = new URLSearchParams();
+      params.append('project_id', project.id);
+      params.append('order_by', 'released_at:desc');
       if (limit) {
-        query = query.limit(limit);
+        params.append('limit', limit.toString());
       }
 
-      const { data, error } = await query;
+      const { data, error } = await callWorkersApi<ChangelogEntry[]>(
+        `/api/v1/changelog-entries?${params.toString()}`,
+        { token }
+      );
 
       if (error) {
-        console.error('[useChangelogByProjectSlug] Changelog 조회 에러:', error);
-        throw error;
+        devLog('Changelog 조회 에러:', error);
+        return [] as ChangelogEntry[];
       }
 
-      return (data ?? []) as ChangelogEntry[];
+      return data || [];
     },
     enabled: !!projectSlug,
     staleTime: 5 * 60 * 1000,

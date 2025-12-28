@@ -6,6 +6,8 @@
  * - React Query 캐싱 (5분 TTL)
  * - 서비스별 접근 권한 확인
  *
+ * @migration Supabase → Cloudflare Workers (완전 마이그레이션 완료)
+ *
  * @description
  * 사용자의 구독 정보를 조회하여 특정 MCP 서비스에 대한 접근 권한을 확인합니다.
  * 구독이 없거나 만료된 경우 적절한 fallback reason을 반환합니다.
@@ -27,9 +29,8 @@
  */
 
 import { useQuery } from '@tanstack/react-query'
-import { supabase } from '@/integrations/supabase/client'
+import { callWorkersApi } from '@/integrations/cloudflare/client'
 import { useAuth } from './useAuth'
-import { handleSupabaseError } from '@/lib/errors'
 
 // =====================================================
 // Types
@@ -110,6 +111,19 @@ export interface UseMCPPermissionReturn {
  */
 function serviceIdToSlug(serviceId: ServiceId): string {
   return serviceId.replace('minu-', '')
+}
+
+/**
+ * Workers API 응답 타입
+ */
+interface WorkersPermissionResponse {
+  permission: Permission
+  reason?: FallbackReason
+  subscription?: {
+    status: string
+    current_period_end: string
+    service_slug: string
+  } | null
 }
 
 /**
@@ -221,73 +235,64 @@ export function useMCPPermission(
   options: UseMCPPermissionOptions
 ): UseMCPPermissionReturn {
   const { serviceId, requiredPermission = 'read' } = options
-  const { user } = useAuth()
+  const { user, workersTokens } = useAuth()
+  const token = workersTokens?.accessToken || null
 
   const query = useQuery({
     queryKey: mcpPermissionKeys.service(serviceId, user?.id),
     queryFn: async () => {
       // 1. 로그인 여부 확인
-      if (!user?.id) {
+      if (!user?.id || !token) {
         return {
           permission: 'none' as Permission,
           reason: 'subscription_required' as FallbackReason,
         }
       }
 
-      // 2. 사용자 구독 조회
+      // 2. Workers API를 통해 권한 확인
       const targetSlug = serviceIdToSlug(serviceId)
+      const result = await callWorkersApi<WorkersPermissionResponse>(
+        `/mcp/auth/permission/${targetSlug}`,
+        { token }
+      )
 
-      // 먼저 해당 서비스의 ID를 조회
-      const { data: serviceData, error: serviceError } = await supabase
-        .from('services')
-        .select('id')
-        .eq('slug', targetSlug)
-        .maybeSingle()
-
-      if (serviceError) {
-        throw new Error(`서비스 조회 실패: ${serviceError.message}`)
+      if (result.error) {
+        throw new Error(`권한 확인 실패: ${result.error}`)
       }
 
-      if (!serviceData) {
+      if (!result.data) {
         return {
           permission: 'none' as Permission,
           reason: 'service_unavailable' as FallbackReason,
         }
       }
 
-      // 해당 서비스에 대한 구독 조회
-      const { data, error } = await supabase
-        .from('subscriptions')
-        .select(
-          `
-          status,
-          current_period_end,
-          service:services (
-            slug
-          )
-        `
-        )
-        .eq('user_id', user.id)
-        .eq('service_id', serviceData.id)
-        .maybeSingle()
-
-      // 3. 에러 처리
-      if (error) {
-        const result = handleSupabaseError(error, {
-          table: 'subscriptions',
-          operation: 'MCP 권한 확인',
-          fallbackValue: null,
-        })
-
-        if (result === null) {
-          throw new Error(`권한 확인 중 오류 발생: ${error.message}`)
+      // 3. 권한 계산 (Workers에서 이미 계산된 경우 바로 반환)
+      if (result.data.permission) {
+        return {
+          permission: result.data.permission,
+          reason: result.data.reason,
         }
       }
 
-      // 4. 권한 계산
-      return calculatePermission(data as SubscriptionData | null, serviceId)
+      // 4. 구독 정보가 있으면 로컬에서 권한 계산
+      if (result.data.subscription) {
+        const subscription: SubscriptionData = {
+          status: result.data.subscription.status,
+          current_period_end: result.data.subscription.current_period_end,
+          service: {
+            slug: result.data.subscription.service_slug,
+          },
+        }
+        return calculatePermission(subscription, serviceId)
+      }
+
+      return {
+        permission: 'none' as Permission,
+        reason: 'subscription_required' as FallbackReason,
+      }
     },
-    enabled: !!serviceId,
+    enabled: !!serviceId && !!token,
     staleTime: 5 * 60 * 1000, // 5분 캐싱
     gcTime: 10 * 60 * 1000, // 10분 가비지 컬렉션
     retry: 1, // 실패 시 1회 재시도
@@ -369,50 +374,29 @@ export function useMCPServicePermission(
     requiredPermission: additionalPermission ? 'write' : 'read',
   })
 
-  const { user } = useAuth()
+  const { user, workersTokens } = useAuth()
+  const token = workersTokens?.accessToken || null
 
-  // 구독 정보 조회
+  // 구독 정보 조회 (Workers API 사용)
   const { data: subscriptionData } = useQuery({
-    queryKey: mcpPermissionKeys.service(serviceId, user?.id),
+    queryKey: [...mcpPermissionKeys.service(serviceId, user?.id), 'subscription'],
     queryFn: async () => {
-      if (!user?.id) return null
+      if (!user?.id || !token) return null
 
       const targetSlug = serviceIdToSlug(serviceId)
 
-      // 서비스 ID 조회
-      const { data: serviceData } = await supabase
-        .from('services')
-        .select('id, name')
-        .eq('slug', targetSlug)
-        .maybeSingle()
+      // Workers API를 통해 구독 정보 조회
+      const result = await callWorkersApi<{
+        planName: string
+        status: string
+        validUntil: string
+      } | null>(`/mcp/auth/subscription/${targetSlug}`, { token })
 
-      if (!serviceData) return null
+      if (result.error || !result.data) return null
 
-      // 구독 조회
-      const { data } = await supabase
-        .from('subscriptions')
-        .select(
-          `
-          status,
-          current_period_end,
-          plan:subscription_plans (
-            name
-          )
-        `
-        )
-        .eq('user_id', user.id)
-        .eq('service_id', serviceData.id)
-        .maybeSingle()
-
-      if (!data) return null
-
-      return {
-        planName: (data.plan as { name: string } | null)?.name || 'Unknown',
-        status: data.status,
-        validUntil: data.current_period_end,
-      }
+      return result.data
     },
-    enabled: !!user?.id && !!serviceId,
+    enabled: !!user?.id && !!serviceId && !!token,
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
   })

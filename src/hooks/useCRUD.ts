@@ -1,7 +1,8 @@
 /**
  * Generic CRUD Hook with React Query
+ * @migration Supabase -> Cloudflare Workers (완전 마이그레이션 완료)
  *
- * Provides type-safe, reusable CRUD operations for any Supabase table.
+ * Provides type-safe, reusable CRUD operations for any Cloudflare Workers API endpoint.
  *
  * Features:
  * - Paginated list with filters and search
@@ -35,9 +36,10 @@
  */
 
 import { useQuery, useMutation, useQueryClient, UseQueryOptions } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { callWorkersApi } from '@/integrations/cloudflare/client';
+import { useAuth } from './useAuth';
 import { toast } from 'sonner';
-import type { PostgrestError } from '@supabase/supabase-js';
+import { devLog } from '@/lib/errors';
 
 // ===================================================================
 // Types
@@ -56,7 +58,7 @@ export interface BaseEntity {
  * CRUD hook options
  */
 export interface UseCRUDOptions<T extends BaseEntity> {
-  /** Supabase table name */
+  /** API endpoint base (e.g., 'portfolio_items' -> /api/v1/portfolio-items) */
   table: string;
 
   /** Query key for React Query cache */
@@ -154,11 +156,20 @@ export interface ImportResult {
 }
 
 // ===================================================================
+// Helper: Convert table name to API endpoint
+// ===================================================================
+
+function tableToEndpoint(table: string): string {
+  // portfolio_items -> portfolio-items
+  return table.replace(/_/g, '-');
+}
+
+// ===================================================================
 // Generic CRUD Hook
 // ===================================================================
 
 /**
- * Create a generic CRUD hook for any Supabase table
+ * Create a generic CRUD hook for any Cloudflare Workers API endpoint
  *
  * @template T - Entity type extending BaseEntity
  * @param options - CRUD configuration options
@@ -166,6 +177,8 @@ export interface ImportResult {
  */
 export function useCRUD<T extends BaseEntity>(options: UseCRUDOptions<T>) {
   const queryClient = useQueryClient();
+  const { workersTokens } = useAuth();
+  const endpoint = tableToEndpoint(options.table);
 
   // ===================================================================
   // 1. useList - Paginated list with filters
@@ -176,16 +189,26 @@ export function useCRUD<T extends BaseEntity>(options: UseCRUDOptions<T>) {
       queryKey: [options.queryKey, 'list', params],
       queryFn: async () => {
         try {
-          // Start with base query
-          let query = supabase
-            .from(options.table)
-            .select(options.select || '*', { count: 'exact' });
+          const token = workersTokens?.accessToken;
+          const urlParams = new URLSearchParams();
+
+          // Apply ordering
+          const orderBy = params?.orderBy || options.orderBy;
+          if (orderBy) {
+            urlParams.append('order_by', `${orderBy.column}:${orderBy.ascending ? 'asc' : 'desc'}`);
+          }
+
+          // Apply pagination
+          if (params?.page && params?.perPage) {
+            urlParams.append('page', params.page.toString());
+            urlParams.append('per_page', params.perPage.toString());
+          }
 
           // Apply global filters
           if (options.filters) {
             Object.entries(options.filters).forEach(([key, value]) => {
               if (value !== undefined && value !== null) {
-                query = query.eq(key, value);
+                urlParams.append(key, String(value));
               }
             });
           }
@@ -194,49 +217,43 @@ export function useCRUD<T extends BaseEntity>(options: UseCRUDOptions<T>) {
           if (params?.filters) {
             Object.entries(params.filters).forEach(([key, value]) => {
               if (value !== undefined && value !== null) {
-                query = query.eq(key, value);
+                urlParams.append(key, String(value));
               }
             });
           }
 
           // Apply search
           if (params?.search && params?.searchColumns && params.searchColumns.length > 0) {
-            const searchQuery = params.searchColumns
-              .map(col => `${col}.ilike.%${params.search}%`)
-              .join(',');
-            query = query.or(searchQuery);
+            urlParams.append('search', params.search);
+            urlParams.append('search_columns', params.searchColumns.join(','));
           }
 
-          // Apply ordering
-          const orderBy = params?.orderBy || options.orderBy;
-          if (orderBy) {
-            query = query.order(orderBy.column, { ascending: orderBy.ascending });
+          // Apply select
+          if (options.select) {
+            urlParams.append('select', options.select);
           }
 
-          // Apply pagination
-          if (params?.page && params?.perPage) {
-            const from = (params.page - 1) * params.perPage;
-            const to = from + params.perPage - 1;
-            query = query.range(from, to);
-          }
-
-          const { data, error, count } = await query;
+          const { data, error } = await callWorkersApi<{
+            data: T[];
+            count: number;
+          }>(`/api/v1/${endpoint}?${urlParams.toString()}`, { token });
 
           if (error) {
-            console.error(`[useCRUD] List query error (${options.table}):`, error);
-            toast.error(`Failed to load ${options.table}: ${error.message}`);
-            throw error;
+            devLog(`[useCRUD] List query error (${options.table}):`, error);
+            toast.error(`Failed to load ${options.table}: ${error}`);
+            return null;
           }
 
+          const count = data?.count || 0;
           return {
-            data: (data || []) as T[],
-            count: count || 0,
+            data: (data?.data || []) as T[],
+            count,
             page: params?.page || 1,
             perPage: params?.perPage || 20,
-            totalPages: Math.ceil((count || 0) / (params?.perPage || 20)),
+            totalPages: Math.ceil(count / (params?.perPage || 20)),
           };
         } catch (error) {
-          console.error(`[useCRUD] List query exception (${options.table}):`, error);
+          devLog(`[useCRUD] List query exception (${options.table}):`, error);
           return null;
         }
       },
@@ -255,26 +272,30 @@ export function useCRUD<T extends BaseEntity>(options: UseCRUDOptions<T>) {
       queryKey: [options.queryKey, 'detail', id],
       queryFn: async () => {
         try {
-          const { data, error } = await supabase
-            .from(options.table)
-            .select(options.select || '*')
-            .eq('id', id)
-            .single();
+          const token = workersTokens?.accessToken;
+          const urlParams = new URLSearchParams();
+          if (options.select) {
+            urlParams.append('select', options.select);
+          }
+
+          const url = options.select
+            ? `/api/v1/${endpoint}/${id}?${urlParams.toString()}`
+            : `/api/v1/${endpoint}/${id}`;
+
+          const { data, error } = await callWorkersApi<T>(url, { token });
 
           if (error) {
-            console.error(`[useCRUD] Get query error (${options.table}):`, error);
-
+            devLog(`[useCRUD] Get query error (${options.table}):`, error);
             // Don't show toast for "not found" errors
-            if (error.code !== 'PGRST116') {
-              toast.error(`Failed to load item: ${error.message}`);
+            if (!error.includes('not found')) {
+              toast.error(`Failed to load item: ${error}`);
             }
-
-            throw error;
+            return null;
           }
 
           return data as T;
         } catch (error) {
-          console.error(`[useCRUD] Get query exception (${options.table}):`, error);
+          devLog(`[useCRUD] Get query exception (${options.table}):`, error);
           return null;
         }
       },
@@ -291,15 +312,19 @@ export function useCRUD<T extends BaseEntity>(options: UseCRUDOptions<T>) {
   const useCreate = () => {
     return useMutation({
       mutationFn: async (values: CreateVariables<T>) => {
-        const { data, error } = await supabase
-          .from(options.table)
-          .insert([values])
-          .select(options.select || '*')
-          .single();
+        const token = workersTokens?.accessToken;
+        const { data, error } = await callWorkersApi<T>(
+          `/api/v1/${endpoint}`,
+          {
+            method: 'POST',
+            token,
+            body: values,
+          }
+        );
 
         if (error) {
-          console.error(`[useCRUD] Create mutation error (${options.table}):`, error);
-          throw error;
+          devLog(`[useCRUD] Create mutation error (${options.table}):`, error);
+          throw new Error(error);
         }
 
         return data as T;
@@ -313,7 +338,7 @@ export function useCRUD<T extends BaseEntity>(options: UseCRUDOptions<T>) {
 
         toast.success('Item created successfully');
       },
-      onError: (error: PostgrestError) => {
+      onError: (error: Error) => {
         toast.error(`Failed to create item: ${error.message}`);
       },
     });
@@ -326,16 +351,19 @@ export function useCRUD<T extends BaseEntity>(options: UseCRUDOptions<T>) {
   const useUpdate = () => {
     return useMutation({
       mutationFn: async ({ id, values }: UpdateVariables<T>) => {
-        const { data, error } = await supabase
-          .from(options.table)
-          .update(values)
-          .eq('id', id)
-          .select(options.select || '*')
-          .single();
+        const token = workersTokens?.accessToken;
+        const { data, error } = await callWorkersApi<T>(
+          `/api/v1/${endpoint}/${id}`,
+          {
+            method: 'PATCH',
+            token,
+            body: values,
+          }
+        );
 
         if (error) {
-          console.error(`[useCRUD] Update mutation error (${options.table}):`, error);
-          throw error;
+          devLog(`[useCRUD] Update mutation error (${options.table}):`, error);
+          throw new Error(error);
         }
 
         return data as T;
@@ -366,7 +394,7 @@ export function useCRUD<T extends BaseEntity>(options: UseCRUDOptions<T>) {
 
         toast.success('Item updated successfully');
       },
-      onError: (error: PostgrestError, variables, context) => {
+      onError: (error: Error, variables, context) => {
         // Rollback optimistic update on error
         if (context?.previous) {
           queryClient.setQueryData([options.queryKey, 'detail', variables.id], context.previous);
@@ -384,14 +412,18 @@ export function useCRUD<T extends BaseEntity>(options: UseCRUDOptions<T>) {
   const useDelete = () => {
     return useMutation({
       mutationFn: async (id: string) => {
-        const { error } = await supabase
-          .from(options.table)
-          .delete()
-          .eq('id', id);
+        const token = workersTokens?.accessToken;
+        const { error } = await callWorkersApi(
+          `/api/v1/${endpoint}/${id}`,
+          {
+            method: 'DELETE',
+            token,
+          }
+        );
 
         if (error) {
-          console.error(`[useCRUD] Delete mutation error (${options.table}):`, error);
-          throw error;
+          devLog(`[useCRUD] Delete mutation error (${options.table}):`, error);
+          throw new Error(error);
         }
 
         return id;
@@ -417,7 +449,7 @@ export function useCRUD<T extends BaseEntity>(options: UseCRUDOptions<T>) {
 
         toast.success('Item deleted successfully');
       },
-      onError: (error: PostgrestError, id, context) => {
+      onError: (error: Error, id, context) => {
         // Restore previous data on error
         if (context?.previous) {
           queryClient.setQueryData([options.queryKey, 'detail', id], context.previous);
@@ -439,14 +471,19 @@ export function useCRUD<T extends BaseEntity>(options: UseCRUDOptions<T>) {
           throw new Error('No IDs provided for bulk delete');
         }
 
-        const { error } = await supabase
-          .from(options.table)
-          .delete()
-          .in('id', ids);
+        const token = workersTokens?.accessToken;
+        const { error } = await callWorkersApi(
+          `/api/v1/${endpoint}/bulk-delete`,
+          {
+            method: 'POST',
+            token,
+            body: { ids },
+          }
+        );
 
         if (error) {
-          console.error(`[useCRUD] Bulk delete mutation error (${options.table}):`, error);
-          throw error;
+          devLog(`[useCRUD] Bulk delete mutation error (${options.table}):`, error);
+          throw new Error(error);
         }
 
         return ids;
@@ -481,7 +518,7 @@ export function useCRUD<T extends BaseEntity>(options: UseCRUDOptions<T>) {
 
         toast.success(`${ids.length}개 항목이 삭제되었습니다.`);
       },
-      onError: (error: PostgrestError, ids, context) => {
+      onError: (error: Error, ids, context) => {
         // Restore previous data on error
         if (context?.previous) {
           context.previous.forEach(({ id, data }) => {
@@ -507,15 +544,19 @@ export function useCRUD<T extends BaseEntity>(options: UseCRUDOptions<T>) {
           throw new Error('No IDs provided for bulk update');
         }
 
-        const { data: updated, error } = await supabase
-          .from(options.table)
-          .update(data)
-          .in('id', ids)
-          .select(options.select || '*');
+        const token = workersTokens?.accessToken;
+        const { data: updated, error } = await callWorkersApi<T[]>(
+          `/api/v1/${endpoint}/bulk-update`,
+          {
+            method: 'POST',
+            token,
+            body: { ids, data },
+          }
+        );
 
         if (error) {
-          console.error(`[useCRUD] Bulk update mutation error (${options.table}):`, error);
-          throw error;
+          devLog(`[useCRUD] Bulk update mutation error (${options.table}):`, error);
+          throw new Error(error);
         }
 
         return (updated || []) as T[];
@@ -555,7 +596,7 @@ export function useCRUD<T extends BaseEntity>(options: UseCRUDOptions<T>) {
 
         toast.success(`${updatedItems.length}개 항목이 업데이트되었습니다.`);
       },
-      onError: (error: PostgrestError, { ids }, context) => {
+      onError: (error: Error, { ids }, context) => {
         // Rollback optimistic updates on error
         if (context?.previous) {
           context.previous.forEach(({ id, data }) => {
@@ -577,22 +618,30 @@ export function useCRUD<T extends BaseEntity>(options: UseCRUDOptions<T>) {
   const useExport = () => {
     return useMutation({
       mutationFn: async (params: ExportParams) => {
-        let query = supabase.from(options.table).select(params.columns?.join(',') || '*');
+        const token = workersTokens?.accessToken;
+        const urlParams = new URLSearchParams();
+
+        if (params.columns) {
+          urlParams.append('select', params.columns.join(','));
+        }
 
         // Apply filters
         if (params.filters) {
           Object.entries(params.filters).forEach(([key, value]) => {
             if (value !== undefined && value !== null) {
-              query = query.eq(key, value);
+              urlParams.append(key, String(value));
             }
           });
         }
 
-        const { data, error } = await query;
+        const { data, error } = await callWorkersApi<T[]>(
+          `/api/v1/${endpoint}?${urlParams.toString()}`,
+          { token }
+        );
 
         if (error) {
-          console.error(`[useCRUD] Export error (${options.table}):`, error);
-          throw error;
+          devLog(`[useCRUD] Export error (${options.table}):`, error);
+          throw new Error(error);
         }
 
         if (!data || data.length === 0) {
@@ -652,6 +701,7 @@ export function useCRUD<T extends BaseEntity>(options: UseCRUDOptions<T>) {
         }
 
         // Import records one by one and collect results
+        const token = workersTokens?.accessToken;
         const result: ImportResult = {
           success: 0,
           failed: 0,
@@ -660,13 +710,18 @@ export function useCRUD<T extends BaseEntity>(options: UseCRUDOptions<T>) {
 
         for (let i = 0; i < records.length; i++) {
           try {
-            const { error } = await supabase
-              .from(options.table)
-              .insert([records[i]]);
+            const { error } = await callWorkersApi(
+              `/api/v1/${endpoint}`,
+              {
+                method: 'POST',
+                token,
+                body: records[i],
+              }
+            );
 
             if (error) {
               result.failed++;
-              result.errors.push({ row: i + 1, error: error.message });
+              result.errors.push({ row: i + 1, error });
             } else {
               result.success++;
             }
@@ -709,13 +764,15 @@ export function useCRUD<T extends BaseEntity>(options: UseCRUDOptions<T>) {
       queryKey: [options.queryKey, 'count', filters],
       queryFn: async () => {
         try {
-          let query = supabase.from(options.table).select('*', { count: 'exact', head: true });
+          const token = workersTokens?.accessToken;
+          const urlParams = new URLSearchParams();
+          urlParams.append('count_only', 'true');
 
           // Apply global filters
           if (options.filters) {
             Object.entries(options.filters).forEach(([key, value]) => {
               if (value !== undefined && value !== null) {
-                query = query.eq(key, value);
+                urlParams.append(key, String(value));
               }
             });
           }
@@ -724,21 +781,24 @@ export function useCRUD<T extends BaseEntity>(options: UseCRUDOptions<T>) {
           if (filters) {
             Object.entries(filters).forEach(([key, value]) => {
               if (value !== undefined && value !== null) {
-                query = query.eq(key, value);
+                urlParams.append(key, String(value));
               }
             });
           }
 
-          const { count, error } = await query;
+          const { data, error } = await callWorkersApi<{ count: number }>(
+            `/api/v1/${endpoint}/count?${urlParams.toString()}`,
+            { token }
+          );
 
           if (error) {
-            console.error(`[useCRUD] Count query error (${options.table}):`, error);
-            throw error;
+            devLog(`[useCRUD] Count query error (${options.table}):`, error);
+            return 0;
           }
 
-          return count ?? 0;
+          return data?.count ?? 0;
         } catch (error) {
-          console.error(`[useCRUD] Count query exception (${options.table}):`, error);
+          devLog(`[useCRUD] Count query exception (${options.table}):`, error);
           return 0;
         }
       },

@@ -4,10 +4,13 @@
  * Custom hooks for fetching service packages, subscription plans, and service details
  * Created: 2025-11-19
  * Related types: src/types/services-platform.ts
+ *
+ * @migration Supabase -> Cloudflare Workers (완전 마이그레이션 완료)
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { servicesApi, callWorkersApi } from '@/integrations/cloudflare/client';
+import { useAuth } from '@/hooks/useAuth';
 import { domainCacheConfig } from '@/lib/react-query';
 import type {
   ServicePackage,
@@ -18,7 +21,6 @@ import type {
   SubscriptionPlanUpdate,
   ServiceWithContent,
   ServiceDetail,
-  ServiceDetailQueryResult,
 } from '@/types/services-platform';
 
 // ============================================================================
@@ -47,13 +49,9 @@ export function useServices() {
   return useQuery({
     queryKey: servicesKeys.all,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('services')
-        .select('*')
-        .eq('status', 'active')
-        .order('created_at', { ascending: false });
+      const { data, error } = await servicesApi.list({ status: 'published' });
 
-      if (error) throw error;
+      if (error) throw new Error(error);
       return (data as ServiceWithContent[]) || [];
     },
     ...domainCacheConfig.services,
@@ -70,13 +68,14 @@ export function useServiceBySlug(slug: string) {
   return useQuery({
     queryKey: ['services-platform', 'service-slug', slug],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('services')
-        .select('*')
-        .eq('slug', slug)
-        .maybeSingle();
+      const { data, error } = await servicesApi.getBySlug(slug);
 
-      if (error) throw error;
+      if (error) {
+        if (error.includes('not found') || error.includes('없')) {
+          return null;
+        }
+        throw new Error(error);
+      }
       return data as ServiceWithContent | null;
     },
     enabled: !!slug,
@@ -98,14 +97,12 @@ export function useServicePackages(serviceId: string) {
   return useQuery({
     queryKey: servicesKeys.packages(serviceId),
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('service_packages')
-        .select('*')
-        .eq('service_id', serviceId)
-        .order('display_order', { ascending: true });
+      const { data, error } = await callWorkersApi<ServicePackage[]>(
+        `/api/v1/services/${serviceId}/packages`
+      );
 
-      if (error) throw error;
-      return (data as ServicePackage[]) || [];
+      if (error) throw new Error(error);
+      return data || [];
     },
     enabled: !!serviceId,
   });
@@ -119,13 +116,11 @@ export function useServicePackage(packageId: string) {
   return useQuery({
     queryKey: ['services-platform', 'package', packageId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('service_packages')
-        .select('*')
-        .eq('id', packageId)
-        .single();
+      const { data, error } = await callWorkersApi<ServicePackage>(
+        `/api/v1/packages/${packageId}`
+      );
 
-      if (error) throw error;
+      if (error) throw new Error(error);
       return data as ServicePackage;
     },
     enabled: !!packageId,
@@ -137,24 +132,26 @@ export function useServicePackage(packageId: string) {
  */
 export function useCreateServicePackage() {
   const queryClient = useQueryClient();
+  const { workersTokens } = useAuth();
 
   return useMutation({
     mutationFn: async (payload: ServicePackageInsert) => {
-      const { data, error } = await supabase
-        .from('service_packages')
-        .insert(payload)
-        .select()
-        .single();
+      const { data, error } = await callWorkersApi<ServicePackage>(
+        '/api/v1/packages',
+        {
+          method: 'POST',
+          token: workersTokens?.accessToken,
+          body: payload,
+        }
+      );
 
-      if (error) throw error;
+      if (error) throw new Error(error);
       return data as ServicePackage;
     },
     onSuccess: (data) => {
-      // Invalidate packages list for this service
       queryClient.invalidateQueries({
         queryKey: servicesKeys.packages(data.service_id),
       });
-      // Invalidate service detail
       queryClient.invalidateQueries({
         queryKey: servicesKeys.detail(data.service_id),
       });
@@ -167,17 +164,20 @@ export function useCreateServicePackage() {
  */
 export function useUpdateServicePackage() {
   const queryClient = useQueryClient();
+  const { workersTokens } = useAuth();
 
   return useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: ServicePackageUpdate }) => {
-      const { data, error } = await supabase
-        .from('service_packages')
-        .update(updates)
-        .eq('id', id)
-        .select()
-        .single();
+      const { data, error } = await callWorkersApi<ServicePackage>(
+        `/api/v1/packages/${id}`,
+        {
+          method: 'PATCH',
+          token: workersTokens?.accessToken,
+          body: updates,
+        }
+      );
 
-      if (error) throw error;
+      if (error) throw new Error(error);
       return data as ServicePackage;
     },
     onSuccess: (data) => {
@@ -196,15 +196,21 @@ export function useUpdateServicePackage() {
  */
 export function useDeleteServicePackage() {
   const queryClient = useQueryClient();
+  const { workersTokens } = useAuth();
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from('service_packages').delete().eq('id', id);
+      const { error } = await callWorkersApi(
+        `/api/v1/packages/${id}`,
+        {
+          method: 'DELETE',
+          token: workersTokens?.accessToken,
+        }
+      );
 
-      if (error) throw error;
+      if (error) throw new Error(error);
     },
-    onSuccess: (_, id) => {
-      // Invalidate all packages queries
+    onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: servicesKeys.packages(),
       });
@@ -225,14 +231,12 @@ export function useSubscriptionPlans(serviceId: string) {
   return useQuery({
     queryKey: servicesKeys.plans(serviceId),
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('subscription_plans')
-        .select('*')
-        .eq('service_id', serviceId)
-        .order('display_order', { ascending: true });
+      const { data, error } = await callWorkersApi<SubscriptionPlan[]>(
+        `/api/v1/services/${serviceId}/plans`
+      );
 
-      if (error) throw error;
-      return (data as SubscriptionPlan[]) || [];
+      if (error) throw new Error(error);
+      return data || [];
     },
     enabled: !!serviceId,
   });
@@ -246,13 +250,11 @@ export function useSubscriptionPlan(planId: string) {
   return useQuery({
     queryKey: ['services-platform', 'plan', planId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('subscription_plans')
-        .select('*')
-        .eq('id', planId)
-        .single();
+      const { data, error } = await callWorkersApi<SubscriptionPlan>(
+        `/api/v1/plans/${planId}`
+      );
 
-      if (error) throw error;
+      if (error) throw new Error(error);
       return data as SubscriptionPlan;
     },
     enabled: !!planId,
@@ -283,16 +285,20 @@ export const useServicePlans = useSubscriptionPlans;
  */
 export function useCreateSubscriptionPlan() {
   const queryClient = useQueryClient();
+  const { workersTokens } = useAuth();
 
   return useMutation({
     mutationFn: async (payload: SubscriptionPlanInsert) => {
-      const { data, error } = await supabase
-        .from('subscription_plans')
-        .insert(payload)
-        .select()
-        .single();
+      const { data, error } = await callWorkersApi<SubscriptionPlan>(
+        '/api/v1/plans',
+        {
+          method: 'POST',
+          token: workersTokens?.accessToken,
+          body: payload,
+        }
+      );
 
-      if (error) throw error;
+      if (error) throw new Error(error);
       return data as SubscriptionPlan;
     },
     onSuccess: (data) => {
@@ -311,17 +317,20 @@ export function useCreateSubscriptionPlan() {
  */
 export function useUpdateSubscriptionPlan() {
   const queryClient = useQueryClient();
+  const { workersTokens } = useAuth();
 
   return useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: SubscriptionPlanUpdate }) => {
-      const { data, error } = await supabase
-        .from('subscription_plans')
-        .update(updates)
-        .eq('id', id)
-        .select()
-        .single();
+      const { data, error } = await callWorkersApi<SubscriptionPlan>(
+        `/api/v1/plans/${id}`,
+        {
+          method: 'PATCH',
+          token: workersTokens?.accessToken,
+          body: updates,
+        }
+      );
 
-      if (error) throw error;
+      if (error) throw new Error(error);
       return data as SubscriptionPlan;
     },
     onSuccess: (data) => {
@@ -340,12 +349,19 @@ export function useUpdateSubscriptionPlan() {
  */
 export function useDeleteSubscriptionPlan() {
   const queryClient = useQueryClient();
+  const { workersTokens } = useAuth();
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from('subscription_plans').delete().eq('id', id);
+      const { error } = await callWorkersApi(
+        `/api/v1/plans/${id}`,
+        {
+          method: 'DELETE',
+          token: workersTokens?.accessToken,
+        }
+      );
 
-      if (error) throw error;
+      if (error) throw new Error(error);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
@@ -368,38 +384,27 @@ export function useServiceDetail(serviceId: string) {
   return useQuery({
     queryKey: servicesKeys.detail(serviceId),
     queryFn: async (): Promise<ServiceDetail | null> => {
-      // Fetch service with content data
-      const { data: service, error: serviceError } = await supabase
-        .from('services')
-        .select('*')
-        .eq('id', serviceId)
-        .single();
+      const { data: service, error: serviceError } = await servicesApi.getById(serviceId);
 
-      if (serviceError) throw serviceError;
+      if (serviceError) throw new Error(serviceError);
       if (!service) return null;
 
-      // Fetch packages
-      const { data: packages, error: packagesError } = await supabase
-        .from('service_packages')
-        .select('*')
-        .eq('service_id', serviceId)
-        .order('display_order', { ascending: true });
+      const { data: packages, error: packagesError } = await callWorkersApi<ServicePackage[]>(
+        `/api/v1/services/${serviceId}/packages`
+      );
 
-      if (packagesError) throw packagesError;
+      if (packagesError) throw new Error(packagesError);
 
-      // Fetch plans
-      const { data: plans, error: plansError } = await supabase
-        .from('subscription_plans')
-        .select('*')
-        .eq('service_id', serviceId)
-        .order('display_order', { ascending: true });
+      const { data: plans, error: plansError } = await callWorkersApi<SubscriptionPlan[]>(
+        `/api/v1/services/${serviceId}/plans`
+      );
 
-      if (plansError) throw plansError;
+      if (plansError) throw new Error(plansError);
 
       return {
         ...(service as ServiceWithContent),
-        packages: (packages as ServicePackage[]) || [],
-        plans: (plans as SubscriptionPlan[]) || [],
+        packages: packages || [],
+        plans: plans || [],
       };
     },
     enabled: !!serviceId,
@@ -415,38 +420,34 @@ export function useServiceDetailBySlug(slug: string) {
   return useQuery({
     queryKey: servicesKeys.detailBySlug(slug),
     queryFn: async (): Promise<ServiceDetail | null> => {
-      // First, get service ID by slug
-      const { data: service, error: serviceError } = await supabase
-        .from('services')
-        .select('*')
-        .eq('slug', slug)
-        .maybeSingle();
+      const { data: service, error: serviceError } = await servicesApi.getBySlug(slug);
 
-      if (serviceError) throw serviceError;
+      if (serviceError) {
+        if (serviceError.includes('not found') || serviceError.includes('없')) {
+          return null;
+        }
+        throw new Error(serviceError);
+      }
       if (!service) return null;
 
-      // Fetch packages
-      const { data: packages, error: packagesError } = await supabase
-        .from('service_packages')
-        .select('*')
-        .eq('service_id', service.id)
-        .order('display_order', { ascending: true });
+      const serviceData = service as ServiceWithContent;
 
-      if (packagesError) throw packagesError;
+      const { data: packages, error: packagesError } = await callWorkersApi<ServicePackage[]>(
+        `/api/v1/services/${serviceData.id}/packages`
+      );
 
-      // Fetch plans
-      const { data: plans, error: plansError } = await supabase
-        .from('subscription_plans')
-        .select('*')
-        .eq('service_id', service.id)
-        .order('display_order', { ascending: true });
+      if (packagesError) throw new Error(packagesError);
 
-      if (plansError) throw plansError;
+      const { data: plans, error: plansError } = await callWorkersApi<SubscriptionPlan[]>(
+        `/api/v1/services/${serviceData.id}/plans`
+      );
+
+      if (plansError) throw new Error(plansError);
 
       return {
-        ...(service as ServiceWithContent),
-        packages: (packages as ServicePackage[]) || [],
-        plans: (plans as SubscriptionPlan[]) || [],
+        ...serviceData,
+        packages: packages || [],
+        plans: plans || [],
       };
     },
     enabled: !!slug,
@@ -464,23 +465,13 @@ export function usePopularPackages(serviceId?: string) {
       ? ['services-platform', 'popular-packages', serviceId]
       : ['services-platform', 'popular-packages'],
     queryFn: async () => {
-      let query = supabase
-        .from('service_packages')
-        .select(`
-          *,
-          service:services(id, title, slug)
-        `)
-        .eq('is_popular', true)
-        .order('display_order', { ascending: true });
+      const endpoint = serviceId
+        ? `/api/v1/packages/popular?service_id=${serviceId}`
+        : '/api/v1/packages/popular?limit=6';
 
-      if (serviceId) {
-        query = query.eq('service_id', serviceId);
-      } else {
-        query = query.limit(6);
-      }
+      const { data, error } = await callWorkersApi<ServicePackage[]>(endpoint);
 
-      const { data, error } = await query;
-      if (error) throw error;
+      if (error) throw new Error(error);
       return data || [];
     },
     ...domainCacheConfig.servicePackages,
@@ -499,23 +490,13 @@ export function usePopularPlans(serviceId?: string) {
       ? ['services-platform', 'popular-plans', serviceId]
       : ['services-platform', 'popular-plans'],
     queryFn: async () => {
-      let query = supabase
-        .from('subscription_plans')
-        .select(`
-          *,
-          service:services(id, title, slug)
-        `)
-        .eq('is_popular', true)
-        .order('display_order', { ascending: true });
+      const endpoint = serviceId
+        ? `/api/v1/plans/popular?service_id=${serviceId}`
+        : '/api/v1/plans/popular?limit=6';
 
-      if (serviceId) {
-        query = query.eq('service_id', serviceId);
-      } else {
-        query = query.limit(6);
-      }
+      const { data, error } = await callWorkersApi<SubscriptionPlan[]>(endpoint);
 
-      const { data, error } = await query;
-      if (error) throw error;
+      if (error) throw new Error(error);
       return data || [];
     },
     ...domainCacheConfig.subscriptionPlans,

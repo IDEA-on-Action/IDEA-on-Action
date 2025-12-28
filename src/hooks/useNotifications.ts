@@ -1,17 +1,18 @@
 /**
  * useNotifications Hook
+ * @migration Supabase -> Cloudflare Workers (완전 마이그레이션 완료)
  *
  * 알림 관리 훅
  * - 알림 목록 조회
- * - 실시간 알림 구독 (Supabase Realtime)
+ * - 실시간 알림 구독 (Workers WebSocket)
  * - 읽음/삭제 처리
  */
 
 import { useEffect } from 'react'
-import { supabase } from '@/integrations/supabase/client'
+import { callWorkersApi, realtimeApi } from '@/integrations/cloudflare/client'
 import { useAuth } from '@/hooks/useAuth'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { handleSupabaseError, devError, devLog } from '@/lib/errors'
+import { devError, devLog } from '@/lib/errors'
 
 export interface Notification {
   id: string
@@ -38,7 +39,7 @@ export interface UseNotificationsReturn {
 }
 
 export function useNotifications(): UseNotificationsReturn {
-  const { user } = useAuth()
+  const { user, workersTokens } = useAuth()
   const queryClient = useQueryClient()
 
   // 알림 목록 조회
@@ -50,22 +51,20 @@ export function useNotifications(): UseNotificationsReturn {
     queryFn: async () => {
       if (!user) return []
 
-      const { data, error } = await supabase
-        .from('notifications')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(50)
+      const token = workersTokens?.accessToken
+      const { data, error } = await callWorkersApi<Notification[]>(
+        `/api/v1/notifications?user_id=${user.id}&limit=50&order_by=created_at:desc`,
+        { token }
+      )
 
       if (error) {
-        const result = handleSupabaseError(error, {
+        devError(new Error(error), {
           table: 'notifications',
           operation: '알림 조회',
-          fallbackValue: [],
         })
-        return result !== null ? result : []
+        return []
       }
-      return data as Notification[]
+      return data || []
     },
     enabled: !!user,
     staleTime: 30000, // 30초
@@ -74,42 +73,46 @@ export function useNotifications(): UseNotificationsReturn {
   // 읽지 않은 알림 개수
   const unreadCount = notifications.filter((n) => !n.read).length
 
-  // 실시간 구독 (Supabase Realtime)
+  // 실시간 구독 (Workers WebSocket)
   useEffect(() => {
     if (!user) return
 
-    const channel = supabase
-      .channel('notifications')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'notifications',
-          filter: `user_id=eq.${user.id}`,
-        },
-        (payload) => {
-          devLog('New notification:', payload.new)
-          // 쿼리 무효화하여 자동 리페치
-          queryClient.invalidateQueries({ queryKey: ['notifications', user.id] })
-        }
-      )
-      .subscribe()
+    const ws = realtimeApi.connect(`notifications-${user.id}`, user.id)
+
+    ws.onmessage = (event) => {
+      try {
+        const payload = JSON.parse(event.data)
+        devLog('New notification:', payload)
+        // 쿼리 무효화하여 자동 리페치
+        queryClient.invalidateQueries({ queryKey: ['notifications', user.id] })
+      } catch (e) {
+        console.error('Notification message parse error:', e)
+      }
+    }
+
+    ws.onerror = (error) => {
+      console.error('Notification WebSocket error:', error)
+    }
 
     return () => {
-      supabase.removeChannel(channel)
+      ws.close()
     }
   }, [user, queryClient])
 
   // 알림 읽음 처리
   const markAsReadMutation = useMutation({
     mutationFn: async (notificationId: string) => {
-      const { error } = await supabase
-        .from('notifications')
-        .update({ read: true })
-        .eq('id', notificationId)
+      const token = workersTokens?.accessToken
+      const { error } = await callWorkersApi(
+        `/api/v1/notifications/${notificationId}`,
+        {
+          method: 'PATCH',
+          token,
+          body: { read: true },
+        }
+      )
 
-      if (error) throw error
+      if (error) throw new Error(error)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notifications', user?.id] })
@@ -121,13 +124,17 @@ export function useNotifications(): UseNotificationsReturn {
     mutationFn: async () => {
       if (!user) return
 
-      const { error } = await supabase
-        .from('notifications')
-        .update({ read: true })
-        .eq('user_id', user.id)
-        .eq('read', false)
+      const token = workersTokens?.accessToken
+      const { error } = await callWorkersApi(
+        `/api/v1/notifications/mark-all-read`,
+        {
+          method: 'POST',
+          token,
+          body: { user_id: user.id },
+        }
+      )
 
-      if (error) throw error
+      if (error) throw new Error(error)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notifications', user?.id] })
@@ -137,12 +144,16 @@ export function useNotifications(): UseNotificationsReturn {
   // 알림 삭제
   const deleteNotificationMutation = useMutation({
     mutationFn: async (notificationId: string) => {
-      const { error } = await supabase
-        .from('notifications')
-        .delete()
-        .eq('id', notificationId)
+      const token = workersTokens?.accessToken
+      const { error } = await callWorkersApi(
+        `/api/v1/notifications/${notificationId}`,
+        {
+          method: 'DELETE',
+          token,
+        }
+      )
 
-      if (error) throw error
+      if (error) throw new Error(error)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notifications', user?.id] })
@@ -155,20 +166,24 @@ export function useNotifications(): UseNotificationsReturn {
     notification: Omit<Notification, 'id' | 'user_id' | 'read' | 'created_at'>
   ): Promise<Notification | null> => {
     try {
-      const { data, error } = await supabase
-        .from('notifications')
-        .insert({
-          user_id: userId,
-          type: notification.type,
-          title: notification.title,
-          message: notification.message,
-          link: notification.link,
-        })
-        .select()
-        .single()
+      const token = workersTokens?.accessToken
+      const { data, error } = await callWorkersApi<Notification>(
+        '/api/v1/notifications',
+        {
+          method: 'POST',
+          token,
+          body: {
+            user_id: userId,
+            type: notification.type,
+            title: notification.title,
+            message: notification.message,
+            link: notification.link,
+          },
+        }
+      )
 
-      if (error) throw error
-      return data as Notification
+      if (error) throw new Error(error)
+      return data
     } catch (error) {
       devError(error, { operation: '알림 생성' })
       return null

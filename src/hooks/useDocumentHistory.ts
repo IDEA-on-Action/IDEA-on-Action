@@ -8,11 +8,12 @@
  * - React Query 캐싱
  *
  * @module hooks/useDocumentHistory
+ * @migration Supabase → Cloudflare Workers (완전 마이그레이션 완료)
  */
 
 import { useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { callWorkersApi } from '@/integrations/cloudflare/client';
 import { useAuth } from './useAuth';
 import { toast } from 'sonner';
 import type {
@@ -61,7 +62,7 @@ const STATS_QUERY_KEY_PREFIX = 'document-stats';
 export function useDocumentHistory(
   options: UseDocumentHistoryOptions = {}
 ): UseDocumentHistoryResult {
-  const { user } = useAuth();
+  const { user, workersTokens } = useAuth();
   const queryClient = useQueryClient();
   const { fileType, orderBy = 'desc', limit } = options;
 
@@ -78,29 +79,22 @@ export function useDocumentHistory(
         return [];
       }
 
-      let query = supabase
-        .from('generated_documents')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('generated_at', { ascending: orderBy === 'asc' });
+      const queryParams = new URLSearchParams();
+      if (fileType) queryParams.set('file_type', fileType);
+      if (orderBy) queryParams.set('order_by', orderBy);
+      if (limit) queryParams.set('limit', String(limit));
 
-      // 파일 유형 필터
-      if (fileType) {
-        query = query.eq('file_type', fileType);
+      const queryString = queryParams.toString();
+      const response = await callWorkersApi<GeneratedDocument[]>(
+        `/api/v1/documents${queryString ? `?${queryString}` : ''}`,
+        { token: workersTokens?.accessToken }
+      );
+
+      if (response.error) {
+        throw new Error(`문서 목록 조회 실패: ${response.error}`);
       }
 
-      // 페이지 제한
-      if (limit) {
-        query = query.limit(limit);
-      }
-
-      const { data, error } = await query;
-
-      if (error) {
-        throw new Error(`문서 목록 조회 실패: ${error.message}`);
-      }
-
-      return data || [];
+      return response.data || [];
     },
     enabled: !!user,
   });
@@ -108,17 +102,20 @@ export function useDocumentHistory(
   // 문서 저장
   const saveMutation = useMutation({
     mutationFn: async (doc: CreateGeneratedDocument): Promise<GeneratedDocument> => {
-      const { data, error } = await supabase
-        .from('generated_documents')
-        .insert([doc])
-        .select()
-        .single();
+      const response = await callWorkersApi<GeneratedDocument>(
+        '/api/v1/documents',
+        {
+          method: 'POST',
+          token: workersTokens?.accessToken,
+          body: doc,
+        }
+      );
 
-      if (error) {
-        throw new Error(`문서 저장 실패: ${error.message}`);
+      if (response.error) {
+        throw new Error(`문서 저장 실패: ${response.error}`);
       }
 
-      return data;
+      return response.data as GeneratedDocument;
     },
     onSuccess: (data) => {
       // 쿼리 캐시 무효화
@@ -134,13 +131,16 @@ export function useDocumentHistory(
   // 문서 삭제
   const deleteMutation = useMutation({
     mutationFn: async (id: string): Promise<void> => {
-      const { error } = await supabase
-        .from('generated_documents')
-        .delete()
-        .eq('id', id);
+      const response = await callWorkersApi(
+        `/api/v1/documents/${id}`,
+        {
+          method: 'DELETE',
+          token: workersTokens?.accessToken,
+        }
+      );
 
-      if (error) {
-        throw new Error(`문서 삭제 실패: ${error.message}`);
+      if (response.error) {
+        throw new Error(`문서 삭제 실패: ${response.error}`);
       }
     },
     onSuccess: () => {
@@ -197,7 +197,7 @@ export function useDocumentHistory(
  * ```
  */
 export function useDocumentStats(): UseDocumentStatsResult {
-  const { user } = useAuth();
+  const { user, workersTokens } = useAuth();
 
   const {
     data: stats = [],
@@ -211,15 +211,16 @@ export function useDocumentStats(): UseDocumentStatsResult {
         return [];
       }
 
-      const { data, error } = await supabase.rpc('get_user_document_stats', {
-        p_user_id: user.id,
-      });
+      const response = await callWorkersApi<DocumentStats[]>(
+        '/api/v1/documents/stats',
+        { token: workersTokens?.accessToken }
+      );
 
-      if (error) {
-        throw new Error(`통계 조회 실패: ${error.message}`);
+      if (response.error) {
+        throw new Error(`통계 조회 실패: ${response.error}`);
       }
 
-      return data || [];
+      return response.data || [];
     },
     enabled: !!user,
   });

@@ -2,10 +2,12 @@
  * 기능별 접근 권한 확인 훅
  *
  * @description 구독 플랜과 기능 키를 기반으로 접근 권한 및 사용량 확인
+ *
+ * @migration Supabase -> Cloudflare Workers (완전 마이그레이션 완료)
  */
 
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { subscriptionsApi, callWorkersApi } from '@/integrations/cloudflare/client';
 import { useAuth } from '@/hooks/useAuth';
 
 /**
@@ -45,33 +47,22 @@ export interface CanAccessResult {
  * ```
  */
 export function useCanAccess(feature_key: string): CanAccessResult {
-  const { user } = useAuth();
+  const { user, workersTokens } = useAuth();
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['feature_access', feature_key, user?.id],
     queryFn: async () => {
-      if (!user) throw new Error('로그인이 필요합니다.');
+      if (!user || !workersTokens?.accessToken) throw new Error('로그인이 필요합니다.');
 
       // 1. 사용자의 활성 구독 조회
-      const { data: subscriptions, error: subError } = await supabase
-        .from('subscriptions')
-        .select(`
-          *,
-          plan:subscription_plans (
-            id,
-            plan_name,
-            features
-          )
-        `)
-        .eq('user_id', user.id)
-        .eq('status', 'active')
-        .order('created_at', { ascending: false })
-        .limit(1);
+      const { data: subscription, error: subError } = await subscriptionsApi.getCurrent(
+        workersTokens.accessToken
+      );
 
-      if (subError) throw subError;
+      if (subError) throw new Error(subError);
 
       // 구독이 없으면 접근 불가
-      if (!subscriptions || subscriptions.length === 0) {
+      if (!subscription) {
         return {
           canAccess: false,
           remaining: 0,
@@ -82,12 +73,26 @@ export function useCanAccess(feature_key: string): CanAccessResult {
         };
       }
 
-      const subscription = subscriptions[0];
-      const plan = subscription.plan as unknown as {
+      const subscriptionData = subscription as {
         id: string;
-        plan_name: string;
-        features: Record<string, unknown>;
+        plan: {
+          id: string;
+          plan_name: string;
+          features: Record<string, unknown>;
+        } | null;
       };
+
+      const plan = subscriptionData.plan;
+      if (!plan) {
+        return {
+          canAccess: false,
+          remaining: 0,
+          limit: 0,
+          isUnlimited: false,
+          currentPlan: undefined,
+          requiredPlan: 'Basic',
+        };
+      }
 
       // 2. 플랜의 features에서 해당 기능 확인
       const featureValue = plan.features[feature_key];
@@ -139,20 +144,30 @@ export function useCanAccess(feature_key: string): CanAccessResult {
         };
       }
 
-      // 3. 현재 사용량 조회 (subscription_usage 테이블)
-      const { data: usage, error: usageError } = await supabase
-        .from('subscription_usage')
-        .select('usage_count')
-        .eq('subscription_id', subscription.id)
-        .eq('feature_key', feature_key)
-        .single();
+      // 3. 현재 사용량 조회 (Workers API)
+      const { data: usageData, error: usageError } = await callWorkersApi<{
+        feature_key: string;
+        usage_count: number;
+      }>(`/api/v1/subscriptions/${subscriptionData.id}/usage/${feature_key}`, {
+        token: workersTokens.accessToken,
+      });
 
-      if (usageError && usageError.code !== 'PGRST116') {
-        // PGRST116 = no rows, 정상 케이스 (아직 사용 안 함)
-        throw usageError;
+      if (usageError) {
+        // 사용량 레코드가 없는 경우 (아직 사용 안 함)
+        if (usageError.includes('not found') || usageError.includes('없')) {
+          const remaining = limit;
+          return {
+            canAccess: remaining > 0,
+            remaining,
+            limit,
+            isUnlimited: false,
+            currentPlan: plan.plan_name,
+          };
+        }
+        throw new Error(usageError);
       }
 
-      const usageCount = usage?.usage_count ?? 0;
+      const usageCount = usageData?.usage_count ?? 0;
       const remaining = Math.max(0, limit - usageCount);
 
       return {
@@ -163,7 +178,7 @@ export function useCanAccess(feature_key: string): CanAccessResult {
         currentPlan: plan.plan_name,
       };
     },
-    enabled: !!user && !!feature_key,
+    enabled: !!user && !!workersTokens?.accessToken && !!feature_key,
     staleTime: 1000 * 60, // 1분 캐싱
   });
 

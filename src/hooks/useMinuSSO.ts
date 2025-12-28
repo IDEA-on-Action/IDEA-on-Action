@@ -3,12 +3,13 @@
  *
  * Minu 서비스 SSO 인증을 위한 훅입니다.
  *
+ * @migration Supabase → Cloudflare Workers (완전 마이그레이션 완료)
  * @version 1.0.0
  */
 
 import { useState, useCallback, useEffect } from 'react'
 import { useAuth } from './useAuth'
-import { supabase } from '@/integrations/supabase/client'
+import { callWorkersApi } from '@/integrations/cloudflare/client'
 
 // ============================================================================
 // 타입 정의
@@ -61,6 +62,9 @@ const MINU_SERVICE_URLS: Record<MinuService, string> = {
   build: 'https://build.minu.best',
   keep: 'https://keep.minu.best',
 }
+
+// Workers API URL
+const WORKERS_API_URL = import.meta.env.VITE_WORKERS_API_URL || 'https://api.ideaonaction.ai'
 
 const STORAGE_KEYS = {
   ACCESS_TOKEN: 'minu_access_token',
@@ -115,7 +119,8 @@ function generateState(service: MinuService, redirectUri: string): string {
 
 export function useMinuSSO(options: MinuSSOOptions) {
   const { service, redirectUri = window.location.origin + '/auth/minu/callback' } = options
-  const { user } = useAuth()
+  const { user, workersTokens } = useAuth()
+  const token = workersTokens?.accessToken || null
 
   const [state, setState] = useState<MinuSSOState>({
     isLoading: false,
@@ -140,33 +145,38 @@ export function useMinuSSO(options: MinuSSOOptions) {
           accessToken: storedToken,
         }))
 
-        // 구독 정보 로드 (inline으로 처리하여 의존성 순환 방지)
-        if (user?.id) {
-          supabase.rpc('get_minu_subscription', {
-            p_user_id: user.id,
-            p_service: service,
-          }).then(({ data }) => {
-            if (data && data.length > 0) {
-              const sub = data[0]
-              setState(prev => ({
-                ...prev,
-                subscription: {
-                  planId: sub.plan_id,
-                  planName: sub.plan_name,
-                  status: sub.status as MinuSubscription['status'],
-                  features: sub.features || [],
-                  currentPeriodEnd: sub.current_period_end,
-                },
-              }))
-            }
-          }).catch(console.error)
+        // 구독 정보 로드 (Workers API 사용)
+        if (user?.id && token) {
+          callWorkersApi<{
+            plan_id: string
+            plan_name: string
+            status: string
+            features: string[]
+            current_period_end: string
+          }[]>(`/minu/subscription/${service}`, { token })
+            .then((result) => {
+              if (result.data && result.data.length > 0) {
+                const sub = result.data[0]
+                setState(prev => ({
+                  ...prev,
+                  subscription: {
+                    planId: sub.plan_id,
+                    planName: sub.plan_name,
+                    status: sub.status as MinuSubscription['status'],
+                    features: sub.features || [],
+                    currentPeriodEnd: sub.current_period_end,
+                  },
+                }))
+              }
+            })
+            .catch(console.error)
         }
       } else {
         // 만료된 토큰 정리
         clearTokens()
       }
     }
-  }, [service, user?.id])
+  }, [service, user?.id, token])
 
   /**
    * OAuth 로그인 시작
@@ -180,26 +190,28 @@ export function useMinuSSO(options: MinuSSOOptions) {
       const codeChallenge = await generateCodeChallenge(codeVerifier)
       const stateParam = generateState(service, redirectUri)
 
-      // 세션 저장 (서버에)
-      const { error: sessionError } = await supabase
-        .from('minu_oauth_sessions')
-        .insert({
+      // 세션 저장 (Workers API 사용)
+      const sessionResult = await callWorkersApi('/minu/oauth/session', {
+        method: 'POST',
+        body: {
           user_id: user?.id || null,
           service,
           state: stateParam,
           code_verifier: codeVerifier,
           redirect_uri: redirectUri,
-        })
+        },
+        token: token || undefined,
+      })
 
-      if (sessionError) {
+      if (sessionResult.error) {
         throw new Error('세션 생성에 실패했습니다.')
       }
 
-      // Minu OAuth 페이지로 리다이렉트
+      // Minu OAuth 페이지로 리다이렉트 (Workers 콜백 엔드포인트 사용)
       const authUrl = new URL(`${MINU_SERVICE_URLS[service]}/oauth/authorize`)
       authUrl.searchParams.set('client_id', import.meta.env.VITE_MINU_CLIENT_ID || 'idea-on-action')
       authUrl.searchParams.set('response_type', 'code')
-      authUrl.searchParams.set('redirect_uri', `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/minu-oauth-callback`)
+      authUrl.searchParams.set('redirect_uri', `${WORKERS_API_URL}/minu/oauth/callback`)
       authUrl.searchParams.set('scope', 'openid profile email subscription')
       authUrl.searchParams.set('state', stateParam)
       authUrl.searchParams.set('code_challenge', codeChallenge)
@@ -213,7 +225,7 @@ export function useMinuSSO(options: MinuSSOOptions) {
         error: error instanceof Error ? error.message : '로그인 중 오류가 발생했습니다.',
       }))
     }
-  }, [service, redirectUri, user?.id])
+  }, [service, redirectUri, user?.id, token])
 
   /**
    * OAuth 콜백 처리
@@ -262,44 +274,40 @@ export function useMinuSSO(options: MinuSSOOptions) {
    * 토큰 교환 (Minu 토큰 → Central Hub 토큰)
    */
   const exchangeToken = useCallback(async (minuAccessToken: string): Promise<TokenExchangeResponse> => {
-    const response = await fetch(
-      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/minu-token-exchange`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          minu_access_token: minuAccessToken,
-          service,
-        }),
-      }
-    )
+    const result = await callWorkersApi<TokenExchangeResponse>('/minu/token/exchange', {
+      method: 'POST',
+      body: {
+        minu_access_token: minuAccessToken,
+        service,
+      },
+    })
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}))
-      throw new Error(errorData.error || '토큰 교환에 실패했습니다.')
+    if (result.error || !result.data) {
+      throw new Error(result.error || '토큰 교환에 실패했습니다.')
     }
 
-    return response.json()
+    return result.data
   }, [service])
 
   /**
    * 구독 정보 로드
    */
   const loadSubscription = useCallback(async () => {
-    if (!user?.id) return
+    if (!user?.id || !token) return
 
     try {
-      const { data, error } = await supabase.rpc('get_minu_subscription', {
-        p_user_id: user.id,
-        p_service: service,
-      })
+      const result = await callWorkersApi<{
+        plan_id: string
+        plan_name: string
+        status: string
+        features: string[]
+        current_period_end: string
+      }[]>(`/minu/subscription/${service}`, { token })
 
-      if (error) throw error
+      if (result.error) throw new Error(result.error)
 
-      if (data && data.length > 0) {
-        const sub = data[0]
+      if (result.data && result.data.length > 0) {
+        const sub = result.data[0]
         setState(prev => ({
           ...prev,
           subscription: {
@@ -314,7 +322,7 @@ export function useMinuSSO(options: MinuSSOOptions) {
     } catch (error) {
       console.error('Failed to load subscription:', error)
     }
-  }, [user?.id, service])
+  }, [user?.id, service, token])
 
   /**
    * 로그아웃

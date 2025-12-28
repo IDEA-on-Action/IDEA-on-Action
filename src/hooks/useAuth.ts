@@ -1,10 +1,11 @@
 /**
  * useAuth Hook
+ * @migration Supabase -> Cloudflare Workers (완전 마이그레이션 완료)
  *
  * Workers Auth 전용 인증 (Cloudflare Workers + D1)
- * - OAuth 로그인 (Google, GitHub, Kakao, Microsoft, Apple) → Workers
- * - 이메일/비밀번호 로그인 → Workers
- * - 회원가입 → Workers (D1 저장)
+ * - OAuth 로그인 (Google, GitHub, Kakao, Microsoft, Apple) -> Workers
+ * - 이메일/비밀번호 로그인 -> Workers
+ * - 회원가입 -> Workers (D1 저장)
  * - 세션 상태 관리
  * - 사용자 정보 관리
  * - Sentry 사용자 추적 통합
@@ -20,14 +21,14 @@
  * @example
  * ```tsx
  * function LoginPage() {
- *   const { user, loading, signInWithGoogle, signOut } = useAuth();
+ *   const { workersUser, loading, signInWithGoogle, signOut } = useAuth();
  *
  *   if (loading) return <Spinner />;
  *
- *   if (user) {
+ *   if (workersUser) {
  *     return (
  *       <div>
- *         <p>환영합니다, {user.email}님!</p>
+ *         <p>환영합니다, {workersUser.email}님!</p>
  *         <Button onClick={signOut}>로그아웃</Button>
  *       </div>
  *     );
@@ -39,7 +40,7 @@
  *
  * @example
  * ```tsx
- * // 이메일 로그인 (이중 인증)
+ * // 이메일 로그인
  * const { signInWithEmail } = useAuth();
  *
  * const handleLogin = async (email: string, password: string) => {
@@ -70,8 +71,6 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { supabase } from '@/integrations/supabase/client'
-import type { User, Session } from '@supabase/supabase-js'
 import { setUser as setSentryUser, clearUser as clearSentryUser } from '@/lib/sentry'
 import { devError, devLog } from '@/lib/errors'
 import { authApi } from '@/integrations/cloudflare/client'
@@ -81,43 +80,40 @@ const WORKERS_API_URL = import.meta.env.VITE_WORKERS_API_URL || 'https://api.ide
 
 // Workers 인증 토큰 저장 키
 const WORKERS_TOKEN_KEY = 'workers_auth_tokens'
-const AUTH_PROVIDER_KEY = 'auth_provider'
+
+/**
+ * Workers 사용자 정보
+ */
+export interface WorkersUser {
+  id: string
+  email: string
+  name: string | null
+  avatarUrl?: string | null
+  isAdmin?: boolean
+}
 
 /**
  * Workers 인증 토큰
  */
-interface WorkersTokens {
+export interface WorkersTokens {
   accessToken: string
   refreshToken: string
   expiresAt: number // timestamp
-  user: {
-    id: string
-    email: string
-    name: string | null
-    avatarUrl?: string | null
-    isAdmin?: boolean
-  }
+  user: WorkersUser
 }
-
-/**
- * 인증 제공자
- */
-type AuthProvider = 'supabase' | 'workers'
 
 /**
  * useAuth 훅 반환 타입
  */
 interface UseAuthReturn {
-  /** 현재 로그인한 사용자 정보 (null: 비로그인) */
-  user: User | null
-  /** 현재 세션 정보 */
-  session: Session | null
+  /** Workers 사용자 정보 (null: 비로그인) */
+  workersUser: WorkersUser | null
+  /** Workers 토큰 */
+  workersTokens: WorkersTokens | null
   /** 초기 로딩 상태 */
   loading: boolean
-  /** 현재 인증 제공자 */
-  authProvider: AuthProvider | null
-  /** Workers 토큰 (Workers 인증 시) */
-  workersTokens: WorkersTokens | null
+  /** 인증 여부 */
+  isAuthenticated: boolean
   /** Google OAuth 로그인 */
   signInWithGoogle: () => Promise<void>
   /** GitHub OAuth 로그인 */
@@ -128,7 +124,7 @@ interface UseAuthReturn {
   signInWithMicrosoft: () => Promise<void>
   /** Apple OAuth 로그인 */
   signInWithApple: () => Promise<void>
-  /** 이메일/비밀번호 로그인 (이중 인증) */
+  /** 이메일/비밀번호 로그인 */
   signInWithEmail: (email: string, password: string) => Promise<void>
   /** Workers 회원가입 */
   signUpWithEmail: (email: string, password: string, name?: string) => Promise<void>
@@ -136,6 +132,16 @@ interface UseAuthReturn {
   signOut: () => Promise<void>
   /** Workers 토큰 갱신 */
   refreshWorkersToken: () => Promise<boolean>
+  /** Access Token 반환 (API 호출용) */
+  getAccessToken: () => string | null
+
+  // 하위 호환성을 위한 레거시 속성
+  /** @deprecated workersUser를 사용하세요 */
+  user: WorkersUser | null
+  /** @deprecated 제거됨 */
+  session: null
+  /** @deprecated 'workers' 고정값 */
+  authProvider: 'workers'
 }
 
 /**
@@ -144,7 +150,6 @@ interface UseAuthReturn {
 function saveWorkersTokens(tokens: WorkersTokens): void {
   try {
     localStorage.setItem(WORKERS_TOKEN_KEY, JSON.stringify(tokens))
-    localStorage.setItem(AUTH_PROVIDER_KEY, 'workers')
   } catch (e) {
     devError(e, { service: 'Auth', operation: 'Workers 토큰 저장' })
   }
@@ -170,60 +175,15 @@ function loadWorkersTokens(): WorkersTokens | null {
 function clearWorkersTokens(): void {
   try {
     localStorage.removeItem(WORKERS_TOKEN_KEY)
-    localStorage.removeItem(AUTH_PROVIDER_KEY)
   } catch (e) {
     devError(e, { service: 'Auth', operation: 'Workers 토큰 삭제' })
   }
 }
 
-/**
- * 저장된 인증 제공자 확인
- */
-function getStoredAuthProvider(): AuthProvider | null {
-  try {
-    const provider = localStorage.getItem(AUTH_PROVIDER_KEY)
-    return provider as AuthProvider | null
-  } catch {
-    return null
-  }
-}
-
-/**
- * Workers 사용자를 Supabase User 형태로 변환
- */
-function workersUserToSupabaseUser(workersUser: WorkersTokens['user']): User {
-  return {
-    id: workersUser.id,
-    email: workersUser.email,
-    aud: 'authenticated',
-    role: workersUser.isAdmin ? 'admin' : 'authenticated',
-    email_confirmed_at: new Date().toISOString(),
-    phone: null,
-    confirmation_sent_at: undefined,
-    confirmed_at: new Date().toISOString(),
-    last_sign_in_at: new Date().toISOString(),
-    app_metadata: {
-      provider: 'workers',
-      providers: ['workers'],
-    },
-    user_metadata: {
-      full_name: workersUser.name,
-      avatar_url: workersUser.avatarUrl,
-      is_admin: workersUser.isAdmin,
-    },
-    identities: [],
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-    is_anonymous: false,
-  } as User
-}
-
 export function useAuth(): UseAuthReturn {
-  const [user, setUser] = useState<User | null>(null)
-  const [session, setSession] = useState<Session | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [authProvider, setAuthProvider] = useState<AuthProvider | null>(null)
+  const [workersUser, setWorkersUser] = useState<WorkersUser | null>(null)
   const [workersTokens, setWorkersTokens] = useState<WorkersTokens | null>(null)
+  const [loading, setLoading] = useState(true)
   const navigate = useNavigate()
 
   /**
@@ -239,8 +199,7 @@ export function useAuth(): UseAuthReturn {
         devLog('Workers 토큰 갱신 실패, 로그아웃 처리', result.error)
         clearWorkersTokens()
         setWorkersTokens(null)
-        setAuthProvider(null)
-        setUser(null)
+        setWorkersUser(null)
         return false
       }
 
@@ -259,90 +218,53 @@ export function useAuth(): UseAuthReturn {
     }
   }, [])
 
+  /**
+   * Access Token 반환
+   */
+  const getAccessToken = useCallback((): string | null => {
+    return workersTokens?.accessToken || null
+  }, [workersTokens])
+
   useEffect(() => {
     // 초기 인증 상태 확인
     const initAuth = async () => {
-      const storedProvider = getStoredAuthProvider()
-
-      // 1. Workers 토큰 확인
-      if (storedProvider === 'workers') {
-        const tokens = loadWorkersTokens()
-        if (tokens) {
-          // 토큰 만료 확인
-          if (tokens.expiresAt > Date.now()) {
-            setWorkersTokens(tokens)
-            setAuthProvider('workers')
-            setUser(workersUserToSupabaseUser(tokens.user))
-            setSentryUser({
-              id: tokens.user.id,
-              email: tokens.user.email,
-              username: tokens.user.name || tokens.user.email.split('@')[0],
-            })
-            setLoading(false)
-            return
-          } else {
-            // 토큰 갱신 시도
-            const refreshed = await refreshWorkersToken()
-            if (refreshed) {
-              const newTokens = loadWorkersTokens()
-              if (newTokens) {
-                setWorkersTokens(newTokens)
-                setAuthProvider('workers')
-                setUser(workersUserToSupabaseUser(newTokens.user))
-                setSentryUser({
-                  id: newTokens.user.id,
-                  email: newTokens.user.email,
-                  username: newTokens.user.name || newTokens.user.email.split('@')[0],
-                })
-                setLoading(false)
-                return
-              }
+      const tokens = loadWorkersTokens()
+      if (tokens) {
+        // 토큰 만료 확인
+        if (tokens.expiresAt > Date.now()) {
+          setWorkersTokens(tokens)
+          setWorkersUser(tokens.user)
+          setSentryUser({
+            id: tokens.user.id,
+            email: tokens.user.email,
+            username: tokens.user.name || tokens.user.email.split('@')[0],
+          })
+          setLoading(false)
+          return
+        } else {
+          // 토큰 갱신 시도
+          const refreshed = await refreshWorkersToken()
+          if (refreshed) {
+            const newTokens = loadWorkersTokens()
+            if (newTokens) {
+              setWorkersTokens(newTokens)
+              setWorkersUser(newTokens.user)
+              setSentryUser({
+                id: newTokens.user.id,
+                email: newTokens.user.email,
+                username: newTokens.user.name || newTokens.user.email.split('@')[0],
+              })
+              setLoading(false)
+              return
             }
           }
         }
       }
 
-      // 2. Supabase 세션 확인
-      const { data: { session: supabaseSession } } = await supabase.auth.getSession()
-      if (supabaseSession) {
-        setSession(supabaseSession)
-        setUser(supabaseSession.user)
-        setAuthProvider('supabase')
-        localStorage.setItem(AUTH_PROVIDER_KEY, 'supabase')
-      }
       setLoading(false)
     }
 
     initAuth()
-
-    // Supabase 세션 변경 구독
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      // Workers 인증 중이면 Supabase 상태 무시
-      if (getStoredAuthProvider() === 'workers') {
-        return
-      }
-
-      setSession(session)
-      setUser(session?.user ?? null)
-      setAuthProvider(session ? 'supabase' : null)
-      setLoading(false)
-
-      // Sentry 사용자 추적
-      if (session?.user) {
-        localStorage.setItem(AUTH_PROVIDER_KEY, 'supabase')
-        setSentryUser({
-          id: session.user.id,
-          email: session.user.email,
-          username: session.user.user_metadata?.full_name || session.user.email?.split('@')[0],
-        })
-      } else {
-        clearSentryUser()
-      }
-    })
-
-    return () => subscription.unsubscribe()
   }, [refreshWorkersToken])
 
   /**
@@ -386,41 +308,17 @@ export function useAuth(): UseAuthReturn {
   }
 
   /**
-   * 이메일/비밀번호 로그인 (이중 인증)
-   *
-   * 전략:
-   * 1. Supabase 로그인 시도
-   * 2. Supabase 실패 시 Workers 로그인 시도
-   * 3. Workers 성공 시 토큰 저장 및 상태 업데이트
+   * 이메일/비밀번호 로그인
    */
   const signInWithEmail = async (email: string, password: string) => {
-    // 1. Supabase 로그인 시도
-    const { data: supabaseData, error: supabaseError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
-
-    if (!supabaseError && supabaseData.session) {
-      // Supabase 로그인 성공
-      devLog('Supabase 로그인 성공', { email })
-      setAuthProvider('supabase')
-      localStorage.setItem(AUTH_PROVIDER_KEY, 'supabase')
-      return
-    }
-
-    // 2. Supabase 실패 시 Workers 로그인 시도
-    devLog('Supabase 로그인 실패, Workers 시도', { email, error: supabaseError?.message })
-
     const workersResult = await authApi.login(email, password)
 
     if (workersResult.error || !workersResult.data) {
-      // 둘 다 실패
-      const error = new Error(workersResult.error || supabaseError?.message || '로그인에 실패했습니다')
-      devError(error, { service: 'Auth', operation: '이메일 로그인 (이중)' })
+      const error = new Error(workersResult.error || '로그인에 실패했습니다')
+      devError(error, { service: 'Auth', operation: '이메일 로그인' })
       throw error
     }
 
-    // 3. Workers 로그인 성공
     devLog('Workers 로그인 성공', { email })
 
     const tokens: WorkersTokens = {
@@ -432,8 +330,7 @@ export function useAuth(): UseAuthReturn {
 
     saveWorkersTokens(tokens)
     setWorkersTokens(tokens)
-    setAuthProvider('workers')
-    setUser(workersUserToSupabaseUser(tokens.user))
+    setWorkersUser(tokens.user)
 
     setSentryUser({
       id: tokens.user.id,
@@ -444,8 +341,6 @@ export function useAuth(): UseAuthReturn {
 
   /**
    * Workers 회원가입 (D1 저장)
-   *
-   * 신규 가입은 Workers로만 처리하여 D1에 저장
    */
   const signUpWithEmail = async (email: string, password: string, name?: string) => {
     const result = await authApi.register(email, password, name)
@@ -471,8 +366,7 @@ export function useAuth(): UseAuthReturn {
 
     saveWorkersTokens(tokens)
     setWorkersTokens(tokens)
-    setAuthProvider('workers')
-    setUser(workersUserToSupabaseUser(tokens.user))
+    setWorkersUser(tokens.user)
 
     setSentryUser({
       id: tokens.user.id,
@@ -482,51 +376,31 @@ export function useAuth(): UseAuthReturn {
   }
 
   /**
-   * 로그아웃 (이중 인증 지원)
+   * 로그아웃
    */
   const signOut = async () => {
-    const currentProvider = authProvider || getStoredAuthProvider()
-
-    // Workers 로그아웃
-    if (currentProvider === 'workers') {
-      const tokens = loadWorkersTokens()
-      if (tokens) {
-        try {
-          await authApi.logout(tokens.refreshToken)
-        } catch (e) {
-          // 로그아웃 API 실패해도 로컬 상태는 정리
-          devError(e, { service: 'Auth', operation: 'Workers 로그아웃 API' })
-        }
-      }
-      clearWorkersTokens()
-      setWorkersTokens(null)
-    }
-
-    // Supabase 로그아웃 (항상 시도)
-    try {
-      await supabase.auth.signOut()
-    } catch (e) {
-      // Supabase 로그아웃 실패해도 로컬 상태는 정리
-      if (currentProvider === 'supabase') {
-        devError(e, { service: 'Auth', operation: 'Supabase 로그아웃' })
+    const tokens = loadWorkersTokens()
+    if (tokens) {
+      try {
+        await authApi.logout(tokens.refreshToken)
+      } catch (e) {
+        // 로그아웃 API 실패해도 로컬 상태는 정리
+        devError(e, { service: 'Auth', operation: 'Workers 로그아웃 API' })
       }
     }
-
-    // 상태 초기화
-    setUser(null)
-    setSession(null)
-    setAuthProvider(null)
+    clearWorkersTokens()
+    setWorkersTokens(null)
+    setWorkersUser(null)
     clearSentryUser()
 
     navigate('/')
   }
 
   return {
-    user,
-    session,
-    loading,
-    authProvider,
+    workersUser,
     workersTokens,
+    loading,
+    isAuthenticated: !!workersUser,
     signInWithGoogle,
     signInWithGithub,
     signInWithKakao,
@@ -536,5 +410,11 @@ export function useAuth(): UseAuthReturn {
     signUpWithEmail,
     signOut,
     refreshWorkersToken,
+    getAccessToken,
+
+    // 하위 호환성
+    user: workersUser,
+    session: null,
+    authProvider: 'workers',
   }
 }

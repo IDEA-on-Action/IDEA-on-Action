@@ -4,11 +4,13 @@
  * 키워드 검색(FTS) + 벡터 검색(Semantic) 결합
  *
  * @module hooks/useRAGHybridSearch
+ * @migration Supabase → Cloudflare Workers (완전 마이그레이션 완료)
  */
 
 import { useState, useCallback, useRef } from 'react';
 import { useMutation } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { ragApi } from '@/integrations/cloudflare/client';
+import { useAuth } from '@/hooks/useAuth';
 
 // ============================================================================
 // 타입 정의
@@ -261,6 +263,10 @@ export function useRAGHybridSearch(
     debounceMs = 300,
   } = defaultOptions || {};
 
+  // Workers 인증 토큰
+  const { workersTokens } = useAuth();
+  const token = workersTokens?.accessToken;
+
   // ============================================================================
   // 상태
   // ============================================================================
@@ -291,48 +297,41 @@ export function useRAGHybridSearch(
         vector: normalized.vectorWeight,
       });
 
-      // 1. 쿼리 임베딩 생성 (Edge Function 호출)
-      const { data: embeddingData, error: embeddingError } = await supabase.functions.invoke(
-        'rag-embed',
-        {
-          body: { text: query, mode: 'query' },
-        }
-      );
-
-      if (embeddingError) {
-        console.error('RAG embed error:', embeddingError);
-        throw new Error(`임베딩 생성 실패: ${embeddingError.message}`);
-      }
-
-      if (!embeddingData?.embedding) {
-        throw new Error('임베딩 데이터가 없습니다.');
-      }
-
-      // 2. 하이브리드 검색 실행 (DB RPC 호출)
-      const { data, error: searchError } = await supabase.rpc('hybrid_search_documents', {
-        query_text: query,
-        query_embedding: embeddingData.embedding,
-        keyword_weight: normalized.keywordWeight,
-        vector_weight: normalized.vectorWeight,
-        match_count: options.limit ?? limit,
-        p_project_id: options.projectId ?? projectId ?? null,
-        p_service_id: options.serviceId ?? serviceId ?? null,
-        p_user_id: null, // 현재 사용자 ID는 서버에서 처리
-        include_public: true,
-        min_keyword_score: options.minKeywordScore ?? minKeywordScore,
-        min_vector_score: options.minVectorScore ?? minVectorScore,
+      // Workers API로 하이브리드 검색 호출
+      const result = await ragApi.search(token || null, {
+        query,
+        limit: options.limit ?? limit,
+        threshold: options.minVectorScore ?? minVectorScore,
+        filters: {
+          ...(options.projectId ?? projectId ? { project_id: options.projectId ?? projectId } : {}),
+          ...(options.serviceId ?? serviceId ? { service_id: options.serviceId ?? serviceId } : {}),
+        },
+        searchType: 'hybrid',
+        hybridWeight: normalized.vectorWeight,
       });
 
-      if (searchError) {
-        console.error('RAG hybrid search error:', searchError);
-        throw new Error(`검색에 실패했습니다: ${searchError.message}`);
+      if (result.error) {
+        console.error('RAG hybrid search error:', result.error);
+        throw new Error(`검색에 실패했습니다: ${result.error}`);
       }
 
-      if (!data) {
-        return [];
+      interface HybridSearchAPIResponse {
+        success: boolean;
+        data?: {
+          results: HybridSearchResultDB[];
+        };
+        error?: {
+          message: string;
+        };
       }
 
-      return data.map((r: HybridSearchResultDB) => dbToHybridSearchResult(r));
+      const response = result.data as HybridSearchAPIResponse;
+
+      if (!response?.success || !response?.data) {
+        throw new Error(response?.error?.message || '검색 결과를 가져오는데 실패했습니다.');
+      }
+
+      return response.data.results.map((r: HybridSearchResultDB) => dbToHybridSearchResult(r));
     },
     onSuccess: (data) => {
       setResults(data);

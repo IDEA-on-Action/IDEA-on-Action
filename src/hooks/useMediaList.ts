@@ -1,5 +1,6 @@
 /**
  * useMediaList Hook
+ * @migration Supabase -> Cloudflare Workers (완전 마이그레이션 완료)
  *
  * Provides media list operations with React Query integration.
  * Supports both pagination and infinite scroll modes.
@@ -19,7 +20,8 @@
  */
 
 import { useQuery, useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { mediaApi } from '@/integrations/cloudflare/client';
+import { useAuth } from '@/hooks/useAuth';
 import type { MediaItem, MediaSearchParams } from '@/types/cms.types';
 
 // =====================================================
@@ -79,57 +81,42 @@ export interface MediaListResult {
 // =====================================================
 
 async function fetchMediaList(
+  token: string,
   params: MediaSearchParams,
   page: number = 1
 ): Promise<MediaListResult> {
-  let query = supabase
-    .from('media_library')
-    .select('*', { count: 'exact' })
-    .is('deleted_at', null);
+  const result = await mediaApi.list(token, {
+    search: params.search,
+    mime_type: params.mime_type,
+    date_from: params.date_from,
+    date_to: params.date_to,
+    sort_by: params.sort_by || 'created_at',
+    sort_order: params.sort_order || 'desc',
+    page,
+    per_page: params.per_page || DEFAULT_PER_PAGE,
+  });
 
-  // Apply search filter
-  if (params.search) {
-    query = query.or(`filename.ilike.%${params.search}%,original_filename.ilike.%${params.search}%`);
+  if (result.error) {
+    console.error('[useMediaList] Query error:', result.error);
+    throw new Error(result.error);
   }
 
-  // Apply mime type filter
-  if (params.mime_type) {
-    query = query.ilike('mime_type', `${params.mime_type}%`);
-  }
+  const responseData = result.data as {
+    data: MediaItem[];
+    count: number;
+    page: number;
+    perPage: number;
+    totalPages: number;
+  };
 
-  // Apply date range filters
-  if (params.date_from) {
-    query = query.gte('created_at', params.date_from);
-  }
-  if (params.date_to) {
-    query = query.lte('created_at', params.date_to);
-  }
-
-  // Apply sorting
-  const sortBy = params.sort_by || 'created_at';
-  const sortOrder = params.sort_order || 'desc';
-  query = query.order(sortBy, { ascending: sortOrder === 'asc' });
-
-  // Apply pagination
-  const perPage = params.per_page || DEFAULT_PER_PAGE;
-  const from = (page - 1) * perPage;
-  const to = from + perPage - 1;
-  query = query.range(from, to);
-
-  const { data, error, count } = await query;
-
-  if (error) {
-    console.error('[useMediaList] Query error:', error);
-    throw error;
-  }
-
-  const totalCount = count || 0;
-  const totalPages = Math.ceil(totalCount / perPage);
+  const totalCount = responseData.count || 0;
+  const perPage = responseData.perPage || DEFAULT_PER_PAGE;
+  const totalPages = responseData.totalPages || Math.ceil(totalCount / perPage);
 
   return {
-    data: (data || []) as MediaItem[],
+    data: responseData.data || [],
     count: totalCount,
-    page,
+    page: responseData.page || page,
     perPage,
     totalPages,
     hasNextPage: page < totalPages,
@@ -140,13 +127,16 @@ async function fetchMediaList(
 // Hook: Pagination Mode
 // =====================================================
 
-function useMediaListPagination(options: UseMediaListOptions) {
-  const { params = {}, enabled = true, staleTime = 1000 * 60 * 5 } = options;
+function useMediaListPagination(options: UseMediaListOptions & { token: string | undefined }) {
+  const { params = {}, enabled = true, staleTime = 1000 * 60 * 5, token } = options;
 
   return useQuery({
     queryKey: mediaListQueryKeys.list(params),
-    queryFn: () => fetchMediaList(params, params.page || 1),
-    enabled,
+    queryFn: () => {
+      if (!token) throw new Error('인증이 필요합니다.');
+      return fetchMediaList(token, params, params.page || 1);
+    },
+    enabled: enabled && !!token,
     staleTime,
   });
 }
@@ -155,12 +145,15 @@ function useMediaListPagination(options: UseMediaListOptions) {
 // Hook: Infinite Scroll Mode
 // =====================================================
 
-function useMediaListInfinite(options: UseMediaListOptions) {
-  const { params = {}, enabled = true, staleTime = 1000 * 60 * 5 } = options;
+function useMediaListInfinite(options: UseMediaListOptions & { token: string | undefined }) {
+  const { params = {}, enabled = true, staleTime = 1000 * 60 * 5, token } = options;
 
   return useInfiniteQuery({
     queryKey: mediaListQueryKeys.infinite(params),
-    queryFn: ({ pageParam = 1 }) => fetchMediaList(params, pageParam),
+    queryFn: ({ pageParam = 1 }) => {
+      if (!token) throw new Error('인증이 필요합니다.');
+      return fetchMediaList(token, params, pageParam);
+    },
     getNextPageParam: (lastPage) => {
       if (lastPage.hasNextPage) {
         return lastPage.page + 1;
@@ -168,7 +161,7 @@ function useMediaListInfinite(options: UseMediaListOptions) {
       return undefined;
     },
     initialPageParam: 1,
-    enabled,
+    enabled: enabled && !!token,
     staleTime,
   });
 }
@@ -180,15 +173,19 @@ function useMediaListInfinite(options: UseMediaListOptions) {
 export function useMediaList(options: UseMediaListOptions = {}) {
   const { mode = 'pagination' } = options;
   const queryClient = useQueryClient();
+  const { workersTokens } = useAuth();
+  const token = workersTokens?.accessToken;
 
   // Use the appropriate query hook based on mode
   const paginationQuery = useMediaListPagination({
     ...options,
+    token,
     enabled: mode === 'pagination' && (options.enabled ?? true),
   });
 
   const infiniteQuery = useMediaListInfinite({
     ...options,
+    token,
     enabled: mode === 'infinite' && (options.enabled ?? true),
   });
 

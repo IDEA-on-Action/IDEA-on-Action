@@ -1,5 +1,6 @@
 /**
- * File Upload Hook with Supabase Storage
+ * File Upload Hook with Cloudflare Workers Storage
+ * @migration Supabase -> Cloudflare Workers (완전 마이그레이션 완료)
  *
  * Provides file upload functionality with validation, optimization, and progress tracking.
  *
@@ -23,8 +24,10 @@
  */
 
 import { useState, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { storageApi } from '@/integrations/cloudflare/client';
+import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
+
 /** Generate a simple UUID v4 */
 function generateUUID(): string {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
@@ -42,7 +45,7 @@ function generateUUID(): string {
  * File upload options
  */
 export interface UseFileUploadOptions {
-  /** Supabase Storage bucket name */
+  /** Storage bucket/folder name */
   bucket: string;
 
   /** Max file size in MB (default: 10) */
@@ -101,7 +104,7 @@ export interface UploadError {
 // ===================================================================
 
 /**
- * Hook for uploading files to Supabase Storage
+ * Hook for uploading files to Cloudflare Workers Storage
  *
  * @param options - Upload configuration options
  * @returns Upload functions and state
@@ -119,6 +122,7 @@ export function useFileUpload(options: UseFileUploadOptions) {
     generateThumbnails = false,
   } = options;
 
+  const { workersTokens } = useAuth();
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState<Record<string, number>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -273,7 +277,7 @@ export function useFileUpload(options: UseFileUploadOptions) {
     const filename = `${Date.now()}-${generateUUID()}.${ext}`;
     const year = new Date().getFullYear();
     const month = new Date().getMonth() + 1;
-    return `${year}/${month}/${filename}`;
+    return `${bucket}/${year}/${month}/${filename}`;
   };
 
   /**
@@ -281,6 +285,11 @@ export function useFileUpload(options: UseFileUploadOptions) {
    */
   const uploadFile = useCallback(
     async (file: File): Promise<UploadResult> => {
+      const token = workersTokens?.accessToken;
+      if (!token) {
+        throw new Error('인증이 필요합니다.');
+      }
+
       // Validate file
       validateFile(file);
 
@@ -292,7 +301,7 @@ export function useFileUpload(options: UseFileUploadOptions) {
       if (optimizeImages && file.type.startsWith('image/')) {
         try {
           fileToUpload = await optimizeImage(file);
-          console.log(`[useFileUpload] Optimized ${file.name}: ${file.size} → ${fileToUpload.size} bytes`);
+          console.log(`[useFileUpload] Optimized ${file.name}: ${file.size} -> ${fileToUpload.size} bytes`);
         } catch (error) {
           console.warn('[useFileUpload] Image optimization failed, uploading original:', error);
           fileToUpload = file;
@@ -300,23 +309,18 @@ export function useFileUpload(options: UseFileUploadOptions) {
       }
 
       // Upload file
-      const { data, error } = await supabase.storage
-        .from(bucket)
-        .upload(path, fileToUpload, {
-          cacheControl: '3600',
-          upsert: false,
-        });
+      const result = await storageApi.upload(token, fileToUpload, path);
 
-      if (error) {
-        throw new Error(`Upload failed: ${error.message}`);
+      if (result.error) {
+        throw new Error(`Upload failed: ${result.error}`);
       }
 
       // Get public URL
-      const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(path);
+      const publicUrl = storageApi.getPublicUrl(path);
 
-      const result: UploadResult = {
+      const uploadResult: UploadResult = {
         file,
-        url: urlData.publicUrl,
+        url: publicUrl,
       };
 
       // Generate thumbnail if needed
@@ -325,16 +329,10 @@ export function useFileUpload(options: UseFileUploadOptions) {
           const thumbFile = await generateThumbnail(file);
           const thumbPath = path.replace(/(\.[^.]+)$/, '-thumb$1');
 
-          const { error: thumbError } = await supabase.storage
-            .from(bucket)
-            .upload(thumbPath, thumbFile, {
-              cacheControl: '3600',
-              upsert: false,
-            });
+          const thumbResult = await storageApi.upload(token, thumbFile, thumbPath);
 
-          if (!thumbError) {
-            const { data: thumbUrlData } = supabase.storage.from(bucket).getPublicUrl(thumbPath);
-            result.thumbnailUrl = thumbUrlData.publicUrl;
+          if (!thumbResult.error) {
+            uploadResult.thumbnailUrl = storageApi.getPublicUrl(thumbPath);
           }
         } catch (error) {
           console.warn('[useFileUpload] Thumbnail generation failed:', error);
@@ -342,11 +340,11 @@ export function useFileUpload(options: UseFileUploadOptions) {
       }
 
       // Call onComplete callback
-      onComplete?.(file, result.url);
+      onComplete?.(file, uploadResult.url);
 
-      return result;
+      return uploadResult;
     },
-    [bucket, validateFile, optimizeImages, generateThumbnails, optimizeImage, generateThumbnail, onComplete]
+    [workersTokens, bucket, validateFile, optimizeImages, generateThumbnails, optimizeImage, generateThumbnail, onComplete]
   );
 
   /**
@@ -415,22 +413,23 @@ export function useFileUpload(options: UseFileUploadOptions) {
    */
   const deleteFile = useCallback(
     async (url: string): Promise<void> => {
+      const token = workersTokens?.accessToken;
+      if (!token) {
+        throw new Error('인증이 필요합니다.');
+      }
+
       try {
         // Extract path from URL
         const urlObj = new URL(url);
         const pathSegments = urlObj.pathname.split('/');
-        const path = pathSegments.slice(-3).join('/'); // year/month/filename
+        const fileId = pathSegments[pathSegments.length - 1]; // Extract file ID
 
         // Delete main file
-        const { error } = await supabase.storage.from(bucket).remove([path]);
+        const result = await storageApi.delete(token, fileId);
 
-        if (error) {
-          throw new Error(`Failed to delete file: ${error.message}`);
+        if (result.error) {
+          throw new Error(`Failed to delete file: ${result.error}`);
         }
-
-        // Also delete thumbnail if exists
-        const thumbPath = path.replace(/(\.[^.]+)$/, '-thumb$1');
-        await supabase.storage.from(bucket).remove([thumbPath]);
 
         toast.success('File deleted successfully');
       } catch (error) {
@@ -439,7 +438,7 @@ export function useFileUpload(options: UseFileUploadOptions) {
         throw error;
       }
     },
-    [bucket]
+    [workersTokens]
   );
 
   // ===================================================================

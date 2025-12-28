@@ -6,6 +6,8 @@
  * - 결제 포털 열기 (토스페이먼츠 빌링)
  * - 구독 취소, 플랜 변경
  *
+ * @migration Supabase -> Cloudflare Workers (완전 마이그레이션 완료)
+ *
  * @description
  * 사용자의 구독 및 결제 정보를 관리하는 통합 훅입니다.
  * 토스페이먼츠와 연동하여 결제 수단을 관리하고, 구독 플랜을 변경하거나
@@ -44,7 +46,7 @@
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { supabase } from '@/integrations/supabase/client'
+import { subscriptionsApi, paymentsApi, callWorkersApi } from '@/integrations/cloudflare/client'
 import { useAuth } from './useAuth'
 import { toast } from 'sonner'
 import type { SubscriptionWithPlan } from '@/types/subscription.types'
@@ -153,7 +155,7 @@ export function useBillingPortal(): BillingPortalData & {
   changePlan: (planId: string) => Promise<void>
   refetch: () => void
 } {
-  const { user } = useAuth()
+  const { user, workersTokens } = useAuth()
   const queryClient = useQueryClient()
 
   // 1. 현재 플랜 조회
@@ -165,46 +167,21 @@ export function useBillingPortal(): BillingPortalData & {
   } = useQuery({
     queryKey: billingKeys.user(user?.id || ''),
     queryFn: async () => {
-      if (!user) return null
+      if (!user || !workersTokens?.accessToken) return null
 
-      const { data, error } = await supabase
-        .from('subscriptions')
-        .select(`
-          *,
-          service:services (
-            id,
-            title,
-            slug,
-            image_url
-          ),
-          plan:subscription_plans (
-            id,
-            plan_name,
-            billing_cycle,
-            price,
-            features
-          ),
-          billing_key:billing_keys (
-            *
-          )
-        `)
-        .eq('user_id', user.id)
-        .eq('status', 'active')
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single()
+      const { data, error } = await subscriptionsApi.getCurrent(workersTokens.accessToken)
 
       if (error) {
-        if (error.code === 'PGRST116') {
-          // 구독이 없는 경우
+        // 구독이 없는 경우
+        if (error.includes('not found') || error.includes('없')) {
           return null
         }
-        throw error
+        throw new Error(error)
       }
 
       return data as unknown as SubscriptionWithPlan
     },
-    enabled: !!user,
+    enabled: !!user && !!workersTokens?.accessToken,
     staleTime: 2 * 60 * 1000, // 2분 캐싱
   })
 
@@ -216,29 +193,32 @@ export function useBillingPortal(): BillingPortalData & {
   } = useQuery({
     queryKey: billingKeys.invoices(user?.id || ''),
     queryFn: async () => {
-      if (!user) return []
+      if (!user || !workersTokens?.accessToken) return []
 
-      const { data, error } = await supabase
-        .from('subscription_payments')
-        .select('*')
-        .eq('subscription_id', currentPlan?.id || '')
-        .order('created_at', { ascending: false })
-        .limit(12) // 최근 12개월
+      const { data, error } = await paymentsApi.history(workersTokens.accessToken, {
+        subscriptionId: currentPlan?.id || '',
+        limit: 12,
+      })
 
-      if (error) throw error
+      if (error) throw new Error(error)
 
       // 인보이스 형식으로 변환
-      return data.map((payment) => ({
+      const payments = data as Array<{
+        id: string;
+        amount: number;
+        status: string;
+        created_at: string;
+      }>
+      return payments.map((payment) => ({
         id: payment.id,
         invoice_number: `INV-${payment.id.slice(0, 8).toUpperCase()}`,
         amount: payment.amount,
         status: payment.status as 'pending' | 'paid' | 'failed' | 'cancelled',
         billing_date: payment.created_at || '',
         paid_at: payment.status === 'success' ? payment.created_at : null,
-        // PDF URL: Edge Function 또는 PDF 생성 서비스 URL
-        // 예시: `/api/invoices/${payment.id}/pdf` 또는 Supabase Storage URL
+        // PDF URL: Workers API 엔드포인트
         pdf_url: payment.status === 'success'
-          ? `/api/invoices/${payment.id}/pdf`
+          ? `/api/v1/invoices/${payment.id}/pdf`
           : null,
         items: [
           {
@@ -250,7 +230,7 @@ export function useBillingPortal(): BillingPortalData & {
         ],
       })) as Invoice[]
     },
-    enabled: !!user && !!currentPlan,
+    enabled: !!user && !!currentPlan && !!workersTokens?.accessToken,
     staleTime: 5 * 60 * 1000, // 5분 캐싱
   })
 
@@ -275,7 +255,7 @@ export function useBillingPortal(): BillingPortalData & {
         created_at: billingKey.created_at || '',
       } as PaymentMethod
     },
-    enabled: !!user && !!currentPlan,
+    enabled: !!user && !!currentPlan && !!workersTokens?.accessToken,
     staleTime: 5 * 60 * 1000, // 5분 캐싱
   })
 
@@ -307,22 +287,18 @@ export function useBillingPortal(): BillingPortalData & {
   // 5. 구독 취소 mutation
   const cancelMutation = useMutation({
     mutationFn: async () => {
-      if (!user || !currentPlan) {
+      if (!user || !currentPlan || !workersTokens?.accessToken) {
         throw new Error('활성 구독이 없습니다.')
       }
 
       // 구독 취소 (기간 종료 시 취소)
-      const { data, error } = await supabase
-        .from('subscriptions')
-        .update({
-          cancel_at_period_end: true,
-          cancelled_at: new Date().toISOString(),
-        })
-        .eq('id', currentPlan.id)
-        .select()
-        .single()
+      const { data, error } = await subscriptionsApi.cancel(
+        workersTokens.accessToken,
+        currentPlan.id,
+        { cancel_immediately: false }
+      )
 
-      if (error) throw error
+      if (error) throw new Error(error)
       return data
     },
     onSuccess: () => {
@@ -338,22 +314,18 @@ export function useBillingPortal(): BillingPortalData & {
   // 6. 플랜 변경 mutation
   const changePlanMutation = useMutation({
     mutationFn: async (newPlanId: string) => {
-      if (!user || !currentPlan) {
+      if (!user || !currentPlan || !workersTokens?.accessToken) {
         throw new Error('활성 구독이 없습니다.')
       }
 
       // 플랜 변경
-      const { data, error } = await supabase
-        .from('subscriptions')
-        .update({
-          plan_id: newPlanId,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', currentPlan.id)
-        .select()
-        .single()
+      const { data, error } = await subscriptionsApi.changePlan(
+        workersTokens.accessToken,
+        currentPlan.id,
+        { new_plan_id: newPlanId }
+      )
 
-      if (error) throw error
+      if (error) throw new Error(error)
       return data
     },
     onSuccess: () => {

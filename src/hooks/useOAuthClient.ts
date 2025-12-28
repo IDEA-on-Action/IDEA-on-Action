@@ -5,7 +5,9 @@
  * - PKCE (Proof Key for Code Exchange) 기반 인증
  * - 토큰 자동 갱신 (만료 5분 전)
  * - localStorage 토큰 관리
- * - Supabase Auth와 독립적으로 작동 (Minu 서비스 전용)
+ * - Cloudflare Workers Auth와 연동
+ *
+ * @migration Supabase -> Cloudflare Workers (완전 마이그레이션 완료)
  *
  * @description
  * PKCE 플로우를 사용하여 안전한 OAuth 2.0 인증을 구현합니다.
@@ -43,7 +45,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react'
-import { supabase } from '@/integrations/supabase/client'
+import { callWorkersApi } from '@/integrations/cloudflare/client'
 
 // =====================================================
 // Types
@@ -61,18 +63,6 @@ interface OAuthSubscription {
   plan_name: string
   status: string
   current_period_end: string
-}
-
-interface OAuthTokens {
-  access_token: string
-  refresh_token: string
-  expires_at: number // Unix timestamp (milliseconds)
-}
-
-interface PKCEChallenge {
-  code_verifier: string
-  code_challenge: string
-  state: string
 }
 
 interface UseOAuthClientReturn {
@@ -195,7 +185,7 @@ export function useOAuthClient(): UseOAuthClientReturn {
     setUser(null)
     setSubscription(null)
 
-    console.log('✅ 로그아웃 완료')
+    console.log('로그아웃 완료')
   }, [])
 
   /**
@@ -210,8 +200,13 @@ export function useOAuthClient(): UseOAuthClientReturn {
     }
 
     try {
-      // OAuth Token 엔드포인트 호출 (Supabase Edge Function)
-      const { data, error } = await supabase.functions.invoke('oauth-token', {
+      // Workers OAuth Token 엔드포인트 호출
+      const { data, error } = await callWorkersApi<{
+        access_token: string
+        refresh_token: string
+        expires_in: number
+      }>('/auth/oauth/token', {
+        method: 'POST',
         body: {
           grant_type: 'refresh_token',
           refresh_token: refreshTokenValue,
@@ -220,8 +215,8 @@ export function useOAuthClient(): UseOAuthClientReturn {
       })
 
       if (error) {
-        console.error('토큰 갱신 Edge Function 에러:', error)
-        throw error
+        console.error('토큰 갱신 에러:', error)
+        throw new Error(error)
       }
 
       if (data && data.access_token) {
@@ -234,7 +229,7 @@ export function useOAuthClient(): UseOAuthClientReturn {
         }
         localStorage.setItem(OAUTH_STORAGE_KEYS.EXPIRES_AT, expiresAt.toString())
 
-        console.log('✅ 토큰 갱신 완료')
+        console.log('토큰 갱신 완료')
       } else {
         throw new Error('토큰 갱신 응답이 유효하지 않습니다.')
       }
@@ -269,12 +264,12 @@ export function useOAuthClient(): UseOAuthClientReturn {
         scope: 'profile subscription:read subscription:write',
       })
 
-      // OAuth Authorization 엔드포인트 URL (Supabase Edge Function)
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+      // Workers OAuth Authorization 엔드포인트 URL
+      const workersUrl = import.meta.env.VITE_WORKERS_API_URL || 'https://api.ideaonaction.ai'
       const authUrl = import.meta.env.VITE_OAUTH_AUTHORIZE_URL ||
-        `${supabaseUrl}/functions/v1/oauth-authorize?${params}`
+        `${workersUrl}/auth/oauth/authorize?${params}`
 
-      console.log('🔐 OAuth 로그인 시작:', authUrl)
+      console.log('OAuth 로그인 시작:', authUrl)
       window.location.href = authUrl
     })
   }, [])
@@ -298,8 +293,13 @@ export function useOAuthClient(): UseOAuthClientReturn {
       }
 
       try {
-        // OAuth Token 엔드포인트 호출 (Supabase Edge Function)
-        const { data, error } = await supabase.functions.invoke('oauth-token', {
+        // Workers OAuth Token 엔드포인트 호출
+        const { data, error } = await callWorkersApi<{
+          access_token: string
+          refresh_token: string
+          expires_in: number
+        }>('/auth/oauth/token', {
+          method: 'POST',
           body: {
             grant_type: 'authorization_code',
             code,
@@ -310,8 +310,8 @@ export function useOAuthClient(): UseOAuthClientReturn {
         })
 
         if (error) {
-          console.error('OAuth 토큰 교환 Edge Function 에러:', error)
-          throw error
+          console.error('OAuth 토큰 교환 에러:', error)
+          throw new Error(error)
         }
 
         if (data && data.access_token) {
@@ -355,7 +355,7 @@ export function useOAuthClient(): UseOAuthClientReturn {
           localStorage.removeItem(OAUTH_STORAGE_KEYS.PKCE_VERIFIER)
           localStorage.removeItem(OAUTH_STORAGE_KEYS.PKCE_STATE)
 
-          console.log('✅ OAuth 로그인 완료')
+          console.log('OAuth 로그인 완료')
         } else {
           throw new Error('OAuth 토큰 응답이 유효하지 않습니다.')
         }
@@ -421,7 +421,7 @@ export function useOAuthClient(): UseOAuthClientReturn {
 
       // 만료 5분 전이면 갱신
       if (isTokenExpired(expiresAt, TOKEN_REFRESH_THRESHOLD)) {
-        console.log('🔄 토큰 자동 갱신 시작...')
+        console.log('토큰 자동 갱신 시작...')
         refreshToken()
       }
     }

@@ -4,11 +4,13 @@
  * 임베딩 기반 의미론적 검색 기능
  *
  * @module hooks/useRAGSearch
+ * @migration Supabase → Cloudflare Workers (완전 마이그레이션 완료)
  */
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useMutation } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { ragApi } from '@/integrations/cloudflare/client';
+import { useAuth } from '@/hooks/useAuth';
 import { hybridSearch } from '@/lib/rag/hybrid-search';
 import { rankResults } from '@/lib/rag/ranking';
 
@@ -216,6 +218,10 @@ export function useRAGSearch(options?: UseRAGSearchOptions): UseRAGSearchReturn 
     enableRanking = false,
   } = options || {};
 
+  // Workers 인증 토큰
+  const { workersTokens } = useAuth();
+  const token = workersTokens?.accessToken;
+
   // ============================================================================
   // 상태
   // ============================================================================
@@ -246,25 +252,24 @@ export function useRAGSearch(options?: UseRAGSearchOptions): UseRAGSearchReturn 
 
   const mutation = useMutation({
     mutationFn: async (request: SearchRequest) => {
-      // Edge Function 호출
-      const { data, error } = await supabase.functions.invoke('rag-search/query', {
-        body: {
-          query: request.query,
-          service_id: request.serviceId || null,
-          limit: request.limit || 5,
-          threshold: request.threshold || 0.7,
-        },
+      // Workers API 호출
+      const result = await ragApi.search(token || null, {
+        query: request.query,
+        limit: request.limit || 5,
+        threshold: request.threshold || 0.7,
+        filters: request.serviceId ? { service_id: request.serviceId } : undefined,
+        searchType: 'vector',
       });
 
-      if (error) {
-        console.error('RAG search error:', error);
-        throw new Error(`검색에 실패했습니다: ${error.message}`);
+      if (result.error) {
+        console.error('RAG search error:', result.error);
+        throw new Error(`검색에 실패했습니다: ${result.error}`);
       }
 
-      const response = data as SearchAPIResponse;
+      const response = result.data as SearchAPIResponse;
 
-      if (!response.success || !response.data) {
-        throw new Error(response.error?.message || '검색 결과를 가져오는데 실패했습니다.');
+      if (!response?.success || !response?.data) {
+        throw new Error(response?.error?.message || '검색 결과를 가져오는데 실패했습니다.');
       }
 
       return response.data.results.map(dbToRAGSearchResult);

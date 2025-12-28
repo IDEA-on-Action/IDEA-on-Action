@@ -1,33 +1,30 @@
+/**
+ * @migration Supabase → Cloudflare Workers (완전 마이그레이션 완료)
+ */
 import { useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useSupabaseQuery, useSupabaseMutation, supabaseQuery } from '@/lib/react-query';
+import { callWorkersApi } from '@/integrations/cloudflare/client';
+import { useAuth } from '@/hooks/useAuth';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import type { LabItem, LabItemInsert, LabItemUpdate, LabCategory, LabStatus } from '@/types/cms.types';
 
 /**
  * Hook to fetch all lab items
  */
 export const useLabItems = () => {
-  return useSupabaseQuery<LabItem[]>({
+  return useQuery<LabItem[]>({
     queryKey: ['lab_items'],
     queryFn: async () => {
-      return await supabaseQuery(
-        async () => {
-          const result = await supabase
-            .from('lab_items')
-            .select('*')
-            .order('created_at', { ascending: false });
-          return { data: result.data, error: result.error };
-        },
-        {
-          table: 'lab_items',
-          operation: 'Lab 목록 조회',
-          fallbackValue: [],
-        }
+      const response = await callWorkersApi<LabItem[]>('/api/v1/lab');
+      if (response.error) {
+        console.error('Lab 목록 조회 실패:', response.error);
+        return [];
+      }
+      // created_at DESC 정렬
+      const items = response.data || [];
+      return items.sort((a, b) =>
+        new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
       );
     },
-    table: 'lab_items',
-    operation: 'Lab 목록 조회',
-    fallbackValue: [],
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 };
@@ -36,28 +33,16 @@ export const useLabItems = () => {
  * Hook to fetch a single lab item by ID
  */
 export const useLabItem = (id: string) => {
-  return useSupabaseQuery<LabItem>({
+  return useQuery<LabItem | null>({
     queryKey: ['lab_items', id],
     queryFn: async () => {
-      return await supabaseQuery(
-        async () => {
-          const result = await supabase
-            .from('lab_items')
-            .select('*')
-            .eq('id', id)
-            .single();
-          return { data: result.data, error: result.error };
-        },
-        {
-          table: 'lab_items',
-          operation: 'Lab 상세 조회',
-          fallbackValue: null,
-        }
-      );
+      const response = await callWorkersApi<LabItem>(`/api/v1/lab/${id}`);
+      if (response.error) {
+        console.error('Lab 상세 조회 실패:', response.error);
+        return null;
+      }
+      return response.data;
     },
-    table: 'lab_items',
-    operation: 'Lab 상세 조회',
-    fallbackValue: null,
     enabled: !!id,
     staleTime: 5 * 60 * 1000,
   });
@@ -67,28 +52,16 @@ export const useLabItem = (id: string) => {
  * Hook to fetch a single lab item by slug
  */
 export const useLabItemBySlug = (slug: string) => {
-  return useSupabaseQuery<LabItem>({
+  return useQuery<LabItem | null>({
     queryKey: ['lab_items', 'slug', slug],
     queryFn: async () => {
-      return await supabaseQuery(
-        async () => {
-          const result = await supabase
-            .from('lab_items')
-            .select('*')
-            .eq('slug', slug)
-            .single();
-          return { data: result.data, error: result.error };
-        },
-        {
-          table: 'lab_items',
-          operation: 'Lab slug 조회',
-          fallbackValue: null,
-        }
-      );
+      const response = await callWorkersApi<LabItem>(`/api/v1/lab/slug/${slug}`);
+      if (response.error) {
+        console.error('Lab slug 조회 실패:', response.error);
+        return null;
+      }
+      return response.data;
     },
-    table: 'lab_items',
-    operation: 'Lab slug 조회',
-    fallbackValue: null,
     enabled: !!slug,
     staleTime: 5 * 60 * 1000,
   });
@@ -98,33 +71,21 @@ export const useLabItemBySlug = (slug: string) => {
  * Hook to fetch lab items by category
  */
 export const useLabItemsByCategory = (category?: LabCategory) => {
-  return useSupabaseQuery<LabItem[]>({
+  return useQuery<LabItem[]>({
     queryKey: ['lab_items', 'category', category],
     queryFn: async () => {
-      return await supabaseQuery(
-        async () => {
-          let query = supabase
-            .from('lab_items')
-            .select('*')
-            .order('created_at', { ascending: false });
-
-          if (category) {
-            query = query.eq('category', category);
-          }
-
-          const result = await query;
-          return { data: result.data, error: result.error };
-        },
-        {
-          table: 'lab_items',
-          operation: 'Lab 카테고리별 조회',
-          fallbackValue: [],
-        }
+      const query = category ? `?category=${category}` : '';
+      const response = await callWorkersApi<LabItem[]>(`/api/v1/lab${query}`);
+      if (response.error) {
+        console.error('Lab 카테고리별 조회 실패:', response.error);
+        return [];
+      }
+      // created_at DESC 정렬
+      const items = response.data || [];
+      return items.sort((a, b) =>
+        new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
       );
     },
-    table: 'lab_items',
-    operation: 'Lab 카테고리별 조회',
-    fallbackValue: [],
     staleTime: 5 * 60 * 1000,
   });
 };
@@ -133,33 +94,21 @@ export const useLabItemsByCategory = (category?: LabCategory) => {
  * Hook to fetch lab items by status
  */
 export const useLabItemsByStatus = (status?: LabStatus) => {
-  return useSupabaseQuery<LabItem[]>({
+  return useQuery<LabItem[]>({
     queryKey: ['lab_items', 'status', status],
     queryFn: async () => {
-      return await supabaseQuery(
-        async () => {
-          let query = supabase
-            .from('lab_items')
-            .select('*')
-            .order('created_at', { ascending: false });
-
-          if (status) {
-            query = query.eq('status', status);
-          }
-
-          const result = await query;
-          return { data: result.data, error: result.error };
-        },
-        {
-          table: 'lab_items',
-          operation: 'Lab 상태별 조회',
-          fallbackValue: [],
-        }
+      const query = status ? `?status=${status}` : '';
+      const response = await callWorkersApi<LabItem[]>(`/api/v1/lab${query}`);
+      if (response.error) {
+        console.error('Lab 상태별 조회 실패:', response.error);
+        return [];
+      }
+      // created_at DESC 정렬
+      const items = response.data || [];
+      return items.sort((a, b) =>
+        new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
       );
     },
-    table: 'lab_items',
-    operation: 'Lab 상태별 조회',
-    fallbackValue: [],
     staleTime: 5 * 60 * 1000,
   });
 };
@@ -168,28 +117,20 @@ export const useLabItemsByStatus = (status?: LabStatus) => {
  * Hook to fetch published lab items
  */
 export const usePublishedLabItems = () => {
-  return useSupabaseQuery<LabItem[]>({
+  return useQuery<LabItem[]>({
     queryKey: ['lab_items', 'published'],
     queryFn: async () => {
-      return await supabaseQuery(
-        async () => {
-          const result = await supabase
-            .from('lab_items')
-            .select('*')
-            .eq('published', true)
-            .order('created_at', { ascending: false });
-          return { data: result.data, error: result.error };
-        },
-        {
-          table: 'lab_items',
-          operation: 'Lab published 조회',
-          fallbackValue: [],
-        }
+      const response = await callWorkersApi<LabItem[]>('/api/v1/lab?published=true');
+      if (response.error) {
+        console.error('Lab published 조회 실패:', response.error);
+        return [];
+      }
+      // created_at DESC 정렬
+      const items = response.data || [];
+      return items.sort((a, b) =>
+        new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
       );
     },
-    table: 'lab_items',
-    operation: 'Lab published 조회',
-    fallbackValue: [],
     staleTime: 5 * 60 * 1000,
   });
 };
@@ -199,20 +140,22 @@ export const usePublishedLabItems = () => {
  */
 export const useCreateLabItem = () => {
   const queryClient = useQueryClient();
+  const { workersTokens } = useAuth();
 
-  return useSupabaseMutation<LabItem, LabItemInsert>({
+  return useMutation<LabItem, Error, LabItemInsert>({
     mutationFn: async (item: LabItemInsert) => {
-      const { data, error } = await supabase
-        .from('lab_items')
-        .insert([item])
-        .select()
-        .single();
+      const response = await callWorkersApi<LabItem>('/api/v1/lab', {
+        method: 'POST',
+        token: workersTokens?.accessToken,
+        body: item,
+      });
 
-      if (error) throw error;
-      return data as LabItem;
+      if (response.error) {
+        throw new Error(response.error);
+      }
+
+      return response.data as LabItem;
     },
-    table: 'lab_items',
-    operation: 'Lab 생성',
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['lab_items'] });
     },
@@ -224,21 +167,22 @@ export const useCreateLabItem = () => {
  */
 export const useUpdateLabItem = () => {
   const queryClient = useQueryClient();
+  const { workersTokens } = useAuth();
 
-  return useSupabaseMutation<LabItem, { id: string; updates: LabItemUpdate }>({
+  return useMutation<LabItem, Error, { id: string; updates: LabItemUpdate }>({
     mutationFn: async ({ id, updates }: { id: string; updates: LabItemUpdate }) => {
-      const { data, error } = await supabase
-        .from('lab_items')
-        .update(updates)
-        .eq('id', id)
-        .select()
-        .single();
+      const response = await callWorkersApi<LabItem>(`/api/v1/lab/${id}`, {
+        method: 'PATCH',
+        token: workersTokens?.accessToken,
+        body: updates,
+      });
 
-      if (error) throw error;
-      return data as LabItem;
+      if (response.error) {
+        throw new Error(response.error);
+      }
+
+      return response.data as LabItem;
     },
-    table: 'lab_items',
-    operation: 'Lab 수정',
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['lab_items'] });
       queryClient.invalidateQueries({ queryKey: ['lab_items', data.id] });
@@ -252,19 +196,21 @@ export const useUpdateLabItem = () => {
  */
 export const useDeleteLabItem = () => {
   const queryClient = useQueryClient();
+  const { workersTokens } = useAuth();
 
-  return useSupabaseMutation<string, string>({
+  return useMutation<string, Error, string>({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from('lab_items')
-        .delete()
-        .eq('id', id);
+      const response = await callWorkersApi(`/api/v1/lab/${id}`, {
+        method: 'DELETE',
+        token: workersTokens?.accessToken,
+      });
 
-      if (error) throw error;
+      if (response.error) {
+        throw new Error(response.error);
+      }
+
       return id;
     },
-    table: 'lab_items',
-    operation: 'Lab 삭제',
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['lab_items'] });
     },

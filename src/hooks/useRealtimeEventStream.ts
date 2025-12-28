@@ -1,16 +1,17 @@
 /**
  * useRealtimeEventStream Hook
  *
- * service_events, service_issues 테이블의 실시간 구독 훅
+ * Workers WebSocket을 통한 service_events, service_issues 실시간 구독 훅
  * 필터링, 읽지 않은 항목 카운트, 메모리 제한 기능을 제공합니다.
  *
+ * @migration Supabase → Cloudflare Workers (완전 마이그레이션 완료)
  * @module hooks/useRealtimeEventStream
  */
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { RealtimeChannel, REALTIME_SUBSCRIBE_STATES } from '@supabase/supabase-js';
-import { supabase } from '@/integrations/supabase/client';
+import { realtimeApi } from '@/integrations/cloudflare/client';
+import { useAuth } from '@/hooks/useAuth';
 import type {
   ServiceEvent,
   ServiceIssue,
@@ -147,8 +148,8 @@ export function useRealtimeEventStream(
   } = options;
 
   const queryClient = useQueryClient();
-  const eventChannelRef = useRef<RealtimeChannel | null>(null);
-  const issueChannelRef = useRef<RealtimeChannel | null>(null);
+  const { user } = useAuth();
+  const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // 상태 관리
@@ -299,40 +300,63 @@ export function useRealtimeEventStream(
       reconnectTimeoutRef.current = null;
     }
 
-    if (eventChannelRef.current) {
-      supabase.removeChannel(eventChannelRef.current);
-      eventChannelRef.current = null;
-    }
-
-    if (issueChannelRef.current) {
-      supabase.removeChannel(issueChannelRef.current);
-      issueChannelRef.current = null;
+    if (wsRef.current) {
+      wsRef.current.close();
+      wsRef.current = null;
     }
 
     setChannelStates({ events: 'disconnected', issues: 'disconnected' });
   }, []);
 
-  // 이벤트 채널 연결
-  const connectEventChannel = useCallback(() => {
-    if (!filters.enableEvents) return;
-
-    if (eventChannelRef.current) {
-      supabase.removeChannel(eventChannelRef.current);
+  // WebSocket 연결 (이벤트 + 이슈 통합)
+  const connect = useCallback(() => {
+    if (wsRef.current) {
+      wsRef.current.close();
     }
 
-    setChannelStates((prev) => ({ ...prev, events: 'connecting' }));
+    setChannelStates({ events: 'connecting', issues: 'connecting' });
 
-    const channel = supabase
-      .channel('realtime-event-stream-events')
-      .on<ServiceEvent>(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'service_events',
+    // Workers WebSocket 연결
+    const ws = realtimeApi.connect('event-stream', user?.id);
+    wsRef.current = ws;
+
+    ws.onopen = () => {
+      console.log('[EventStream] WebSocket 연결됨');
+
+      // 구독 요청 (이벤트 + 이슈)
+      const channels: string[] = [];
+      if (filters.enableEvents) channels.push('service_events');
+      if (filters.enableIssues) channels.push('service_issues');
+
+      ws.send(JSON.stringify({
+        type: 'subscribe',
+        channels,
+        filters: {
+          serviceFilter: filters.serviceFilter,
+          severityFilter: filters.severityFilter,
+          eventTypeFilter: filters.eventTypeFilter,
         },
-        (payload) => {
-          const event = payload.new as ServiceEvent;
+      }));
+    };
+
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+
+        // 연결 확인 응답
+        if (data.type === 'subscribed') {
+          if (filters.enableEvents) {
+            setChannelStates((prev) => ({ ...prev, events: 'connected' }));
+          }
+          if (filters.enableIssues) {
+            setChannelStates((prev) => ({ ...prev, issues: 'connected' }));
+          }
+          return;
+        }
+
+        // 이벤트 수신
+        if (data.type === 'service_event') {
+          const event = data.payload as ServiceEvent;
 
           if (matchesEventFilter(event)) {
             const streamItem: StreamItem = {
@@ -350,50 +374,11 @@ export function useRealtimeEventStream(
             queryKey: serviceEventKeys.all,
           });
         }
-      )
-      .subscribe((status, err) => {
-        switch (status) {
-          case REALTIME_SUBSCRIBE_STATES.SUBSCRIBED:
-            setChannelStates((prev) => ({ ...prev, events: 'connected' }));
-            break;
-          case REALTIME_SUBSCRIBE_STATES.CLOSED:
-            setChannelStates((prev) => ({ ...prev, events: 'disconnected' }));
-            break;
-          case REALTIME_SUBSCRIBE_STATES.CHANNEL_ERROR:
-          case REALTIME_SUBSCRIBE_STATES.TIMED_OUT:
-            setChannelStates((prev) => ({ ...prev, events: 'error' }));
-            updateConnectionState({
-              error: err ? new Error(String(err)) : new Error('이벤트 채널 에러'),
-            });
-            break;
-        }
-      });
 
-    eventChannelRef.current = channel;
-  }, [filters.enableEvents, matchesEventFilter, addItem, queryClient, updateConnectionState]);
-
-  // 이슈 채널 연결
-  const connectIssueChannel = useCallback(() => {
-    if (!filters.enableIssues) return;
-
-    if (issueChannelRef.current) {
-      supabase.removeChannel(issueChannelRef.current);
-    }
-
-    setChannelStates((prev) => ({ ...prev, issues: 'connecting' }));
-
-    const channel = supabase
-      .channel('realtime-event-stream-issues')
-      .on<ServiceIssue>(
-        'postgres_changes',
-        {
-          event: '*', // INSERT, UPDATE, DELETE 모두
-          schema: 'public',
-          table: 'service_issues',
-        },
-        (payload) => {
-          const issue = payload.new as ServiceIssue;
-          const eventType = payload.eventType;
+        // 이슈 수신
+        if (data.type === 'service_issue') {
+          const issue = data.payload as ServiceIssue;
+          const eventType = data.eventType;
 
           // INSERT 또는 UPDATE 시에만 스트림에 추가
           if ((eventType === 'INSERT' || eventType === 'UPDATE') && matchesIssueFilter(issue)) {
@@ -412,33 +397,36 @@ export function useRealtimeEventStream(
             queryKey: serviceIssueKeys.all,
           });
         }
-      )
-      .subscribe((status, err) => {
-        switch (status) {
-          case REALTIME_SUBSCRIBE_STATES.SUBSCRIBED:
-            setChannelStates((prev) => ({ ...prev, issues: 'connected' }));
-            break;
-          case REALTIME_SUBSCRIBE_STATES.CLOSED:
-            setChannelStates((prev) => ({ ...prev, issues: 'disconnected' }));
-            break;
-          case REALTIME_SUBSCRIBE_STATES.CHANNEL_ERROR:
-          case REALTIME_SUBSCRIBE_STATES.TIMED_OUT:
-            setChannelStates((prev) => ({ ...prev, issues: 'error' }));
-            updateConnectionState({
-              error: err ? new Error(String(err)) : new Error('이슈 채널 에러'),
-            });
-            break;
-        }
+      } catch (e) {
+        console.error('[EventStream] WebSocket 메시지 파싱 에러:', e);
+      }
+    };
+
+    ws.onerror = (error) => {
+      console.error('[EventStream] WebSocket 에러:', error);
+      setChannelStates({ events: 'error', issues: 'error' });
+      updateConnectionState({
+        error: new Error('WebSocket 연결 오류'),
       });
+    };
 
-    issueChannelRef.current = channel;
-  }, [filters.enableIssues, matchesIssueFilter, addItem, queryClient, updateConnectionState]);
-
-  // 전체 연결
-  const connect = useCallback(() => {
-    connectEventChannel();
-    connectIssueChannel();
-  }, [connectEventChannel, connectIssueChannel]);
+    ws.onclose = () => {
+      console.log('[EventStream] WebSocket 연결 종료');
+      setChannelStates({ events: 'disconnected', issues: 'disconnected' });
+    };
+  }, [
+    user?.id,
+    filters.enableEvents,
+    filters.enableIssues,
+    filters.serviceFilter,
+    filters.severityFilter,
+    filters.eventTypeFilter,
+    matchesEventFilter,
+    matchesIssueFilter,
+    addItem,
+    queryClient,
+    updateConnectionState,
+  ]);
 
   // 재연결 로직
   useEffect(() => {
@@ -519,31 +507,31 @@ export function useRealtimeEventStream(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // 필터 변경 시 채널 재연결
+  // 필터 변경 시 재연결
   useEffect(() => {
-    // enableEvents 또는 enableIssues 변경 시 해당 채널 재연결
-    if (filters.enableEvents && channelStates.events === 'disconnected') {
-      connectEventChannel();
-    } else if (!filters.enableEvents && eventChannelRef.current) {
-      supabase.removeChannel(eventChannelRef.current);
-      eventChannelRef.current = null;
-      setChannelStates((prev) => ({ ...prev, events: 'disconnected' }));
-    }
+    // enableEvents 또는 enableIssues 변경 시 재연결
+    if (wsRef.current && (filters.enableEvents || filters.enableIssues)) {
+      // 구독 업데이트 요청
+      const channels: string[] = [];
+      if (filters.enableEvents) channels.push('service_events');
+      if (filters.enableIssues) channels.push('service_issues');
 
-    if (filters.enableIssues && channelStates.issues === 'disconnected') {
-      connectIssueChannel();
-    } else if (!filters.enableIssues && issueChannelRef.current) {
-      supabase.removeChannel(issueChannelRef.current);
-      issueChannelRef.current = null;
-      setChannelStates((prev) => ({ ...prev, issues: 'disconnected' }));
+      wsRef.current.send(JSON.stringify({
+        type: 'update_subscription',
+        channels,
+        filters: {
+          serviceFilter: filters.serviceFilter,
+          severityFilter: filters.severityFilter,
+          eventTypeFilter: filters.eventTypeFilter,
+        },
+      }));
     }
   }, [
     filters.enableEvents,
     filters.enableIssues,
-    channelStates.events,
-    channelStates.issues,
-    connectEventChannel,
-    connectIssueChannel,
+    filters.serviceFilter,
+    filters.severityFilter,
+    filters.eventTypeFilter,
   ]);
 
   return {

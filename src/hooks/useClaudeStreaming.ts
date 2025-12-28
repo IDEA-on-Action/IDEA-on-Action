@@ -8,10 +8,11 @@
  * - 에러 핸들링
  *
  * @module hooks/useClaudeStreaming
+ * @migration Supabase → Cloudflare Workers (완전 마이그레이션 완료)
  */
 
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 import {
   createClaudeError,
   extractTextFromMessage,
@@ -49,8 +50,8 @@ import type {
 // Constants
 // ============================================================================
 
-/** Edge Function URL */
-const CLAUDE_EDGE_FUNCTION_URL = '/functions/v1/claude-chat';
+/** Workers API URL */
+const WORKERS_API_URL = import.meta.env.VITE_WORKERS_API_URL || 'https://api.ideaonaction.ai';
 
 /** 초기 상태 */
 const initialState: ClaudeConversationState = {
@@ -169,6 +170,10 @@ export function useClaudeStreaming(options: UseClaudeChatOptions = {}): UseClaud
     onComplete,
     onError,
   } = options;
+
+  // Workers 인증 토큰
+  const { workersTokens } = useAuth();
+  const authToken = workersTokens?.accessToken;
 
   // 상태
   const [state, setState] = useState<ClaudeConversationState>({
@@ -432,22 +437,17 @@ export function useClaudeStreaming(options: UseClaudeChatOptions = {}): UseClaud
       }));
 
       try {
-        // Supabase 세션 토큰 가져오기
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
-
-        if (!session?.access_token) {
+        // Workers 인증 토큰 확인
+        if (!authToken) {
           throw createClaudeError('CLAUDE_002', '로그인이 필요합니다');
         }
 
-        // Edge Function 호출
-        const baseUrl = import.meta.env.VITE_SUPABASE_URL;
-        const response = await fetch(`${baseUrl}${CLAUDE_EDGE_FUNCTION_URL}`, {
+        // Workers API 호출
+        const response = await fetch(`${WORKERS_API_URL}/api/v1/ai/chat${streaming ? '/stream' : ''}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${session.access_token}`,
+            Authorization: `Bearer ${authToken}`,
           },
           body: JSON.stringify({
             model,
@@ -617,6 +617,7 @@ export function useClaudeStreaming(options: UseClaudeChatOptions = {}): UseClaud
       onToolUse,
       onComplete,
       onError,
+      authToken,
     ]
   );
 
@@ -690,6 +691,10 @@ export function useClaudeRequest(defaultOptions?: ClaudeRequestOptions) {
   const [error, setError] = useState<ClaudeError | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
+  // Workers 인증 토큰
+  const { workersTokens } = useAuth();
+  const authToken = workersTokens?.accessToken;
+
   const sendRequest = useCallback(
     async (
       content: string,
@@ -720,20 +725,17 @@ export function useClaudeRequest(defaultOptions?: ClaudeRequestOptions) {
       }, timeout);
 
       try {
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
-
-        if (!session?.access_token) {
+        // Workers 인증 토큰 확인
+        if (!authToken) {
           throw createClaudeError('CLAUDE_002', '로그인이 필요합니다');
         }
 
-        const baseUrl = import.meta.env.VITE_SUPABASE_URL;
-        const response = await fetch(`${baseUrl}${CLAUDE_EDGE_FUNCTION_URL}`, {
+        // Workers API 호출
+        const response = await fetch(`${WORKERS_API_URL}/api/v1/ai/chat`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${session.access_token}`,
+            Authorization: `Bearer ${authToken}`,
           },
           body: JSON.stringify({
             model,
@@ -785,7 +787,7 @@ export function useClaudeRequest(defaultOptions?: ClaudeRequestOptions) {
         abortControllerRef.current = null;
       }
     },
-    [defaultOptions]
+    [defaultOptions, authToken]
   );
 
   const cancel = useCallback(() => {

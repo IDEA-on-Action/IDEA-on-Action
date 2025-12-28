@@ -1,33 +1,26 @@
-import { useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useSupabaseQuery, useSupabaseMutation, supabaseQuery } from '@/lib/react-query';
+/**
+ * useProjects Hook
+ * @migration Supabase -> Cloudflare Workers (완전 마이그레이션 완료)
+ */
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { projectsApi } from '@/integrations/cloudflare/client';
+import { useAuth } from '@/hooks/useAuth';
 import type { Project } from '@/types/v2';
 
 /**
  * Hook to fetch all projects
  */
 export const useProjects = () => {
-  return useSupabaseQuery<Project[]>({
+  return useQuery<Project[]>({
     queryKey: ['projects'],
     queryFn: async () => {
-      return await supabaseQuery(
-        async () => {
-          const result = await supabase
-            .from('projects')
-            .select('*')
-            .order('created_at', { ascending: false });
-          return { data: result.data, error: result.error };
-        },
-        {
-          table: 'projects',
-          operation: 'Project 목록 조회',
-          fallbackValue: [],
-        }
-      );
+      const result = await projectsApi.list();
+      if (result.error) {
+        console.error('Projects 조회 오류:', result.error);
+        return [];
+      }
+      return (result.data as Project[]) || [];
     },
-    table: 'projects',
-    operation: 'Project 목록 조회',
-    fallbackValue: [],
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 };
@@ -36,28 +29,16 @@ export const useProjects = () => {
  * Hook to fetch a single project by slug
  */
 export const useProject = (slug: string) => {
-  return useSupabaseQuery<Project>({
+  return useQuery<Project | null>({
     queryKey: ['projects', slug],
     queryFn: async () => {
-      return await supabaseQuery(
-        async () => {
-          const result = await supabase
-            .from('projects')
-            .select('*')
-            .eq('slug', slug)
-            .single();
-          return { data: result.data, error: result.error };
-        },
-        {
-          table: 'projects',
-          operation: 'Project 상세 조회',
-          fallbackValue: null,
-        }
-      );
+      const result = await projectsApi.getBySlug(slug);
+      if (result.error) {
+        console.error('Project 상세 조회 오류:', result.error);
+        return null;
+      }
+      return (result.data as Project) || null;
     },
-    table: 'projects',
-    operation: 'Project 상세 조회',
-    fallbackValue: null,
     enabled: !!slug,
   });
 };
@@ -66,33 +47,16 @@ export const useProject = (slug: string) => {
  * Hook to fetch projects by status
  */
 export const useProjectsByStatus = (status?: Project['status']) => {
-  return useSupabaseQuery<Project[]>({
+  return useQuery<Project[]>({
     queryKey: ['projects', 'status', status],
     queryFn: async () => {
-      return await supabaseQuery(
-        async () => {
-          let query = supabase
-            .from('projects')
-            .select('*')
-            .order('created_at', { ascending: false });
-
-          if (status) {
-            query = query.eq('status', status);
-          }
-
-          const result = await query;
-          return { data: result.data, error: result.error };
-        },
-        {
-          table: 'projects',
-          operation: 'Project 상태별 조회',
-          fallbackValue: [],
-        }
-      );
+      const result = await projectsApi.list({ status: status || undefined });
+      if (result.error) {
+        console.error('Projects 상태별 조회 오류:', result.error);
+        return [];
+      }
+      return (result.data as Project[]) || [];
     },
-    table: 'projects',
-    operation: 'Project 상태별 조회',
-    fallbackValue: [],
     staleTime: 5 * 60 * 1000,
   });
 };
@@ -101,33 +65,16 @@ export const useProjectsByStatus = (status?: Project['status']) => {
  * Hook to fetch projects by category
  */
 export const useProjectsByCategory = (category?: string) => {
-  return useSupabaseQuery<Project[]>({
+  return useQuery<Project[]>({
     queryKey: ['projects', 'category', category],
     queryFn: async () => {
-      return await supabaseQuery(
-        async () => {
-          let query = supabase
-            .from('projects')
-            .select('*')
-            .order('created_at', { ascending: false });
-
-          if (category) {
-            query = query.eq('category', category);
-          }
-
-          const result = await query;
-          return { data: result.data, error: result.error };
-        },
-        {
-          table: 'projects',
-          operation: 'Project 카테고리별 조회',
-          fallbackValue: [],
-        }
-      );
+      const result = await projectsApi.list({ category: category || undefined });
+      if (result.error) {
+        console.error('Projects 카테고리별 조회 오류:', result.error);
+        return [];
+      }
+      return (result.data as Project[]) || [];
     },
-    table: 'projects',
-    operation: 'Project 카테고리별 조회',
-    fallbackValue: [],
     staleTime: 5 * 60 * 1000,
   });
 };
@@ -137,20 +84,19 @@ export const useProjectsByCategory = (category?: string) => {
  */
 export const useCreateProject = () => {
   const queryClient = useQueryClient();
+  const { workersTokens } = useAuth();
 
-  return useSupabaseMutation<Project, Omit<Project, 'id' | 'created_at' | 'updated_at'>>({
-    mutationFn: async (project: Omit<Project, 'id' | 'created_at' | 'updated_at'>) => {
-      const { data, error } = await supabase
-        .from('projects')
-        .insert([project])
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data as Project;
+  return useMutation<Project, Error, Omit<Project, 'id' | 'created_at' | 'updated_at'>>({
+    mutationFn: async (project) => {
+      if (!workersTokens?.accessToken) {
+        throw new Error('인증이 필요합니다');
+      }
+      const result = await projectsApi.create(workersTokens.accessToken, project);
+      if (result.error) {
+        throw new Error(result.error);
+      }
+      return result.data as Project;
     },
-    table: 'projects',
-    operation: 'Project 생성',
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['projects'] });
     },
@@ -162,21 +108,19 @@ export const useCreateProject = () => {
  */
 export const useUpdateProject = () => {
   const queryClient = useQueryClient();
+  const { workersTokens } = useAuth();
 
-  return useSupabaseMutation<Project, { id: string; updates: Partial<Project> }>({
-    mutationFn: async ({ id, updates }: { id: string; updates: Partial<Project> }) => {
-      const { data, error } = await supabase
-        .from('projects')
-        .update(updates)
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data as Project;
+  return useMutation<Project, Error, { id: string; updates: Partial<Project> }>({
+    mutationFn: async ({ id, updates }) => {
+      if (!workersTokens?.accessToken) {
+        throw new Error('인증이 필요합니다');
+      }
+      const result = await projectsApi.update(workersTokens.accessToken, id, updates);
+      if (result.error) {
+        throw new Error(result.error);
+      }
+      return result.data as Project;
     },
-    table: 'projects',
-    operation: 'Project 수정',
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['projects'] });
       queryClient.invalidateQueries({ queryKey: ['projects', data.slug] });
@@ -189,19 +133,19 @@ export const useUpdateProject = () => {
  */
 export const useDeleteProject = () => {
   const queryClient = useQueryClient();
+  const { workersTokens } = useAuth();
 
-  return useSupabaseMutation<string, string>({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from('projects')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
+  return useMutation<string, Error, string>({
+    mutationFn: async (id) => {
+      if (!workersTokens?.accessToken) {
+        throw new Error('인증이 필요합니다');
+      }
+      const result = await projectsApi.delete(workersTokens.accessToken, id);
+      if (result.error) {
+        throw new Error(result.error);
+      }
       return id;
     },
-    table: 'projects',
-    operation: 'Project 삭제',
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['projects'] });
     },

@@ -1,10 +1,15 @@
 /**
+ * useRevenue Hook
+ * @migration Supabase -> Cloudflare Workers (완전 마이그레이션 완료)
+ *
  * Phase 14 Week 2: 매출 분석 훅
  * 일/주/월별 매출, 서비스별 매출, KPI 조회
  */
 
 import { useQuery } from '@tanstack/react-query'
-import { supabase } from '@/integrations/supabase/client'
+import { callWorkersApi } from '@/integrations/cloudflare/client'
+import { useAuth } from './useAuth'
+import { devLog } from '@/lib/errors'
 
 // ============================================
 // 타입 정의
@@ -47,16 +52,24 @@ export function useRevenueByDate(
   endDate: Date,
   groupBy: 'day' | 'week' | 'month' = 'day'
 ) {
+  const { workersTokens } = useAuth()
+
   return useQuery({
     queryKey: ['revenue-by-date', startDate, endDate, groupBy],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc('get_revenue_by_date', {
-        start_date: startDate.toISOString(),
-        end_date: endDate.toISOString(),
-        group_by: groupBy,
-      })
+      const token = workersTokens?.accessToken
+      const url = `/api/v1/analytics/revenue/by-date?start_date=${startDate.toISOString()}&end_date=${endDate.toISOString()}&group_by=${groupBy}`
 
-      if (error) throw error
+      const { data, error } = await callWorkersApi<Array<{
+        date: string
+        total: number | string
+        count: number | string
+      }>>(url, { token })
+
+      if (error) {
+        devLog('Revenue by date error:', error)
+        return [] as RevenueByDate[]
+      }
 
       return (data || []).map((item) => ({
         date: item.date,
@@ -78,15 +91,25 @@ export function useRevenueByDate(
  * @param endDate - 종료 날짜
  */
 export function useRevenueByService(startDate: Date, endDate: Date) {
+  const { workersTokens } = useAuth()
+
   return useQuery({
     queryKey: ['revenue-by-service', startDate, endDate],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc('get_revenue_by_service', {
-        start_date: startDate.toISOString(),
-        end_date: endDate.toISOString(),
-      })
+      const token = workersTokens?.accessToken
+      const url = `/api/v1/analytics/revenue/by-service?start_date=${startDate.toISOString()}&end_date=${endDate.toISOString()}`
 
-      if (error) throw error
+      const { data, error } = await callWorkersApi<Array<{
+        service_id: string
+        service_name: string
+        total_revenue: number | string
+        order_count: number | string
+      }>>(url, { token })
+
+      if (error) {
+        devLog('Revenue by service error:', error)
+        return [] as RevenueByService[]
+      }
 
       return (data || []).map((item) => ({
         service_id: item.service_id,
@@ -109,25 +132,42 @@ export function useRevenueByService(startDate: Date, endDate: Date) {
  * @param endDate - 종료 날짜
  */
 export function useKPIs(startDate: Date, endDate: Date) {
+  const { workersTokens } = useAuth()
+
   return useQuery({
     queryKey: ['kpis', startDate, endDate],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc('get_kpis', {
-        start_date: startDate.toISOString(),
-        end_date: endDate.toISOString(),
-      })
+      const token = workersTokens?.accessToken
+      const url = `/api/v1/analytics/kpis?start_date=${startDate.toISOString()}&end_date=${endDate.toISOString()}`
 
-      if (error) throw error
+      const { data, error } = await callWorkersApi<{
+        total_revenue: number | string
+        order_count: number | string
+        average_order_value: number | string
+        conversion_rate: number | string
+        new_customers: number | string
+        returning_customers: number | string
+      }>(url, { token })
 
-      const kpi = data?.[0]
+      if (error) {
+        devLog('KPIs error:', error)
+        return {
+          totalRevenue: 0,
+          orderCount: 0,
+          averageOrderValue: 0,
+          conversionRate: 0,
+          newCustomers: 0,
+          returningCustomers: 0,
+        } as KPIs
+      }
 
       return {
-        totalRevenue: Number(kpi?.total_revenue) || 0,
-        orderCount: Number(kpi?.order_count) || 0,
-        averageOrderValue: Number(kpi?.average_order_value) || 0,
-        conversionRate: Number(kpi?.conversion_rate) || 0,
-        newCustomers: Number(kpi?.new_customers) || 0,
-        returningCustomers: Number(kpi?.returning_customers) || 0,
+        totalRevenue: Number(data?.total_revenue) || 0,
+        orderCount: Number(data?.order_count) || 0,
+        averageOrderValue: Number(data?.average_order_value) || 0,
+        conversionRate: Number(data?.conversion_rate) || 0,
+        newCustomers: Number(data?.new_customers) || 0,
+        returningCustomers: Number(data?.returning_customers) || 0,
       } as KPIs
     },
     staleTime: 10 * 60 * 1000, // 10분 캐싱
@@ -144,24 +184,33 @@ export function useKPIs(startDate: Date, endDate: Date) {
  * @param endDate - 종료 날짜
  */
 export function useTotalRevenue(startDate: Date, endDate: Date) {
+  const { workersTokens } = useAuth()
+
   return useQuery({
     queryKey: ['total-revenue', startDate, endDate],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('orders')
-        .select('total_amount')
-        .eq('status', 'completed')
-        .gte('created_at', startDate.toISOString())
-        .lte('created_at', endDate.toISOString())
+      const token = workersTokens?.accessToken
+      const url = `/api/v1/analytics/revenue/total?start_date=${startDate.toISOString()}&end_date=${endDate.toISOString()}`
 
-      if (error) throw error
+      const { data, error } = await callWorkersApi<{
+        total_revenue: number
+        order_count: number
+        average_order_value: number
+      }>(url, { token })
 
-      const totalRevenue = data.reduce((sum, order) => sum + order.total_amount, 0)
+      if (error) {
+        devLog('Total revenue error:', error)
+        return {
+          totalRevenue: 0,
+          orderCount: 0,
+          averageOrderValue: 0,
+        }
+      }
 
       return {
-        totalRevenue,
-        orderCount: data.length,
-        averageOrderValue: data.length > 0 ? totalRevenue / data.length : 0,
+        totalRevenue: data?.total_revenue || 0,
+        orderCount: data?.order_count || 0,
+        averageOrderValue: data?.average_order_value || 0,
       }
     },
     staleTime: 5 * 60 * 1000, // 5분 캐싱
@@ -177,24 +226,33 @@ export function useTotalRevenue(startDate: Date, endDate: Date) {
  * @param userId - 사용자 ID
  */
 export function useUserTotalSpent(userId: string) {
+  const { workersTokens } = useAuth()
+
   return useQuery({
     queryKey: ['user-total-spent', userId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('orders')
-        .select('total_amount, created_at')
-        .eq('user_id', userId)
-        .eq('status', 'completed')
-        .order('created_at', { ascending: false })
+      const token = workersTokens?.accessToken
+      const url = `/api/v1/users/${userId}/spending`
 
-      if (error) throw error
+      const { data, error } = await callWorkersApi<{
+        total_spent: number
+        order_count: number
+        last_order_date: string | null
+      }>(url, { token })
 
-      const totalSpent = data.reduce((sum, order) => sum + order.total_amount, 0)
+      if (error) {
+        devLog('User total spent error:', error)
+        return {
+          totalSpent: 0,
+          orderCount: 0,
+          lastOrderDate: null,
+        }
+      }
 
       return {
-        totalSpent,
-        orderCount: data.length,
-        lastOrderDate: data[0]?.created_at || null,
+        totalSpent: data?.total_spent || 0,
+        orderCount: data?.order_count || 0,
+        lastOrderDate: data?.last_order_date || null,
       }
     },
     enabled: !!userId,

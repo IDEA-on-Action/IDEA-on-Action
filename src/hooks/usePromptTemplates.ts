@@ -3,21 +3,19 @@
  *
  * Claude Skills에서 사용하는 프롬프트 템플릿의 CRUD 및 렌더링 기능
  *
+ * @migration Supabase -> Cloudflare Workers (완전 마이그레이션 완료)
  * @module hooks/usePromptTemplates
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { callWorkersApi } from '@/integrations/cloudflare/client';
+import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import type {
   PromptTemplate,
   PromptTemplateFilters,
   CreatePromptTemplateInput,
   UpdatePromptTemplateInput,
-  RenderPromptInput,
-  RenderPromptResult,
-  interpolateTemplate,
-  extractVariables,
 } from '@/types/prompt-template.types';
 
 // ============================================================================
@@ -48,75 +46,51 @@ import {
  * ```
  */
 export function usePromptTemplates(filters?: PromptTemplateFilters) {
+  const { workersTokens } = useAuth();
+
   return useQuery({
     queryKey: ['prompt-templates', filters],
     queryFn: async () => {
-      // Base query
-      let query = supabase
-        .from('prompt_templates')
-        .select('*', { count: 'exact' });
-
-      // Filters
-      if (filters?.category) {
-        query = query.eq('category', filters.category);
-      }
+      const queryParams = new URLSearchParams();
+      if (filters?.category) queryParams.set('category', filters.category);
       if (filters?.service_id !== undefined) {
-        if (filters.service_id === null) {
-          query = query.is('service_id', null);
-        } else {
-          query = query.eq('service_id', filters.service_id);
-        }
+        queryParams.set('service_id', filters.service_id === null ? 'null' : filters.service_id);
       }
-      if (filters?.is_system !== undefined) {
-        query = query.eq('is_system', filters.is_system);
-      }
-      if (filters?.is_public !== undefined) {
-        query = query.eq('is_public', filters.is_public);
-      }
-      if (filters?.created_by) {
-        query = query.eq('created_by', filters.created_by);
-      }
+      if (filters?.is_system !== undefined) queryParams.set('is_system', String(filters.is_system));
+      if (filters?.is_public !== undefined) queryParams.set('is_public', String(filters.is_public));
+      if (filters?.created_by) queryParams.set('created_by', filters.created_by);
       if (filters?.parent_id !== undefined) {
-        if (filters.parent_id === null) {
-          query = query.is('parent_id', null);
-        } else {
-          query = query.eq('parent_id', filters.parent_id);
-        }
+        queryParams.set('parent_id', filters.parent_id === null ? 'null' : filters.parent_id);
       }
+      if (filters?.search) queryParams.set('search', filters.search);
+      if (filters?.sortBy) queryParams.set('sort_by', filters.sortBy);
+      if (filters?.sortOrder) queryParams.set('sort_order', filters.sortOrder);
+      if (filters?.pageSize) queryParams.set('limit', String(filters.pageSize));
+      if (filters?.page) queryParams.set('offset', String((filters.page - 1) * (filters.pageSize || 50)));
 
-      // Search (name 또는 description)
-      if (filters?.search) {
-        query = query.or(`name.ilike.%${filters.search}%,description.ilike.%${filters.search}%`);
-      }
-
-      // Ordering
-      const sortBy = filters?.sortBy || 'created_at';
-      const sortOrder = filters?.sortOrder || 'desc';
-      query = query.order(sortBy, { ascending: sortOrder === 'asc' });
-
-      // Pagination
-      const pageSize = filters?.pageSize || 50;
-      const page = filters?.page || 1;
-      const offset = (page - 1) * pageSize;
-      query = query.range(offset, offset + pageSize - 1);
-
-      // Execute query
-      const { data, error, count } = await query;
+      const queryString = queryParams.toString();
+      const { data, error } = await callWorkersApi<{
+        templates: PromptTemplate[];
+        total: number;
+      }>(`/api/v1/prompt-templates${queryString ? `?${queryString}` : ''}`, {
+        token: workersTokens?.accessToken,
+      });
 
       if (error) {
         console.error('Prompt templates query error:', error);
-        throw new Error(`템플릿 목록을 불러오는데 실패했습니다: ${error.message}`);
+        throw new Error(`템플릿 목록을 불러오는데 실패했습니다: ${error}`);
       }
 
-      // DB 레코드는 이미 올바른 형식 (camelCase 변환 불필요)
-      const templates = (data || []) as PromptTemplate[];
+      const pageSize = filters?.pageSize || 50;
+      const page = filters?.page || 1;
+      const offset = (page - 1) * pageSize;
 
       return {
-        templates,
-        totalCount: count || 0,
+        templates: data?.templates || [],
+        totalCount: data?.total || 0,
         isLoading: false,
         error: null,
-        hasMore: count ? offset + pageSize < count : false,
+        hasMore: data?.total ? offset + pageSize < data.total : false,
       };
     },
     staleTime: 30 * 1000, // 30초
@@ -147,11 +121,10 @@ export function usePromptTemplates(filters?: PromptTemplateFilters) {
  */
 export function useCreatePromptTemplate() {
   const queryClient = useQueryClient();
+  const { workersTokens, user } = useAuth();
 
   return useMutation({
     mutationFn: async (input: CreatePromptTemplateInput) => {
-      // 현재 사용자 확인
-      const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         throw new Error('로그인이 필요합니다.');
       }
@@ -173,21 +146,23 @@ export function useCreatePromptTemplate() {
         created_by: user.id,
       };
 
-      // Insert
-      const { data, error } = await supabase
-        .from('prompt_templates')
-        .insert(dbRecord)
-        .select()
-        .single();
+      const { data, error } = await callWorkersApi<PromptTemplate>(
+        '/api/v1/prompt-templates',
+        {
+          method: 'POST',
+          token: workersTokens?.accessToken,
+          body: dbRecord,
+        }
+      );
 
       if (error) {
         console.error('Create prompt template error:', error);
 
-        if (error.code === '42501') {
+        if (error.includes('42501') || error.includes('권한')) {
           throw new Error('권한이 없습니다. 관리자 계정으로 로그인해주세요.');
         }
 
-        throw new Error(`템플릿 생성에 실패했습니다: ${error.message}`);
+        throw new Error(`템플릿 생성에 실패했습니다: ${error}`);
       }
 
       return data as PromptTemplate;
@@ -221,25 +196,27 @@ export function useCreatePromptTemplate() {
  */
 export function useUpdatePromptTemplate() {
   const queryClient = useQueryClient();
+  const { workersTokens } = useAuth();
 
   return useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: UpdatePromptTemplateInput }) => {
-      // Update
-      const { data, error } = await supabase
-        .from('prompt_templates')
-        .update(updates)
-        .eq('id', id)
-        .select()
-        .single();
+      const { data, error } = await callWorkersApi<PromptTemplate>(
+        `/api/v1/prompt-templates/${id}`,
+        {
+          method: 'PATCH',
+          token: workersTokens?.accessToken,
+          body: updates,
+        }
+      );
 
       if (error) {
         console.error('Update prompt template error:', error);
 
-        if (error.code === '42501') {
+        if (error.includes('42501') || error.includes('권한')) {
           throw new Error('권한이 없습니다. 템플릿 생성자만 수정할 수 있습니다.');
         }
 
-        throw new Error(`템플릿 수정에 실패했습니다: ${error.message}`);
+        throw new Error(`템플릿 수정에 실패했습니다: ${error}`);
       }
 
       return data as PromptTemplate;
@@ -270,22 +247,26 @@ export function useUpdatePromptTemplate() {
  */
 export function useDeletePromptTemplate() {
   const queryClient = useQueryClient();
+  const { workersTokens } = useAuth();
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from('prompt_templates')
-        .delete()
-        .eq('id', id);
+      const { error } = await callWorkersApi(
+        `/api/v1/prompt-templates/${id}`,
+        {
+          method: 'DELETE',
+          token: workersTokens?.accessToken,
+        }
+      );
 
       if (error) {
         console.error('Delete prompt template error:', error);
 
-        if (error.code === '42501') {
+        if (error.includes('42501') || error.includes('권한')) {
           throw new Error('권한이 없습니다. 템플릿 생성자만 삭제할 수 있습니다.');
         }
 
-        throw new Error(`템플릿 삭제에 실패했습니다: ${error.message}`);
+        throw new Error(`템플릿 삭제에 실패했습니다: ${error}`);
       }
     },
     onSuccess: () => {
@@ -318,13 +299,17 @@ export function useDeletePromptTemplate() {
  */
 export function useIncrementTemplateUsage() {
   const queryClient = useQueryClient();
+  const { workersTokens } = useAuth();
 
   return useMutation({
     mutationFn: async (templateId: string) => {
-      // RPC 함수 호출 (increment_template_usage)
-      const { error } = await supabase.rpc('increment_template_usage', {
-        p_template_id: templateId,
-      });
+      const { error } = await callWorkersApi(
+        `/api/v1/prompt-templates/${templateId}/increment-usage`,
+        {
+          method: 'POST',
+          token: workersTokens?.accessToken,
+        }
+      );
 
       if (error) {
         console.error('Increment template usage error:', error);

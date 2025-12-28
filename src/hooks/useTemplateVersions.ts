@@ -9,11 +9,12 @@
  * - React Query 캐싱
  *
  * @module hooks/useTemplateVersions
+ * @migration Supabase → Cloudflare Workers (완전 마이그레이션 완료)
  */
 
 import { useCallback, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { callWorkersApi } from '@/integrations/cloudflare/client';
 import { useAuth } from './useAuth';
 import { toast } from 'sonner';
 import type {
@@ -118,7 +119,7 @@ function calculateChangeRate(diff: VersionDiff, totalKeys: number): number {
 export function useTemplateVersions(
   options: UseTemplateVersionsOptions
 ): UseTemplateVersionsResult {
-  const { user } = useAuth();
+  const { user, workersTokens } = useAuth();
   const queryClient = useQueryClient();
   const { templateId, includeStats = true } = options;
 
@@ -131,15 +132,16 @@ export function useTemplateVersions(
   } = useQuery({
     queryKey: [QUERY_KEY_PREFIX, templateId],
     queryFn: async (): Promise<TemplateVersionWithCreator[]> => {
-      const { data, error } = await supabase.rpc('get_template_versions', {
-        p_template_id: templateId,
-      });
+      const response = await callWorkersApi<TemplateVersionWithCreator[]>(
+        `/api/v1/templates/${templateId}/versions`,
+        { token: workersTokens?.accessToken }
+      );
 
-      if (error) {
-        throw new Error(`버전 목록 조회 실패: ${error.message}`);
+      if (response.error) {
+        throw new Error(`버전 목록 조회 실패: ${response.error}`);
       }
 
-      return (data || []) as TemplateVersionWithCreator[];
+      return (response.data || []) as TemplateVersionWithCreator[];
     },
     enabled: !!templateId && !!user,
   });
@@ -152,15 +154,16 @@ export function useTemplateVersions(
   } = useQuery({
     queryKey: [STATS_QUERY_KEY_PREFIX, templateId],
     queryFn: async (): Promise<TemplateVersionStats | null> => {
-      const { data, error } = await supabase.rpc('get_template_version_stats', {
-        p_template_id: templateId,
-      });
+      const response = await callWorkersApi<TemplateVersionStats>(
+        `/api/v1/templates/${templateId}/versions/stats`,
+        { token: workersTokens?.accessToken }
+      );
 
-      if (error) {
-        throw new Error(`통계 조회 실패: ${error.message}`);
+      if (response.error) {
+        throw new Error(`통계 조회 실패: ${response.error}`);
       }
 
-      return (data as TemplateVersionStats) || null;
+      return (response.data as TemplateVersionStats) || null;
     },
     enabled: !!templateId && !!user && includeStats,
   });
@@ -168,16 +171,19 @@ export function useTemplateVersions(
   // 버전 복원 Mutation
   const restoreMutation = useMutation({
     mutationFn: async (versionId: string): Promise<RestoreVersionResponse> => {
-      const { data, error } = await supabase.rpc('restore_template_version', {
-        p_template_id: templateId,
-        p_version_id: versionId,
-      });
+      const response = await callWorkersApi<RestoreVersionResponse>(
+        `/api/v1/templates/${templateId}/versions/${versionId}/restore`,
+        {
+          method: 'POST',
+          token: workersTokens?.accessToken,
+        }
+      );
 
-      if (error) {
-        throw new Error(`버전 복원 실패: ${error.message}`);
+      if (response.error) {
+        throw new Error(`버전 복원 실패: ${response.error}`);
       }
 
-      return data as RestoreVersionResponse;
+      return response.data as RestoreVersionResponse;
     },
     onSuccess: (data) => {
       // 쿼리 캐시 무효화

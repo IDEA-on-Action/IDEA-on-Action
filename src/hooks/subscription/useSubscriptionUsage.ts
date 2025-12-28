@@ -2,10 +2,12 @@
  * 구독 사용량 조회 훅
  *
  * @description 현재 구독의 기능별 사용량 및 제한 조회
+ *
+ * @migration Supabase -> Cloudflare Workers (완전 마이그레이션 완료)
  */
 
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { subscriptionsApi, callWorkersApi } from '@/integrations/cloudflare/client';
 import { useAuth } from '@/hooks/useAuth';
 
 /**
@@ -65,46 +67,44 @@ const FEATURE_NAMES: Record<string, string> = {
  * ```
  */
 export function useSubscriptionUsage() {
-  const { user } = useAuth();
+  const { user, workersTokens } = useAuth();
 
   return useQuery({
     queryKey: ['subscription_usage', user?.id],
     queryFn: async (): Promise<SubscriptionUsageSummary | null> => {
-      if (!user) throw new Error('로그인이 필요합니다.');
+      if (!user || !workersTokens?.accessToken) throw new Error('로그인이 필요합니다.');
 
       // 1. 활성 구독 조회
-      const { data: subscriptions, error: subError } = await supabase
-        .from('subscriptions')
-        .select(`
-          *,
-          plan:subscription_plans (
-            id,
-            plan_name,
-            features
-          )
-        `)
-        .eq('user_id', user.id)
-        .eq('status', 'active')
-        .order('created_at', { ascending: false })
-        .limit(1);
+      const { data: subscription, error: subError } = await subscriptionsApi.getCurrent(
+        workersTokens.accessToken
+      );
 
-      if (subError) throw subError;
-      if (!subscriptions || subscriptions.length === 0) return null;
+      if (subError) throw new Error(subError);
+      if (!subscription) return null;
 
-      const subscription = subscriptions[0];
-      const plan = subscription.plan as unknown as {
+      const subscriptionData = subscription as {
         id: string;
-        plan_name: string;
-        features: Record<string, unknown>;
+        plan: {
+          id: string;
+          plan_name: string;
+          features: Record<string, unknown>;
+        } | null;
       };
 
-      // 2. 사용량 조회
-      const { data: usageData, error: usageError } = await supabase
-        .from('subscription_usage')
-        .select('*')
-        .eq('subscription_id', subscription.id);
+      const plan = subscriptionData.plan;
+      if (!plan) return null;
 
-      if (usageError) throw usageError;
+      // 2. 사용량 조회 (Workers API)
+      const { data: usageData, error: usageError } = await callWorkersApi<Array<{
+        feature_key: string;
+        usage_count: number;
+      }>>(`/api/v1/subscriptions/${subscriptionData.id}/usage`, {
+        token: workersTokens.accessToken,
+      });
+
+      if (usageError) {
+        console.error('Error fetching usage data:', usageError);
+      }
 
       // 3. 기능별 사용량 매핑
       const features: FeatureUsage[] = Object.entries(plan.features).map(
@@ -156,13 +156,13 @@ export function useSubscriptionUsage() {
       const nextReset = new Date(now.getFullYear(), now.getMonth() + 1, 1);
 
       return {
-        subscription_id: subscription.id,
+        subscription_id: subscriptionData.id,
         plan_name: plan.plan_name,
         features,
         next_reset_date: nextReset.toISOString(),
       };
     },
-    enabled: !!user,
+    enabled: !!user && !!workersTokens?.accessToken,
     staleTime: 1000 * 60 * 5, // 5분 캐싱
   });
 }

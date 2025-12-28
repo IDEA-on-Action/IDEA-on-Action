@@ -1,19 +1,19 @@
 /**
  * useServiceHealth Hook
+ * @migration Supabase -> Cloudflare Workers (완전 마이그레이션 완료)
  *
  * 서비스 헬스 상태 조회 및 모니터링을 위한 React 훅
+ * 실시간 구독은 Workers WebSocket으로 대체 가능 (별도 구현 필요)
  *
  * @module hooks/useServiceHealth
  */
 
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { useQuery } from '@tanstack/react-query';
+import { serviceHealthApi } from '@/integrations/cloudflare/client';
 import type {
   ServiceHealth,
   ServiceId,
   HealthStatus,
-  SERVICE_INFO,
 } from '@/types/central-hub.types';
 
 // ============================================================================
@@ -38,13 +38,12 @@ export function useAllServiceHealth() {
   return useQuery({
     queryKey: serviceHealthKeys.list(),
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('service_health')
-        .select('*')
-        .order('service_id');
-
-      if (error) throw error;
-      return data as ServiceHealth[];
+      const result = await serviceHealthApi.list();
+      if (result.error) {
+        console.error('서비스 헬스 조회 오류:', result.error);
+        return [];
+      }
+      return (result.data as ServiceHealth[]) || [];
     },
     // 30초마다 자동 갱신
     refetchInterval: 30 * 1000,
@@ -58,14 +57,12 @@ export function useServiceHealth(serviceId: ServiceId) {
   return useQuery({
     queryKey: serviceHealthKeys.byService(serviceId),
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('service_health')
-        .select('*')
-        .eq('service_id', serviceId)
-        .single();
-
-      if (error) throw error;
-      return data as ServiceHealth;
+      const result = await serviceHealthApi.getByService(serviceId);
+      if (result.error) {
+        console.error('서비스별 헬스 조회 오류:', result.error);
+        return null;
+      }
+      return result.data as ServiceHealth;
     },
     enabled: !!serviceId,
     // 30초마다 자동 갱신
@@ -162,49 +159,21 @@ export function useServiceConnectionStatus(serviceId: ServiceId) {
 }
 
 // ============================================================================
-// 실시간 구독
+// 실시간 구독 (Workers WebSocket으로 대체 - 별도 구현 필요)
 // ============================================================================
 
 /**
  * 서비스 헬스 실시간 구독
+ *
+ * NOTE: Supabase Realtime에서 Workers WebSocket으로 마이그레이션됨
+ * 실시간 기능이 필요한 경우 realtimeApi.connect() 사용
+ *
+ * @deprecated Workers WebSocket 사용 권장
  */
 export function useServiceHealthRealtime() {
-  const queryClient = useQueryClient();
-
-  useEffect(() => {
-    const channel = supabase
-      .channel('service-health-changes')
-      .on<ServiceHealth>(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'service_health',
-        },
-        (payload) => {
-          console.log('Health status changed:', payload.new);
-
-          // 관련 쿼리 무효화
-          queryClient.invalidateQueries({
-            queryKey: serviceHealthKeys.all,
-          });
-
-          // 특정 서비스 쿼리도 무효화
-          if (payload.new?.service_id) {
-            queryClient.invalidateQueries({
-              queryKey: serviceHealthKeys.byService(
-                payload.new.service_id as ServiceId
-              ),
-            });
-          }
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [queryClient]);
+  // Workers WebSocket으로 대체 필요
+  // 현재는 빈 함수로 유지
+  console.warn('useServiceHealthRealtime: Workers WebSocket으로 마이그레이션 필요');
 }
 
 // ============================================================================

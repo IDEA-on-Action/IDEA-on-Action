@@ -6,13 +6,14 @@
  * - useMCPServiceSync: 단일 서비스 상태 동기화
  * - useMCPCache: 캐시 관리
  *
+ * @migration Supabase → Cloudflare Workers (완전 마이그레이션 완료)
  * @module hooks/useMCPSync
  */
 
-import { useEffect, useCallback, useMemo, useState } from 'react';
+import { useEffect, useCallback, useMemo, useState, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { cacheConfig } from '@/lib/react-query';
+import { realtimeApi, callWorkersApi } from '@/integrations/cloudflare/client';
+import { useAuth } from '@/hooks/useAuth';
 import type { ServiceId, HealthStatus, ServiceHealth } from '@/types/central-hub.types';
 import type {
   MCPServiceState,
@@ -22,12 +23,6 @@ import type {
   UseMCPSyncOptions,
   UseMCPServiceSyncOptions,
   UseMCPCacheOptions,
-  MCPRealtimePayload,
-  DEFAULT_CACHE_TTL,
-  DEFAULT_STALE_TIME,
-  DEFAULT_GC_TIME,
-  DEFAULT_REFRESH_INTERVAL,
-  DEFAULT_RETRY_COUNT,
 } from '@/types/mcp-sync.types';
 import { createMCPSyncError } from '@/types/mcp-sync.types';
 
@@ -66,9 +61,24 @@ export const mcpSyncQueryKeys = {
 // ============================================================================
 
 /**
- * ServiceHealth를 MCPServiceState로 변환
+ * Workers API 응답을 MCPServiceState로 변환
  */
-function toMCPServiceState(health: ServiceHealth): MCPServiceState {
+interface WorkersServiceHealth {
+  service_id: string;
+  status: HealthStatus;
+  updated_at: string;
+  metrics?: {
+    version?: string;
+    response_time_ms?: number;
+    error_rate?: number;
+    request_count?: number;
+    uptime_percent?: number;
+    memory_usage_mb?: number;
+    cpu_usage_percent?: number;
+  };
+}
+
+function toMCPServiceState(health: WorkersServiceHealth | ServiceHealth): MCPServiceState {
   return {
     service_name: health.service_id,
     status: health.status,
@@ -125,13 +135,14 @@ export function useMCPSync(options: UseMCPSyncOptions = {}): MCPSyncResult {
     autoRefresh = true,
     refreshInterval = REFRESH_INTERVAL,
     enableRealtime = true,
-    useCachedFirst = true,
   } = options;
 
   const queryClient = useQueryClient();
+  const { workersTokens, user } = useAuth();
+  const wsRef = useRef<WebSocket | null>(null);
 
   // ========================================================================
-  // 상태 조회 쿼리
+  // 상태 조회 쿼리 (Workers API 사용)
   // ========================================================================
 
   const {
@@ -142,16 +153,17 @@ export function useMCPSync(options: UseMCPSyncOptions = {}): MCPSyncResult {
   } = useQuery({
     queryKey: mcpSyncQueryKeys.states(),
     queryFn: async (): Promise<MCPServiceState[]> => {
-      const { data, error: queryError } = await supabase
-        .from('service_health')
-        .select('*')
-        .order('service_id');
+      const result = await callWorkersApi<WorkersServiceHealth[]>('/mcp/sync/states');
 
-      if (queryError) {
-        throw createMCPSyncError('MCP_SYNC_001', queryError.message);
+      if (result.error) {
+        throw createMCPSyncError('MCP_SYNC_001', result.error);
       }
 
-      return (data as ServiceHealth[]).map(toMCPServiceState);
+      if (!result.data) {
+        return [];
+      }
+
+      return result.data.map(toMCPServiceState);
     },
     staleTime: STALE_TIME,
     gcTime: GC_TIME,
@@ -160,48 +172,60 @@ export function useMCPSync(options: UseMCPSyncOptions = {}): MCPSyncResult {
   });
 
   // ========================================================================
-  // Realtime 구독
+  // WebSocket 실시간 구독 (Workers Durable Objects 사용)
   // ========================================================================
 
   useEffect(() => {
     if (!enableRealtime) return;
 
-    const channel = supabase
-      .channel('mcp-sync-states')
-      .on<ServiceHealth>(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'service_health',
-        },
-        (payload) => {
-          console.log('[MCP Sync] Realtime 이벤트:', payload.eventType);
+    // Workers WebSocket 연결
+    const ws = realtimeApi.connect('mcp-sync', user?.id);
+    wsRef.current = ws;
 
+    ws.onopen = () => {
+      console.log('[MCP Sync] WebSocket 연결됨');
+      // 서비스 상태 구독 요청
+      ws.send(JSON.stringify({ type: 'subscribe', channel: 'service_health' }));
+    };
+
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        console.log('[MCP Sync] WebSocket 메시지:', data.type);
+
+        if (data.type === 'service_health_update') {
           // 쿼리 캐시 무효화
           queryClient.invalidateQueries({
             queryKey: mcpSyncQueryKeys.states(),
           });
 
           // 개별 서비스 캐시도 무효화
-          const newData = payload.new as ServiceHealth | undefined;
-          if (newData?.service_id) {
+          if (data.service_id) {
             queryClient.invalidateQueries({
-              queryKey: mcpSyncQueryKeys.state(newData.service_id),
+              queryKey: mcpSyncQueryKeys.state(data.service_id),
             });
           }
         }
-      )
-      .subscribe((status) => {
-        if (status === 'CHANNEL_ERROR') {
-          console.error('[MCP Sync] Realtime 채널 에러');
-        }
-      });
+      } catch (e) {
+        console.error('[MCP Sync] WebSocket 메시지 파싱 에러:', e);
+      }
+    };
+
+    ws.onerror = (error) => {
+      console.error('[MCP Sync] WebSocket 에러:', error);
+    };
+
+    ws.onclose = () => {
+      console.log('[MCP Sync] WebSocket 연결 종료');
+    };
 
     return () => {
-      supabase.removeChannel(channel);
+      if (wsRef.current) {
+        wsRef.current.close();
+        wsRef.current = null;
+      }
     };
-  }, [enableRealtime, queryClient]);
+  }, [enableRealtime, queryClient, user?.id]);
 
   // ========================================================================
   // Public API
@@ -269,9 +293,11 @@ export function useMCPServiceSync(options: UseMCPServiceSyncOptions): MCPService
   } = options;
 
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const wsRef = useRef<WebSocket | null>(null);
 
   // ========================================================================
-  // 상태 조회 쿼리
+  // 상태 조회 쿼리 (Workers API 사용)
   // ========================================================================
 
   const {
@@ -282,21 +308,23 @@ export function useMCPServiceSync(options: UseMCPServiceSyncOptions): MCPService
   } = useQuery({
     queryKey: mcpSyncQueryKeys.state(serviceId),
     queryFn: async (): Promise<MCPServiceState | null> => {
-      const { data, error: queryError } = await supabase
-        .from('service_health')
-        .select('*')
-        .eq('service_id', serviceId)
-        .single();
+      const result = await callWorkersApi<WorkersServiceHealth | null>(
+        `/mcp/sync/state/${serviceId}`
+      );
 
-      if (queryError) {
-        // PGRST116: No rows returned (서비스가 없는 경우)
-        if (queryError.code === 'PGRST116') {
+      if (result.error) {
+        // NOT_FOUND: 서비스가 없는 경우
+        if (result.status === 404) {
           return null;
         }
-        throw createMCPSyncError('MCP_SYNC_001', queryError.message);
+        throw createMCPSyncError('MCP_SYNC_001', result.error);
       }
 
-      return toMCPServiceState(data as ServiceHealth);
+      if (!result.data) {
+        return null;
+      }
+
+      return toMCPServiceState(result.data);
     },
     enabled: !!serviceId,
     staleTime: STALE_TIME,
@@ -306,41 +334,53 @@ export function useMCPServiceSync(options: UseMCPServiceSyncOptions): MCPService
   });
 
   // ========================================================================
-  // Realtime 구독
+  // WebSocket 실시간 구독 (Workers Durable Objects 사용)
   // ========================================================================
 
   useEffect(() => {
     if (!enableRealtime || !serviceId) return;
 
-    const channel = supabase
-      .channel(`mcp-sync-service-${serviceId}`)
-      .on<ServiceHealth>(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'service_health',
-          filter: `service_id=eq.${serviceId}`,
-        },
-        (payload) => {
-          console.log(`[MCP Sync] ${serviceId} Realtime 이벤트:`, payload.eventType);
+    // Workers WebSocket 연결
+    const ws = realtimeApi.connect(`mcp-sync-${serviceId}`, user?.id);
+    wsRef.current = ws;
 
+    ws.onopen = () => {
+      console.log(`[MCP Sync] ${serviceId} WebSocket 연결됨`);
+      // 특정 서비스 상태 구독 요청
+      ws.send(JSON.stringify({ type: 'subscribe', channel: 'service_health', filter: serviceId }));
+    };
+
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        console.log(`[MCP Sync] ${serviceId} WebSocket 메시지:`, data.type);
+
+        if (data.type === 'service_health_update' && data.service_id === serviceId) {
           // 쿼리 캐시 무효화
           queryClient.invalidateQueries({
             queryKey: mcpSyncQueryKeys.state(serviceId),
           });
         }
-      )
-      .subscribe((status) => {
-        if (status === 'CHANNEL_ERROR') {
-          console.error(`[MCP Sync] ${serviceId} Realtime 채널 에러`);
-        }
-      });
+      } catch (e) {
+        console.error(`[MCP Sync] ${serviceId} WebSocket 메시지 파싱 에러:`, e);
+      }
+    };
+
+    ws.onerror = (error) => {
+      console.error(`[MCP Sync] ${serviceId} WebSocket 에러:`, error);
+    };
+
+    ws.onclose = () => {
+      console.log(`[MCP Sync] ${serviceId} WebSocket 연결 종료`);
+    };
 
     return () => {
-      supabase.removeChannel(channel);
+      if (wsRef.current) {
+        wsRef.current.close();
+        wsRef.current = null;
+      }
     };
-  }, [enableRealtime, serviceId, queryClient]);
+  }, [enableRealtime, serviceId, queryClient, user?.id]);
 
   // ========================================================================
   // Public API
@@ -415,7 +455,7 @@ export function useMCPCache(options: UseMCPCacheOptions = {}): MCPCacheResult {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
   // ========================================================================
-  // 캐시 조회 쿼리
+  // 캐시 조회 쿼리 (Workers API 사용)
   // ========================================================================
 
   const {
@@ -427,17 +467,14 @@ export function useMCPCache(options: UseMCPCacheOptions = {}): MCPCacheResult {
   } = useQuery({
     queryKey: mcpSyncQueryKeys.cache(),
     queryFn: async (): Promise<MCPServiceState[]> => {
-      const { data, error: queryError } = await supabase
-        .from('service_health')
-        .select('*')
-        .order('service_id');
+      const result = await callWorkersApi<WorkersServiceHealth[]>('/mcp/sync/states');
 
-      if (queryError) {
-        throw createMCPSyncError('MCP_SYNC_001', queryError.message);
+      if (result.error) {
+        throw createMCPSyncError('MCP_SYNC_001', result.error);
       }
 
       setLastUpdated(new Date());
-      return (data as ServiceHealth[]).map(toMCPServiceState);
+      return (result.data || []).map(toMCPServiceState);
     },
     staleTime: ttl,
     gcTime: ttl * 2,

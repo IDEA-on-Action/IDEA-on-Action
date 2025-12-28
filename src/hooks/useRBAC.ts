@@ -1,9 +1,10 @@
 /**
  * useRBAC Hook - Phase 10 Week 3
+ * @migration Supabase -> Cloudflare Workers (완전 마이그레이션 완료)
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { supabase } from '@/integrations/supabase/client'
+import { permissionsApi } from '@/integrations/cloudflare/client'
 import { useAuth } from './useAuth'
 import type { Role, Permission, UserRoleWithDetails } from '@/types/rbac'
 
@@ -15,98 +16,164 @@ const QUERY_KEYS = {
 }
 
 export function useRoles() {
+  const { getAccessToken, isAuthenticated } = useAuth()
+
   return useQuery({
     queryKey: QUERY_KEYS.roles,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('roles')
-        .select('*')
-        .order('name')
+      const token = getAccessToken()
+      if (!token) throw new Error('인증이 필요합니다')
 
-      if (error) throw error
-      return data as Role[]
+      const result = await permissionsApi.getRoles(token)
+      if (result.error) throw new Error(result.error)
+
+      // Workers API 응답을 Role 타입으로 변환
+      const roles = (result.data?.roles || []).map(r => ({
+        id: r.id,
+        name: r.name,
+        description: r.description,
+        permissions: r.permissions,
+        is_system: r.is_system,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })) as Role[]
+
+      return roles
     },
+    enabled: isAuthenticated,
   })
 }
 
 export function usePermissions() {
+  const { getAccessToken, isAuthenticated } = useAuth()
+
   return useQuery({
     queryKey: QUERY_KEYS.permissions,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('permissions')
-        .select('*')
-        .order('resource, action')
+      const token = getAccessToken()
+      if (!token) throw new Error('인증이 필요합니다')
 
-      if (error) throw error
-      return data as Permission[]
+      // Workers API에서는 역할 목록을 통해 권한 목록을 추출
+      const result = await permissionsApi.getRoles(token)
+      if (result.error) throw new Error(result.error)
+
+      // 모든 역할에서 고유한 권한 추출
+      const permissionSet = new Set<string>()
+      ;(result.data?.roles || []).forEach(role => {
+        role.permissions.forEach(p => permissionSet.add(p))
+      })
+
+      // Permission 타입으로 변환
+      const permissions: Permission[] = Array.from(permissionSet).map((p, index) => {
+        const [resource, action] = p.split(':')
+        return {
+          id: `perm-${index}`,
+          name: p,
+          resource: resource || p,
+          action: action || 'all',
+          description: `${resource}에 대한 ${action} 권한`,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        }
+      })
+
+      return permissions
     },
+    enabled: isAuthenticated,
   })
 }
 
 export function useUserRoles(userId?: string) {
+  const { getAccessToken, isAuthenticated } = useAuth()
+
   return useQuery({
     queryKey: QUERY_KEYS.userRoles(userId),
     queryFn: async () => {
-      let query = supabase
-        .from('user_roles')
-        .select(`
-          *,
-          role:role_id(*),
-          user:user_id(id, email)
-        `)
+      const token = getAccessToken()
+      if (!token || !userId) throw new Error('인증이 필요합니다')
 
-      if (userId) {
-        query = query.eq('user_id', userId)
-      }
+      const result = await permissionsApi.getUserRoles(token, userId)
+      if (result.error) throw new Error(result.error)
 
-      const { data, error } = await query
+      // Workers API 응답을 UserRoleWithDetails 타입으로 변환
+      const userRoles = (result.data?.roles || []).map(r => ({
+        id: r.id,
+        user_id: userId,
+        role_id: r.id,
+        assigned_by: r.granted_by,
+        assigned_at: r.granted_at,
+        role: {
+          id: r.id,
+          name: r.name,
+          description: '',
+          permissions: r.permissions,
+          is_system: false,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        },
+        user: {
+          id: userId,
+          email: '', // Workers API에서 별도 조회 필요
+        },
+      })) as UserRoleWithDetails[]
 
-      if (error) throw error
-      return data as UserRoleWithDetails[]
+      return userRoles
     },
-    enabled: !!userId,
+    enabled: isAuthenticated && !!userId,
   })
 }
 
 export function useUserPermissions(userId?: string) {
+  const { getAccessToken, isAuthenticated } = useAuth()
+
   return useQuery({
     queryKey: QUERY_KEYS.userPermissions(userId),
     queryFn: async () => {
-      if (!userId) return []
+      const token = getAccessToken()
+      if (!token || !userId) return []
 
-      const { data, error } = await supabase
-        .rpc('get_user_permissions', { p_user_id: userId })
+      const result = await permissionsApi.getUserRoles(token, userId)
+      if (result.error) throw new Error(result.error)
 
-      if (error) throw error
-      return data as Array<{ permission_name: string; resource: string; action: string }>
+      // 사용자의 모든 역할에서 권한 추출
+      const permissions: Array<{ permission_name: string; resource: string; action: string }> = []
+      ;(result.data?.roles || []).forEach(role => {
+        role.permissions.forEach(p => {
+          const [resource, action] = p.split(':')
+          permissions.push({
+            permission_name: p,
+            resource: resource || p,
+            action: action || 'all',
+          })
+        })
+      })
+
+      return permissions
     },
-    enabled: !!userId,
+    enabled: isAuthenticated && !!userId,
   })
 }
 
 export function useHasPermission(permissionName: string) {
-  const { user } = useAuth()
-  const { data: permissions = [] } = useUserPermissions(user?.id)
+  const { workersUser } = useAuth()
+  const { data: permissions = [] } = useUserPermissions(workersUser?.id)
 
   return permissions.some(p => p.permission_name === permissionName)
 }
 
 export function useAssignRole() {
   const queryClient = useQueryClient()
-  const { user } = useAuth()
+  const { getAccessToken, workersUser } = useAuth()
 
   return useMutation({
     mutationFn: async ({ userId, roleId }: { userId: string; roleId: string }) => {
-      const { error } = await supabase
-        .from('user_roles')
-        .insert({
-          user_id: userId,
-          role_id: roleId,
-          assigned_by: user?.id,
-        })
+      const token = getAccessToken()
+      if (!token) throw new Error('인증이 필요합니다')
 
-      if (error) throw error
+      const result = await permissionsApi.assignRole(token, userId, roleId)
+      if (result.error) throw new Error(result.error)
+
+      return result.data
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.userRoles() })
@@ -116,16 +183,17 @@ export function useAssignRole() {
 
 export function useRevokeRole() {
   const queryClient = useQueryClient()
+  const { getAccessToken } = useAuth()
 
   return useMutation({
     mutationFn: async ({ userId, roleId }: { userId: string; roleId: string }) => {
-      const { error } = await supabase
-        .from('user_roles')
-        .delete()
-        .eq('user_id', userId)
-        .eq('role_id', roleId)
+      const token = getAccessToken()
+      if (!token) throw new Error('인증이 필요합니다')
 
-      if (error) throw error
+      const result = await permissionsApi.revokeRole(token, userId, roleId)
+      if (result.error) throw new Error(result.error)
+
+      return result.data
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.userRoles() })

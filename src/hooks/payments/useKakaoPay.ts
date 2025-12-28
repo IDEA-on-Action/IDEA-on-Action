@@ -2,10 +2,13 @@
  * useKakaoPay Hook
  *
  * Kakao Pay 전용 결제 훅
+ *
+ * @migration Supabase -> Cloudflare Workers (완전 마이그레이션 완료)
  */
 
 import { useState } from 'react'
-import { supabase } from '@/integrations/supabase/client'
+import { callWorkersApi } from '@/integrations/cloudflare/client'
+import { useAuth } from '@/hooks/useAuth'
 import {
   prepareKakaoPayment,
   approveKakaoPayment,
@@ -27,6 +30,7 @@ export interface UseKakaoPayReturn {
 export function useKakaoPay(): UseKakaoPayReturn {
   const [isProcessing, setIsProcessing] = useState(false)
   const [error, setError] = useState<PaymentError | null>(null)
+  const { user, workersTokens } = useAuth()
 
   /**
    * Kakao Pay 결제 시작
@@ -41,8 +45,7 @@ export function useKakaoPay(): UseKakaoPayReturn {
     setError(null)
 
     try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error('로그인이 필요합니다.')
+      if (!user || !workersTokens?.accessToken) throw new Error('로그인이 필요합니다.')
 
       // 1. Redirect URL 생성
       const redirectUrls = getKakaoPayRedirectUrls(orderId)
@@ -90,15 +93,15 @@ export function useKakaoPay(): UseKakaoPayReturn {
     setError(null)
 
     try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error('로그인이 필요합니다.')
+      if (!user || !workersTokens?.accessToken) throw new Error('로그인이 필요합니다.')
 
-      // 1. 주문 정보 조회
-      const { data: order, error: orderError } = await supabase
-        .from('orders')
-        .select('order_number')
-        .eq('id', orderId)
-        .single()
+      // 1. 주문 정보 조회 (Workers API)
+      const { data: order, error: orderError } = await callWorkersApi<{
+        id: string;
+        order_number: string;
+      }>(`/api/v1/orders/${orderId}`, {
+        token: workersTokens.accessToken,
+      })
 
       if (orderError || !order) throw new Error('주문 정보를 찾을 수 없습니다.')
 
@@ -110,37 +113,42 @@ export function useKakaoPay(): UseKakaoPayReturn {
         pg_token: pgToken,
       })
 
-      // 3. payments 테이블에 결제 정보 저장
-      const { error: paymentError } = await supabase.from('payments').insert({
-        order_id: orderId,
-        amount: approveResponse.amount.total,
-        status: 'completed',
-        provider: 'kakao',
-        provider_transaction_id: approveResponse.tid,
-        payment_method: approveResponse.payment_method_type.toLowerCase(),
-        card_info: approveResponse.card_info
-          ? {
-              cardType: approveResponse.card_info.card_type,
-              issuer: approveResponse.card_info.kakaopay_issuer_corp,
-              approveNo: approveResponse.card_info.approved_id,
-            }
-          : null,
-        metadata: approveResponse,
-        paid_at: approveResponse.approved_at,
+      // 3. payments 테이블에 결제 정보 저장 (Workers API)
+      const { error: paymentError } = await callWorkersApi('/api/v1/payments', {
+        method: 'POST',
+        token: workersTokens.accessToken,
+        body: {
+          order_id: orderId,
+          amount: approveResponse.amount.total,
+          status: 'completed',
+          provider: 'kakao',
+          provider_transaction_id: approveResponse.tid,
+          payment_method: approveResponse.payment_method_type.toLowerCase(),
+          card_info: approveResponse.card_info
+            ? {
+                cardType: approveResponse.card_info.card_type,
+                issuer: approveResponse.card_info.kakaopay_issuer_corp,
+                approveNo: approveResponse.card_info.approved_id,
+              }
+            : null,
+          metadata: approveResponse,
+          paid_at: approveResponse.approved_at,
+        },
       })
 
-      if (paymentError) throw paymentError
+      if (paymentError) throw new Error(paymentError)
 
       // 4. orders 테이블 상태 업데이트 (pending → confirmed)
-      const { error: orderUpdateError } = await supabase
-        .from('orders')
-        .update({
+      const { error: orderUpdateError } = await callWorkersApi(`/api/v1/orders/${orderId}`, {
+        method: 'PATCH',
+        token: workersTokens.accessToken,
+        body: {
           status: 'confirmed',
           confirmed_at: new Date().toISOString(),
-        })
-        .eq('id', orderId)
+        },
+      })
 
-      if (orderUpdateError) throw orderUpdateError
+      if (orderUpdateError) throw new Error(orderUpdateError)
 
       // 5. 세션 스토리지 정리
       sessionStorage.removeItem(`kakao_pay_tid_${orderId}`)
@@ -165,10 +173,13 @@ export function useKakaoPay(): UseKakaoPayReturn {
       devError(err, { service: 'Kakao Pay', operation: '결제 승인' })
 
       // 결제 실패 시 orders 상태 업데이트
-      await supabase
-        .from('orders')
-        .update({ status: 'cancelled' })
-        .eq('id', orderId)
+      if (workersTokens?.accessToken) {
+        await callWorkersApi(`/api/v1/orders/${orderId}`, {
+          method: 'PATCH',
+          token: workersTokens.accessToken,
+          body: { status: 'cancelled' },
+        })
+      }
 
       throw err
     } finally {
@@ -219,4 +230,3 @@ export function useKakaoPay(): UseKakaoPayReturn {
     clearError,
   }
 }
-

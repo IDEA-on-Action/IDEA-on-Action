@@ -1,5 +1,6 @@
 /**
  * Project Types React Query Hooks
+ * @migration Supabase -> Cloudflare Workers (완전 마이그레이션 완료)
  *
  * Custom hooks for project type classification (portfolio, experiment, partner)
  * Created: 2025-11-25
@@ -7,7 +8,8 @@
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { projectTypesApi } from '@/integrations/cloudflare/client';
+import { useAuth } from '@/hooks/useAuth';
 import type {
   ProjectType,
   ProjectTypeStats,
@@ -37,14 +39,14 @@ export function useProjectTypes() {
   return useQuery({
     queryKey: projectTypeKeys.list(),
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('project_types')
-        .select('*')
-        .eq('is_active', true)
-        .order('display_order');
-
-      if (error) throw error;
-      return (data as ProjectType[]) || [];
+      const result = await projectTypesApi.list();
+      if (result.error) {
+        console.error('Project types 조회 오류:', result.error);
+        return [];
+      }
+      // Workers API에서 반환된 데이터에서 활성화된 것만 필터링
+      const data = (result.data as ProjectType[]) || [];
+      return data.filter((pt) => pt.is_active).sort((a, b) => a.display_order - b.display_order);
     },
     staleTime: 1000 * 60 * 60, // 1 hour - project types rarely change
     refetchOnWindowFocus: false,
@@ -58,14 +60,12 @@ export function useProjectType(id: string) {
   return useQuery({
     queryKey: projectTypeKeys.detail(id),
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('project_types')
-        .select('*')
-        .eq('id', id)
-        .single();
-
-      if (error) throw error;
-      return data as ProjectType;
+      const result = await projectTypesApi.getById(id);
+      if (result.error) {
+        console.error('Project type 상세 조회 오류:', result.error);
+        return null;
+      }
+      return result.data as ProjectType;
     },
     enabled: !!id,
     staleTime: 1000 * 60 * 60,
@@ -79,14 +79,12 @@ export function useProjectTypeBySlug(slug: ProjectTypeSlug) {
   return useQuery({
     queryKey: projectTypeKeys.bySlug(slug),
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('project_types')
-        .select('*')
-        .eq('slug', slug)
-        .single();
-
-      if (error) throw error;
-      return data as ProjectType;
+      const result = await projectTypesApi.getBySlug(slug);
+      if (result.error) {
+        console.error('Project type by slug 조회 오류:', result.error);
+        return null;
+      }
+      return result.data as ProjectType;
     },
     enabled: !!slug,
     staleTime: 1000 * 60 * 60,
@@ -100,13 +98,12 @@ export function useProjectTypeStats() {
   return useQuery({
     queryKey: projectTypeKeys.stats(),
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('project_type_stats')
-        .select('*')
-        .order('display_order');
-
-      if (error) throw error;
-      return (data as ProjectTypeStats[]) || [];
+      const result = await projectTypesApi.getStats();
+      if (result.error) {
+        console.error('Project type stats 조회 오류:', result.error);
+        return [];
+      }
+      return (result.data as ProjectTypeStats[]) || [];
     },
     staleTime: 1000 * 60 * 5, // 5 minutes
     refetchOnWindowFocus: false,
@@ -122,25 +119,19 @@ export function useProjectTypeStats() {
  */
 export function useUpdateProjectTypeOrder() {
   const queryClient = useQueryClient();
+  const { workersTokens } = useAuth();
 
   return useMutation({
     mutationFn: async (
       items: Array<{ id: string; display_order: number }>
     ) => {
-      const updates = items.map(({ id, display_order }) =>
-        supabase
-          .from('project_types')
-          .update({ display_order })
-          .eq('id', id)
-      );
-
-      const results = await Promise.all(updates);
-      const errors = results.filter((r) => r.error);
-
-      if (errors.length > 0) {
-        throw new Error('Failed to update some project types');
+      if (!workersTokens?.accessToken) {
+        throw new Error('인증이 필요합니다');
       }
-
+      const result = await projectTypesApi.updateOrder(workersTokens.accessToken, items);
+      if (result.error) {
+        throw new Error(result.error);
+      }
       return true;
     },
     onSuccess: () => {
@@ -154,18 +145,18 @@ export function useUpdateProjectTypeOrder() {
  */
 export function useToggleProjectType() {
   const queryClient = useQueryClient();
+  const { workersTokens } = useAuth();
 
   return useMutation({
     mutationFn: async ({ id, isActive }: { id: string; isActive: boolean }) => {
-      const { data, error } = await supabase
-        .from('project_types')
-        .update({ is_active: isActive })
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data as ProjectType;
+      if (!workersTokens?.accessToken) {
+        throw new Error('인증이 필요합니다');
+      }
+      const result = await projectTypesApi.toggle(workersTokens.accessToken, id, isActive);
+      if (result.error) {
+        throw new Error(result.error);
+      }
+      return result.data as ProjectType;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: projectTypeKeys.all });

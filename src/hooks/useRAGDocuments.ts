@@ -4,10 +4,12 @@
  * RAG 시스템에서 사용하는 문서의 CRUD 및 임베딩 트리거 기능
  *
  * @module hooks/useRAGDocuments
+ * @migration Supabase → Cloudflare Workers (완전 마이그레이션 완료)
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { callWorkersApi, ragApi } from '@/integrations/cloudflare/client';
+import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 
 // ============================================================================
@@ -222,6 +224,10 @@ export function useRAGDocuments(options?: UseRAGDocumentsOptions): UseRAGDocumen
 
   const queryClient = useQueryClient();
 
+  // Workers 인증 토큰
+  const { workersTokens } = useAuth();
+  const token = workersTokens?.accessToken;
+
   // ============================================================================
   // 문서 목록 조회
   // ============================================================================
@@ -234,33 +240,33 @@ export function useRAGDocuments(options?: UseRAGDocumentsOptions): UseRAGDocumen
   } = useQuery<RAGDocumentsResponse>({
     queryKey: ['rag-documents', { serviceId, status, limit, offset }],
     queryFn: async () => {
-      let query = supabase
-        .from('rag_documents')
-        .select('*', { count: 'exact' });
-
-      // 필터 적용
-      if (serviceId) {
-        query = query.eq('service_id', serviceId);
-      }
-      if (status) {
-        query = query.eq('status', status);
+      // Workers API 호출
+      interface ListDocumentsResponse {
+        data: RAGDocumentDB[];
+        count: number;
       }
 
-      // 페이지네이션
-      query = query
-        .order('updated_at', { ascending: false })
-        .range(offset, offset + limit - 1);
+      const result = await callWorkersApi<ListDocumentsResponse>('/api/v1/rag/documents', {
+        method: 'GET',
+        token: token || undefined,
+        headers: {
+          ...(serviceId && { 'X-Service-ID': serviceId }),
+          ...(status && { 'X-Status': status }),
+          'X-Limit': String(limit),
+          'X-Offset': String(offset),
+        },
+      });
 
-      const { data, error, count } = await query;
-
-      if (error) {
-        console.error('RAG documents query error:', error);
-        throw new Error(`문서 목록을 불러오는데 실패했습니다: ${error.message}`);
+      if (result.error) {
+        console.error('RAG documents query error:', result.error);
+        throw new Error(`문서 목록을 불러오는데 실패했습니다: ${result.error}`);
       }
+
+      const responseData = result.data || { data: [], count: 0 };
 
       return {
-        data: (data as RAGDocumentDB[]).map(dbToRAGDocument),
-        count,
+        data: responseData.data.map(dbToRAGDocument),
+        count: responseData.count,
       };
     },
     enabled,
@@ -273,50 +279,50 @@ export function useRAGDocuments(options?: UseRAGDocumentsOptions): UseRAGDocumen
 
   const createMutation = useMutation({
     mutationFn: async (input: CreateRAGDocumentInput) => {
-      // 현재 사용자 확인
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
+      // 인증 확인
+      if (!token) {
         throw new Error('로그인이 필요합니다.');
       }
 
-      // DB 레코드 생성
-      const dbRecord: Partial<RAGDocumentDB> = {
-        service_id: input.serviceId || null,
-        title: input.title,
-        content: input.content,
-        content_type: input.contentType || 'text',
-        source_url: input.sourceUrl || null,
-        metadata: input.metadata || null,
-        status: 'active',
-        embedding_status: input.autoEmbed ? 'pending' : 'pending',
-        created_by: user.id,
-      };
+      // Workers API로 문서 생성
+      interface CreateDocumentResponse {
+        data: RAGDocumentDB;
+      }
 
-      // Insert
-      const { data, error } = await supabase
-        .from('rag_documents')
-        .insert(dbRecord)
-        .select()
-        .single();
+      const result = await callWorkersApi<CreateDocumentResponse>('/api/v1/rag/documents', {
+        method: 'POST',
+        token,
+        body: {
+          service_id: input.serviceId || null,
+          title: input.title,
+          content: input.content,
+          content_type: input.contentType || 'text',
+          source_url: input.sourceUrl || null,
+          metadata: input.metadata || null,
+          auto_embed: input.autoEmbed || false,
+        },
+      });
 
-      if (error) {
-        console.error('Create RAG document error:', error);
+      if (result.error) {
+        console.error('Create RAG document error:', result.error);
 
-        if (error.code === '42501') {
+        if (result.status === 403) {
           throw new Error('권한이 없습니다. 관리자 계정으로 로그인해주세요.');
         }
 
-        throw new Error(`문서 생성에 실패했습니다: ${error.message}`);
+        throw new Error(`문서 생성에 실패했습니다: ${result.error}`);
       }
 
-      const newDocument = dbToRAGDocument(data as RAGDocumentDB);
+      if (!result.data?.data) {
+        throw new Error('문서 생성에 실패했습니다.');
+      }
 
-      // 자동 임베딩 요청
+      const newDocument = dbToRAGDocument(result.data.data);
+
+      // 자동 임베딩 요청 (Workers API)
       if (input.autoEmbed) {
         try {
-          await supabase.functions.invoke('rag-embedding/trigger', {
-            body: { document_id: newDocument.id },
-          });
+          await ragApi.embed(token, newDocument.id);
         } catch (err) {
           console.error('Auto-embed trigger error:', err);
           // 임베딩 실패는 사용자에게 알리지 않음 (백그라운드 작업)
@@ -343,6 +349,11 @@ export function useRAGDocuments(options?: UseRAGDocumentsOptions): UseRAGDocumen
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, data: updates }: { id: string; data: UpdateRAGDocumentInput }) => {
+      // 인증 확인
+      if (!token) {
+        throw new Error('로그인이 필요합니다.');
+      }
+
       // 클라이언트 객체를 DB 레코드로 변환
       const dbUpdates = ragDocumentToDb(updates as Partial<RAGDocument>);
 
@@ -352,32 +363,37 @@ export function useRAGDocuments(options?: UseRAGDocumentsOptions): UseRAGDocumen
         dbUpdates.embedding_error = null;
       }
 
-      // Update
-      const { data, error } = await supabase
-        .from('rag_documents')
-        .update(dbUpdates)
-        .eq('id', id)
-        .select()
-        .single();
+      // Workers API로 업데이트
+      interface UpdateDocumentResponse {
+        data: RAGDocumentDB;
+      }
 
-      if (error) {
-        console.error('Update RAG document error:', error);
+      const result = await callWorkersApi<UpdateDocumentResponse>(`/api/v1/rag/documents/${id}`, {
+        method: 'PATCH',
+        token,
+        body: dbUpdates,
+      });
 
-        if (error.code === '42501') {
+      if (result.error) {
+        console.error('Update RAG document error:', result.error);
+
+        if (result.status === 403) {
           throw new Error('권한이 없습니다. 문서 생성자만 수정할 수 있습니다.');
         }
 
-        throw new Error(`문서 수정에 실패했습니다: ${error.message}`);
+        throw new Error(`문서 수정에 실패했습니다: ${result.error}`);
       }
 
-      const updatedDocument = dbToRAGDocument(data as RAGDocumentDB);
+      if (!result.data?.data) {
+        throw new Error('문서 수정에 실패했습니다.');
+      }
+
+      const updatedDocument = dbToRAGDocument(result.data.data);
 
       // 재임베딩 요청
       if (updates.reEmbed) {
         try {
-          await supabase.functions.invoke('rag-embedding/trigger', {
-            body: { document_id: id },
-          });
+          await ragApi.embed(token, id);
         } catch (err) {
           console.error('Re-embed trigger error:', err);
         }
@@ -403,19 +419,25 @@ export function useRAGDocuments(options?: UseRAGDocumentsOptions): UseRAGDocumen
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from('rag_documents')
-        .delete()
-        .eq('id', id);
+      // 인증 확인
+      if (!token) {
+        throw new Error('로그인이 필요합니다.');
+      }
 
-      if (error) {
-        console.error('Delete RAG document error:', error);
+      // Workers API로 삭제
+      const result = await callWorkersApi(`/api/v1/rag/documents/${id}`, {
+        method: 'DELETE',
+        token,
+      });
 
-        if (error.code === '42501') {
+      if (result.error) {
+        console.error('Delete RAG document error:', result.error);
+
+        if (result.status === 403) {
           throw new Error('권한이 없습니다. 문서 생성자만 삭제할 수 있습니다.');
         }
 
-        throw new Error(`문서 삭제에 실패했습니다: ${error.message}`);
+        throw new Error(`문서 삭제에 실패했습니다: ${result.error}`);
       }
     },
     onSuccess: () => {
@@ -436,28 +458,17 @@ export function useRAGDocuments(options?: UseRAGDocumentsOptions): UseRAGDocumen
 
   const embeddingMutation = useMutation({
     mutationFn: async (id: string) => {
-      // 문서 상태를 'pending'으로 업데이트
-      const { error: updateError } = await supabase
-        .from('rag_documents')
-        .update({
-          embedding_status: 'pending',
-          embedding_error: null,
-        })
-        .eq('id', id);
-
-      if (updateError) {
-        console.error('Update embedding status error:', updateError);
-        throw new Error('임베딩 상태 업데이트에 실패했습니다.');
+      // 인증 확인
+      if (!token) {
+        throw new Error('로그인이 필요합니다.');
       }
 
-      // Edge Function 호출
-      const { error } = await supabase.functions.invoke('rag-embedding/trigger', {
-        body: { document_id: id },
-      });
+      // Workers API로 임베딩 트리거
+      const result = await ragApi.embed(token, id);
 
-      if (error) {
-        console.error('Trigger embedding error:', error);
-        throw new Error(`임베딩 트리거에 실패했습니다: ${error.message}`);
+      if (result.error) {
+        console.error('Trigger embedding error:', result.error);
+        throw new Error(`임베딩 트리거에 실패했습니다: ${result.error}`);
       }
     },
     onSuccess: () => {

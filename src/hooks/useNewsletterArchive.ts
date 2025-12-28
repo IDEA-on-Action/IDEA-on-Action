@@ -1,5 +1,6 @@
 /**
  * useNewsletterArchive Hook
+ * @migration Supabase -> Cloudflare Workers (완전 마이그레이션 완료)
  * TASK-022: Newsletter Archive 관련 React Query 훅
  *
  * Provides read operations for newsletter archive
@@ -9,7 +10,7 @@
  */
 
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { newsletterApi } from '@/integrations/cloudflare/client';
 
 // =====================================================
 // TYPES
@@ -89,23 +90,14 @@ export function useNewsletterArchive(options?: UseNewsletterArchiveOptions) {
   return useQuery({
     queryKey: QUERY_KEYS.list(options),
     queryFn: async () => {
-      let query = supabase
-        .from('newsletter_archive')
-        .select('*')
-        .order('sent_at', { ascending: false });
+      const result = await newsletterApi.getArchive({ limit: options?.limit });
 
-      if (options?.limit) {
-        query = query.limit(options.limit);
+      if (result.error) {
+        console.error('[useNewsletterArchive] 조회 에러:', result.error);
+        throw new Error(result.error);
       }
 
-      const { data, error } = await query;
-
-      if (error) {
-        console.error('[useNewsletterArchive] 조회 에러:', error);
-        throw error;
-      }
-
-      return (data ?? []) as NewsletterArchiveItem[];
+      return (result.data ?? []) as NewsletterArchiveItem[];
     },
     staleTime: 5 * 60 * 1000, // 5분간 캐시 유지
   });
@@ -130,18 +122,14 @@ export function useNewsletterArchiveItem(id: string) {
   return useQuery({
     queryKey: QUERY_KEYS.detail(id),
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('newsletter_archive')
-        .select('*')
-        .eq('id', id)
-        .single();
+      const result = await newsletterApi.getArchiveItem(id);
 
-      if (error) {
-        console.error('[useNewsletterArchiveItem] 조회 에러:', error);
-        throw error;
+      if (result.error) {
+        console.error('[useNewsletterArchiveItem] 조회 에러:', result.error);
+        throw new Error(result.error);
       }
 
-      return data as NewsletterArchiveItem;
+      return result.data as NewsletterArchiveItem;
     },
     enabled: !!id,
     staleTime: 10 * 60 * 1000, // 10분간 캐시 유지 (단일 항목은 더 길게)
@@ -177,27 +165,17 @@ export function useAdjacentNewsletters(currentId: string, currentSentAt: string 
         return { prev: null, next: null };
       }
 
-      // 이전 (더 오래된 - sent_at이 더 작은)
-      const { data: prevData } = await supabase
-        .from('newsletter_archive')
-        .select('id, subject')
-        .lt('sent_at', currentSentAt)
-        .order('sent_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
+      const result = await newsletterApi.getAdjacentArchive(currentId, currentSentAt);
 
-      // 다음 (더 최근 - sent_at이 더 큰)
-      const { data: nextData } = await supabase
-        .from('newsletter_archive')
-        .select('id, subject')
-        .gt('sent_at', currentSentAt)
-        .order('sent_at', { ascending: true })
-        .limit(1)
-        .maybeSingle();
+      if (result.error) {
+        console.error('[useAdjacentNewsletters] 조회 에러:', result.error);
+        return { prev: null, next: null };
+      }
 
+      const data = result.data as AdjacentNewsletters;
       return {
-        prev: prevData as NewsletterNavItem | null,
-        next: nextData as NewsletterNavItem | null,
+        prev: data?.prev || null,
+        next: data?.next || null,
       };
     },
     enabled: !!currentId && !!currentSentAt,
@@ -229,19 +207,14 @@ export function useSearchNewsletterArchive(searchTerm: string, limit: number = 2
         return [];
       }
 
-      const { data, error } = await supabase
-        .from('newsletter_archive')
-        .select('*')
-        .or(`subject.ilike.%${searchTerm}%,content.ilike.%${searchTerm}%`)
-        .order('sent_at', { ascending: false })
-        .limit(limit);
+      const result = await newsletterApi.searchArchive(searchTerm, limit);
 
-      if (error) {
-        console.error('[useSearchNewsletterArchive] 검색 에러:', error);
-        throw error;
+      if (result.error) {
+        console.error('[useSearchNewsletterArchive] 검색 에러:', result.error);
+        throw new Error(result.error);
       }
 
-      return (data ?? []) as NewsletterArchiveItem[];
+      return (result.data ?? []) as NewsletterArchiveItem[];
     },
     enabled: !!searchTerm.trim(),
     staleTime: 2 * 60 * 1000, // 2분 (검색 결과는 짧게)
@@ -277,36 +250,19 @@ export function useNewsletterArchiveStats() {
   return useQuery({
     queryKey: ['newsletter-archive', 'stats'],
     queryFn: async (): Promise<NewsletterArchiveStats> => {
-      const { data, error } = await supabase
-        .from('newsletter_archive')
-        .select('recipient_count, open_rate, click_rate');
+      const result = await newsletterApi.getArchiveStats();
 
-      if (error) {
-        console.error('[useNewsletterArchiveStats] 통계 조회 에러:', error);
-        throw error;
+      if (result.error) {
+        console.error('[useNewsletterArchiveStats] 통계 조회 에러:', result.error);
+        throw new Error(result.error);
       }
 
-      const items = data ?? [];
-      const totalCount = items.length;
-      const totalRecipients = items.reduce((sum, item) => sum + (item.recipient_count || 0), 0);
-
-      // 평균 계산 (null 값 제외)
-      const openRates = items.map(item => item.open_rate).filter((rate): rate is number => rate !== null);
-      const clickRates = items.map(item => item.click_rate).filter((rate): rate is number => rate !== null);
-
-      const avgOpenRate = openRates.length > 0
-        ? openRates.reduce((sum, rate) => sum + rate, 0) / openRates.length
-        : null;
-
-      const avgClickRate = clickRates.length > 0
-        ? clickRates.reduce((sum, rate) => sum + rate, 0) / clickRates.length
-        : null;
-
+      const data = result.data as NewsletterArchiveStats;
       return {
-        totalCount,
-        avgOpenRate,
-        avgClickRate,
-        totalRecipients,
+        totalCount: data.totalCount || 0,
+        avgOpenRate: data.avgOpenRate,
+        avgClickRate: data.avgClickRate,
+        totalRecipients: data.totalRecipients || 0,
       };
     },
     staleTime: 10 * 60 * 1000, // 10분 (통계는 자주 변하지 않음)

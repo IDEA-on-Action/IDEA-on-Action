@@ -1,190 +1,223 @@
-import { useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useSupabaseQuery, useSupabaseMutation, supabaseQuery } from '@/lib/react-query';
+/**
+ * useLogs Hook
+ * @migration Supabase -> Cloudflare Workers (완전 마이그레이션 완료)
+ *
+ * 로그 관련 React Query 훅
+ */
+
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { callWorkersApi } from '@/integrations/cloudflare/client';
+import { useAuth } from './useAuth';
+import { devLog } from '@/lib/errors';
 import type { Log } from '@/types/v2';
+
+// ============================================================================
+// Query Keys
+// ============================================================================
+
+const QUERY_KEYS = {
+  all: ['logs'] as const,
+  list: (limit?: number) => [...QUERY_KEYS.all, 'list', limit] as const,
+  byType: (type?: Log['type'], limit?: number) => [...QUERY_KEYS.all, 'type', type, limit] as const,
+  byProject: (projectId: string, limit?: number) => [...QUERY_KEYS.all, 'project', projectId, limit] as const,
+};
+
+// ============================================================================
+// 1. 전체 로그 조회
+// ============================================================================
 
 /**
  * Hook to fetch all logs
  */
 export const useLogs = (limit?: number) => {
-  return useSupabaseQuery<Log[]>({
-    queryKey: ['logs', limit],
+  const { workersTokens } = useAuth();
+
+  return useQuery({
+    queryKey: QUERY_KEYS.list(limit),
     queryFn: async () => {
-      return await supabaseQuery(
-        async () => {
-          let query = supabase
-            .from('logs')
-            .select('*')
-            .order('created_at', { ascending: false });
+      const token = workersTokens?.accessToken;
+      const params = new URLSearchParams();
+      params.append('order_by', 'created_at:desc');
+      if (limit) params.append('limit', limit.toString());
 
-          if (limit) {
-            query = query.limit(limit);
-          }
-
-          const result = await query;
-          return { data: result.data, error: result.error };
-        },
-        {
-          table: 'logs',
-          operation: 'Log 목록 조회',
-          fallbackValue: [],
-        }
+      const { data, error } = await callWorkersApi<Log[]>(
+        `/api/v1/logs?${params.toString()}`,
+        { token }
       );
+
+      if (error) {
+        devLog('Logs fetch error:', error);
+        return [] as Log[];
+      }
+
+      return data || [];
     },
-    table: 'logs',
-    operation: 'Log 목록 조회',
-    fallbackValue: [],
     staleTime: 1 * 60 * 1000, // 1 minute
   });
 };
+
+// ============================================================================
+// 2. 타입별 로그 조회
+// ============================================================================
 
 /**
  * Hook to fetch logs by type
  */
 export const useLogsByType = (type?: Log['type'], limit?: number) => {
-  return useSupabaseQuery<Log[]>({
-    queryKey: ['logs', 'type', type, limit],
+  const { workersTokens } = useAuth();
+
+  return useQuery({
+    queryKey: QUERY_KEYS.byType(type, limit),
     queryFn: async () => {
-      return await supabaseQuery(
-        async () => {
-          let query = supabase
-            .from('logs')
-            .select('*')
-            .order('created_at', { ascending: false });
+      const token = workersTokens?.accessToken;
+      const params = new URLSearchParams();
+      params.append('order_by', 'created_at:desc');
+      if (type) params.append('type', type);
+      if (limit) params.append('limit', limit.toString());
 
-          if (type) {
-            query = query.eq('type', type);
-          }
-
-          if (limit) {
-            query = query.limit(limit);
-          }
-
-          const result = await query;
-          return { data: result.data, error: result.error };
-        },
-        {
-          table: 'logs',
-          operation: 'Log 타입별 조회',
-          fallbackValue: [],
-        }
+      const { data, error } = await callWorkersApi<Log[]>(
+        `/api/v1/logs?${params.toString()}`,
+        { token }
       );
+
+      if (error) {
+        devLog('Logs by type error:', error);
+        return [] as Log[];
+      }
+
+      return data || [];
     },
-    table: 'logs',
-    operation: 'Log 타입별 조회',
-    fallbackValue: [],
     staleTime: 1 * 60 * 1000,
   });
 };
+
+// ============================================================================
+// 3. 프로젝트별 로그 조회
+// ============================================================================
 
 /**
  * Hook to fetch logs by project
  */
 export const useLogsByProject = (projectId: string, limit?: number) => {
-  return useSupabaseQuery<Log[]>({
-    queryKey: ['logs', 'project', projectId, limit],
+  const { workersTokens } = useAuth();
+
+  return useQuery({
+    queryKey: QUERY_KEYS.byProject(projectId, limit),
     queryFn: async () => {
-      return await supabaseQuery(
-        async () => {
-          let query = supabase
-            .from('logs')
-            .select('*')
-            .eq('project_id', projectId)
-            .order('created_at', { ascending: false });
+      const token = workersTokens?.accessToken;
+      const params = new URLSearchParams();
+      params.append('project_id', projectId);
+      params.append('order_by', 'created_at:desc');
+      if (limit) params.append('limit', limit.toString());
 
-          if (limit) {
-            query = query.limit(limit);
-          }
-
-          const result = await query;
-          return { data: result.data, error: result.error };
-        },
-        {
-          table: 'logs',
-          operation: 'Log 프로젝트별 조회',
-          fallbackValue: [],
-        }
+      const { data, error } = await callWorkersApi<Log[]>(
+        `/api/v1/logs?${params.toString()}`,
+        { token }
       );
+
+      if (error) {
+        devLog('Logs by project error:', error);
+        return [] as Log[];
+      }
+
+      return data || [];
     },
-    table: 'logs',
-    operation: 'Log 프로젝트별 조회',
-    fallbackValue: [],
     enabled: !!projectId,
     staleTime: 1 * 60 * 1000,
   });
 };
+
+// ============================================================================
+// 4. 로그 생성 (Admin only)
+// ============================================================================
 
 /**
  * Hook to create a new log (Admin only)
  */
 export const useCreateLog = () => {
   const queryClient = useQueryClient();
+  const { workersTokens } = useAuth();
 
-  return useSupabaseMutation<Log, Omit<Log, 'id' | 'created_at' | 'updated_at'>>({
+  return useMutation({
     mutationFn: async (log: Omit<Log, 'id' | 'created_at' | 'updated_at'>) => {
-      const { data, error } = await supabase
-        .from('logs')
-        .insert([log])
-        .select()
-        .single();
+      const token = workersTokens?.accessToken;
+      const { data, error } = await callWorkersApi<Log>(
+        '/api/v1/logs',
+        {
+          method: 'POST',
+          token,
+          body: log,
+        }
+      );
 
-      if (error) throw error;
+      if (error) throw new Error(error);
       return data as Log;
     },
-    table: 'logs',
-    operation: 'Log 생성',
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['logs'] });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.all });
     },
   });
 };
+
+// ============================================================================
+// 5. 로그 수정 (Admin only)
+// ============================================================================
 
 /**
  * Hook to update a log (Admin only)
  */
 export const useUpdateLog = () => {
   const queryClient = useQueryClient();
+  const { workersTokens } = useAuth();
 
-  return useSupabaseMutation<Log, { id: number; updates: Partial<Log> }>({
+  return useMutation({
     mutationFn: async ({ id, updates }: { id: number; updates: Partial<Log> }) => {
-      const { data, error } = await supabase
-        .from('logs')
-        .update(updates)
-        .eq('id', id)
-        .select()
-        .single();
+      const token = workersTokens?.accessToken;
+      const { data, error } = await callWorkersApi<Log>(
+        `/api/v1/logs/${id}`,
+        {
+          method: 'PATCH',
+          token,
+          body: updates,
+        }
+      );
 
-      if (error) throw error;
+      if (error) throw new Error(error);
       return data as Log;
     },
-    table: 'logs',
-    operation: 'Log 수정',
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['logs'] });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.all });
     },
   });
 };
+
+// ============================================================================
+// 6. 로그 삭제 (Admin only)
+// ============================================================================
 
 /**
  * Hook to delete a log (Admin only)
  */
 export const useDeleteLog = () => {
   const queryClient = useQueryClient();
+  const { workersTokens } = useAuth();
 
-  return useSupabaseMutation<number, number>({
+  return useMutation({
     mutationFn: async (id: number) => {
-      const { error } = await supabase
-        .from('logs')
-        .delete()
-        .eq('id', id);
+      const token = workersTokens?.accessToken;
+      const { error } = await callWorkersApi(
+        `/api/v1/logs/${id}`,
+        {
+          method: 'DELETE',
+          token,
+        }
+      );
 
-      if (error) throw error;
+      if (error) throw new Error(error);
       return id;
     },
-    table: 'logs',
-    operation: 'Log 삭제',
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['logs'] });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.all });
     },
   });
 };

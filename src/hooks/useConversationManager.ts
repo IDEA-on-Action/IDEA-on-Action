@@ -1,5 +1,6 @@
 /**
  * useConversationManager Hook
+ * @migration Supabase -> Cloudflare Workers (완전 마이그레이션 완료)
  *
  * 대화 컨텍스트 관리를 위한 통합 React Hook
  * - 대화 세션 CRUD (React Query)
@@ -8,13 +9,14 @@
  * - 대화 포크 및 내보내기
  *
  * @module hooks/useConversationManager
- * @version 1.0.0
+ * @version 2.0.0
  */
 
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { devError } from '@/lib/errors';
+import { callWorkersApi } from '@/integrations/cloudflare/client';
+import { useAuth } from './useAuth';
+import { devLog, devError } from '@/lib/errors';
 import type {
   ConversationSession,
   ConversationSessionDB,
@@ -33,9 +35,6 @@ import type {
   ForkConversationResult,
   ExportMarkdownResult,
   UseConversationManagerResult,
-  dbToConversationSession,
-  dbToConversationMessage,
-  conversationSessionToDb,
 } from '@/types/conversation-context.types';
 
 // 타입 변환 함수 임포트
@@ -55,34 +54,6 @@ const DEFAULT_MESSAGE_LIMIT = 100;
 // ============================================================================
 // 유틸리티 함수
 // ============================================================================
-
-/**
- * 인증 토큰 가져오기
- */
-async function getAuthToken(): Promise<string | null> {
-  try {
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    return session?.access_token || null;
-  } catch (err) {
-    devError(err, { operation: '인증 토큰 가져오기' });
-    return null;
-  }
-}
-
-/**
- * 현재 사용자 ID 가져오기
- */
-async function getCurrentUserId(): Promise<string> {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    throw new Error('로그인이 필요합니다.');
-  }
-  return user.id;
-}
 
 /**
  * 기본 세션 제목 생성
@@ -137,63 +108,61 @@ const conversationKeys = {
  * ```
  */
 export function useConversations(filters?: ConversationFilters) {
+  const { workersTokens } = useAuth();
+
   return useQuery<ConversationsResponse>({
     queryKey: conversationKeys.list(filters),
     queryFn: async () => {
-      // Base query with message count
-      let query = supabase
-        .from('ai_conversations')
-        .select(
-          `
-          *,
-          message_count:ai_messages(count)
-        `,
-          { count: 'exact' }
-        );
+      const token = workersTokens?.accessToken;
+      const params = new URLSearchParams();
 
       // Filters
       if (filters?.status) {
-        query = query.eq('status', filters.status);
+        params.append('status', filters.status);
       }
       if (filters?.templateId) {
-        query = query.eq('template_id', filters.templateId);
+        params.append('template_id', filters.templateId);
       }
       if (filters?.search) {
-        query = query.ilike('title', `%${filters.search}%`);
+        params.append('search', filters.search);
       }
 
       // Ordering
       const orderBy = filters?.orderBy || 'updated_at';
       const orderDirection = filters?.orderDirection || 'desc';
-      query = query.order(orderBy, { ascending: orderDirection === 'asc' });
+      params.append('order_by', `${orderBy}:${orderDirection}`);
 
       // Pagination
       const limit = filters?.limit || DEFAULT_LIMIT;
       const offset = filters?.offset || 0;
-      query = query.range(offset, offset + limit - 1);
+      params.append('limit', limit.toString());
+      params.append('offset', offset.toString());
 
-      const { data, error, count } = await query;
+      // Include message count
+      params.append('include', 'message_count');
+
+      const { data, error } = await callWorkersApi<{
+        data: Array<ConversationSessionDB & { message_count?: number }>;
+        count: number;
+      }>(`/api/v1/ai-conversations?${params.toString()}`, { token });
 
       if (error) {
-        console.error('Conversations query error:', error);
-        throw new Error(`세션 목록을 불러오는데 실패했습니다: ${error.message}`);
+        devLog('Conversations query error:', error);
+        throw new Error(`세션 목록을 불러오는데 실패했습니다: ${error}`);
       }
 
       // DB 레코드를 클라이언트 객체로 변환
-      const conversations: ConversationSessionWithStats[] = (data || []).map((record: unknown) => {
-        const typedRecord = record as ConversationSessionDB & {
-          message_count?: Array<{ count: number }>;
-        };
-        const session = convertDbToSession(typedRecord);
+      const conversations: ConversationSessionWithStats[] = (data?.data || []).map((record) => {
+        const session = convertDbToSession(record);
         return {
           ...session,
-          messageCount: typedRecord.message_count?.[0]?.count || 0,
+          messageCount: record.message_count || 0,
         };
       });
 
       return {
         data: conversations,
-        count,
+        count: data?.count || 0,
       };
     },
     staleTime: 30 * 1000, // 30초
@@ -212,20 +181,22 @@ export function useConversations(filters?: ConversationFilters) {
  * ```
  */
 export function useConversation(sessionId: string | null) {
+  const { workersTokens } = useAuth();
+
   return useQuery<ConversationSession | null>({
     queryKey: conversationKeys.detail(sessionId || ''),
     queryFn: async () => {
       if (!sessionId) return null;
 
-      const { data, error } = await supabase
-        .from('ai_conversations')
-        .select('*')
-        .eq('id', sessionId)
-        .single();
+      const token = workersTokens?.accessToken;
+      const { data, error } = await callWorkersApi<ConversationSessionDB>(
+        `/api/v1/ai-conversations/${sessionId}`,
+        { token }
+      );
 
       if (error) {
-        console.error('Conversation query error:', error);
-        throw new Error(`세션을 불러오는데 실패했습니다: ${error.message}`);
+        devLog('Conversation query error:', error);
+        throw new Error(`세션을 불러오는데 실패했습니다: ${error}`);
       }
 
       return convertDbToSession(data as ConversationSessionDB);
@@ -248,6 +219,8 @@ export function useConversation(sessionId: string | null) {
  * ```
  */
 export function useMessages(sessionId: string | null, limit?: number) {
+  const { workersTokens } = useAuth();
+
   return useQuery<MessagesResponse>({
     queryKey: [...conversationKeys.messages(sessionId || ''), limit],
     queryFn: async () => {
@@ -255,27 +228,31 @@ export function useMessages(sessionId: string | null, limit?: number) {
         return { data: [], count: 0 };
       }
 
+      const token = workersTokens?.accessToken;
       const messageLimit = limit || DEFAULT_MESSAGE_LIMIT;
 
-      const { data, error, count } = await supabase
-        .from('ai_messages')
-        .select('*', { count: 'exact' })
-        .eq('conversation_id', sessionId)
-        .order('created_at', { ascending: true })
-        .limit(messageLimit);
+      const params = new URLSearchParams();
+      params.append('conversation_id', sessionId);
+      params.append('order_by', 'created_at:asc');
+      params.append('limit', messageLimit.toString());
+
+      const { data, error } = await callWorkersApi<{
+        data: ConversationMessageDB[];
+        count: number;
+      }>(`/api/v1/ai-messages?${params.toString()}`, { token });
 
       if (error) {
-        console.error('Messages query error:', error);
-        throw new Error(`메시지를 불러오는데 실패했습니다: ${error.message}`);
+        devLog('Messages query error:', error);
+        throw new Error(`메시지를 불러오는데 실패했습니다: ${error}`);
       }
 
-      const messages = (data || []).map((record) =>
-        convertDbToMessage(record as ConversationMessageDB)
+      const messages = (data?.data || []).map((record) =>
+        convertDbToMessage(record)
       );
 
       return {
         data: messages,
-        count,
+        count: data?.count || 0,
       };
     },
     enabled: !!sessionId,
@@ -292,19 +269,23 @@ export function useMessages(sessionId: string | null, limit?: number) {
  */
 export function useCreateConversation() {
   const queryClient = useQueryClient();
+  const { workersTokens, user } = useAuth();
 
   return useMutation({
     mutationFn: async (input: CreateConversationInput): Promise<ConversationSession> => {
-      const userId = await getCurrentUserId();
+      const token = workersTokens?.accessToken;
+
+      if (!user) {
+        throw new Error('로그인이 필요합니다.');
+      }
 
       // 프롬프트 템플릿에서 system_prompt 가져오기 (템플릿 ID가 있을 때)
       let systemPrompt = input.systemPrompt || null;
       if (input.templateId && !systemPrompt) {
-        const { data: template } = await supabase
-          .from('prompt_templates')
-          .select('system_prompt')
-          .eq('id', input.templateId)
-          .single();
+        const { data: template } = await callWorkersApi<{ system_prompt: string }>(
+          `/api/v1/prompt-templates/${input.templateId}`,
+          { token }
+        );
 
         if (template) {
           systemPrompt = template.system_prompt;
@@ -312,7 +293,7 @@ export function useCreateConversation() {
       }
 
       const dbRecord: Partial<ConversationSessionDB> = {
-        user_id: userId,
+        user_id: user.id,
         title: input.title || generateDefaultTitle(),
         system_prompt: systemPrompt,
         template_id: input.templateId || null,
@@ -323,15 +304,18 @@ export function useCreateConversation() {
         metadata: input.metadata || null,
       };
 
-      const { data, error } = await supabase
-        .from('ai_conversations')
-        .insert(dbRecord)
-        .select()
-        .single();
+      const { data, error } = await callWorkersApi<ConversationSessionDB>(
+        '/api/v1/ai-conversations',
+        {
+          method: 'POST',
+          token,
+          body: dbRecord,
+        }
+      );
 
       if (error) {
-        console.error('Create conversation error:', error);
-        throw new Error(`세션 생성에 실패했습니다: ${error.message}`);
+        devLog('Create conversation error:', error);
+        throw new Error(`세션 생성에 실패했습니다: ${error}`);
       }
 
       return convertDbToSession(data as ConversationSessionDB);
@@ -347,23 +331,27 @@ export function useCreateConversation() {
  */
 export function useUpdateConversation() {
   const queryClient = useQueryClient();
+  const { workersTokens } = useAuth();
 
   return useMutation({
     mutationFn: async (input: UpdateConversationInput): Promise<ConversationSession> => {
+      const token = workersTokens?.accessToken;
       const { id, ...updates } = input;
 
       const dbUpdates = convertSessionToDb(updates as Partial<ConversationSession>);
 
-      const { data, error } = await supabase
-        .from('ai_conversations')
-        .update(dbUpdates)
-        .eq('id', id)
-        .select()
-        .single();
+      const { data, error } = await callWorkersApi<ConversationSessionDB>(
+        `/api/v1/ai-conversations/${id}`,
+        {
+          method: 'PATCH',
+          token,
+          body: dbUpdates,
+        }
+      );
 
       if (error) {
-        console.error('Update conversation error:', error);
-        throw new Error(`세션 수정에 실패했습니다: ${error.message}`);
+        devLog('Update conversation error:', error);
+        throw new Error(`세션 수정에 실패했습니다: ${error}`);
       }
 
       return convertDbToSession(data as ConversationSessionDB);
@@ -380,17 +368,23 @@ export function useUpdateConversation() {
  */
 export function useArchiveConversation() {
   const queryClient = useQueryClient();
+  const { workersTokens } = useAuth();
 
   return useMutation({
     mutationFn: async (sessionId: string): Promise<void> => {
-      const { error } = await supabase
-        .from('ai_conversations')
-        .update({ status: 'archived' })
-        .eq('id', sessionId);
+      const token = workersTokens?.accessToken;
+      const { error } = await callWorkersApi(
+        `/api/v1/ai-conversations/${sessionId}`,
+        {
+          method: 'PATCH',
+          token,
+          body: { status: 'archived' },
+        }
+      );
 
       if (error) {
-        console.error('Archive conversation error:', error);
-        throw new Error(`세션 아카이브에 실패했습니다: ${error.message}`);
+        devLog('Archive conversation error:', error);
+        throw new Error(`세션 아카이브에 실패했습니다: ${error}`);
       }
     },
     onSuccess: (_, sessionId) => {
@@ -409,9 +403,12 @@ export function useArchiveConversation() {
  */
 export function useAddMessage() {
   const queryClient = useQueryClient();
+  const { workersTokens } = useAuth();
 
   return useMutation({
     mutationFn: async (input: CreateMessageInput): Promise<ConversationMessage> => {
+      const token = workersTokens?.accessToken;
+
       // 토큰 수 계산 (제공되지 않은 경우)
       const tokenCount = input.tokenCount || estimateTokenCount(input.content);
 
@@ -423,15 +420,18 @@ export function useAddMessage() {
         model: input.model || null,
       };
 
-      const { data, error } = await supabase
-        .from('ai_messages')
-        .insert(dbRecord)
-        .select()
-        .single();
+      const { data, error } = await callWorkersApi<ConversationMessageDB>(
+        '/api/v1/ai-messages',
+        {
+          method: 'POST',
+          token,
+          body: dbRecord,
+        }
+      );
 
       if (error) {
-        console.error('Add message error:', error);
-        throw new Error(`메시지 저장에 실패했습니다: ${error.message}`);
+        devLog('Add message error:', error);
+        throw new Error(`메시지 저장에 실패했습니다: ${error}`);
       }
 
       // Note: ai_conversations의 message_count와 total_tokens는 트리거로 자동 업데이트됨
@@ -454,49 +454,52 @@ export function useAddMessage() {
  */
 export function useSummarizeContext() {
   const queryClient = useQueryClient();
+  const { workersTokens } = useAuth();
 
   return useMutation({
     mutationFn: async (input: SummarizeContextInput): Promise<SummarizeContextResult> => {
+      const token = workersTokens?.accessToken;
       const { sessionId, summarizeBeforeSequence } = input;
 
       // 메시지 조회
-      const { data: messages } = await supabase
-        .from('ai_messages')
-        .select('*')
-        .eq('conversation_id', sessionId)
-        .order('created_at', { ascending: true });
+      const { data: messagesResponse, error: messagesError } = await callWorkersApi<{
+        data: ConversationMessageDB[];
+      }>(`/api/v1/ai-messages?conversation_id=${sessionId}&order_by=created_at:asc`, { token });
 
-      if (!messages || messages.length === 0) {
+      if (messagesError || !messagesResponse?.data) {
+        throw new Error('메시지를 조회하는데 실패했습니다.');
+      }
+
+      const messages = messagesResponse.data;
+
+      if (messages.length === 0) {
         throw new Error('요약할 메시지가 없습니다.');
       }
 
       // 요약 대상 메시지 결정 (최근 10개는 제외)
       const cutoffSequence = summarizeBeforeSequence || messages.length - 10;
-      const messagesToSummarize = messages.filter((msg) => msg.sequence < cutoffSequence);
+      const messagesToSummarize = messages.filter((msg) => (msg.sequence || 0) < cutoffSequence);
 
       if (messagesToSummarize.length === 0) {
         throw new Error('요약할 메시지가 충분하지 않습니다. (최소 10개 이상 필요)');
       }
 
       // Claude API 호출하여 요약 생성
-      const token = await getAuthToken();
-      if (!token) {
-        throw new Error('인증이 필요합니다.');
-      }
-
       const summaryPrompt = `다음 대화를 간결하게 요약해주세요. 핵심 내용과 맥락만 포함하세요:\n\n${messagesToSummarize
         .map((msg) => `${msg.role === 'user' ? '사용자' : 'AI'}: ${msg.content}`)
         .join('\n\n')}`;
 
-      const { data: summaryResponse, error: summaryError } = await supabase.functions.invoke(
-        'claude-ai/chat',
-        {
-          body: {
-            messages: [{ role: 'user', content: summaryPrompt }],
-            max_tokens: 500,
-          },
-        }
-      );
+      const { data: summaryResponse, error: summaryError } = await callWorkersApi<{
+        success: boolean;
+        data: { content: string };
+      }>('/api/v1/claude-ai/chat', {
+        method: 'POST',
+        token,
+        body: {
+          messages: [{ role: 'user', content: summaryPrompt }],
+          max_tokens: 500,
+        },
+      });
 
       if (summaryError || !summaryResponse?.success) {
         throw new Error('요약 생성에 실패했습니다.');
@@ -505,16 +508,13 @@ export function useSummarizeContext() {
       const summary = summaryResponse.data.content;
 
       // 세션 업데이트 (요약을 metadata에 저장)
-      await supabase
-        .from('ai_conversations')
-        .update({
-          metadata: supabase.rpc('jsonb_set_value', {
-            target: 'metadata',
-            path: '{summary}',
-            value: JSON.stringify(summary),
-          }),
-        })
-        .eq('id', sessionId);
+      await callWorkersApi(`/api/v1/ai-conversations/${sessionId}`, {
+        method: 'PATCH',
+        token,
+        body: {
+          metadata: { summary },
+        },
+      });
 
       // 토큰 절약 추정
       const originalTokens = messagesToSummarize.reduce(
@@ -546,35 +546,38 @@ export function useSummarizeContext() {
  */
 export function useForkConversation() {
   const queryClient = useQueryClient();
+  const { workersTokens, user } = useAuth();
 
   return useMutation({
     mutationFn: async (input: ForkConversationInput): Promise<ForkConversationResult> => {
+      const token = workersTokens?.accessToken;
       const { parentSessionId, forkFromSequence, newTitle } = input;
 
-      // 부모 세션 조회
-      const { data: parentSession } = await supabase
-        .from('ai_conversations')
-        .select('*')
-        .eq('id', parentSessionId)
-        .single();
+      if (!user) {
+        throw new Error('로그인이 필요합니다.');
+      }
 
-      if (!parentSession) {
+      // 부모 세션 조회
+      const { data: parentSession, error: parentError } = await callWorkersApi<ConversationSessionDB>(
+        `/api/v1/ai-conversations/${parentSessionId}`,
+        { token }
+      );
+
+      if (parentError || !parentSession) {
         throw new Error('부모 세션을 찾을 수 없습니다.');
       }
 
       // fork_index 계산
-      const { count } = await supabase
-        .from('ai_conversations')
-        .select('*', { count: 'exact', head: true })
-        .eq('parent_id', parentSessionId);
+      const { data: forkCount } = await callWorkersApi<{ count: number }>(
+        `/api/v1/ai-conversations/count?parent_id=${parentSessionId}`,
+        { token }
+      );
 
-      const forkIndex = (count || 0) + 1;
+      const forkIndex = (forkCount?.count || 0) + 1;
 
       // 새 세션 생성
-      const userId = await getCurrentUserId();
-
       const newSession: Partial<ConversationSessionDB> = {
-        user_id: userId,
+        user_id: user.id,
         title: newTitle || `${parentSession.title} (분기 ${forkIndex})`,
         system_prompt: parentSession.system_prompt,
         template_id: parentSession.template_id,
@@ -585,26 +588,28 @@ export function useForkConversation() {
         metadata: parentSession.metadata,
       };
 
-      const { data: createdSession, error: createError } = await supabase
-        .from('ai_conversations')
-        .insert(newSession)
-        .select()
-        .single();
+      const { data: createdSession, error: createError } = await callWorkersApi<ConversationSessionDB>(
+        '/api/v1/ai-conversations',
+        {
+          method: 'POST',
+          token,
+          body: newSession,
+        }
+      );
 
-      if (createError) {
-        console.error('Fork conversation error:', createError);
-        throw new Error(`대화 분기에 실패했습니다: ${createError.message}`);
+      if (createError || !createdSession) {
+        devLog('Fork conversation error:', createError);
+        throw new Error(`대화 분기에 실패했습니다: ${createError}`);
       }
 
       // 메시지 복사 (forkFromSequence개까지만)
-      const { data: messagesToCopy } = await supabase
-        .from('ai_messages')
-        .select('*')
-        .eq('conversation_id', parentSessionId)
-        .order('created_at', { ascending: true })
-        .limit(forkFromSequence);
+      const { data: messagesResponse } = await callWorkersApi<{
+        data: ConversationMessageDB[];
+      }>(`/api/v1/ai-messages?conversation_id=${parentSessionId}&order_by=created_at:asc&limit=${forkFromSequence}`, { token });
 
-      if (messagesToCopy && messagesToCopy.length > 0) {
+      const messagesToCopy = messagesResponse?.data || [];
+
+      if (messagesToCopy.length > 0) {
         const copiedMessages = messagesToCopy.map((msg) => ({
           conversation_id: createdSession.id,
           role: msg.role,
@@ -617,14 +622,19 @@ export function useForkConversation() {
           stop_reason: msg.stop_reason,
         }));
 
-        await supabase.from('ai_messages').insert(copiedMessages);
+        // 벌크 삽입
+        await callWorkersApi('/api/v1/ai-messages/bulk', {
+          method: 'POST',
+          token,
+          body: { messages: copiedMessages },
+        });
 
         // Note: total_tokens는 트리거로 자동 업데이트됨
       }
 
       return {
-        newSession: convertDbToSession(createdSession as ConversationSessionDB),
-        copiedMessageCount: messagesToCopy?.length || 0,
+        newSession: convertDbToSession(createdSession),
+        copiedMessageCount: messagesToCopy.length,
       };
     },
     onSuccess: () => {
@@ -641,29 +651,32 @@ export function useForkConversation() {
  * Markdown 내보내기
  */
 export function useExportToMarkdown() {
+  const { workersTokens } = useAuth();
+
   return useMutation({
     mutationFn: async (sessionId: string): Promise<ExportMarkdownResult> => {
-      // 세션 조회
-      const { data: session } = await supabase
-        .from('ai_conversations')
-        .select('*')
-        .eq('id', sessionId)
-        .single();
+      const token = workersTokens?.accessToken;
 
-      if (!session) {
+      // 세션 조회
+      const { data: session, error: sessionError } = await callWorkersApi<ConversationSessionDB>(
+        `/api/v1/ai-conversations/${sessionId}`,
+        { token }
+      );
+
+      if (sessionError || !session) {
         throw new Error('세션을 찾을 수 없습니다.');
       }
 
       // 메시지 조회
-      const { data: messages } = await supabase
-        .from('ai_messages')
-        .select('*')
-        .eq('conversation_id', sessionId)
-        .order('created_at', { ascending: true });
+      const { data: messagesResponse, error: messagesError } = await callWorkersApi<{
+        data: ConversationMessageDB[];
+      }>(`/api/v1/ai-messages?conversation_id=${sessionId}&order_by=created_at:asc`, { token });
 
-      if (!messages || messages.length === 0) {
+      if (messagesError || !messagesResponse?.data || messagesResponse.data.length === 0) {
         throw new Error('내보낼 메시지가 없습니다.');
       }
+
+      const messages = messagesResponse.data;
 
       // Markdown 생성
       let markdown = `# ${session.title}\n\n`;

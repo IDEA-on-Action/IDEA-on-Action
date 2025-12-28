@@ -1,10 +1,14 @@
 /**
  * useAuditLogs Hook - v2.36.0 Enhanced
+ * @migration Supabase -> Cloudflare Workers (완전 마이그레이션 완료)
+ *
  * 고도화된 감사 로그 조회 훅
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { callWorkersApi, realtimeApi } from '@/integrations/cloudflare/client';
+import { useAuth } from './useAuth';
+import { devLog } from '@/lib/errors';
 import type {
   AuditLogEntry,
   AuditLogWithUser,
@@ -51,76 +55,53 @@ export function useAuditLogs(
   filters: AuditLogFilters = {},
   pagination: AuditLogPagination = { page: 0, pageSize: 100 }
 ) {
+  const { workersTokens } = useAuth();
+
   return useQuery({
     queryKey: QUERY_KEYS.list(filters, pagination),
     queryFn: async () => {
-      // 기본 쿼리 구성
-      let query = supabase
-        .from('audit_log')
-        .select(`
-          *,
-          actor:actor_id(id, email, raw_user_meta_data)
-        `, { count: 'exact' });
+      const token = workersTokens?.accessToken;
 
-      // 필터 적용
-      if (filters.actor_id) {
-        query = query.eq('actor_id', filters.actor_id);
+      // URL 파라미터 구성
+      const params = new URLSearchParams();
+      params.append('page', pagination.page.toString());
+      params.append('page_size', pagination.pageSize.toString());
+      params.append('order_by', 'created_at:desc');
+
+      if (filters.actor_id) params.append('actor_id', filters.actor_id);
+      if (filters.actor_type) params.append('actor_type', filters.actor_type);
+      if (filters.event_type) params.append('event_type', filters.event_type);
+      if (filters.action) params.append('action', filters.action);
+      if (filters.resource_type) params.append('resource_type', filters.resource_type);
+      if (filters.resource_id) params.append('resource_id', filters.resource_id);
+      if (filters.session_id) params.append('session_id', filters.session_id);
+      if (filters.ip_address) params.append('ip_address', filters.ip_address);
+      if (filters.start_date) params.append('start_date', filters.start_date);
+      if (filters.end_date) params.append('end_date', filters.end_date);
+
+      const { data, error } = await callWorkersApi<{
+        logs: AuditLogWithUser[];
+        total: number;
+      }>(`/api/v1/audit-logs?${params.toString()}`, { token });
+
+      if (error) {
+        devLog('Audit logs error:', error);
+        return {
+          logs: [] as AuditLogWithUser[],
+          total: 0,
+          page: pagination.page,
+          pageSize: pagination.pageSize,
+          totalPages: 0,
+        };
       }
 
-      if (filters.actor_type) {
-        query = query.eq('actor_type', filters.actor_type);
-      }
-
-      if (filters.event_type) {
-        query = query.eq('event_type', filters.event_type);
-      }
-
-      if (filters.action) {
-        query = query.eq('action', filters.action);
-      }
-
-      if (filters.resource_type) {
-        query = query.eq('resource_type', filters.resource_type);
-      }
-
-      if (filters.resource_id) {
-        query = query.eq('resource_id', filters.resource_id);
-      }
-
-      if (filters.session_id) {
-        query = query.eq('session_id', filters.session_id);
-      }
-
-      if (filters.ip_address) {
-        query = query.eq('ip_address', filters.ip_address);
-      }
-
-      if (filters.start_date) {
-        query = query.gte('created_at', filters.start_date);
-      }
-
-      if (filters.end_date) {
-        query = query.lte('created_at', filters.end_date);
-      }
-
-      // 정렬 및 페이지네이션
-      query = query
-        .order('created_at', { ascending: false })
-        .range(
-          pagination.page * pagination.pageSize,
-          (pagination.page + 1) * pagination.pageSize - 1
-        );
-
-      const { data, error, count } = await query;
-
-      if (error) throw error;
-
+      const total = data?.total || 0;
       return {
-        logs: data as AuditLogWithUser[],
-        total: count || 0,
+        logs: data?.logs || [],
+        total,
         page: pagination.page,
         pageSize: pagination.pageSize,
-        totalPages: count ? Math.ceil(count / pagination.pageSize) : 0,
+        totalPages: total ? Math.ceil(total / pagination.pageSize) : 0,
       };
     },
     staleTime: 30 * 1000, // 30초 캐싱
@@ -138,19 +119,18 @@ export function useAuditLogs(
  * @returns 감사 로그 상세 정보
  */
 export function useAuditLog(id: string) {
+  const { workersTokens } = useAuth();
+
   return useQuery({
     queryKey: QUERY_KEYS.detail(id),
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('audit_log')
-        .select(`
-          *,
-          actor:actor_id(id, email, raw_user_meta_data)
-        `)
-        .eq('id', id)
-        .single();
+      const token = workersTokens?.accessToken;
+      const { data, error } = await callWorkersApi<AuditLogWithUser>(
+        `/api/v1/audit-logs/${id}`,
+        { token }
+      );
 
-      if (error) throw error;
+      if (error) throw new Error(error);
       return data as AuditLogWithUser;
     },
     enabled: !!id,
@@ -170,20 +150,26 @@ export function useAuditLog(id: string) {
  * @returns 이벤트별 통계 데이터
  */
 export function useAuditStatistics(startDate?: string, endDate?: string) {
+  const { workersTokens } = useAuth();
+
   return useQuery({
     queryKey: QUERY_KEYS.statistics(startDate, endDate),
     queryFn: async () => {
-      const { data, error } = await supabase.rpc('get_audit_statistics', {
-        p_start_date: startDate || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
-        p_end_date: endDate || new Date().toISOString(),
-      });
+      const token = workersTokens?.accessToken;
+      const start = startDate || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+      const end = endDate || new Date().toISOString();
+
+      const { data, error } = await callWorkersApi<AuditStatistics[]>(
+        `/api/v1/audit-logs/statistics?start_date=${start}&end_date=${end}`,
+        { token }
+      );
 
       if (error) {
-        console.warn('[useAuditStatistics] RPC function error:', error);
+        devLog('Audit statistics error:', error);
         return [] as AuditStatistics[];
       }
 
-      return data as AuditStatistics[];
+      return data || [];
     },
     staleTime: 5 * 60 * 1000, // 5분 캐싱
   });
@@ -201,18 +187,23 @@ export function useAuditStatistics(startDate?: string, endDate?: string) {
  * @returns 사용자의 최근 감사 로그
  */
 export function useUserAuditHistory(userId: string, limit = 50) {
+  const { workersTokens } = useAuth();
+
   return useQuery({
     queryKey: [...QUERY_KEYS.all, 'user-history', userId, limit],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('audit_log')
-        .select('*')
-        .eq('actor_id', userId)
-        .order('created_at', { ascending: false })
-        .limit(limit);
+      const token = workersTokens?.accessToken;
+      const { data, error } = await callWorkersApi<AuditLogEntry[]>(
+        `/api/v1/audit-logs?actor_id=${userId}&limit=${limit}&order_by=created_at:desc`,
+        { token }
+      );
 
-      if (error) throw error;
-      return data as AuditLogEntry[];
+      if (error) {
+        devLog('User audit history error:', error);
+        return [] as AuditLogEntry[];
+      }
+
+      return data || [];
     },
     enabled: !!userId,
     staleTime: 60 * 1000, // 1분 캐싱
@@ -231,21 +222,23 @@ export function useUserAuditHistory(userId: string, limit = 50) {
  * @returns 리소스 변경 이력
  */
 export function useResourceAuditHistory(resourceType: string, resourceId: string) {
+  const { workersTokens } = useAuth();
+
   return useQuery({
     queryKey: [...QUERY_KEYS.all, 'resource-history', resourceType, resourceId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('audit_log')
-        .select(`
-          *,
-          actor:actor_id(id, email)
-        `)
-        .eq('resource_type', resourceType)
-        .eq('resource_id', resourceId)
-        .order('created_at', { ascending: false });
+      const token = workersTokens?.accessToken;
+      const { data, error } = await callWorkersApi<AuditLogWithUser[]>(
+        `/api/v1/audit-logs?resource_type=${resourceType}&resource_id=${resourceId}&order_by=created_at:desc`,
+        { token }
+      );
 
-      if (error) throw error;
-      return data as AuditLogWithUser[];
+      if (error) {
+        devLog('Resource audit history error:', error);
+        return [] as AuditLogWithUser[];
+      }
+
+      return data || [];
     },
     enabled: !!(resourceType && resourceId),
     staleTime: 60 * 1000, // 1분 캐싱
@@ -266,48 +259,41 @@ export function useRealtimeAuditLogs(
   onNewLog?: (log: AuditLogEntry) => void,
   limit = 20
 ) {
+  const { workersTokens, user } = useAuth();
   const queryClient = useQueryClient();
 
   return useQuery({
     queryKey: [...QUERY_KEYS.all, 'realtime', limit],
     queryFn: async () => {
+      const token = workersTokens?.accessToken;
+
       // 최근 로그 조회
-      const { data, error } = await supabase
-        .from('audit_log')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(limit);
+      const { data, error } = await callWorkersApi<AuditLogEntry[]>(
+        `/api/v1/audit-logs?limit=${limit}&order_by=created_at:desc`,
+        { token }
+      );
 
-      if (error) throw error;
+      if (error) {
+        devLog('Realtime audit logs error:', error);
+        return [] as AuditLogEntry[];
+      }
 
-      // Realtime 구독 설정 (한 번만)
-      const channel = supabase
-        .channel('audit_log_changes')
-        .on(
-          'postgres_changes',
-          {
-            event: 'INSERT',
-            schema: 'public',
-            table: 'audit_log',
-          },
-          (payload) => {
-            const newLog = payload.new as AuditLogEntry;
+      // WebSocket 연결로 실시간 감사 로그 수신
+      if (user) {
+        const ws = realtimeApi.connect(`audit-logs-${user.id}`, user.id);
 
-            // 콜백 실행
+        ws.onmessage = (event) => {
+          try {
+            const newLog = JSON.parse(event.data) as AuditLogEntry;
             onNewLog?.(newLog);
-
-            // 쿼리 무효화하여 새 데이터 가져오기
             queryClient.invalidateQueries({ queryKey: QUERY_KEYS.all });
+          } catch (e) {
+            devLog('Audit log message parse error:', e);
           }
-        )
-        .subscribe();
+        };
+      }
 
-      // Cleanup
-      return () => {
-        channel.unsubscribe();
-      };
-
-      return data as AuditLogEntry[];
+      return data || [];
     },
     staleTime: 10 * 1000, // 10초 캐싱
   });
@@ -324,30 +310,31 @@ export function useRealtimeAuditLogs(
  * @returns 내보내기용 감사 로그 데이터
  */
 export function useAuditLogsExport(filters: AuditLogFilters = {}) {
+  const { workersTokens } = useAuth();
+
   return useQuery({
     queryKey: QUERY_KEYS.export(filters),
     queryFn: async () => {
-      let query = supabase
-        .from('audit_log')
-        .select(`
-          *,
-          actor:actor_id(id, email)
-        `);
+      const token = workersTokens?.accessToken;
 
-      // 필터 적용 (동일한 로직)
-      if (filters.actor_id) query = query.eq('actor_id', filters.actor_id);
-      if (filters.event_type) query = query.eq('event_type', filters.event_type);
-      if (filters.action) query = query.eq('action', filters.action);
-      if (filters.resource_type) query = query.eq('resource_type', filters.resource_type);
-      if (filters.start_date) query = query.gte('created_at', filters.start_date);
-      if (filters.end_date) query = query.lte('created_at', filters.end_date);
+      const params = new URLSearchParams();
+      params.append('order_by', 'created_at:desc');
+      params.append('limit', '10000'); // 내보내기용 대량 조회
 
-      query = query.order('created_at', { ascending: false });
+      if (filters.actor_id) params.append('actor_id', filters.actor_id);
+      if (filters.event_type) params.append('event_type', filters.event_type);
+      if (filters.action) params.append('action', filters.action);
+      if (filters.resource_type) params.append('resource_type', filters.resource_type);
+      if (filters.start_date) params.append('start_date', filters.start_date);
+      if (filters.end_date) params.append('end_date', filters.end_date);
 
-      const { data, error } = await query;
+      const { data, error } = await callWorkersApi<AuditLogWithUser[]>(
+        `/api/v1/audit-logs/export?${params.toString()}`,
+        { token }
+      );
 
-      if (error) throw error;
-      return data as AuditLogWithUser[];
+      if (error) throw new Error(error);
+      return data || [];
     },
     enabled: false, // 수동으로만 실행
     staleTime: 0, // 캐싱 없음
@@ -365,15 +352,20 @@ export function useAuditLogsExport(filters: AuditLogFilters = {}) {
  */
 export function useDeleteAuditLog() {
   const queryClient = useQueryClient();
+  const { workersTokens } = useAuth();
 
   return useMutation({
     mutationFn: async (logId: string) => {
-      const { error } = await supabase
-        .from('audit_log')
-        .delete()
-        .eq('id', logId);
+      const token = workersTokens?.accessToken;
+      const { error } = await callWorkersApi(
+        `/api/v1/audit-logs/${logId}`,
+        {
+          method: 'DELETE',
+          token,
+        }
+      );
 
-      if (error) throw error;
+      if (error) throw new Error(error);
     },
     onSuccess: () => {
       // 모든 감사 로그 쿼리 무효화
@@ -394,28 +386,34 @@ export function useLegacyAuditLogs(
   filters: { user_id?: string; action?: string; resource?: string; start_date?: string; end_date?: string } = {},
   limit = 100
 ) {
+  const { workersTokens } = useAuth();
+
   return useQuery({
     queryKey: ['audit_logs_legacy', filters, limit],
     queryFn: async () => {
-      let query = supabase
-        .from('audit_logs')
-        .select(`
-          *,
-          user:user_id(id, email)
-        `);
+      const token = workersTokens?.accessToken;
 
-      if (filters.user_id) query = query.eq('user_id', filters.user_id);
-      if (filters.action) query = query.eq('action', filters.action);
-      if (filters.resource) query = query.eq('resource', filters.resource);
-      if (filters.start_date) query = query.gte('created_at', filters.start_date);
-      if (filters.end_date) query = query.lte('created_at', filters.end_date);
+      const params = new URLSearchParams();
+      params.append('limit', limit.toString());
+      params.append('order_by', 'created_at:desc');
 
-      query = query.order('created_at', { ascending: false }).limit(limit);
+      if (filters.user_id) params.append('user_id', filters.user_id);
+      if (filters.action) params.append('action', filters.action);
+      if (filters.resource) params.append('resource', filters.resource);
+      if (filters.start_date) params.append('start_date', filters.start_date);
+      if (filters.end_date) params.append('end_date', filters.end_date);
 
-      const { data, error } = await query;
+      const { data, error } = await callWorkersApi(
+        `/api/v1/audit-logs/legacy?${params.toString()}`,
+        { token }
+      );
 
-      if (error) throw error;
-      return data;
+      if (error) {
+        devLog('Legacy audit logs error:', error);
+        return [];
+      }
+
+      return data || [];
     },
   });
 }

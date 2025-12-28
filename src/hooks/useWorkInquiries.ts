@@ -4,11 +4,14 @@
  * Work with Us 문의 관리
  * - 문의 제출
  * - 이메일 발송
- * - Supabase 저장
+ * - Workers API 저장
+ *
+ * @migration Supabase -> Cloudflare Workers (완전 마이그레이션 완료)
  */
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { supabase } from '@/integrations/supabase/client'
+import { callWorkersApi } from '@/integrations/cloudflare/client'
+import { useAuth } from '@/hooks/useAuth'
 import { toast } from 'sonner'
 
 export interface WorkInquiry {
@@ -38,43 +41,29 @@ export function useSubmitWorkInquiry() {
         throw new Error('유효한 이메일 주소를 입력해주세요.')
       }
 
-      // 2. Supabase에 저장 (동기)
-      const { data: inquiry, error: dbError } = await supabase
-        .from('work_with_us_inquiries')
-        .insert({
-          name: data.name,
-          email: data.email,
-          company: data.company || null,
-          package: data.package,
-          budget: data.budget || null,
-          brief: data.brief,
-          status: 'pending',
-        })
-        .select()
-        .single()
-
-      if (dbError) {
-        console.error('Supabase insert error:', dbError)
-        throw new Error('문의 접수에 실패했습니다. 잠시 후 다시 시도해주세요.')
-      }
-
-      // 3. 이메일 발송 (비동기, 논블로킹) - Supabase Edge Function 호출
-      // 이메일 발송 실패해도 사용자 경험 차단하지 않음
-      supabase.functions
-        .invoke('send-work-inquiry-email', {
+      // 2. Workers API에 저장
+      const { data: inquiry, error: dbError } = await callWorkersApi<WorkInquiry>(
+        '/api/v1/work-inquiries',
+        {
+          method: 'POST',
           body: {
             name: data.name,
             email: data.email,
-            company: data.company,
+            company: data.company || null,
             package: data.package,
-            budget: data.budget,
+            budget: data.budget || null,
             brief: data.brief,
+            status: 'pending',
           },
-        })
-        .catch((error) => {
-          console.error('Email send failed (non-blocking):', error)
-          // 이메일 발송 실패는 로그만 남기고 사용자에게는 알리지 않음
-        })
+        }
+      )
+
+      if (dbError) {
+        console.error('Workers API error:', dbError)
+        throw new Error('문의 접수에 실패했습니다. 잠시 후 다시 시도해주세요.')
+      }
+
+      // 3. 이메일 발송은 Workers API 내부에서 처리됨 (비동기)
 
       return inquiry as WorkInquiry
     },
@@ -96,24 +85,25 @@ export function useSubmitWorkInquiry() {
  * Work with Us 문의 목록 조회 (관리자용)
  */
 export function useWorkInquiries(status?: string) {
+  const { workersTokens } = useAuth()
+
   return useQuery({
     queryKey: ['work-inquiries', status],
     queryFn: async () => {
-      let query = supabase
-        .from('work_with_us_inquiries')
-        .select('*')
-        .order('created_at', { ascending: false })
+      const queryParams = new URLSearchParams()
+      if (status) queryParams.set('status', status)
+      const queryString = queryParams.toString()
 
-      if (status) {
-        query = query.eq('status', status)
-      }
+      const { data, error } = await callWorkersApi<WorkInquiry[]>(
+        `/api/v1/work-inquiries${queryString ? `?${queryString}` : ''}`,
+        { token: workersTokens?.accessToken }
+      )
 
-      const { data, error } = await query
+      if (error) throw new Error(error)
 
-      if (error) throw error
-
-      return data as WorkInquiry[]
+      return data || []
     },
+    enabled: !!workersTokens?.accessToken,
     staleTime: 2 * 60 * 1000, // 2분
   })
 }
@@ -122,20 +112,21 @@ export function useWorkInquiries(status?: string) {
  * Work with Us 문의 단일 조회 (관리자용)
  */
 export function useWorkInquiry(id: string) {
+  const { workersTokens } = useAuth()
+
   return useQuery({
     queryKey: ['work-inquiry', id],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('work_with_us_inquiries')
-        .select('*')
-        .eq('id', id)
-        .single()
+      const { data, error } = await callWorkersApi<WorkInquiry>(
+        `/api/v1/work-inquiries/${id}`,
+        { token: workersTokens?.accessToken }
+      )
 
-      if (error) throw error
+      if (error) throw new Error(error)
 
       return data as WorkInquiry
     },
-    enabled: !!id,
+    enabled: !!id && !!workersTokens?.accessToken,
     staleTime: 5 * 60 * 1000, // 5분
   })
 }
@@ -145,6 +136,7 @@ export function useWorkInquiry(id: string) {
  */
 export function useUpdateWorkInquiryStatus() {
   const queryClient = useQueryClient()
+  const { workersTokens } = useAuth()
 
   return useMutation({
     mutationFn: async ({
@@ -164,14 +156,16 @@ export function useUpdateWorkInquiryStatus() {
         updateData.admin_notes = adminNotes
       }
 
-      const { data, error } = await supabase
-        .from('work_with_us_inquiries')
-        .update(updateData)
-        .eq('id', id)
-        .select()
-        .single()
+      const { data, error } = await callWorkersApi<WorkInquiry>(
+        `/api/v1/work-inquiries/${id}`,
+        {
+          method: 'PATCH',
+          token: workersTokens?.accessToken,
+          body: updateData,
+        }
+      )
 
-      if (error) throw error
+      if (error) throw new Error(error)
 
       return data as WorkInquiry
     },
@@ -192,15 +186,19 @@ export function useUpdateWorkInquiryStatus() {
  */
 export function useDeleteWorkInquiry() {
   const queryClient = useQueryClient()
+  const { workersTokens } = useAuth()
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from('work_with_us_inquiries')
-        .delete()
-        .eq('id', id)
+      const { error } = await callWorkersApi(
+        `/api/v1/work-inquiries/${id}`,
+        {
+          method: 'DELETE',
+          token: workersTokens?.accessToken,
+        }
+      )
 
-      if (error) throw error
+      if (error) throw new Error(error)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['work-inquiries'] })
@@ -218,37 +216,49 @@ export function useDeleteWorkInquiry() {
  * Work with Us 통계 조회 (관리자용)
  */
 export function useWorkInquiriesStats() {
+  const { workersTokens } = useAuth()
+
   return useQuery({
     queryKey: ['work-inquiries-stats'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('work_with_us_inquiries')
-        .select('status, package')
+      const { data, error } = await callWorkersApi<{
+        statusStats: {
+          total: number;
+          pending: number;
+          contacted: number;
+          in_progress: number;
+          completed: number;
+          rejected: number;
+        };
+        packageStats: {
+          MVP: number;
+          Growth: number;
+          Custom: number;
+        };
+      }>(
+        '/api/v1/work-inquiries/stats',
+        { token: workersTokens?.accessToken }
+      )
 
-      if (error) throw error
+      if (error) throw new Error(error)
 
-      // 상태별 카운트
-      const statusStats = {
-        total: data.length,
-        pending: data.filter((i) => i.status === 'pending').length,
-        contacted: data.filter((i) => i.status === 'contacted').length,
-        in_progress: data.filter((i) => i.status === 'in_progress').length,
-        completed: data.filter((i) => i.status === 'completed').length,
-        rejected: data.filter((i) => i.status === 'rejected').length,
-      }
-
-      // 패키지별 카운트
-      const packageStats = {
-        MVP: data.filter((i) => i.package === 'MVP').length,
-        Growth: data.filter((i) => i.package === 'Growth').length,
-        Custom: data.filter((i) => i.package === 'Custom').length,
-      }
-
-      return {
-        statusStats,
-        packageStats,
+      return data || {
+        statusStats: {
+          total: 0,
+          pending: 0,
+          contacted: 0,
+          in_progress: 0,
+          completed: 0,
+          rejected: 0,
+        },
+        packageStats: {
+          MVP: 0,
+          Growth: 0,
+          Custom: 0,
+        },
       }
     },
+    enabled: !!workersTokens?.accessToken,
     staleTime: 5 * 60 * 1000, // 5분
   })
 }

@@ -1,33 +1,26 @@
+/**
+ * Roadmap React Query Hooks
+ *
+ * @migration Supabase -> Cloudflare Workers (완전 마이그레이션 완료)
+ */
+
 import { useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useSupabaseQuery, useSupabaseMutation, supabaseQuery } from '@/lib/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { roadmapApi, callWorkersApi } from '@/integrations/cloudflare/client';
+import { useAuth } from '@/hooks/useAuth';
 import type { Roadmap } from '@/types/v2';
 
 /**
  * Hook to fetch all roadmap items
  */
 export const useRoadmap = () => {
-  return useSupabaseQuery<Roadmap[]>({
+  return useQuery({
     queryKey: ['roadmap'],
     queryFn: async () => {
-      return await supabaseQuery(
-        async () => {
-          const result = await supabase
-            .from('roadmap')
-            .select('*')
-            .order('start_date', { ascending: true });
-          return { data: result.data, error: result.error };
-        },
-        {
-          table: 'roadmap',
-          operation: '로드맵 조회',
-          fallbackValue: [],
-        }
-      );
+      const { data, error } = await roadmapApi.list();
+      if (error) throw new Error(error);
+      return (data as Roadmap[]) || [];
     },
-    table: 'roadmap',
-    operation: '로드맵 조회',
-    fallbackValue: [],
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 };
@@ -36,28 +29,15 @@ export const useRoadmap = () => {
  * Hook to fetch a single roadmap item by quarter
  */
 export const useRoadmapByQuarter = (quarter: string) => {
-  return useSupabaseQuery<Roadmap>({
+  return useQuery({
     queryKey: ['roadmap', quarter],
     queryFn: async () => {
-      return await supabaseQuery(
-        async () => {
-          const result = await supabase
-            .from('roadmap')
-            .select('*')
-            .eq('quarter', quarter)
-            .maybeSingle();
-          return { data: result.data, error: result.error };
-        },
-        {
-          table: 'roadmap',
-          operation: '로드맵 조회',
-          fallbackValue: null,
-        }
+      const { data, error } = await callWorkersApi<Roadmap>(
+        `/api/v1/roadmap/quarter/${quarter}`
       );
+      if (error) throw new Error(error);
+      return data;
     },
-    table: 'roadmap',
-    operation: '로드맵 조회',
-    fallbackValue: null,
     enabled: !!quarter,
   });
 };
@@ -67,20 +47,22 @@ export const useRoadmapByQuarter = (quarter: string) => {
  */
 export const useCreateRoadmap = () => {
   const queryClient = useQueryClient();
+  const { workersTokens } = useAuth();
 
-  return useSupabaseMutation<Roadmap, Omit<Roadmap, 'id' | 'created_at' | 'updated_at'>>({
+  return useMutation({
     mutationFn: async (roadmap: Omit<Roadmap, 'id' | 'created_at' | 'updated_at'>) => {
-      const { data, error } = await supabase
-        .from('roadmap')
-        .insert([roadmap])
-        .select()
-        .single();
+      if (!workersTokens?.accessToken) {
+        throw new Error('인증이 필요합니다.');
+      }
 
-      if (error) throw error;
+      const { data, error } = await roadmapApi.create(
+        workersTokens.accessToken,
+        roadmap as Record<string, unknown>
+      );
+
+      if (error) throw new Error(error);
       return data as Roadmap;
     },
-    table: 'roadmap',
-    operation: '로드맵 생성',
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['roadmap'] });
     },
@@ -92,21 +74,23 @@ export const useCreateRoadmap = () => {
  */
 export const useUpdateRoadmap = () => {
   const queryClient = useQueryClient();
+  const { workersTokens } = useAuth();
 
-  return useSupabaseMutation<Roadmap, { id: number; updates: Partial<Roadmap> }>({
+  return useMutation({
     mutationFn: async ({ id, updates }: { id: number; updates: Partial<Roadmap> }) => {
-      const { data, error } = await supabase
-        .from('roadmap')
-        .update(updates)
-        .eq('id', id)
-        .select()
-        .single();
+      if (!workersTokens?.accessToken) {
+        throw new Error('인증이 필요합니다.');
+      }
 
-      if (error) throw error;
+      const { data, error } = await roadmapApi.update(
+        workersTokens.accessToken,
+        String(id),
+        updates as Record<string, unknown>
+      );
+
+      if (error) throw new Error(error);
       return data as Roadmap;
     },
-    table: 'roadmap',
-    operation: '로드맵 수정',
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['roadmap'] });
       queryClient.invalidateQueries({ queryKey: ['roadmap', data.quarter] });
@@ -119,19 +103,22 @@ export const useUpdateRoadmap = () => {
  */
 export const useDeleteRoadmap = () => {
   const queryClient = useQueryClient();
+  const { workersTokens } = useAuth();
 
-  return useSupabaseMutation<number, number>({
+  return useMutation({
     mutationFn: async (id: number) => {
-      const { error } = await supabase
-        .from('roadmap')
-        .delete()
-        .eq('id', id);
+      if (!workersTokens?.accessToken) {
+        throw new Error('인증이 필요합니다.');
+      }
 
-      if (error) throw error;
+      const { error } = await roadmapApi.delete(
+        workersTokens.accessToken,
+        String(id)
+      );
+
+      if (error) throw new Error(error);
       return id;
     },
-    table: 'roadmap',
-    operation: '로드맵 삭제',
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['roadmap'] });
     },

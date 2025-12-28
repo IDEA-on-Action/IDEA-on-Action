@@ -3,11 +3,13 @@
  *
  * 사용자별 알림 구독 설정 조회 및 관리를 위한 React 훅
  *
+ * @migration Supabase -> Cloudflare Workers (완전 마이그레이션 완료)
  * @module hooks/useAlertSubscriptions
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { callWorkersApi } from '@/integrations/cloudflare/client';
+import { useAuth } from '@/hooks/useAuth';
 
 // ============================================================================
 // Types
@@ -69,6 +71,7 @@ export function useAlertSubscriptions(
   userId: string
 ): UseAlertSubscriptionsReturn {
   const queryClient = useQueryClient();
+  const { workersTokens } = useAuth();
 
   // 구독 목록 조회
   const {
@@ -79,13 +82,22 @@ export function useAlertSubscriptions(
   } = useQuery({
     queryKey: alertSubscriptionKeys.byUser(userId),
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('alert_subscriptions')
-        .select('*')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false });
+      const { data, error } = await callWorkersApi<Array<{
+        id: string;
+        user_id: string;
+        topic_type: string;
+        topic_value: string;
+        enabled_channels: string[];
+        quiet_hours_start: string | null;
+        quiet_hours_end: string | null;
+        is_enabled: boolean;
+        created_at: string;
+        updated_at: string;
+      }>>(`/api/v1/alert-subscriptions?user_id=${userId}`, {
+        token: workersTokens?.accessToken,
+      });
 
-      if (error) throw error;
+      if (error) throw new Error(error);
 
       // DB 데이터를 타입에 맞게 변환
       return (
@@ -103,7 +115,7 @@ export function useAlertSubscriptions(
         })) || []
       );
     },
-    enabled: !!userId,
+    enabled: !!userId && !!workersTokens?.accessToken,
   });
 
   // ============================================================================
@@ -134,12 +146,13 @@ export function useAlertSubscriptions(
 
       updateData.updated_at = new Date().toISOString();
 
-      const { error } = await supabase
-        .from('alert_subscriptions')
-        .update(updateData)
-        .eq('id', id);
+      const { error } = await callWorkersApi(`/api/v1/alert-subscriptions/${id}`, {
+        method: 'PATCH',
+        token: workersTokens?.accessToken,
+        body: updateData,
+      });
 
-      if (error) throw error;
+      if (error) throw new Error(error);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
@@ -153,17 +166,21 @@ export function useAlertSubscriptions(
     mutationFn: async (
       subscription: Omit<AlertSubscription, 'id' | 'createdAt' | 'updatedAt'>
     ) => {
-      const { error } = await supabase.from('alert_subscriptions').insert({
-        user_id: subscription.userId,
-        topic_type: subscription.topicType,
-        topic_value: subscription.topicValue,
-        enabled_channels: subscription.enabledChannels,
-        quiet_hours_start: subscription.quietHoursStart,
-        quiet_hours_end: subscription.quietHoursEnd,
-        is_enabled: subscription.isEnabled,
+      const { error } = await callWorkersApi('/api/v1/alert-subscriptions', {
+        method: 'POST',
+        token: workersTokens?.accessToken,
+        body: {
+          user_id: subscription.userId,
+          topic_type: subscription.topicType,
+          topic_value: subscription.topicValue,
+          enabled_channels: subscription.enabledChannels,
+          quiet_hours_start: subscription.quietHoursStart,
+          quiet_hours_end: subscription.quietHoursEnd,
+          is_enabled: subscription.isEnabled,
+        },
       });
 
-      if (error) throw error;
+      if (error) throw new Error(error);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
@@ -175,12 +192,12 @@ export function useAlertSubscriptions(
   // 구독 삭제
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from('alert_subscriptions')
-        .delete()
-        .eq('id', id);
+      const { error } = await callWorkersApi(`/api/v1/alert-subscriptions/${id}`, {
+        method: 'DELETE',
+        token: workersTokens?.accessToken,
+      });
 
-      if (error) throw error;
+      if (error) throw new Error(error);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({

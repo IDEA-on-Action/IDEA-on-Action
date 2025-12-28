@@ -1,12 +1,9 @@
 /**
  * Media Library Hook
+ * @migration Supabase -> Cloudflare Workers (완전 마이그레이션 완료)
  *
  * Provides media CRUD operations with React Query integration.
  * Supports upload, list, search, delete, and metadata update.
- *
- * Note: R2 마이그레이션 진행 중
- * - 새 프로젝트는 useR2Storage 사용 권장
- * - 기존 URL은 자동으로 R2 URL로 변환됨
  *
  * @example
  * const {
@@ -21,16 +18,15 @@
 
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { mediaApi } from '@/integrations/cloudflare/client';
+import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
-import { rewriteStorageUrl } from '@/lib/storage/url-rewriter';
-import type { MediaItem, MediaItemInsert, MediaItemUpdate, MediaSearchParams } from '@/types/cms.types';
+import type { MediaItem, MediaItemUpdate, MediaSearchParams } from '@/types/cms.types';
 
 // =====================================================
 // Constants
 // =====================================================
 
-const MEDIA_BUCKET = 'media-library';
 const DEFAULT_PER_PAGE = 20;
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const ALLOWED_MIME_TYPES = [
@@ -55,25 +51,6 @@ export const mediaQueryKeys = {
 // =====================================================
 // Helper Functions
 // =====================================================
-
-/**
- * Generate unique filename with timestamp
- */
-function generateUniqueFilename(originalFilename: string): string {
-  const ext = originalFilename.split('.').pop() || '';
-  const timestamp = Date.now();
-  const random = Math.random().toString(36).substring(2, 8);
-  return `${timestamp}-${random}.${ext}`;
-}
-
-/**
- * Get public URL for storage path (R2 지원)
- */
-function getPublicUrl(storagePath: string): string {
-  const { data } = supabase.storage.from(MEDIA_BUCKET).getPublicUrl(storagePath);
-  // Supabase URL을 R2 URL로 변환
-  return rewriteStorageUrl(data.publicUrl) || data.publicUrl;
-}
 
 /**
  * Validate file before upload
@@ -129,6 +106,7 @@ export interface UseMediaLibraryOptions {
 export function useMediaLibrary(options: UseMediaLibraryOptions = {}) {
   const { params, enabled = true } = options;
   const queryClient = useQueryClient();
+  const { workersTokens } = useAuth();
   const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
 
   // ===================================================================
@@ -143,70 +121,49 @@ export function useMediaLibrary(options: UseMediaLibraryOptions = {}) {
   } = useQuery({
     queryKey: mediaQueryKeys.list(params),
     queryFn: async () => {
+      const token = workersTokens?.accessToken;
+      if (!token) {
+        throw new Error('인증이 필요합니다.');
+      }
+
       try {
-        let query = supabase
-          .from('media_library')
-          .select('*', { count: 'exact' })
-          .is('deleted_at', null);
+        const result = await mediaApi.list(token, {
+          search: params?.search,
+          mime_type: params?.mime_type,
+          date_from: params?.date_from,
+          date_to: params?.date_to,
+          sort_by: params?.sort_by || 'created_at',
+          sort_order: params?.sort_order || 'desc',
+          page: params?.page || 1,
+          per_page: params?.per_page || DEFAULT_PER_PAGE,
+        });
 
-        // Apply search filter
-        if (params?.search) {
-          query = query.ilike('filename', `%${params.search}%`);
+        if (result.error) {
+          console.error('[useMediaLibrary] List query error:', result.error);
+          throw new Error(result.error);
         }
 
-        // Apply mime type filter
-        if (params?.mime_type) {
-          query = query.ilike('mime_type', `${params.mime_type}%`);
-        }
-
-        // Apply date range filters
-        if (params?.date_from) {
-          query = query.gte('created_at', params.date_from);
-        }
-        if (params?.date_to) {
-          query = query.lte('created_at', params.date_to);
-        }
-
-        // Apply sorting
-        const sortBy = params?.sort_by || 'created_at';
-        const sortOrder = params?.sort_order || 'desc';
-        query = query.order(sortBy, { ascending: sortOrder === 'asc' });
-
-        // Apply pagination
-        const page = params?.page || 1;
-        const perPage = params?.per_page || DEFAULT_PER_PAGE;
-        const from = (page - 1) * perPage;
-        const to = from + perPage - 1;
-        query = query.range(from, to);
-
-        const { data, error, count } = await query;
-
-        if (error) {
-          console.error('[useMediaLibrary] List query error:', error);
-          throw error;
-        }
-
-        // 미디어 아이템의 URL을 R2 URL로 변환
-        const normalizedData = (data || []).map(item => ({
-          ...item,
-          storage_path: item.storage_path,
-          // URL 필드가 있으면 R2 URL로 변환
-          url: item.url ? rewriteStorageUrl(item.url as string) : undefined,
-        })) as MediaItem[];
+        const responseData = result.data as {
+          data: MediaItem[];
+          count: number;
+          page: number;
+          perPage: number;
+          totalPages: number;
+        };
 
         return {
-          data: normalizedData,
-          count: count || 0,
-          page,
-          perPage,
-          totalPages: Math.ceil((count || 0) / perPage),
+          data: responseData.data || [],
+          count: responseData.count || 0,
+          page: responseData.page || 1,
+          perPage: responseData.perPage || DEFAULT_PER_PAGE,
+          totalPages: responseData.totalPages || 0,
         };
       } catch (error) {
         console.error('[useMediaLibrary] List query exception:', error);
         throw error;
       }
     },
-    enabled,
+    enabled: enabled && !!workersTokens?.accessToken,
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
@@ -216,12 +173,12 @@ export function useMediaLibrary(options: UseMediaLibraryOptions = {}) {
 
   const uploadMutation = useMutation({
     mutationFn: async (files: File[]): Promise<MediaItem[]> => {
-      const results: MediaItem[] = [];
-      const { data: { user } } = await supabase.auth.getUser();
-
-      if (!user) {
-        throw new Error('User not authenticated');
+      const token = workersTokens?.accessToken;
+      if (!token) {
+        throw new Error('인증이 필요합니다.');
       }
+
+      const results: MediaItem[] = [];
 
       for (const file of files) {
         // Validate file
@@ -232,60 +189,29 @@ export function useMediaLibrary(options: UseMediaLibraryOptions = {}) {
         }
 
         try {
-          // Generate unique filename
-          const uniqueFilename = generateUniqueFilename(file.name);
-          const year = new Date().getFullYear();
-          const month = String(new Date().getMonth() + 1).padStart(2, '0');
-          const storagePath = `${user.id}/${year}/${month}/${uniqueFilename}`;
-
           // Update progress
           setUploadProgress(prev => ({ ...prev, [file.name]: 0 }));
-
-          // Upload to storage
-          const { data: uploadData, error: uploadError } = await supabase.storage
-            .from(MEDIA_BUCKET)
-            .upload(storagePath, file, {
-              cacheControl: '31536000', // 1 year
-              upsert: false,
-            });
-
-          if (uploadError) {
-            throw uploadError;
-          }
-
-          // Update progress
-          setUploadProgress(prev => ({ ...prev, [file.name]: 50 }));
 
           // Get image dimensions
           const dimensions = await getImageDimensions(file);
 
-          // Insert metadata into database
-          const insertData: MediaItemInsert = {
-            filename: uniqueFilename,
-            original_filename: file.name,
-            file_size: file.size,
-            mime_type: file.type,
-            storage_path: storagePath,
-            uploaded_by: user.id,
-            width: dimensions?.width || null,
-            height: dimensions?.height || null,
-          };
+          // Update progress
+          setUploadProgress(prev => ({ ...prev, [file.name]: 30 }));
 
-          const { data: mediaItem, error: insertError } = await supabase
-            .from('media_library')
-            .insert(insertData)
-            .select()
-            .single();
+          // Upload to storage
+          const result = await mediaApi.upload(token, [file]);
 
-          if (insertError) {
-            // Cleanup uploaded file if metadata insert fails
-            await supabase.storage.from(MEDIA_BUCKET).remove([storagePath]);
-            throw insertError;
+          if (result.error) {
+            throw new Error(result.error);
           }
 
           // Update progress
           setUploadProgress(prev => ({ ...prev, [file.name]: 100 }));
-          results.push(mediaItem as MediaItem);
+
+          const uploadedItems = result.data as MediaItem[];
+          if (uploadedItems && uploadedItems.length > 0) {
+            results.push(...uploadedItems);
+          }
         } catch (error) {
           console.error(`[useMediaLibrary] Upload failed for ${file.name}:`, error);
           toast.error(`Failed to upload ${file.name}`);
@@ -319,18 +245,21 @@ export function useMediaLibrary(options: UseMediaLibraryOptions = {}) {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, values }: { id: string; values: MediaItemUpdate }): Promise<MediaItem> => {
-      const { data, error } = await supabase
-        .from('media_library')
-        .update({ ...values, updated_at: new Date().toISOString() })
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (error) {
-        throw error;
+      const token = workersTokens?.accessToken;
+      if (!token) {
+        throw new Error('인증이 필요합니다.');
       }
 
-      return data as MediaItem;
+      const result = await mediaApi.update(token, id, {
+        ...values,
+        updated_at: new Date().toISOString(),
+      });
+
+      if (result.error) {
+        throw new Error(result.error);
+      }
+
+      return result.data as MediaItem;
     },
     onSuccess: (data) => {
       toast.success('Media updated successfully');
@@ -348,14 +277,15 @@ export function useMediaLibrary(options: UseMediaLibraryOptions = {}) {
 
   const deleteMutation = useMutation({
     mutationFn: async (ids: string[]): Promise<void> => {
-      // Soft delete by setting deleted_at
-      const { error } = await supabase
-        .from('media_library')
-        .update({ deleted_at: new Date().toISOString() })
-        .in('id', ids);
+      const token = workersTokens?.accessToken;
+      if (!token) {
+        throw new Error('인증이 필요합니다.');
+      }
 
-      if (error) {
-        throw error;
+      const result = await mediaApi.delete(token, ids);
+
+      if (result.error) {
+        throw new Error(result.error);
       }
     },
     onSuccess: () => {
@@ -373,26 +303,15 @@ export function useMediaLibrary(options: UseMediaLibraryOptions = {}) {
 
   const permanentDeleteMutation = useMutation({
     mutationFn: async (ids: string[]): Promise<void> => {
-      // Get storage paths first
-      const { data: items } = await supabase
-        .from('media_library')
-        .select('storage_path')
-        .in('id', ids);
-
-      if (items && items.length > 0) {
-        // Delete from storage
-        const paths = items.map(item => item.storage_path);
-        await supabase.storage.from(MEDIA_BUCKET).remove(paths);
+      const token = workersTokens?.accessToken;
+      if (!token) {
+        throw new Error('인증이 필요합니다.');
       }
 
-      // Delete from database
-      const { error } = await supabase
-        .from('media_library')
-        .delete()
-        .in('id', ids);
+      const result = await mediaApi.permanentDelete(token, ids);
 
-      if (error) {
-        throw error;
+      if (result.error) {
+        throw new Error(result.error);
       }
     },
     onSuccess: () => {
@@ -409,18 +328,27 @@ export function useMediaLibrary(options: UseMediaLibraryOptions = {}) {
   // ===================================================================
 
   const getMediaItem = useCallback(async (id: string): Promise<MediaItem | null> => {
-    const { data, error } = await supabase
-      .from('media_library')
-      .select('*')
-      .eq('id', id)
-      .single();
-
-    if (error) {
-      console.error('[useMediaLibrary] Get item error:', error);
+    const token = workersTokens?.accessToken;
+    if (!token) {
       return null;
     }
 
-    return data as MediaItem;
+    const result = await mediaApi.getById(token, id);
+
+    if (result.error) {
+      console.error('[useMediaLibrary] Get item error:', result.error);
+      return null;
+    }
+
+    return result.data as MediaItem;
+  }, [workersTokens]);
+
+  // ===================================================================
+  // Get Public URL
+  // ===================================================================
+
+  const getPublicUrl = useCallback((storagePath: string): string => {
+    return mediaApi.getPublicUrl(storagePath);
   }, []);
 
   // ===================================================================

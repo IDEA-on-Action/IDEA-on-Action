@@ -5,10 +5,12 @@
  * - 현재 사용자의 구독 사용량 조회
  * - 사용량 증가 mutation 제공
  * - React Query 사용 (실시간 캐싱)
+ *
+ * @migration Supabase -> Cloudflare Workers (완전 마이그레이션 완료)
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { supabase } from '@/integrations/supabase/client'
+import { subscriptionsApi, callWorkersApi } from '@/integrations/cloudflare/client'
 import { useAuth } from './useAuth'
 import { toast } from 'sonner'
 
@@ -86,12 +88,12 @@ export const usageKeys = {
  * ```
  */
 export function useSubscriptionUsage() {
-  const { user } = useAuth()
+  const { user, workersTokens } = useAuth()
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: usageKeys.user(user?.id || 'anonymous'),
     queryFn: async () => {
-      if (!user) {
+      if (!user || !workersTokens?.accessToken) {
         return {
           usage: [] as UsageData[],
           totalUsed: 0,
@@ -100,23 +102,7 @@ export function useSubscriptionUsage() {
 
       try {
         // 1. 현재 활성 구독 조회
-        const { data: subscription, error: subError } = await supabase
-          .from('subscriptions')
-          .select(`
-            id,
-            current_period_start,
-            current_period_end,
-            plan:subscription_plans (
-              id,
-              plan_name,
-              features
-            )
-          `)
-          .eq('user_id', user.id)
-          .eq('status', 'active')
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .single()
+        const { data: subscription, error: subError } = await subscriptionsApi.getCurrent(workersTokens.accessToken)
 
         if (subError || !subscription) {
           return {
@@ -125,8 +111,19 @@ export function useSubscriptionUsage() {
           }
         }
 
+        const subscriptionData = subscription as {
+          id: string;
+          current_period_start: string;
+          current_period_end: string;
+          plan: {
+            id: string;
+            plan_name: string;
+            features: Record<string, unknown>;
+          } | null;
+        }
+
         // 2. 플랜 features에서 제한 목록 추출
-        const features = subscription.plan?.features as Record<string, unknown> | null
+        const features = subscriptionData.plan?.features
         if (!features) {
           return {
             usage: [] as UsageData[],
@@ -134,12 +131,17 @@ export function useSubscriptionUsage() {
           }
         }
 
-        // 3. 각 feature별 사용량 조회 (subscription_usage 테이블에서 집계)
-        const { data: usageRecords } = await supabase
-          .from('subscription_usage')
-          .select('feature_key, used_count')
-          .eq('subscription_id', subscription.id)
-          .eq('period_start', subscription.current_period_start.split('T')[0]) // DATE 형식으로 비교
+        // 3. 각 feature별 사용량 조회
+        const { data: usageRecords, error: usageError } = await callWorkersApi<Array<{
+          feature_key: string;
+          used_count: number;
+        }>>(`/api/v1/subscriptions/${subscriptionData.id}/usage`, {
+          token: workersTokens.accessToken,
+        })
+
+        if (usageError) {
+          console.error('Error fetching usage:', usageError)
+        }
 
         const usageMap = new Map(
           (usageRecords || []).map((record) => [record.feature_key, record.used_count])
@@ -155,8 +157,8 @@ export function useSubscriptionUsage() {
             feature_name: getFeatureName(key),
             used_count: used,
             limit_value: limit,
-            period_start: subscription.current_period_start,
-            period_end: subscription.current_period_end,
+            period_start: subscriptionData.current_period_start,
+            period_end: subscriptionData.current_period_end,
             percentage,
           }
         })
@@ -172,7 +174,7 @@ export function useSubscriptionUsage() {
         throw err
       }
     },
-    enabled: !!user,
+    enabled: !!user && !!workersTokens?.accessToken,
     staleTime: 1 * 60 * 1000, // 1분 캐싱
     gcTime: 5 * 60 * 1000, // 5분 가비지 컬렉션
     retry: 2,
@@ -204,44 +206,44 @@ export function useSubscriptionUsage() {
  */
 export function useIncrementUsage() {
   const queryClient = useQueryClient()
-  const { user } = useAuth()
+  const { user, workersTokens } = useAuth()
 
   const mutation = useMutation({
     mutationFn: async ({ feature_key, increment_by = 1 }: IncrementUsageRequest) => {
-      if (!user) {
+      if (!user || !workersTokens?.accessToken) {
         throw new Error('로그인이 필요합니다.')
       }
 
       // 활성 구독 조회
-      const { data: subscription, error: subError } = await supabase
-        .from('subscriptions')
-        .select('id')
-        .eq('user_id', user.id)
-        .eq('status', 'active')
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single()
+      const { data: subscription, error: subError } = await subscriptionsApi.getCurrent(workersTokens.accessToken)
 
       if (subError || !subscription) {
         throw new Error('활성 구독을 찾을 수 없습니다.')
       }
 
-      // increment_subscription_usage RPC 함수 호출 (원자적 업데이트 + 제한 체크)
-      const { data, error } = await supabase.rpc('increment_subscription_usage', {
-        p_subscription_id: subscription.id,
-        p_feature_key: feature_key,
-        p_increment: increment_by,
+      const subscriptionId = (subscription as { id: string }).id
+
+      // 사용량 증가 API 호출
+      const { data, error } = await callWorkersApi<{
+        success: boolean;
+        error_message?: string;
+      }>(`/api/v1/subscriptions/${subscriptionId}/usage/increment`, {
+        method: 'POST',
+        token: workersTokens.accessToken,
+        body: {
+          feature_key,
+          increment_by,
+        },
       })
 
-      if (error) throw error
+      if (error) throw new Error(error)
 
       // 결과 검증
-      const result = Array.isArray(data) ? data[0] : data
-      if (!result?.success) {
-        throw new Error(result?.error_message || '사용량 증가에 실패했습니다.')
+      if (!data?.success) {
+        throw new Error(data?.error_message || '사용량 증가에 실패했습니다.')
       }
 
-      return result
+      return data
     },
     onSuccess: () => {
       // 사용량 쿼리 무효화 (리프레시)
@@ -278,56 +280,35 @@ export function useIncrementUsage() {
  */
 export function useResetUsage() {
   const queryClient = useQueryClient()
+  const { workersTokens } = useAuth()
 
   const mutation = useMutation({
     mutationFn: async ({ user_id, feature_key }: ResetUsageRequest) => {
-      // 현재 사용자 정보 조회
-      const {
-        data: { user: currentUser },
-      } = await supabase.auth.getUser()
-
-      if (!currentUser) {
+      if (!workersTokens?.accessToken) {
         throw new Error('로그인이 필요합니다.')
       }
 
-      // 관리자 권한 확인 (is_admin_user RPC 함수 호출)
-      const { data: isAdmin, error: adminError } = await supabase.rpc('is_admin_user', {
-        user_uuid: currentUser.id,
+      // 관리자 전용 사용량 초기화 API 호출
+      const { data, error } = await callWorkersApi<{
+        success: boolean;
+        message: string;
+      }>('/api/v1/admin/subscriptions/reset-usage', {
+        method: 'POST',
+        token: workersTokens.accessToken,
+        body: {
+          user_id,
+          feature_key,
+        },
       })
 
-      if (adminError || !isAdmin) {
-        throw new Error('관리자 권한이 필요합니다.')
+      if (error) {
+        if (error.includes('권한') || error.includes('403')) {
+          throw new Error('관리자 권한이 필요합니다.')
+        }
+        throw new Error(error)
       }
 
-      // 사용자의 구독 조회
-      const { data: subscriptions, error: subError } = await supabase
-        .from('subscriptions')
-        .select('id')
-        .eq('user_id', user_id)
-        .eq('status', 'active')
-
-      if (subError) throw subError
-
-      if (!subscriptions || subscriptions.length === 0) {
-        throw new Error('활성 구독을 찾을 수 없습니다.')
-      }
-
-      // 각 구독별 사용량 초기화
-      for (const subscription of subscriptions) {
-        const { error: resetError } = await supabase
-          .from('subscription_usage')
-          .update({ used_count: 0 })
-          .eq('subscription_id', subscription.id)
-          .match(
-            feature_key
-              ? { feature_key } // 특정 기능만 초기화
-              : {} // 모든 기능 초기화
-          )
-
-        if (resetError) throw resetError
-      }
-
-      return { success: true, message: '사용량이 초기화되었습니다.' }
+      return data || { success: true, message: '사용량이 초기화되었습니다.' }
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: usageKeys.user(variables.user_id) })

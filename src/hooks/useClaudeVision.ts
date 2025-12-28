@@ -7,13 +7,14 @@
  * - 로딩/에러 상태 관리
  * - 토큰 사용량 추적
  *
- * @version 1.0.0
+ * @version 1.1.0
+ * @migration Supabase → Cloudflare Workers (완전 마이그레이션 완료)
  */
 
 import { useState, useCallback } from 'react'
 import { useMutation } from '@tanstack/react-query'
-import { supabase } from '@/integrations/supabase/client'
-import { devError } from '@/lib/errors'
+import { callWorkersApi } from '@/integrations/cloudflare/client'
+import { useAuth } from '@/hooks/useAuth'
 import type {
   VisionRequest,
   VisionResponse,
@@ -30,39 +31,44 @@ import type { ClaudeUsage } from '@/types/claude.types'
 // 상수
 // ============================================================================
 
-const SUPABASE_FUNCTION_URL = '/functions/v1/claude-ai'
-
-// ============================================================================
-// 유틸리티 함수
-// ============================================================================
-
-/**
- * 인증 토큰 가져오기
- */
-async function getAuthToken(): Promise<string | null> {
-  try {
-    const { data: { session } } = await supabase.auth.getSession()
-    return session?.access_token || null
-  } catch (err) {
-    devError(err, { operation: '인증 토큰 가져오기' })
-    return null
-  }
-}
+const WORKERS_API_URL = import.meta.env.VITE_WORKERS_API_URL || 'https://api.ideaonaction.ai'
 
 // ============================================================================
 // API 호출 함수
 // ============================================================================
 
 /**
- * Vision API 호출 (비스트리밍)
+ * Vision API 응답 타입
  */
-async function callVisionAPI(request: VisionRequest): Promise<VisionResponse> {
-  const token = await getAuthToken()
+interface APIResponseData {
+  success: boolean
+  data?: {
+    analysis: string
+    usage: {
+      inputTokens: number
+      outputTokens: number
+    }
+    model?: string
+    id?: string
+    stopReason?: string
+  }
+  error?: {
+    code: string
+    message: string
+  }
+}
+
+/**
+ * Vision API 호출 (비스트리밍) - Workers API
+ */
+async function callVisionAPI(request: VisionRequest, token: string | undefined): Promise<VisionResponse> {
   if (!token) {
     throw createVisionError('UNAUTHORIZED', '인증이 필요합니다. 로그인 후 다시 시도해주세요.')
   }
 
-  const { data, error } = await supabase.functions.invoke('claude-ai/vision', {
+  const result = await callWorkersApi<APIResponseData>('/api/v1/ai/vision', {
+    method: 'POST',
+    token,
     body: {
       images: request.images,
       prompt: request.prompt,
@@ -73,53 +79,31 @@ async function callVisionAPI(request: VisionRequest): Promise<VisionResponse> {
     },
   })
 
-  if (error) {
-    throw createVisionError('API_ERROR', error.message || 'AI 응답을 받는 중 오류가 발생했습니다.')
+  if (result.error) {
+    throw createVisionError('API_ERROR', result.error || 'AI 응답을 받는 중 오류가 발생했습니다.')
   }
 
-  interface APIResponseData {
-    success: boolean
-    data?: {
-      analysis: string
-      usage: {
-        inputTokens: number
-        outputTokens: number
-      }
-      model?: string
-      id?: string
-      stopReason?: string
-    }
-    error?: {
-      code: string
-      message: string
-    }
-  }
+  const responseData = result.data
 
-  const responseData = data as APIResponseData
-
-  if (!responseData.success || !responseData.data) {
-    throw createVisionError('API_ERROR', responseData.error?.message || 'AI 응답을 받는 중 오류가 발생했습니다.')
+  if (!responseData?.success || !responseData?.data) {
+    throw createVisionError('API_ERROR', responseData?.error?.message || 'AI 응답을 받는 중 오류가 발생했습니다.')
   }
 
   return responseData.data
 }
 
 /**
- * Vision API 스트리밍 호출
+ * Vision API 스트리밍 호출 - Workers API
  */
 async function* callVisionAPIStream(
-  request: VisionRequest
+  request: VisionRequest,
+  token: string | undefined
 ): AsyncGenerator<string, VisionResponse | null, unknown> {
-  const token = await getAuthToken()
   if (!token) {
     throw createVisionError('UNAUTHORIZED', '인증이 필요합니다. 로그인 후 다시 시도해주세요.')
   }
 
-  // Supabase Functions URL
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-  const functionUrl = `${supabaseUrl}${SUPABASE_FUNCTION_URL}/vision/stream`
-
-  const response = await fetch(functionUrl, {
+  const response = await fetch(`${WORKERS_API_URL}/api/v1/ai/vision/stream`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -250,6 +234,10 @@ export function useClaudeVision(options: UseClaudeVisionOptions = {}): UseClaude
     onStreamChunk,
   } = options
 
+  // Workers 인증 토큰
+  const { workersTokens } = useAuth()
+  const token = workersTokens?.accessToken
+
   // 상태
   const [isStreaming, setIsStreaming] = useState(false)
   const [error, setError] = useState<VisionError | null>(null)
@@ -265,7 +253,7 @@ export function useClaudeVision(options: UseClaudeVisionOptions = {}): UseClaude
         maxTokens: request.maxTokens || defaultMaxTokens,
         model: request.model || defaultModel,
         temperature: request.temperature ?? defaultTemperature,
-      })
+      }, token)
     },
     onSuccess: (data) => {
       setLastResponse(data)
@@ -326,7 +314,7 @@ export function useClaudeVision(options: UseClaudeVisionOptions = {}): UseClaude
 
         let fullContent = ''
 
-        for await (const chunk of callVisionAPIStream(streamRequest)) {
+        for await (const chunk of callVisionAPIStream(streamRequest, token)) {
           if (typeof chunk === 'string') {
             fullContent += chunk
             onChunk(chunk)
@@ -355,7 +343,7 @@ export function useClaudeVision(options: UseClaudeVisionOptions = {}): UseClaude
         setIsStreaming(false)
       }
     },
-    [defaultAnalysisType, defaultMaxTokens, defaultModel, defaultTemperature, onSuccess, onError, onStreamChunk]
+    [defaultAnalysisType, defaultMaxTokens, defaultModel, defaultTemperature, onSuccess, onError, onStreamChunk, token]
   )
 
   /**

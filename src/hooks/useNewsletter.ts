@@ -1,5 +1,6 @@
 /**
  * Newsletter Hook
+ * @migration Supabase -> Cloudflare Workers (완전 마이그레이션 완료)
  *
  * 뉴스레터 구독 관리
  * - 구독 신청
@@ -8,7 +9,8 @@
  */
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { supabase } from '@/integrations/supabase/client'
+import { newsletterApi } from '@/integrations/cloudflare/client'
+import { useAuth } from '@/hooks/useAuth'
 import { toast } from 'sonner'
 
 export interface NewsletterSubscription {
@@ -37,29 +39,21 @@ export function useSubscribeNewsletter() {
       }
 
       // 구독 신청
-      const { data, error } = await supabase
-        .from('newsletter_subscriptions')
-        .insert({
-          email,
-          status: 'pending',
-          metadata: {
-            source: 'website',
-            subscribed_from: window.location.pathname,
-            user_agent: navigator.userAgent,
-          },
-        })
-        .select()
-        .single()
+      const result = await newsletterApi.subscribe(email, {
+        source: 'website',
+        subscribed_from: window.location.pathname,
+        user_agent: navigator.userAgent,
+      })
 
-      if (error) {
+      if (result.error) {
         // 중복 이메일 처리
-        if (error.code === '23505') {
+        if (result.status === 409) {
           throw new Error('이미 구독 중인 이메일입니다.')
         }
-        throw error
+        throw new Error(result.error)
       }
 
-      return data as NewsletterSubscription
+      return result.data as NewsletterSubscription
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['newsletter-stats'] })
@@ -83,20 +77,14 @@ export function useConfirmNewsletter() {
 
   return useMutation({
     mutationFn: async (token: string) => {
-      // 토큰으로 구독 확인 (실제로는 토큰 검증 로직 필요)
-      const { data, error } = await supabase
-        .from('newsletter_subscriptions')
-        .update({
-          status: 'confirmed',
-          confirmed_at: new Date().toISOString(),
-        })
-        .eq('id', token)
-        .select()
-        .single()
+      // 토큰으로 구독 확인
+      const result = await newsletterApi.confirm(token)
 
-      if (error) throw error
+      if (result.error) {
+        throw new Error(result.error)
+      }
 
-      return data as NewsletterSubscription
+      return result.data as NewsletterSubscription
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['newsletter-stats'] })
@@ -120,19 +108,13 @@ export function useUnsubscribeNewsletter() {
 
   return useMutation({
     mutationFn: async (email: string) => {
-      const { data, error } = await supabase
-        .from('newsletter_subscriptions')
-        .update({
-          status: 'unsubscribed',
-          unsubscribed_at: new Date().toISOString(),
-        })
-        .eq('email', email)
-        .select()
-        .single()
+      const result = await newsletterApi.unsubscribe(email)
 
-      if (error) throw error
+      if (result.error) {
+        throw new Error(result.error)
+      }
 
-      return data as NewsletterSubscription
+      return result.data as NewsletterSubscription
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['newsletter-stats'] })
@@ -152,25 +134,30 @@ export function useUnsubscribeNewsletter() {
  * 뉴스레터 통계 조회 (관리자용)
  */
 export function useNewsletterStats() {
+  const { workersTokens } = useAuth()
+
   return useQuery({
     queryKey: ['newsletter-stats'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('newsletter_subscriptions')
-        .select('status')
-
-      if (error) throw error
-
-      // 상태별 카운트
-      const stats = {
-        total: data.length,
-        pending: data.filter((s) => s.status === 'pending').length,
-        confirmed: data.filter((s) => s.status === 'confirmed').length,
-        unsubscribed: data.filter((s) => s.status === 'unsubscribed').length,
+      const token = workersTokens?.accessToken
+      if (!token) {
+        throw new Error('인증이 필요합니다.')
       }
 
-      return stats
+      const result = await newsletterApi.getStats(token)
+
+      if (result.error) {
+        throw new Error(result.error)
+      }
+
+      return result.data as {
+        total: number
+        pending: number
+        confirmed: number
+        unsubscribed: number
+      }
     },
+    enabled: !!workersTokens?.accessToken,
     staleTime: 60 * 1000, // 1분
   })
 }

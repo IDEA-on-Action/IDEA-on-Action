@@ -1,34 +1,32 @@
+/**
+ * @migration Supabase → Cloudflare Workers (완전 마이그레이션 완료)
+ */
 import { useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useSupabaseQuery, useSupabaseMutation, supabaseQuery } from '@/lib/react-query';
+import { blogApi, callWorkersApi } from '@/integrations/cloudflare/client';
+import { useAuth } from '@/hooks/useAuth';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import type { Tag, TagInsert, TagUpdate } from '@/types/cms.types';
 
 /**
  * Hook to fetch all tags (sorted by usage_count DESC)
  */
 export const useTags = () => {
-  return useSupabaseQuery<Tag[]>({
+  return useQuery<Tag[]>({
     queryKey: ['tags'],
     queryFn: async () => {
-      return await supabaseQuery(
-        async () => {
-          const result = await supabase
-            .from('tags')
-            .select('*')
-            .order('usage_count', { ascending: false })
-            .order('created_at', { ascending: false });
-          return { data: result.data, error: result.error };
-        },
-        {
-          table: 'tags',
-          operation: '태그 목록 조회',
-          fallbackValue: [],
-        }
-      );
+      const response = await blogApi.getTags();
+      if (response.error) {
+        console.error('태그 목록 조회 실패:', response.error);
+        return [];
+      }
+      // usage_count DESC, created_at DESC 정렬
+      const tags = (response.data as Tag[]) || [];
+      return tags.sort((a, b) => {
+        const usageDiff = (b.usage_count || 0) - (a.usage_count || 0);
+        if (usageDiff !== 0) return usageDiff;
+        return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
+      });
     },
-    table: 'tags',
-    operation: '태그 목록 조회',
-    fallbackValue: [],
     staleTime: 10 * 60 * 1000, // 10 minutes
   });
 };
@@ -37,28 +35,16 @@ export const useTags = () => {
  * Hook to fetch a single tag by ID
  */
 export const useTag = (id: string) => {
-  return useSupabaseQuery<Tag>({
+  return useQuery<Tag | null>({
     queryKey: ['tags', id],
     queryFn: async () => {
-      return await supabaseQuery(
-        async () => {
-          const result = await supabase
-            .from('tags')
-            .select('*')
-            .eq('id', id)
-            .single();
-          return { data: result.data, error: result.error };
-        },
-        {
-          table: 'tags',
-          operation: '태그 상세 조회',
-          fallbackValue: null,
-        }
-      );
+      const response = await callWorkersApi<Tag>(`/api/v1/blog/tags/${id}`);
+      if (response.error) {
+        console.error('태그 상세 조회 실패:', response.error);
+        return null;
+      }
+      return response.data;
     },
-    table: 'tags',
-    operation: '태그 상세 조회',
-    fallbackValue: null,
     enabled: !!id,
   });
 };
@@ -67,28 +53,16 @@ export const useTag = (id: string) => {
  * Hook to fetch a single tag by slug
  */
 export const useTagBySlug = (slug: string) => {
-  return useSupabaseQuery<Tag>({
+  return useQuery<Tag | null>({
     queryKey: ['tags', 'slug', slug],
     queryFn: async () => {
-      return await supabaseQuery(
-        async () => {
-          const result = await supabase
-            .from('tags')
-            .select('*')
-            .eq('slug', slug)
-            .single();
-          return { data: result.data, error: result.error };
-        },
-        {
-          table: 'tags',
-          operation: '태그 slug 조회',
-          fallbackValue: null,
-        }
-      );
+      const response = await callWorkersApi<Tag>(`/api/v1/blog/tags/slug/${slug}`);
+      if (response.error) {
+        console.error('태그 slug 조회 실패:', response.error);
+        return null;
+      }
+      return response.data;
     },
-    table: 'tags',
-    operation: '태그 slug 조회',
-    fallbackValue: null,
     enabled: !!slug,
   });
 };
@@ -97,28 +71,16 @@ export const useTagBySlug = (slug: string) => {
  * Hook to fetch popular tags (by usage_count, with limit)
  */
 export const usePopularTags = (limit: number = 10) => {
-  return useSupabaseQuery<Tag[]>({
+  return useQuery<Tag[]>({
     queryKey: ['tags', 'popular', limit],
     queryFn: async () => {
-      return await supabaseQuery(
-        async () => {
-          const result = await supabase
-            .from('tags')
-            .select('*')
-            .order('usage_count', { ascending: false })
-            .limit(limit);
-          return { data: result.data, error: result.error };
-        },
-        {
-          table: 'tags',
-          operation: '인기 태그 조회',
-          fallbackValue: [],
-        }
-      );
+      const response = await callWorkersApi<Tag[]>(`/api/v1/blog/tags?limit=${limit}&sort=popular`);
+      if (response.error) {
+        console.error('인기 태그 조회 실패:', response.error);
+        return [];
+      }
+      return (response.data || []).slice(0, limit);
     },
-    table: 'tags',
-    operation: '인기 태그 조회',
-    fallbackValue: [],
     staleTime: 10 * 60 * 1000,
   });
 };
@@ -128,21 +90,22 @@ export const usePopularTags = (limit: number = 10) => {
  */
 export const useCreateTag = () => {
   const queryClient = useQueryClient();
+  const { workersTokens } = useAuth();
 
-  return useSupabaseMutation<Tag, TagInsert>({
+  return useMutation<Tag, Error, TagInsert>({
     mutationFn: async (tag: TagInsert) => {
-      // Validate unique constraints will be enforced by DB
-      const { data, error } = await supabase
-        .from('tags')
-        .insert([tag])
-        .select()
-        .single();
+      const response = await callWorkersApi<Tag>('/api/v1/blog/tags', {
+        method: 'POST',
+        token: workersTokens?.accessToken,
+        body: tag,
+      });
 
-      if (error) throw error;
-      return data as Tag;
+      if (response.error) {
+        throw new Error(response.error);
+      }
+
+      return response.data as Tag;
     },
-    table: 'tags',
-    operation: '태그 생성',
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tags'] });
     },
@@ -154,21 +117,22 @@ export const useCreateTag = () => {
  */
 export const useUpdateTag = () => {
   const queryClient = useQueryClient();
+  const { workersTokens } = useAuth();
 
-  return useSupabaseMutation<Tag, { id: string; updates: TagUpdate }>({
+  return useMutation<Tag, Error, { id: string; updates: TagUpdate }>({
     mutationFn: async ({ id, updates }: { id: string; updates: TagUpdate }) => {
-      const { data, error } = await supabase
-        .from('tags')
-        .update(updates)
-        .eq('id', id)
-        .select()
-        .single();
+      const response = await callWorkersApi<Tag>(`/api/v1/blog/tags/${id}`, {
+        method: 'PATCH',
+        token: workersTokens?.accessToken,
+        body: updates,
+      });
 
-      if (error) throw error;
-      return data as Tag;
+      if (response.error) {
+        throw new Error(response.error);
+      }
+
+      return response.data as Tag;
     },
-    table: 'tags',
-    operation: '태그 수정',
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['tags'] });
       queryClient.invalidateQueries({ queryKey: ['tags', data.id] });
@@ -182,19 +146,21 @@ export const useUpdateTag = () => {
  */
 export const useDeleteTag = () => {
   const queryClient = useQueryClient();
+  const { workersTokens } = useAuth();
 
-  return useSupabaseMutation<string, string>({
+  return useMutation<string, Error, string>({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from('tags')
-        .delete()
-        .eq('id', id);
+      const response = await callWorkersApi(`/api/v1/blog/tags/${id}`, {
+        method: 'DELETE',
+        token: workersTokens?.accessToken,
+      });
 
-      if (error) throw error;
+      if (response.error) {
+        throw new Error(response.error);
+      }
+
       return id;
     },
-    table: 'tags',
-    operation: '태그 삭제',
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tags'] });
     },
@@ -207,39 +173,39 @@ export const useDeleteTag = () => {
  */
 export const useIncrementTagUsage = () => {
   const queryClient = useQueryClient();
+  const { workersTokens } = useAuth();
 
-  return useSupabaseMutation<Tag, string>({
+  return useMutation<Tag, Error, string>({
     mutationFn: async (tagId: string) => {
-      // Increment usage_count by 1
-      const { data, error } = await supabase.rpc('increment_tag_usage', {
-        tag_id: tagId,
+      // Workers API로 태그 사용량 증가 호출
+      const response = await callWorkersApi<Tag>(`/api/v1/blog/tags/${tagId}/increment`, {
+        method: 'POST',
+        token: workersTokens?.accessToken,
       });
 
-      if (error) {
-        // Fallback: manual increment if RPC doesn't exist
-        const { data: currentTag, error: fetchError } = await supabase
-          .from('tags')
-          .select('usage_count')
-          .eq('id', tagId)
-          .single();
+      if (response.error) {
+        // Fallback: 현재 태그 조회 후 수동 증가
+        const tagResponse = await callWorkersApi<Tag>(`/api/v1/blog/tags/${tagId}`);
+        if (tagResponse.error) {
+          throw new Error(tagResponse.error);
+        }
 
-        if (fetchError) throw fetchError;
+        const currentTag = tagResponse.data;
+        const updateResponse = await callWorkersApi<Tag>(`/api/v1/blog/tags/${tagId}`, {
+          method: 'PATCH',
+          token: workersTokens?.accessToken,
+          body: { usage_count: (currentTag?.usage_count || 0) + 1 },
+        });
 
-        const { data: updatedTag, error: updateError } = await supabase
-          .from('tags')
-          .update({ usage_count: (currentTag?.usage_count || 0) + 1 })
-          .eq('id', tagId)
-          .select()
-          .single();
+        if (updateResponse.error) {
+          throw new Error(updateResponse.error);
+        }
 
-        if (updateError) throw updateError;
-        return updatedTag as Tag;
+        return updateResponse.data as Tag;
       }
 
-      return data as Tag;
+      return response.data as Tag;
     },
-    table: 'tags',
-    operation: '태그 사용 횟수 증가',
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['tags'] });
       queryClient.invalidateQueries({ queryKey: ['tags', data.id] });
