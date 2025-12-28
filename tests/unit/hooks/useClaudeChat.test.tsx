@@ -3,19 +3,12 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useClaudeChat } from '@/hooks/useClaudeChat';
-import { supabase } from '@/integrations/supabase/client';
+import * as cloudflareClient from '@/integrations/cloudflare/client';
 import React, { type ReactNode } from 'react';
 
-// Mock supabase client
-vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
-    auth: {
-      getSession: vi.fn(),
-    },
-    functions: {
-      invoke: vi.fn(),
-    },
-  },
+// Mock Workers API client
+vi.mock('@/integrations/cloudflare/client', () => ({
+  callWorkersApi: vi.fn(),
 }));
 
 // Mock localStorage
@@ -38,11 +31,7 @@ global.localStorage = {
 describe('useClaudeChat', () => {
   let queryClient: QueryClient;
 
-  const mockSession = {
-    access_token: 'mock-token-123',
-    user: { id: 'user-123' },
-  };
-
+  // Workers API 응답 형식
   const mockClaudeResponse = {
     success: true,
     data: {
@@ -58,7 +47,7 @@ describe('useClaudeChat', () => {
     },
   };
 
-  beforeEach(() => {
+  beforeEach(async () => {
     queryClient = new QueryClient({
       defaultOptions: {
         queries: { retry: false },
@@ -69,10 +58,28 @@ describe('useClaudeChat', () => {
     vi.clearAllMocks();
     localStorage.clear();
 
-    // 기본 세션 모킹
-    vi.mocked(supabase.auth.getSession).mockResolvedValue({
-      data: { session: mockSession as any },
+    // useAuth 기본 모킹 복원 (각 테스트 전 초기화)
+    const useAuthModule = await import('@/hooks/useAuth');
+    vi.mocked(useAuthModule.useAuth).mockReturnValue({
+      workersTokens: { accessToken: 'test-token', refreshToken: 'test-refresh' },
+      workersUser: { id: 'user-123', email: 'test@example.com' },
+      isAuthenticated: true,
+      loading: false,
       error: null,
+      user: { id: 'user-123', email: 'test@example.com' },
+      session: { access_token: 'test-token', refresh_token: 'test-refresh' },
+      login: vi.fn(),
+      logout: vi.fn(),
+      signUp: vi.fn(),
+      getAccessToken: vi.fn(() => 'test-token'),
+      refreshTokens: vi.fn(),
+    } as any);
+
+    // Workers API 기본 모킹 (성공 응답)
+    vi.mocked(cloudflareClient.callWorkersApi).mockResolvedValue({
+      data: mockClaudeResponse,
+      error: null,
+      status: 200,
     });
   });
 
@@ -147,11 +154,6 @@ describe('useClaudeChat', () => {
     });
 
     it('메시지가 변경되면 로컬 스토리지에 저장되어야 함', async () => {
-      vi.mocked(supabase.functions.invoke).mockResolvedValue({
-        data: mockClaudeResponse,
-        error: null,
-      });
-
       const { result } = renderHook(
         () => useClaudeChat({ storageKey: 'test-storage-key', enableStreaming: false }),
         { wrapper }
@@ -188,11 +190,6 @@ describe('useClaudeChat', () => {
 
   describe('메시지 전송 (비스트리밍)', () => {
     it('메시지 전송 성공 시 사용자 메시지와 AI 응답이 추가되어야 함', async () => {
-      vi.mocked(supabase.functions.invoke).mockResolvedValue({
-        data: mockClaudeResponse,
-        error: null,
-      });
-
       const { result } = renderHook(() => useClaudeChat({ enableStreaming: false }), { wrapper });
 
       await act(async () => {
@@ -210,11 +207,6 @@ describe('useClaudeChat', () => {
     });
 
     it('토큰 사용량이 올바르게 업데이트되어야 함', async () => {
-      vi.mocked(supabase.functions.invoke).mockResolvedValue({
-        data: mockClaudeResponse,
-        error: null,
-      });
-
       const { result } = renderHook(() => useClaudeChat({ enableStreaming: false }), { wrapper });
 
       await act(async () => {
@@ -246,15 +238,10 @@ describe('useClaudeChat', () => {
       });
 
       expect(result.current.messages).toHaveLength(0);
-      expect(supabase.functions.invoke).not.toHaveBeenCalled();
+      expect(cloudflareClient.callWorkersApi).not.toHaveBeenCalled();
     });
 
     it('onSuccess 콜백이 호출되어야 함', async () => {
-      vi.mocked(supabase.functions.invoke).mockResolvedValue({
-        data: mockClaudeResponse,
-        error: null,
-      });
-
       const onSuccess = vi.fn();
       const { result } = renderHook(
         () => useClaudeChat({ enableStreaming: false, onSuccess }),
@@ -285,10 +272,22 @@ describe('useClaudeChat', () => {
 
   describe('에러 처리', () => {
     it('인증 토큰이 없으면 에러가 발생해야 함', async () => {
-      vi.mocked(supabase.auth.getSession).mockResolvedValue({
-        data: { session: null },
+      // useAuth 훅 오버라이드: 토큰 없음
+      const useAuthModule = await import('@/hooks/useAuth');
+      vi.mocked(useAuthModule.useAuth).mockReturnValue({
+        workersTokens: null,
+        workersUser: null,
+        isAuthenticated: false,
+        loading: false,
         error: null,
-      });
+        user: null,
+        session: null,
+        login: vi.fn(),
+        logout: vi.fn(),
+        signUp: vi.fn(),
+        getAccessToken: vi.fn(() => null),
+        refreshTokens: vi.fn(),
+      } as any);
 
       const { result } = renderHook(() => useClaudeChat({ enableStreaming: false }), { wrapper });
 
@@ -304,9 +303,10 @@ describe('useClaudeChat', () => {
     });
 
     it('API 에러 발생 시 에러 상태가 업데이트되어야 함', async () => {
-      vi.mocked(supabase.functions.invoke).mockResolvedValue({
+      vi.mocked(cloudflareClient.callWorkersApi).mockResolvedValue({
         data: null,
-        error: { message: 'API 에러' },
+        error: 'API 에러',
+        status: 500,
       });
 
       const { result } = renderHook(() => useClaudeChat({ enableStreaming: false }), { wrapper });
@@ -323,9 +323,10 @@ describe('useClaudeChat', () => {
     });
 
     it('onError 콜백이 호출되어야 함', async () => {
-      vi.mocked(supabase.functions.invoke).mockResolvedValue({
+      vi.mocked(cloudflareClient.callWorkersApi).mockResolvedValue({
         data: null,
-        error: { message: 'API 에러' },
+        error: 'API 에러',
+        status: 500,
       });
 
       const onError = vi.fn();
@@ -346,7 +347,7 @@ describe('useClaudeChat', () => {
     });
 
     it('응답 success가 false면 에러가 발생해야 함', async () => {
-      vi.mocked(supabase.functions.invoke).mockResolvedValue({
+      vi.mocked(cloudflareClient.callWorkersApi).mockResolvedValue({
         data: {
           success: false,
           error: {
@@ -357,6 +358,7 @@ describe('useClaudeChat', () => {
           },
         },
         error: null,
+        status: 200,
       });
 
       const { result } = renderHook(() => useClaudeChat({ enableStreaming: false }), { wrapper });
@@ -401,11 +403,6 @@ describe('useClaudeChat', () => {
     });
 
     it('deleteMessage로 특정 메시지를 삭제할 수 있어야 함', async () => {
-      vi.mocked(supabase.functions.invoke).mockResolvedValue({
-        data: mockClaudeResponse,
-        error: null,
-      });
-
       const { result } = renderHook(() => useClaudeChat({ enableStreaming: false }), { wrapper });
 
       await act(async () => {
@@ -427,11 +424,6 @@ describe('useClaudeChat', () => {
     });
 
     it('retryLastMessage로 마지막 사용자 메시지를 재전송할 수 있어야 함', async () => {
-      vi.mocked(supabase.functions.invoke).mockResolvedValue({
-        data: mockClaudeResponse,
-        error: null,
-      });
-
       const { result } = renderHook(() => useClaudeChat({ enableStreaming: false }), { wrapper });
 
       await act(async () => {
@@ -451,7 +443,7 @@ describe('useClaudeChat', () => {
         expect(result.current.messages).toHaveLength(2); // 사용자 메시지는 슬라이스 후 재전송
       });
 
-      expect(supabase.functions.invoke).toHaveBeenCalledTimes(2);
+      expect(cloudflareClient.callWorkersApi).toHaveBeenCalledTimes(2);
     });
 
     it('사용자 메시지가 없을 때 retryLastMessage는 아무것도 하지 않아야 함', async () => {
@@ -462,17 +454,12 @@ describe('useClaudeChat', () => {
       });
 
       expect(result.current.messages).toHaveLength(0);
-      expect(supabase.functions.invoke).not.toHaveBeenCalled();
+      expect(cloudflareClient.callWorkersApi).not.toHaveBeenCalled();
     });
   });
 
   describe('옵션 처리', () => {
     it('커스텀 모델을 지정할 수 있어야 함', async () => {
-      vi.mocked(supabase.functions.invoke).mockResolvedValue({
-        data: mockClaudeResponse,
-        error: null,
-      });
-
       const { result } = renderHook(
         () => useClaudeChat({ enableStreaming: false, defaultModel: 'claude-3-opus-20240229' }),
         { wrapper }
@@ -483,11 +470,11 @@ describe('useClaudeChat', () => {
       });
 
       await waitFor(() => {
-        expect(supabase.functions.invoke).toHaveBeenCalled();
+        expect(cloudflareClient.callWorkersApi).toHaveBeenCalled();
       });
 
-      expect(supabase.functions.invoke).toHaveBeenCalledWith(
-        'claude-ai/chat',
+      expect(cloudflareClient.callWorkersApi).toHaveBeenCalledWith(
+        '/api/v1/ai/chat',
         expect.objectContaining({
           body: expect.objectContaining({
             model: 'claude-3-opus-20240229',
@@ -497,11 +484,6 @@ describe('useClaudeChat', () => {
     });
 
     it('커스텀 시스템 프롬프트를 사용할 수 있어야 함', async () => {
-      vi.mocked(supabase.functions.invoke).mockResolvedValue({
-        data: mockClaudeResponse,
-        error: null,
-      });
-
       const customPrompt = '당신은 전문 코딩 어시스턴트입니다.';
       const { result } = renderHook(
         () => useClaudeChat({ enableStreaming: false, systemPrompt: customPrompt }),
@@ -513,11 +495,11 @@ describe('useClaudeChat', () => {
       });
 
       await waitFor(() => {
-        expect(supabase.functions.invoke).toHaveBeenCalled();
+        expect(cloudflareClient.callWorkersApi).toHaveBeenCalled();
       });
 
-      expect(supabase.functions.invoke).toHaveBeenCalledWith(
-        'claude-ai/chat',
+      expect(cloudflareClient.callWorkersApi).toHaveBeenCalledWith(
+        '/api/v1/ai/chat',
         expect.objectContaining({
           body: expect.objectContaining({
             system: customPrompt,
@@ -527,11 +509,6 @@ describe('useClaudeChat', () => {
     });
 
     it('maxTokens와 temperature를 설정할 수 있어야 함', async () => {
-      vi.mocked(supabase.functions.invoke).mockResolvedValue({
-        data: mockClaudeResponse,
-        error: null,
-      });
-
       const { result } = renderHook(
         () => useClaudeChat({ enableStreaming: false, maxTokens: 500, temperature: 0.8 }),
         { wrapper }
@@ -542,11 +519,11 @@ describe('useClaudeChat', () => {
       });
 
       await waitFor(() => {
-        expect(supabase.functions.invoke).toHaveBeenCalled();
+        expect(cloudflareClient.callWorkersApi).toHaveBeenCalled();
       });
 
-      expect(supabase.functions.invoke).toHaveBeenCalledWith(
-        'claude-ai/chat',
+      expect(cloudflareClient.callWorkersApi).toHaveBeenCalledWith(
+        '/api/v1/ai/chat',
         expect.objectContaining({
           body: expect.objectContaining({
             max_tokens: 500,
@@ -559,10 +536,10 @@ describe('useClaudeChat', () => {
 
   describe('로딩 상태', () => {
     it('메시지 전송 중 isLoading이 true여야 함', async () => {
-      vi.mocked(supabase.functions.invoke).mockImplementation(
+      vi.mocked(cloudflareClient.callWorkersApi).mockImplementation(
         () =>
           new Promise((resolve) =>
-            setTimeout(() => resolve({ data: mockClaudeResponse, error: null }), 100)
+            setTimeout(() => resolve({ data: mockClaudeResponse, error: null, status: 200 }), 100)
           )
       );
 

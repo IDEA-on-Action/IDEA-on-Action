@@ -2,37 +2,42 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useNotifications } from '@/hooks/useNotifications';
-import { supabase } from '@/integrations/supabase/client';
 import React, { type ReactNode } from 'react';
 
-// Mock supabase client
-const mockChannel = {
-  on: vi.fn().mockReturnThis(),
-  subscribe: vi.fn().mockReturnThis(),
-};
-
-vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
-    from: vi.fn(),
-    channel: vi.fn(() => mockChannel),
-    removeChannel: vi.fn(),
-  },
-}));
-
-// Mock useAuth
+// Mock useAuth - must be before imports
 vi.mock('@/hooks/useAuth', () => ({
   useAuth: vi.fn(() => ({
     user: { id: 'user-123', email: 'test@example.com' },
+    workersTokens: { accessToken: 'test-token', refreshToken: 'test-refresh' },
+    workersUser: { id: 'user-123', email: 'test@example.com' },
+    isAuthenticated: true,
+    loading: false,
   })),
+}));
+
+// Mock Workers API client - must be before imports
+const mockWebSocket = {
+  onmessage: null as ((event: MessageEvent) => void) | null,
+  onerror: null as ((event: Event) => void) | null,
+  close: vi.fn(),
+};
+
+vi.mock('@/integrations/cloudflare/client', () => ({
+  callWorkersApi: vi.fn(),
+  realtimeApi: {
+    connect: vi.fn(() => mockWebSocket),
+  },
 }));
 
 // Mock errors
 vi.mock('@/lib/errors', () => ({
-  handleSupabaseError: vi.fn((error, options) => options.fallbackValue),
   devError: vi.fn(),
   devLog: vi.fn(),
 }));
+
+// Import after mocks are defined
+import { useNotifications } from '@/hooks/useNotifications';
+import { callWorkersApi } from '@/integrations/cloudflare/client';
 
 describe('useNotifications', () => {
   let queryClient: QueryClient;
@@ -81,17 +86,11 @@ describe('useNotifications', () => {
 
   describe('초기 상태', () => {
     it('빈 알림 목록으로 초기화되어야 함', () => {
-      const mockFrom = {
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        order: vi.fn().mockReturnThis(),
-        limit: vi.fn().mockResolvedValue({
-          data: [],
-          error: null,
-        }),
-      };
-
-      vi.mocked(supabase.from).mockReturnValue(mockFrom as any);
+      vi.mocked(callWorkersApi).mockResolvedValue({
+        data: [],
+        error: null,
+        status: 200,
+      });
 
       const { result } = renderHook(() => useNotifications(), { wrapper });
 
@@ -101,17 +100,11 @@ describe('useNotifications', () => {
     });
 
     it('필요한 모든 함수가 정의되어 있어야 함', () => {
-      const mockFrom = {
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        order: vi.fn().mockReturnThis(),
-        limit: vi.fn().mockResolvedValue({
-          data: [],
-          error: null,
-        }),
-      };
-
-      vi.mocked(supabase.from).mockReturnValue(mockFrom as any);
+      vi.mocked(callWorkersApi).mockResolvedValue({
+        data: [],
+        error: null,
+        status: 200,
+      });
 
       const { result } = renderHook(() => useNotifications(), { wrapper });
 
@@ -124,17 +117,11 @@ describe('useNotifications', () => {
 
   describe('알림 조회', () => {
     it('알림 목록을 성공적으로 불러와야 함', async () => {
-      const mockFrom = {
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        order: vi.fn().mockReturnThis(),
-        limit: vi.fn().mockResolvedValue({
-          data: mockNotifications,
-          error: null,
-        }),
-      };
-
-      vi.mocked(supabase.from).mockReturnValue(mockFrom as any);
+      vi.mocked(callWorkersApi).mockResolvedValue({
+        data: mockNotifications,
+        error: null,
+        status: 200,
+      });
 
       const { result } = renderHook(() => useNotifications(), { wrapper });
 
@@ -144,20 +131,18 @@ describe('useNotifications', () => {
 
       expect(result.current.notifications[0].title).toBe('주문 완료');
       expect(result.current.notifications[1].title).toBe('새 댓글');
+      expect(callWorkersApi).toHaveBeenCalledWith(
+        expect.stringContaining('/api/v1/notifications?user_id=user-123'),
+        expect.objectContaining({ token: 'test-token' })
+      );
     });
 
     it('읽지 않은 알림 개수를 올바르게 계산해야 함', async () => {
-      const mockFrom = {
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        order: vi.fn().mockReturnThis(),
-        limit: vi.fn().mockResolvedValue({
-          data: mockNotifications,
-          error: null,
-        }),
-      };
-
-      vi.mocked(supabase.from).mockReturnValue(mockFrom as any);
+      vi.mocked(callWorkersApi).mockResolvedValue({
+        data: mockNotifications,
+        error: null,
+        status: 200,
+      });
 
       const { result } = renderHook(() => useNotifications(), { wrapper });
 
@@ -167,17 +152,11 @@ describe('useNotifications', () => {
     });
 
     it('에러 발생 시 빈 배열을 반환해야 함', async () => {
-      const mockFrom = {
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        order: vi.fn().mockReturnThis(),
-        limit: vi.fn().mockResolvedValue({
-          data: null,
-          error: { message: 'Database error' },
-        }),
-      };
-
-      vi.mocked(supabase.from).mockReturnValue(mockFrom as any);
+      vi.mocked(callWorkersApi).mockResolvedValue({
+        data: null,
+        error: 'Database error',
+        status: 500,
+      });
 
       const { result } = renderHook(() => useNotifications(), { wrapper });
 
@@ -190,81 +169,52 @@ describe('useNotifications', () => {
   });
 
   describe('실시간 구독', () => {
-    it('Realtime 채널을 생성해야 함', async () => {
-      const mockFrom = {
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        order: vi.fn().mockReturnThis(),
-        limit: vi.fn().mockResolvedValue({
-          data: [],
-          error: null,
-        }),
-      };
+    it('WebSocket 연결을 생성해야 함', async () => {
+      vi.mocked(callWorkersApi).mockResolvedValue({
+        data: [],
+        error: null,
+        status: 200,
+      });
 
-      vi.mocked(supabase.from).mockReturnValue(mockFrom as any);
+      const { realtimeApi } = await import('@/integrations/cloudflare/client');
 
       renderHook(() => useNotifications(), { wrapper });
 
       await waitFor(() => {
-        expect(supabase.channel).toHaveBeenCalledWith('notifications');
+        expect(realtimeApi.connect).toHaveBeenCalledWith('notifications-user-123', 'user-123');
       });
-
-      expect(mockChannel.on).toHaveBeenCalled();
-      expect(mockChannel.subscribe).toHaveBeenCalled();
     });
 
-    it('컴포넌트 언마운트 시 채널을 제거해야 함', async () => {
-      const mockFrom = {
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        order: vi.fn().mockReturnThis(),
-        limit: vi.fn().mockResolvedValue({
-          data: [],
-          error: null,
-        }),
-      };
-
-      vi.mocked(supabase.from).mockReturnValue(mockFrom as any);
+    it('컴포넌트 언마운트 시 WebSocket을 닫아야 함', async () => {
+      vi.mocked(callWorkersApi).mockResolvedValue({
+        data: [],
+        error: null,
+        status: 200,
+      });
 
       const { unmount } = renderHook(() => useNotifications(), { wrapper });
 
       await waitFor(() => {
-        expect(supabase.channel).toHaveBeenCalled();
+        expect(mockWebSocket.close).not.toHaveBeenCalled();
       });
 
       unmount();
 
-      expect(supabase.removeChannel).toHaveBeenCalledWith(mockChannel);
+      expect(mockWebSocket.close).toHaveBeenCalled();
     });
   });
 
   describe('알림 읽음 처리', () => {
     it('특정 알림을 읽음 처리할 수 있어야 함', async () => {
-      const mockFrom = {
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        order: vi.fn().mockReturnThis(),
-        limit: vi.fn().mockResolvedValue({
-          data: mockNotifications,
-          error: null,
-        }),
-        update: vi.fn().mockReturnThis(),
-      };
-
-      mockFrom.eq.mockImplementation(function (this: any) {
-        return this;
+      vi.mocked(callWorkersApi).mockResolvedValueOnce({
+        data: mockNotifications,
+        error: null,
+        status: 200,
+      }).mockResolvedValueOnce({
+        data: null,
+        error: null,
+        status: 200,
       });
-
-      mockFrom.update.mockImplementation(function (this: any) {
-        return {
-          eq: vi.fn().mockResolvedValue({
-            data: {},
-            error: null,
-          }),
-        };
-      });
-
-      vi.mocked(supabase.from).mockReturnValue(mockFrom as any);
 
       const { result } = renderHook(() => useNotifications(), { wrapper });
 
@@ -276,36 +226,28 @@ describe('useNotifications', () => {
         result.current.markAsRead('notif-1');
       });
 
-      // mutation 완료 대기
       await waitFor(() => {
-        // markAsRead는 mutation이므로 즉시 반환
-        expect(mockFrom.update).toHaveBeenCalledWith({ read: true });
+        expect(callWorkersApi).toHaveBeenCalledWith(
+          '/api/v1/notifications/notif-1',
+          expect.objectContaining({
+            method: 'PATCH',
+            token: 'test-token',
+            body: { read: true },
+          })
+        );
       });
     });
 
     it('모든 알림을 읽음 처리할 수 있어야 함', async () => {
-      const mockFrom = {
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        order: vi.fn().mockReturnThis(),
-        limit: vi.fn().mockResolvedValue({
-          data: mockNotifications,
-          error: null,
-        }),
-        update: vi.fn().mockReturnThis(),
-      };
-
-      mockFrom.eq.mockImplementation(function (this: any) {
-        return this;
+      vi.mocked(callWorkersApi).mockResolvedValueOnce({
+        data: mockNotifications,
+        error: null,
+        status: 200,
+      }).mockResolvedValueOnce({
+        data: null,
+        error: null,
+        status: 200,
       });
-
-      mockFrom.update.mockImplementation(function (this: any) {
-        return {
-          eq: vi.fn().mockReturnThis(),
-        };
-      });
-
-      vi.mocked(supabase.from).mockReturnValue(mockFrom as any);
 
       const { result } = renderHook(() => useNotifications(), { wrapper });
 
@@ -318,34 +260,29 @@ describe('useNotifications', () => {
       });
 
       await waitFor(() => {
-        expect(mockFrom.update).toHaveBeenCalledWith({ read: true });
+        expect(callWorkersApi).toHaveBeenCalledWith(
+          '/api/v1/notifications/mark-all-read',
+          expect.objectContaining({
+            method: 'POST',
+            token: 'test-token',
+            body: { user_id: 'user-123' },
+          })
+        );
       });
     });
   });
 
   describe('알림 삭제', () => {
     it('알림을 삭제할 수 있어야 함', async () => {
-      const mockFrom = {
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        order: vi.fn().mockReturnThis(),
-        limit: vi.fn().mockResolvedValue({
-          data: mockNotifications,
-          error: null,
-        }),
-        delete: vi.fn().mockReturnThis(),
-      };
-
-      mockFrom.delete.mockImplementation(function (this: any) {
-        return {
-          eq: vi.fn().mockResolvedValue({
-            data: {},
-            error: null,
-          }),
-        };
+      vi.mocked(callWorkersApi).mockResolvedValueOnce({
+        data: mockNotifications,
+        error: null,
+        status: 200,
+      }).mockResolvedValueOnce({
+        data: null,
+        error: null,
+        status: 200,
       });
-
-      vi.mocked(supabase.from).mockReturnValue(mockFrom as any);
 
       const { result } = renderHook(() => useNotifications(), { wrapper });
 
@@ -358,38 +295,39 @@ describe('useNotifications', () => {
       });
 
       await waitFor(() => {
-        expect(mockFrom.delete).toHaveBeenCalled();
+        expect(callWorkersApi).toHaveBeenCalledWith(
+          '/api/v1/notifications/notif-1',
+          expect.objectContaining({
+            method: 'DELETE',
+            token: 'test-token',
+          })
+        );
       });
     });
   });
 
   describe('알림 생성', () => {
     it('새 알림을 생성할 수 있어야 함', async () => {
-      const mockFrom = {
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        order: vi.fn().mockReturnThis(),
-        limit: vi.fn().mockResolvedValue({
-          data: [],
-          error: null,
-        }),
-        insert: vi.fn().mockReturnThis(),
-        single: vi.fn().mockResolvedValue({
-          data: {
-            id: 'notif-new',
-            user_id: 'user-456',
-            type: 'system',
-            title: '시스템 알림',
-            message: '테스트 알림',
-            link: null,
-            read: false,
-            created_at: new Date().toISOString(),
-          },
-          error: null,
-        }),
+      const createdNotification = {
+        id: 'notif-new',
+        user_id: 'user-456',
+        type: 'system' as const,
+        title: '시스템 알림',
+        message: '테스트 알림',
+        link: null,
+        read: false,
+        created_at: new Date().toISOString(),
       };
 
-      vi.mocked(supabase.from).mockReturnValue(mockFrom as any);
+      vi.mocked(callWorkersApi).mockResolvedValueOnce({
+        data: [],
+        error: null,
+        status: 200,
+      }).mockResolvedValueOnce({
+        data: createdNotification,
+        error: null,
+        status: 201,
+      });
 
       const { result } = renderHook(() => useNotifications(), { wrapper });
 
@@ -406,26 +344,31 @@ describe('useNotifications', () => {
 
       expect(notification).not.toBeNull();
       expect(notification?.title).toBe('시스템 알림');
-      expect(mockFrom.insert).toHaveBeenCalled();
+      expect(callWorkersApi).toHaveBeenCalledWith(
+        '/api/v1/notifications',
+        expect.objectContaining({
+          method: 'POST',
+          token: 'test-token',
+          body: expect.objectContaining({
+            user_id: 'user-456',
+            type: 'system',
+            title: '시스템 알림',
+            message: '테스트 알림',
+          }),
+        })
+      );
     });
 
     it('알림 생성 실패 시 null을 반환해야 함', async () => {
-      const mockFrom = {
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        order: vi.fn().mockReturnThis(),
-        limit: vi.fn().mockResolvedValue({
-          data: [],
-          error: null,
-        }),
-        insert: vi.fn().mockReturnThis(),
-        single: vi.fn().mockResolvedValue({
-          data: null,
-          error: { message: 'Insert failed' },
-        }),
-      };
-
-      vi.mocked(supabase.from).mockReturnValue(mockFrom as any);
+      vi.mocked(callWorkersApi).mockResolvedValueOnce({
+        data: [],
+        error: null,
+        status: 200,
+      }).mockResolvedValueOnce({
+        data: null,
+        error: 'Insert failed',
+        status: 500,
+      });
 
       const { result } = renderHook(() => useNotifications(), { wrapper });
 

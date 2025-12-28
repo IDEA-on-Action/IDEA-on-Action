@@ -12,15 +12,20 @@ import {
   useDeleteBounty,
   useAssignBounty,
 } from '@/hooks/useBounties';
-import { supabase } from '@/integrations/supabase/client';
+import { bountiesApi } from '@/integrations/cloudflare/client';
 import React, { type ReactNode } from 'react';
 import type { Bounty } from '@/types/v2';
 
-// Mock supabase client
-vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
-    from: vi.fn(),
-    rpc: vi.fn(),
+// Mock Cloudflare Workers API
+vi.mock('@/integrations/cloudflare/client', () => ({
+  bountiesApi: {
+    list: vi.fn(),
+    getById: vi.fn(),
+    apply: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
+    delete: vi.fn(),
+    assign: vi.fn(),
   },
 }));
 
@@ -82,53 +87,36 @@ describe('useBounties', () => {
   describe('useBounties', () => {
     it('전체 바운티 목록을 성공적으로 조회해야 함', async () => {
       // Setup
-      const orderMock = vi.fn().mockResolvedValue({
+      vi.mocked(bountiesApi.list).mockResolvedValue({
         data: mockBounties,
         error: null,
+        status: 200,
       });
-
-      const selectMock = vi.fn().mockReturnValue({
-        order: orderMock,
-      });
-
-      vi.mocked(supabase.from).mockReturnValue({
-        select: selectMock,
-      } as any);
 
       // Execute
       const { result } = renderHook(() => useBounties(), { wrapper });
 
       // Assert
       await waitFor(() => {
-        expect(result.current.isSuccess || result.current.isError).toBe(true);
+        expect(result.current.isSuccess).toBe(true);
       });
 
-      if (result.current.isSuccess) {
-        expect(result.current.data).toEqual(mockBounties);
-        expect(supabase.from).toHaveBeenCalledWith('bounties');
-        expect(orderMock).toHaveBeenCalledWith('created_at', { ascending: false });
-      }
+      expect(result.current.data).toEqual(mockBounties);
+      expect(bountiesApi.list).toHaveBeenCalled();
     });
 
-    it('에러 발생 시 fallback 값을 반환해야 함', async () => {
+    it('에러 발생 시 빈 배열을 반환해야 함', async () => {
       // Setup
-      const orderMock = vi.fn().mockResolvedValue({
+      vi.mocked(bountiesApi.list).mockResolvedValue({
         data: null,
-        error: { message: 'Database error', code: 'PGRST116' },
+        error: 'Database error',
+        status: 500,
       });
-
-      const selectMock = vi.fn().mockReturnValue({
-        order: orderMock,
-      });
-
-      vi.mocked(supabase.from).mockReturnValue({
-        select: selectMock,
-      } as any);
 
       // Execute
       const { result } = renderHook(() => useBounties(), { wrapper });
 
-      // Assert - supabaseQuery는 에러 시 fallbackValue([])를 반환
+      // Assert - 훅이 에러를 처리하고 빈 배열 반환
       await waitFor(() => {
         expect(result.current.isSuccess).toBe(true);
       });
@@ -140,35 +128,22 @@ describe('useBounties', () => {
   describe('useBounty', () => {
     it('id로 단일 바운티를 조회해야 함', async () => {
       // Setup
-      const singleMock = vi.fn().mockResolvedValue({
+      vi.mocked(bountiesApi.getById).mockResolvedValue({
         data: mockBounties[0],
         error: null,
+        status: 200,
       });
-
-      const eqMock = vi.fn().mockReturnValue({
-        single: singleMock,
-      });
-
-      const selectMock = vi.fn().mockReturnValue({
-        eq: eqMock,
-      });
-
-      vi.mocked(supabase.from).mockReturnValue({
-        select: selectMock,
-      } as any);
 
       // Execute
       const { result } = renderHook(() => useBounty(1), { wrapper });
 
       // Assert
       await waitFor(() => {
-        expect(result.current.isSuccess || result.current.isError).toBe(true);
+        expect(result.current.isSuccess).toBe(true);
       });
 
-      if (result.current.isSuccess) {
-        expect(result.current.data).toEqual(mockBounties[0]);
-        expect(eqMock).toHaveBeenCalledWith('id', 1);
-      }
+      expect(result.current.data).toEqual(mockBounties[0]);
+      expect(bountiesApi.getById).toHaveBeenCalledWith(1);
     });
 
     it('id가 없으면 쿼리가 비활성화되어야 함', () => {
@@ -186,32 +161,32 @@ describe('useBounties', () => {
       // Setup
       const filteredBounties = mockBounties.filter((b) => b.status === 'open');
 
-      vi.mocked(supabase.from).mockReturnValue({
-        select: vi.fn().mockReturnThis(),
-        order: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockResolvedValue({ data: filteredBounties, error: null })
-      } as any);
+      vi.mocked(bountiesApi.list).mockResolvedValue({
+        data: filteredBounties,
+        error: null,
+        status: 200,
+      });
 
       // Execute
       const { result } = renderHook(() => useBountiesByStatus('open'), { wrapper });
 
       // Assert
       await waitFor(() => {
-        expect(result.current.isSuccess || result.current.isError).toBe(true);
+        expect(result.current.isSuccess).toBe(true);
       });
 
-      if (result.current.isSuccess) {
-        expect(result.current.data).toEqual(filteredBounties);
-      }
+      expect(result.current.data).toEqual(filteredBounties);
+      expect(bountiesApi.list).toHaveBeenCalledWith({ status: 'open' });
     });
   });
 
   describe('useApplyToBounty', () => {
     it('바운티에 지원해야 함', async () => {
       // Setup
-      vi.mocked(supabase.rpc).mockResolvedValue({
+      vi.mocked(bountiesApi.apply).mockResolvedValue({
         data: { success: true },
         error: null,
+        status: 200,
       });
 
       // Execute
@@ -225,12 +200,10 @@ describe('useBounties', () => {
 
       // Assert
       await waitFor(() => {
-        expect(result.current.isSuccess || result.current.isError).toBe(true);
+        expect(result.current.isSuccess).toBe(true);
       });
 
-      if (result.current.isSuccess) {
-        expect(supabase.rpc).toHaveBeenCalledWith('apply_to_bounty', { bounty_id: 1 });
-      }
+      expect(bountiesApi.apply).toHaveBeenCalledWith('test-token', 1);
     });
   });
 
@@ -247,28 +220,19 @@ describe('useBounties', () => {
         deliverables: ['구현'],
       };
 
-      const singleMock = vi.fn().mockResolvedValue({
-        data: {
-          ...newBounty,
-          id: 3,
-          applicants: [],
-          created_at: '2024-01-03T00:00:00Z',
-          updated_at: '2024-01-03T00:00:00Z',
-        },
+      const createdBounty = {
+        ...newBounty,
+        id: 3,
+        applicants: [],
+        created_at: '2024-01-03T00:00:00Z',
+        updated_at: '2024-01-03T00:00:00Z',
+      };
+
+      vi.mocked(bountiesApi.create).mockResolvedValue({
+        data: createdBounty,
         error: null,
+        status: 201,
       });
-
-      const selectMock = vi.fn().mockReturnValue({
-        single: singleMock,
-      });
-
-      const insertMock = vi.fn().mockReturnValue({
-        select: selectMock,
-      });
-
-      vi.mocked(supabase.from).mockReturnValue({
-        insert: insertMock,
-      } as any);
 
       // Execute
       const { result } = renderHook(() => useCreateBounty(), { wrapper });
@@ -281,13 +245,11 @@ describe('useBounties', () => {
 
       // Assert
       await waitFor(() => {
-        expect(result.current.isSuccess || result.current.isError).toBe(true);
+        expect(result.current.isSuccess).toBe(true);
       });
 
-      if (result.current.isSuccess) {
-        expect(insertMock).toHaveBeenCalledWith([{ ...newBounty, applicants: [] }]);
-        expect(result.current.data).toBeDefined();
-      }
+      expect(bountiesApi.create).toHaveBeenCalledWith('test-token', { ...newBounty, applicants: [] });
+      expect(result.current.data).toEqual(createdBounty);
     });
   });
 
@@ -297,26 +259,11 @@ describe('useBounties', () => {
       const updates = { status: 'in-progress' as const, reward: 150000 };
       const updatedBounty = { ...mockBounties[0], ...updates };
 
-      const singleMock = vi.fn().mockResolvedValue({
+      vi.mocked(bountiesApi.update).mockResolvedValue({
         data: updatedBounty,
         error: null,
+        status: 200,
       });
-
-      const selectMock = vi.fn().mockReturnValue({
-        single: singleMock,
-      });
-
-      const eqMock = vi.fn().mockReturnValue({
-        select: selectMock,
-      });
-
-      const updateMock = vi.fn().mockReturnValue({
-        eq: eqMock,
-      });
-
-      vi.mocked(supabase.from).mockReturnValue({
-        update: updateMock,
-      } as any);
 
       // Execute
       const { result } = renderHook(() => useUpdateBounty(), { wrapper });
@@ -329,28 +276,22 @@ describe('useBounties', () => {
 
       // Assert
       await waitFor(() => {
-        expect(result.current.isSuccess || result.current.isError).toBe(true);
+        expect(result.current.isSuccess).toBe(true);
       });
 
-      if (result.current.isSuccess) {
-        expect(updateMock).toHaveBeenCalledWith(updates);
-        expect(eqMock).toHaveBeenCalledWith('id', 1);
-      }
+      expect(bountiesApi.update).toHaveBeenCalledWith('test-token', 1, updates);
+      expect(result.current.data).toEqual(updatedBounty);
     });
   });
 
   describe('useDeleteBounty', () => {
     it('바운티를 삭제해야 함', async () => {
       // Setup
-      const eqMock = vi.fn().mockReturnValue({
-        delete: vi.fn().mockResolvedValue({ data: null, error: null }),
+      vi.mocked(bountiesApi.delete).mockResolvedValue({
+        data: null,
+        error: null,
+        status: 204,
       });
-
-      vi.mocked(supabase.from).mockReturnValue({
-        delete: vi.fn().mockReturnValue({
-          eq: eqMock,
-        }),
-      } as any);
 
       // Execute
       const { result } = renderHook(() => useDeleteBounty(), { wrapper });
@@ -363,12 +304,11 @@ describe('useBounties', () => {
 
       // Assert
       await waitFor(() => {
-        expect(result.current.isSuccess || result.current.isError).toBe(true);
+        expect(result.current.isSuccess).toBe(true);
       });
 
-      if (result.current.isSuccess) {
-        expect(eqMock).toHaveBeenCalledWith('id', 1);
-      }
+      expect(bountiesApi.delete).toHaveBeenCalledWith('test-token', 1);
+      expect(result.current.data).toBe(1);
     });
   });
 
@@ -377,26 +317,11 @@ describe('useBounties', () => {
       // Setup
       const assignedBounty = { ...mockBounties[0], assignee_id: 'user-1', status: 'assigned' as const };
 
-      const singleMock = vi.fn().mockResolvedValue({
+      vi.mocked(bountiesApi.assign).mockResolvedValue({
         data: assignedBounty,
         error: null,
+        status: 200,
       });
-
-      const selectMock = vi.fn().mockReturnValue({
-        single: singleMock,
-      });
-
-      const eqMock = vi.fn().mockReturnValue({
-        select: selectMock,
-      });
-
-      const updateMock = vi.fn().mockReturnValue({
-        eq: eqMock,
-      });
-
-      vi.mocked(supabase.from).mockReturnValue({
-        update: updateMock,
-      } as any);
 
       // Execute
       const { result } = renderHook(() => useAssignBounty(), { wrapper });
@@ -409,16 +334,11 @@ describe('useBounties', () => {
 
       // Assert
       await waitFor(() => {
-        expect(result.current.isSuccess || result.current.isError).toBe(true);
+        expect(result.current.isSuccess).toBe(true);
       });
 
-      if (result.current.isSuccess) {
-        expect(updateMock).toHaveBeenCalledWith({
-          assignee_id: 'user-1',
-          status: 'assigned',
-        });
-        expect(eqMock).toHaveBeenCalledWith('id', 1);
-      }
+      expect(bountiesApi.assign).toHaveBeenCalledWith('test-token', 1, 'user-1');
+      expect(result.current.data).toEqual(assignedBounty);
     });
   });
 });
