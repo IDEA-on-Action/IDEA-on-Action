@@ -2,17 +2,18 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { MemoryRouter } from 'react-router-dom';
 import { useClaudeStreaming } from '@/hooks/useClaudeStreaming';
-import { supabase } from '@/integrations/supabase/client';
 import React, { type ReactNode } from 'react';
 
-// Mock supabase client
-vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
-    auth: {
-      getSession: vi.fn(),
-    },
-  },
+// Mock useAuth hook
+vi.mock('@/hooks/useAuth', () => ({
+  useAuth: vi.fn(() => ({
+    workersTokens: { accessToken: 'test-token', refreshToken: 'test-refresh' },
+    workersUser: { id: 'user-123', email: 'test@example.com' },
+    isAuthenticated: true,
+    loading: false,
+  })),
 }));
 
 // Mock fetch
@@ -20,11 +21,6 @@ global.fetch = vi.fn();
 
 describe('useClaudeStreaming', () => {
   let queryClient: QueryClient;
-
-  const mockSession = {
-    access_token: 'mock-token-123',
-    user: { id: 'user-123' },
-  };
 
   beforeEach(() => {
     queryClient = new QueryClient({
@@ -35,12 +31,6 @@ describe('useClaudeStreaming', () => {
     });
 
     vi.clearAllMocks();
-
-    // 기본 세션 모킹
-    vi.mocked(supabase.auth.getSession).mockResolvedValue({
-      data: { session: mockSession as any },
-      error: null,
-    });
   });
 
   afterEach(() => {
@@ -48,7 +38,9 @@ describe('useClaudeStreaming', () => {
   });
 
   const wrapper = ({ children }: { children: ReactNode }) => (
-    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    </MemoryRouter>
   );
 
   describe('초기 상태', () => {
@@ -243,8 +235,9 @@ describe('useClaudeStreaming', () => {
 
       const { result } = renderHook(() => useClaudeStreaming({ streaming: true }), { wrapper });
 
-      act(() => {
+      await act(async () => {
         result.current.sendMessage('테스트');
+        await new Promise(resolve => setTimeout(resolve, 10));
       });
 
       await waitFor(() => {
@@ -262,10 +255,14 @@ describe('useClaudeStreaming', () => {
 
   describe('에러 처리', () => {
     it('인증 토큰이 없으면 에러가 발생해야 함', async () => {
-      vi.mocked(supabase.auth.getSession).mockResolvedValue({
-        data: { session: null },
-        error: null,
-      });
+      // useAuth 모킹을 임시로 변경
+      const { useAuth } = await import('@/hooks/useAuth');
+      vi.mocked(useAuth).mockReturnValue({
+        workersTokens: null,
+        workersUser: null,
+        isAuthenticated: false,
+        loading: false,
+      } as any);
 
       const { result } = renderHook(() => useClaudeStreaming({ streaming: false }), { wrapper });
 
@@ -282,6 +279,14 @@ describe('useClaudeStreaming', () => {
       });
 
       expect(result.current.state.error?.code).toBe('CLAUDE_002');
+
+      // useAuth 모킹 복원
+      vi.mocked(useAuth).mockReturnValue({
+        workersTokens: { accessToken: 'test-token', refreshToken: 'test-refresh' },
+        workersUser: { id: 'user-123', email: 'test@example.com' },
+        isAuthenticated: true,
+        loading: false,
+      } as any);
     });
 
     it('HTTP 에러 발생 시 에러 상태가 업데이트되어야 함', async () => {
@@ -672,8 +677,9 @@ describe('useClaudeStreaming', () => {
 
       const { result } = renderHook(() => useClaudeStreaming({ streaming: true }), { wrapper });
 
-      act(() => {
+      await act(async () => {
         result.current.sendMessage('테스트');
+        await new Promise(resolve => setTimeout(resolve, 10));
       });
 
       await waitFor(() => {
@@ -782,7 +788,13 @@ describe('useClaudeStreaming', () => {
       const { result } = renderHook(() => useClaudeStreaming({ streaming: false }), { wrapper });
 
       // 첫 번째 요청 시작 (완료되지 않음)
-      const firstPromise = act(() => result.current.sendMessage('첫 번째'));
+      const firstPromise = act(async () => {
+        try {
+          await result.current.sendMessage('첫 번째');
+        } catch {
+          // 중단된 요청은 에러를 던질 수 있음
+        }
+      });
 
       // 약간의 지연 후 두 번째 요청 (첫 번째 요청 중단)
       await new Promise(resolve => setTimeout(resolve, 10));
@@ -791,12 +803,8 @@ describe('useClaudeStreaming', () => {
         await result.current.sendMessage('두 번째');
       });
 
-      // 첫 번째 요청 완료 대기 (에러 발생 가능)
-      try {
-        await firstPromise;
-      } catch {
-        // 중단된 요청은 에러를 던질 수 있음
-      }
+      // 첫 번째 요청 완료 대기
+      await firstPromise;
 
       // 최종적으로 메시지가 추가되었는지 확인
       await waitFor(() => {
