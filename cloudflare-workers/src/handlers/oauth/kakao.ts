@@ -66,7 +66,8 @@ kakao.get('/authorize', async (c) => {
   authUrl.searchParams.set('client_id', clientId);
   authUrl.searchParams.set('redirect_uri', redirectUri);
   authUrl.searchParams.set('response_type', 'code');
-  authUrl.searchParams.set('scope', 'profile_nickname profile_image account_email');
+  // account_email은 비즈니스 앱에서만 사용 가능하므로 제외
+  authUrl.searchParams.set('scope', 'profile_nickname profile_image');
   authUrl.searchParams.set('state', state);
 
   return c.redirect(authUrl.toString());
@@ -168,13 +169,12 @@ kakao.get('/callback', async (c) => {
       };
     };
 
-    const email = userInfo.kakao_account?.email;
+    // 이메일이 없으면 Kakao ID 기반 가상 이메일 생성
+    const email = userInfo.kakao_account?.email || `kakao_${userInfo.id}@kakao.local`;
     const name = userInfo.kakao_account?.profile?.nickname || userInfo.properties?.nickname || 'Kakao User';
     const avatarUrl = userInfo.kakao_account?.profile?.profile_image_url || userInfo.properties?.profile_image;
 
-    if (!email) {
-      return c.redirect(`${frontendUrl}/login?error=email_required`);
-    }
+    console.log('[Kakao OAuth] 사용자:', name, email);
 
     // 사용자 찾기 또는 생성
     let user = await db
