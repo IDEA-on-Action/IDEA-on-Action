@@ -4,12 +4,11 @@
  *
  * Provides CRUD operations for blog posts
  *
- * @migration Supabase → Cloudflare Workers (읽기 전용 API 전환)
+ * @migration Supabase → Cloudflare Workers (완전 마이그레이션 완료)
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { blogApi } from '@/integrations/cloudflare/client'
-import { supabase } from '@/integrations/supabase/client'
+import { blogApi, callWorkersApi } from '@/integrations/cloudflare/client'
 import { useAuth } from './useAuth'
 import type {
   BlogPost,
@@ -83,7 +82,7 @@ export function useBlogPosts(options: UsePostsOptions = {}) {
 }
 
 // =====================================================
-// 2. FETCH POST BY ID (Detail with Relations)
+// 2. FETCH POST BY ID (Detail with Relations) - Workers API
 // =====================================================
 export function useBlogPost(id: string | undefined) {
   return useQuery({
@@ -92,41 +91,16 @@ export function useBlogPost(id: string | undefined) {
     queryFn: async () => {
       if (!id) throw new Error('Post ID is required')
 
-      const { data, error } = await supabase
-        .from('blog_posts')
-        .select(`
-          *,
-          category:post_categories(id, name, slug, description),
-          tags:post_tag_relations(tag:post_tags(id, name, slug))
-        `)
-        .eq('id', id)
-        .single()
+      // Workers API로 ID로 조회
+      const response = await callWorkersApi(`/api/v1/blog/posts/id/${id}`)
 
-      if (error) throw error
-
-      // Fetch author separately
-      let author: { user_id: string; display_name: string | null; avatar_url: string | null } | undefined
-      if (data.author_id) {
-        const { data: authorData, error: authorError } = await supabase
-          .from('user_profiles')
-          .select('user_id, display_name, avatar_url')
-          .eq('user_id', data.author_id)
-          .single()
-
-        if (!authorError && authorData) {
-          author = authorData
-        }
+      if (response.error) {
+        console.error('[useBlogPost] API 오류:', response.error)
+        return null
       }
 
-      // Transform data
-      const d = data as BlogPost & { tags?: Array<{ tag: PostTag }> }
-      const post: BlogPostWithRelations = {
-        ...d,
-        author,
-        tags: d.tags?.map((t) => t.tag).filter(Boolean) || [],
-      }
-
-      return post
+      const result = response.data as { data: BlogPostWithRelations } | null
+      return result?.data || null
     },
     enabled: !!id,
   })
@@ -157,13 +131,17 @@ export function useBlogPostBySlug(slug: string | undefined) {
 }
 
 // =====================================================
-// 4. CREATE POST
+// 4. CREATE POST - Workers API
 // =====================================================
 export function useCreateBlogPost() {
   const queryClient = useQueryClient()
+  const { workersTokens } = useAuth()
 
   return useMutation({
     mutationFn: async (data: BlogPostInsert & { tag_ids?: string[] }) => {
+      const token = workersTokens?.accessToken
+      if (!token) throw new Error('인증이 필요합니다')
+
       const { tag_ids, ...postData } = data
 
       // Calculate reading time if not provided
@@ -171,30 +149,14 @@ export function useCreateBlogPost() {
         postData.read_time = calculateReadingTime(postData.content)
       }
 
-      // Insert blog post
-      const { data: post, error: postError } = await supabase
-        .from('blog_posts')
-        .insert(postData)
-        .select()
-        .single()
+      const response = await blogApi.createPost(token, { ...postData, tag_ids })
 
-      if (postError) throw postError
-
-      // Insert tag relations
-      if (tag_ids && tag_ids.length > 0) {
-        const relations = tag_ids.map(tag_id => ({
-          post_id: post.id,
-          tag_id,
-        }))
-
-        const { error: tagError } = await supabase
-          .from('post_tag_relations')
-          .insert(relations)
-
-        if (tagError) throw tagError
+      if (response.error) {
+        throw new Error(response.error)
       }
 
-      return post as BlogPost
+      const result = response.data as { data: BlogPost } | null
+      return result?.data as BlogPost
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.lists() })
@@ -203,13 +165,17 @@ export function useCreateBlogPost() {
 }
 
 // =====================================================
-// 5. UPDATE POST
+// 5. UPDATE POST - Workers API
 // =====================================================
 export function useUpdateBlogPost() {
   const queryClient = useQueryClient()
+  const { workersTokens } = useAuth()
 
   return useMutation({
     mutationFn: async ({ id, data }: { id: string; data: BlogPostUpdate & { tag_ids?: string[] } }) => {
+      const token = workersTokens?.accessToken
+      if (!token) throw new Error('인증이 필요합니다')
+
       const { tag_ids, ...postData } = data
 
       // Calculate reading time if content changed
@@ -217,40 +183,14 @@ export function useUpdateBlogPost() {
         postData.read_time = calculateReadingTime(postData.content)
       }
 
-      // Update blog post
-      const { data: post, error: postError } = await supabase
-        .from('blog_posts')
-        .update(postData)
-        .eq('id', id)
-        .select()
-        .single()
+      const response = await blogApi.updatePost(token, id, { ...postData, tag_ids })
 
-      if (postError) throw postError
-
-      // Update tag relations if provided
-      if (tag_ids !== undefined) {
-        // Delete existing relations
-        await supabase
-          .from('post_tag_relations')
-          .delete()
-          .eq('post_id', id)
-
-        // Insert new relations
-        if (tag_ids.length > 0) {
-          const relations = tag_ids.map(tag_id => ({
-            post_id: id,
-            tag_id,
-          }))
-
-          const { error: tagError } = await supabase
-            .from('post_tag_relations')
-            .insert(relations)
-
-          if (tagError) throw tagError
-        }
+      if (response.error) {
+        throw new Error(response.error)
       }
 
-      return post as BlogPost
+      const result = response.data as { data: BlogPost } | null
+      return result?.data as BlogPost
     },
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.lists() })
@@ -260,19 +200,22 @@ export function useUpdateBlogPost() {
 }
 
 // =====================================================
-// 6. DELETE POST
+// 6. DELETE POST - Workers API
 // =====================================================
 export function useDeleteBlogPost() {
   const queryClient = useQueryClient()
+  const { workersTokens } = useAuth()
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from('blog_posts')
-        .delete()
-        .eq('id', id)
+      const token = workersTokens?.accessToken
+      if (!token) throw new Error('인증이 필요합니다')
 
-      if (error) throw error
+      const response = await blogApi.deletePost(token, id)
+
+      if (response.error) {
+        throw new Error(response.error)
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.lists() })
@@ -281,30 +224,15 @@ export function useDeleteBlogPost() {
 }
 
 // =====================================================
-// 7. INCREMENT VIEW COUNT
+// 7. INCREMENT VIEW COUNT - Workers API (상세 조회 시 자동 증가)
 // =====================================================
 export function useIncrementViewCount() {
   return useMutation({
-    mutationFn: async (id: string) => {
-      // Use Supabase RPC for atomic increment
-      const { error } = await supabase.rpc('increment_post_view_count', {
-        post_id: id,
-      })
-
-      if (error) {
-        // Fallback: manual increment
-        const { data: post } = await supabase
-          .from('blog_posts')
-          .select('view_count')
-          .eq('id', id)
-          .single()
-
-        if (post) {
-          await supabase
-            .from('blog_posts')
-            .update({ view_count: (post.view_count || 0) + 1 })
-            .eq('id', id)
-        }
+    mutationFn: async (slug: string) => {
+      // Workers API 상세 조회 시 view_count가 자동으로 증가됨
+      const response = await blogApi.getPost(slug)
+      if (response.error) {
+        console.warn('[useIncrementViewCount] 조회수 증가 실패:', response.error)
       }
     },
   })

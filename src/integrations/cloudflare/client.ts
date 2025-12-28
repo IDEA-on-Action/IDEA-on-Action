@@ -592,6 +592,34 @@ export const portfolioApi = {
   getBySlug: async (slug: string) => {
     return callWorkersApi(`/api/v1/portfolio/slug/${slug}`);
   },
+
+  getByType: async (type: string) => {
+    return callWorkersApi(`/api/v1/portfolio?category=${type}`);
+  },
+
+  // Admin CRUD
+  create: async (token: string, data: Record<string, unknown>) => {
+    return callWorkersApi('/api/v1/portfolio', {
+      method: 'POST',
+      token,
+      body: data,
+    });
+  },
+
+  update: async (token: string, id: string, data: Record<string, unknown>) => {
+    return callWorkersApi(`/api/v1/portfolio/${id}`, {
+      method: 'PATCH',
+      token,
+      body: data,
+    });
+  },
+
+  delete: async (token: string, id: string) => {
+    return callWorkersApi(`/api/v1/portfolio/${id}`, {
+      method: 'DELETE',
+      token,
+    });
+  },
 };
 
 /**
@@ -629,6 +657,34 @@ export const roadmapApi = {
 
   getById: async (id: string) => {
     return callWorkersApi(`/api/v1/roadmap/${id}`);
+  },
+
+  getPublished: async () => {
+    return callWorkersApi('/api/v1/roadmap?status=published');
+  },
+
+  // Admin CRUD
+  create: async (token: string, data: Record<string, unknown>) => {
+    return callWorkersApi('/api/v1/roadmap', {
+      method: 'POST',
+      token,
+      body: data,
+    });
+  },
+
+  update: async (token: string, id: string, data: Record<string, unknown>) => {
+    return callWorkersApi(`/api/v1/roadmap/${id}`, {
+      method: 'PATCH',
+      token,
+      body: data,
+    });
+  },
+
+  delete: async (token: string, id: string) => {
+    return callWorkersApi(`/api/v1/roadmap/${id}`, {
+      method: 'DELETE',
+      token,
+    });
   },
 };
 

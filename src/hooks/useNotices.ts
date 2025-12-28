@@ -4,12 +4,12 @@
  *
  * Provides CRUD operations for notices
  *
- * @migration Supabase → Cloudflare Workers (읽기 전용 API 전환)
+ * @migration Supabase → Cloudflare Workers (완전 마이그레이션 완료)
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { noticesApi } from '@/integrations/cloudflare/client'
-import { supabase } from '@/integrations/supabase/client'
+import { useAuth } from './useAuth'
 import type {
   Notice,
   NoticeWithAuthor,
@@ -99,22 +99,25 @@ export function useNotice(id: string | undefined) {
 }
 
 // =====================================================
-// 3. CREATE NOTICE
+// 3. CREATE NOTICE - Workers API
 // =====================================================
 export function useCreateNotice() {
   const queryClient = useQueryClient()
+  const { workersTokens } = useAuth()
 
   return useMutation({
     mutationFn: async (data: NoticeInsert) => {
-      const { data: notice, error } = await supabase
-        .from('notices')
-        .insert(data)
-        .select()
-        .single()
+      const token = workersTokens?.accessToken
+      if (!token) throw new Error('인증이 필요합니다')
 
-      if (error) throw error
+      const response = await noticesApi.create(token, data as Record<string, unknown>)
 
-      return notice as Notice
+      if (response.error) {
+        throw new Error(response.error)
+      }
+
+      const result = response.data as { data: Notice } | null
+      return result?.data as Notice
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.lists() })
@@ -123,23 +126,25 @@ export function useCreateNotice() {
 }
 
 // =====================================================
-// 4. UPDATE NOTICE
+// 4. UPDATE NOTICE - Workers API
 // =====================================================
 export function useUpdateNotice() {
   const queryClient = useQueryClient()
+  const { workersTokens } = useAuth()
 
   return useMutation({
     mutationFn: async ({ id, data }: { id: string; data: NoticeUpdate }) => {
-      const { data: notice, error } = await supabase
-        .from('notices')
-        .update(data)
-        .eq('id', id)
-        .select()
-        .single()
+      const token = workersTokens?.accessToken
+      if (!token) throw new Error('인증이 필요합니다')
 
-      if (error) throw error
+      const response = await noticesApi.update(token, id, data as Record<string, unknown>)
 
-      return notice as Notice
+      if (response.error) {
+        throw new Error(response.error)
+      }
+
+      const result = response.data as { data: Notice } | null
+      return result?.data as Notice
     },
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.lists() })
@@ -149,19 +154,22 @@ export function useUpdateNotice() {
 }
 
 // =====================================================
-// 5. DELETE NOTICE
+// 5. DELETE NOTICE - Workers API
 // =====================================================
 export function useDeleteNotice() {
   const queryClient = useQueryClient()
+  const { workersTokens } = useAuth()
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from('notices')
-        .delete()
-        .eq('id', id)
+      const token = workersTokens?.accessToken
+      if (!token) throw new Error('인증이 필요합니다')
 
-      if (error) throw error
+      const response = await noticesApi.delete(token, id)
+
+      if (response.error) {
+        throw new Error(response.error)
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.lists() })
@@ -170,23 +178,16 @@ export function useDeleteNotice() {
 }
 
 // =====================================================
-// 6. INCREMENT VIEW COUNT
+// 6. INCREMENT VIEW COUNT - Workers API (상세 조회 시 자동 증가)
 // =====================================================
 export function useIncrementNoticeViewCount() {
   return useMutation({
     mutationFn: async (id: string) => {
-      // Fetch current view count
-      const { data: notice } = await supabase
-        .from('notices')
-        .select('view_count')
-        .eq('id', id)
-        .single()
-
-      if (notice) {
-        await supabase
-          .from('notices')
-          .update({ view_count: (notice.view_count || 0) + 1 })
-          .eq('id', id)
+      // Workers API 상세 조회 시 view_count가 자동으로 증가됨
+      // 별도 API 호출 없이 상세 조회만 하면 됨
+      const response = await noticesApi.getById(id)
+      if (response.error) {
+        console.warn('[useIncrementNoticeViewCount] 조회수 증가 실패:', response.error)
       }
     },
   })

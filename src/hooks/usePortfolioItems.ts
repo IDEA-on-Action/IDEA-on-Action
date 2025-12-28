@@ -6,12 +6,12 @@
  * - 타입별 필터링
  * - 피처드/공개 필터링
  *
- * @migration Supabase → Cloudflare Workers (읽기 전용 API 전환)
+ * @migration Supabase → Cloudflare Workers (완전 마이그레이션 완료)
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { portfolioApi } from '@/integrations/cloudflare/client';
-import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from './useAuth';
 import type { PortfolioItem } from '@/types/v2';
 
 // =====================================================
@@ -194,7 +194,7 @@ export const usePublishedPortfolioItems = () => {
 };
 
 // =====================================================
-// CRUD MUTATIONS (Admin only) - Supabase 유지
+// CRUD MUTATIONS (Admin only) - Workers API
 // =====================================================
 
 /**
@@ -202,17 +202,21 @@ export const usePublishedPortfolioItems = () => {
  */
 export const useCreatePortfolioItem = () => {
   const queryClient = useQueryClient();
+  const { workersTokens } = useAuth();
 
   return useMutation({
     mutationFn: async (item: Omit<PortfolioItem, 'id' | 'created_at' | 'updated_at'>) => {
-      const { data, error } = await supabase
-        .from('portfolio_items')
-        .insert([item])
-        .select()
-        .single();
+      const token = workersTokens?.accessToken;
+      if (!token) throw new Error('인증이 필요합니다');
 
-      if (error) throw error;
-      return data as PortfolioItem;
+      const response = await portfolioApi.create(token, item as Record<string, unknown>);
+
+      if (response.error) {
+        throw new Error(response.error);
+      }
+
+      const result = response.data as { data: PortfolioItem } | null;
+      return result?.data as PortfolioItem;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.all });
@@ -225,23 +229,28 @@ export const useCreatePortfolioItem = () => {
  */
 export const useUpdatePortfolioItem = () => {
   const queryClient = useQueryClient();
+  const { workersTokens } = useAuth();
 
   return useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<PortfolioItem> }) => {
-      const { data, error } = await supabase
-        .from('portfolio_items')
-        .update(updates)
-        .eq('id', id)
-        .select()
-        .single();
+      const token = workersTokens?.accessToken;
+      if (!token) throw new Error('인증이 필요합니다');
 
-      if (error) throw error;
-      return data as PortfolioItem;
+      const response = await portfolioApi.update(token, id, updates as Record<string, unknown>);
+
+      if (response.error) {
+        throw new Error(response.error);
+      }
+
+      const result = response.data as { data: PortfolioItem } | null;
+      return result?.data as PortfolioItem;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.all });
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.detail(data.id) });
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.slug(data.slug) });
+      if (data) {
+        queryClient.invalidateQueries({ queryKey: QUERY_KEYS.detail(data.id) });
+        queryClient.invalidateQueries({ queryKey: QUERY_KEYS.slug(data.slug) });
+      }
     },
   });
 };
@@ -251,15 +260,19 @@ export const useUpdatePortfolioItem = () => {
  */
 export const useDeletePortfolioItem = () => {
   const queryClient = useQueryClient();
+  const { workersTokens } = useAuth();
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from('portfolio_items')
-        .delete()
-        .eq('id', id);
+      const token = workersTokens?.accessToken;
+      if (!token) throw new Error('인증이 필요합니다');
 
-      if (error) throw error;
+      const response = await portfolioApi.delete(token, id);
+
+      if (response.error) {
+        throw new Error(response.error);
+      }
+
       return id;
     },
     onSuccess: () => {

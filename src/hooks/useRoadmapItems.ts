@@ -6,12 +6,12 @@
  * - 카테고리/상태별 필터링
  * - 공개 로드맵 조회
  *
- * @migration Supabase → Cloudflare Workers (읽기 전용 API 전환)
+ * @migration Supabase → Cloudflare Workers (완전 마이그레이션 완료)
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { roadmapApi } from '@/integrations/cloudflare/client';
-import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from './useAuth';
 import type { RoadmapItem } from '@/types/v2';
 
 // =====================================================
@@ -178,7 +178,7 @@ export const usePublishedRoadmapItems = () => {
 };
 
 // =====================================================
-// CRUD MUTATIONS (Admin only) - Supabase 유지
+// CRUD MUTATIONS (Admin only) - Workers API
 // =====================================================
 
 /**
@@ -186,22 +186,26 @@ export const usePublishedRoadmapItems = () => {
  */
 export const useCreateRoadmapItem = () => {
   const queryClient = useQueryClient();
+  const { workersTokens } = useAuth();
 
   return useMutation({
     mutationFn: async (item: Omit<RoadmapItem, 'id' | 'created_at' | 'updated_at'>) => {
+      const token = workersTokens?.accessToken;
+      if (!token) throw new Error('인증이 필요합니다');
+
       // Validate progress is 0-100
       if (item.progress < 0 || item.progress > 100) {
         throw new Error('Progress must be between 0 and 100');
       }
 
-      const { data, error } = await supabase
-        .from('roadmap_items')
-        .insert([item])
-        .select()
-        .single();
+      const response = await roadmapApi.create(token, item as Record<string, unknown>);
 
-      if (error) throw error;
-      return data as RoadmapItem;
+      if (response.error) {
+        throw new Error(response.error);
+      }
+
+      const result = response.data as { data: RoadmapItem } | null;
+      return result?.data as RoadmapItem;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.all });
@@ -214,27 +218,32 @@ export const useCreateRoadmapItem = () => {
  */
 export const useUpdateRoadmapItem = () => {
   const queryClient = useQueryClient();
+  const { workersTokens } = useAuth();
 
   return useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<RoadmapItem> }) => {
+      const token = workersTokens?.accessToken;
+      if (!token) throw new Error('인증이 필요합니다');
+
       // Validate progress if provided
       if (updates.progress !== undefined && (updates.progress < 0 || updates.progress > 100)) {
         throw new Error('Progress must be between 0 and 100');
       }
 
-      const { data, error } = await supabase
-        .from('roadmap_items')
-        .update(updates)
-        .eq('id', id)
-        .select()
-        .single();
+      const response = await roadmapApi.update(token, id, updates as Record<string, unknown>);
 
-      if (error) throw error;
-      return data as RoadmapItem;
+      if (response.error) {
+        throw new Error(response.error);
+      }
+
+      const result = response.data as { data: RoadmapItem } | null;
+      return result?.data as RoadmapItem;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.all });
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.detail(data.id) });
+      if (data) {
+        queryClient.invalidateQueries({ queryKey: QUERY_KEYS.detail(data.id) });
+      }
     },
   });
 };
@@ -244,15 +253,19 @@ export const useUpdateRoadmapItem = () => {
  */
 export const useDeleteRoadmapItem = () => {
   const queryClient = useQueryClient();
+  const { workersTokens } = useAuth();
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from('roadmap_items')
-        .delete()
-        .eq('id', id);
+      const token = workersTokens?.accessToken;
+      if (!token) throw new Error('인증이 필요합니다');
 
-      if (error) throw error;
+      const response = await roadmapApi.delete(token, id);
+
+      if (response.error) {
+        throw new Error(response.error);
+      }
+
       return id;
     },
     onSuccess: () => {
