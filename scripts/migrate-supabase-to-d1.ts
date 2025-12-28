@@ -505,9 +505,21 @@ function transformRow(
     transformed['message'] = '(메시지 없음)';
   }
 
-  if (tableName === 'payments' && !transformed['user_id']) {
-    // payments에서 user_id가 없으면 order에서 가져와야 하지만, 일단 스킵
-    transformed['user_id'] = null; // 이 경우 FK 제약으로 실패할 수 있음
+  // payments 테이블 NOT NULL 필드 기본값 처리
+  if (tableName === 'payments') {
+    if (!transformed['method']) {
+      transformed['method'] = 'card'; // 기본 결제수단
+    }
+    if (!transformed['provider']) {
+      transformed['provider'] = 'toss';
+    }
+    if (transformed['amount'] === null || transformed['amount'] === undefined) {
+      transformed['amount'] = 0;
+    }
+    if (!transformed['status']) {
+      transformed['status'] = 'pending';
+    }
+    // user_id는 NULL 허용 (0011 마이그레이션 적용됨)
   }
 
   return transformed;
