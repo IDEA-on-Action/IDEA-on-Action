@@ -13,6 +13,7 @@ import { Helmet } from 'react-helmet-async'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { servicesApi } from '@/integrations/cloudflare/client'
 import { useAuth } from '@/hooks/useAuth'
+import type { Service } from '@/types/database'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -43,11 +44,11 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Loader2, Plus, Pencil, Trash2, Search } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
-import type { Service } from '@/types/database'
 
 export default function AdminServices() {
   const { toast } = useToast()
   const queryClient = useQueryClient()
+  const { getAccessToken } = useAuth()
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [deleteId, setDeleteId] = useState<string | null>(null)
@@ -56,31 +57,39 @@ export default function AdminServices() {
   const { data: services, isLoading } = useQuery({
     queryKey: ['admin-services', search, statusFilter],
     queryFn: async () => {
-      let query = supabase
-        .from('services')
-        .select('*, category:service_categories(*)')
-        .order('created_at', { ascending: false })
-
-      if (search) {
-        query = query.ilike('title', `%${search}%`)
+      const params: { status?: string; sort_by?: string } = {
+        sort_by: 'created_at:desc',
       }
 
       if (statusFilter !== 'all') {
-        query = query.eq('status', statusFilter)
+        params.status = statusFilter
       }
 
-      const { data, error } = await query
+      const { data, error } = await servicesApi.list(params)
 
-      if (error) throw error
-      return data as Service[]
+      if (error) throw new Error(error)
+
+      // 클라이언트 사이드 검색 필터링 (Workers API에서 검색 미지원 시)
+      let filteredData = (data as Service[]) || []
+      if (search) {
+        const searchLower = search.toLowerCase()
+        filteredData = filteredData.filter(
+          (service) => service.title?.toLowerCase().includes(searchLower)
+        )
+      }
+
+      return filteredData
     },
   })
 
   // 서비스 삭제
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from('services').delete().eq('id', id)
-      if (error) throw error
+      const token = getAccessToken()
+      if (!token) throw new Error('인증이 필요합니다')
+
+      const { error } = await servicesApi.delete(token, id)
+      if (error) throw new Error(error)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-services'] })

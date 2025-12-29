@@ -12,7 +12,7 @@ import { useState, useEffect } from 'react'
 import { Helmet } from 'react-helmet-async'
 import { useAdmins, useCreateAdmin, useUpdateAdmin, useDeleteAdmin, useCurrentAdminRole } from '@/hooks/useAdmins'
 import { useAuth } from '@/hooks/useAuth'
-import { usersApi } from '@/integrations/cloudflare/client'
+import { callWorkersApi } from '@/integrations/cloudflare/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -82,7 +82,7 @@ interface UserSearchResult {
 
 export default function AdminUsers() {
   const { toast } = useToast()
-  const { user } = useAuth()
+  const { getAccessToken } = useAuth()
   const { data: adminRole, isLoading: isAdminRoleLoading } = useCurrentAdminRole()
   const { data: admins, isLoading } = useAdmins()
   const createMutation = useCreateAdmin()
@@ -117,26 +117,37 @@ export default function AdminUsers() {
 
     setIsSearchingUsers(true)
     try {
-      // Use Supabase Admin API to list users
-      const { data, error } = await supabase.auth.admin.listUsers()
-
-      if (error) {
-        console.error('사용자 검색 실패:', error)
+      const token = getAccessToken()
+      if (!token) {
         toast({
-          title: '사용자 검색 실패',
-          description: error.message,
+          title: '인증 필요',
+          description: '로그인이 필요합니다.',
           variant: 'destructive',
         })
         return
       }
 
-      // Filter users by email
-      const filteredUsers = data.users
-        .filter((user) => user.email?.toLowerCase().includes(query.toLowerCase()))
-        .map((user) => ({
-          id: user.id,
-          email: user.email || '',
-        }))
+      // Use Workers Admin API to search users
+      const { data, error } = await callWorkersApi<{ users: Array<{ id: string; email: string }> }>(
+        `/api/v1/admin/users/search?q=${encodeURIComponent(query)}`,
+        { token }
+      )
+
+      if (error) {
+        console.error('사용자 검색 실패:', error)
+        toast({
+          title: '사용자 검색 실패',
+          description: error,
+          variant: 'destructive',
+        })
+        return
+      }
+
+      // Map users to search results
+      const filteredUsers = (data?.users || []).map((user) => ({
+        id: user.id,
+        email: user.email || '',
+      }))
 
       setUserSearchResults(filteredUsers)
     } catch (error) {

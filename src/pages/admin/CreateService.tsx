@@ -18,24 +18,25 @@ import { Link } from 'react-router-dom'
 export default function CreateService() {
   const navigate = useNavigate()
   const { toast } = useToast()
+  const { getAccessToken } = useAuth()
 
   // 카테고리 목록 가져오기
   const { data: categories, isLoading } = useQuery({
     queryKey: ['service-categories'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('service_categories')
-        .select('*')
-        .order('name')
+      const { data, error } = await servicesApi.getCategories()
 
-      if (error) throw error
-      return data
+      if (error) throw new Error(error)
+      return data as Array<{ id: string; name: string; slug: string }>
     },
   })
 
   // 서비스 생성
   const createMutation = useMutation({
     mutationFn: async ({ data, images, features }: { data: { title: string; description: string; category_id: string; price: number; status: string }; images: string[]; features: string[] }) => {
+      const token = getAccessToken()
+      if (!token) throw new Error('인증이 필요합니다')
+
       // Features 포맷팅
       const formattedFeatures = features
         .filter((f: string) => f.trim())
@@ -57,9 +58,9 @@ export default function CreateService() {
         },
       }
 
-      const { error } = await supabase.from('services').insert([serviceData])
+      const { error } = await servicesApi.create(token, serviceData)
 
-      if (error) throw error
+      if (error) throw new Error(error)
     },
     onSuccess: () => {
       toast({

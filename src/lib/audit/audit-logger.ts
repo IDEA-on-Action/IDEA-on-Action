@@ -56,24 +56,45 @@ export function createAuditContextFromRequest(request: Request): AuditContext {
 }
 
 /**
- * 현재 세션 ID 가져오기
+ * Workers Auth 토큰 저장 키
  */
-async function getSessionId(): Promise<string | undefined> {
+const WORKERS_TOKEN_KEY = 'workers_auth_tokens';
+
+/**
+ * 현재 세션 ID 가져오기 (Workers Auth 기반)
+ */
+function getSessionId(): string | undefined {
   try {
-    const { data: { session } } = await supabase.auth.getSession();
-    return session?.access_token ? session.user.id : undefined;
+    const stored = localStorage.getItem(WORKERS_TOKEN_KEY);
+    if (!stored) return undefined;
+
+    const tokens = JSON.parse(stored);
+    // JWT에서 세션 ID 추출 (jti claim 사용)
+    if (tokens.accessToken) {
+      const payload = JSON.parse(atob(tokens.accessToken.split('.')[1]));
+      return payload.jti || payload.sub;
+    }
+    return undefined;
   } catch {
     return undefined;
   }
 }
 
 /**
- * 현재 사용자 ID 가져오기
+ * 현재 사용자 ID 가져오기 (Workers Auth 기반)
  */
-async function getCurrentUserId(): Promise<string | undefined> {
+function getCurrentUserId(): string | undefined {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
-    return user?.id;
+    const stored = localStorage.getItem(WORKERS_TOKEN_KEY);
+    if (!stored) return undefined;
+
+    const tokens = JSON.parse(stored);
+    // JWT에서 사용자 ID 추출 (sub claim 사용)
+    if (tokens.accessToken) {
+      const payload = JSON.parse(atob(tokens.accessToken.split('.')[1]));
+      return payload.sub;
+    }
+    return undefined;
   } catch {
     return undefined;
   }
@@ -102,22 +123,29 @@ export async function logAuditEvent(input: CreateAuditLogInput): Promise<string 
   try {
     // 컨텍스트 준비
     const context = input.context || createBrowserAuditContext();
-    const session_id = await getSessionId();
-    const actor_id = input.actor_id || await getCurrentUserId();
+    const session_id = getSessionId();
+    const actor_id = input.actor_id || getCurrentUserId();
 
-    // RPC 함수 호출
-    const { data, error } = await supabase.rpc('log_audit_event', {
-      p_event_type: input.event_type,
-      p_action: input.action,
-      p_actor_id: actor_id || null,
-      p_actor_type: input.actor_type || 'user',
-      p_resource_type: input.resource_type || null,
-      p_resource_id: input.resource_id || null,
-      p_changes: input.changes || null,
-      p_metadata: input.metadata || null,
-      p_ip_address: context.ip_address || null,
-      p_user_agent: context.user_agent || null,
-      p_session_id: session_id || null,
+    // Workers API를 통한 감사 로그 기록
+    const stored = localStorage.getItem(WORKERS_TOKEN_KEY);
+    const token = stored ? JSON.parse(stored).accessToken : null;
+
+    const { data, error } = await callWorkersApi<{ id: string }>('/api/v1/audit/log', {
+      method: 'POST',
+      token,
+      body: {
+        event_type: input.event_type,
+        action: input.action,
+        actor_id: actor_id || null,
+        actor_type: input.actor_type || 'user',
+        resource_type: input.resource_type || null,
+        resource_id: input.resource_id || null,
+        changes: input.changes || null,
+        metadata: input.metadata || null,
+        ip_address: context.ip_address || null,
+        user_agent: context.user_agent || null,
+        session_id: session_id || null,
+      },
     });
 
     if (error) {
@@ -125,7 +153,7 @@ export async function logAuditEvent(input: CreateAuditLogInput): Promise<string 
       return null;
     }
 
-    return data as string;
+    return data?.id || null;
   } catch (error) {
     console.error('[AuditLogger] Unexpected error:', error);
     return null;
@@ -337,7 +365,7 @@ export async function logResourceCreated(
   metadata?: AuditMetadata
 ): Promise<string | null> {
   return new AuditLogBuilder(`${resourceType}.created` as EventType, 'create')
-    .actor(actorId || await getCurrentUserId() || '', 'user')
+    .actor(actorId || getCurrentUserId() || '', 'user')
     .resource(resourceType, resourceId)
     .metadata(metadata || {})
     .log();
@@ -353,7 +381,7 @@ export async function logResourceUpdated(
   actorId?: string
 ): Promise<string | null> {
   return new AuditLogBuilder(`${resourceType}.updated` as EventType, 'update')
-    .actor(actorId || await getCurrentUserId() || '', 'user')
+    .actor(actorId || getCurrentUserId() || '', 'user')
     .resource(resourceType, resourceId)
     .changes(changes)
     .log();
@@ -369,7 +397,7 @@ export async function logResourceDeleted(
   metadata?: AuditMetadata
 ): Promise<string | null> {
   return new AuditLogBuilder(`${resourceType}.deleted` as EventType, 'delete')
-    .actor(actorId || await getCurrentUserId() || '', 'user')
+    .actor(actorId || getCurrentUserId() || '', 'user')
     .resource(resourceType, resourceId)
     .metadata(metadata || {})
     .log();

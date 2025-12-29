@@ -1,7 +1,7 @@
 /**
  * MCP 토큰 서비스
  *
- * Supabase Edge Function과 통신하여 MCP JWT 토큰을 발급/검증/갱신/폐기합니다.
+ * Workers API와 통신하여 MCP JWT 토큰을 발급/검증/갱신/폐기합니다.
  * - Access Token: 1시간 만료
  * - Refresh Token: 7일 만료
  *
@@ -11,6 +11,25 @@
 import { callWorkersApi } from '@/integrations/cloudflare/client';
 import { generateAccessToken, generateRefreshToken, verifyToken, decodeToken } from './jwt';
 import type { JWTPayload } from '@/types/mcp-auth.types';
+
+/**
+ * Workers Auth 토큰 저장 키
+ */
+const WORKERS_TOKEN_KEY = 'workers_auth_tokens';
+
+/**
+ * 현재 Workers Auth 토큰 가져오기
+ */
+function getWorkersToken(): string | null {
+  try {
+    const stored = localStorage.getItem(WORKERS_TOKEN_KEY);
+    if (!stored) return null;
+    const tokens = JSON.parse(stored);
+    return tokens.accessToken ?? null;
+  } catch {
+    return null;
+  }
+}
 
 // ============================================================================
 // 타입 정의
@@ -90,19 +109,33 @@ export async function issueToken(
   scopes: string[] = ['openid']
 ): Promise<IssueTokenResponse> {
   try {
-    // 1. Supabase Function 호출 (토큰 메타데이터 생성)
-    const { data, error } = await supabase.rpc('issue_mcp_token', {
-      p_client_id: clientId,
-      p_user_id: userId,
-      p_scopes: scopes,
+    const workersToken = getWorkersToken();
+
+    // 1. Workers API 호출 (토큰 메타데이터 생성)
+    const { data, error } = await callWorkersApi<{
+      user_id: string;
+      client_id: string;
+      scope: string;
+      access_token_jti: string;
+      refresh_token_jti: string;
+      session_id: string;
+      expires_in: number;
+    }>('/api/v1/mcp/token/issue', {
+      method: 'POST',
+      token: workersToken ?? undefined,
+      body: {
+        client_id: clientId,
+        user_id: userId,
+        scopes: scopes,
+      },
     });
 
     if (error) {
-      throw new Error(`Failed to issue token: ${error.message}`);
+      throw new Error(`Failed to issue token: ${error}`);
     }
 
     if (!data) {
-      throw new Error('No data returned from issue_mcp_token');
+      throw new Error('No data returned from issue token API');
     }
 
     // 2. JWT 토큰 생성 (클라이언트 사이드)
@@ -178,14 +211,23 @@ export async function verifyMCPToken(token: string): Promise<VerifyTokenResponse
       };
     }
 
-    // 3. DB에서 세션 상태 확인 (폐기 여부)
-    const { data, error } = await supabase.rpc('verify_mcp_token', {
-      p_token_jti: payload.jti,
+    // 3. Workers API에서 세션 상태 확인 (폐기 여부)
+    const { data, error } = await callWorkersApi<{
+      valid: boolean;
+      status: 'valid' | 'revoked' | 'expired' | 'invalid';
+      expires_at?: string;
+      remaining_seconds?: number;
+      user_id?: string;
+      client_id?: string;
+      scope?: string;
+    }>('/api/v1/mcp/token/verify', {
+      method: 'POST',
+      body: { token_jti: payload.jti },
     });
 
     if (error) {
-      console.error('[MCP Token Service] DB verification failed:', error);
-      // DB 검증 실패해도 JWT 자체는 유효하면 통과
+      console.error('[MCP Token Service] API verification failed:', error);
+      // API 검증 실패해도 JWT 자체는 유효하면 통과
       return {
         valid: true,
         status: 'valid',
@@ -199,7 +241,7 @@ export async function verifyMCPToken(token: string): Promise<VerifyTokenResponse
     if (!data || !data.valid) {
       return {
         valid: false,
-        status: (data?.status as 'revoked' | 'expired' | 'invalid') || 'invalid',
+        status: data?.status || 'invalid',
       };
     }
 
@@ -243,8 +285,12 @@ export async function verifyMCPToken(token: string): Promise<VerifyTokenResponse
  */
 export async function revokeToken(tokenId: string): Promise<boolean> {
   try {
-    const { data, error } = await supabase.rpc('revoke_mcp_token', {
-      p_token_jti: tokenId,
+    const workersToken = getWorkersToken();
+
+    const { data, error } = await callWorkersApi<{ revoked: boolean }>('/api/v1/mcp/token/revoke', {
+      method: 'POST',
+      token: workersToken ?? undefined,
+      body: { token_jti: tokenId },
     });
 
     if (error) {
@@ -287,17 +333,26 @@ export async function refreshMCPToken(refreshToken: string): Promise<IssueTokenR
       throw new Error('Invalid refresh token: missing jti');
     }
 
-    // 2. Supabase Function 호출 (새 토큰 메타데이터 생성)
-    const { data, error } = await supabase.rpc('refresh_mcp_token', {
-      p_refresh_jti: payload.jti,
+    // 2. Workers API 호출 (새 토큰 메타데이터 생성)
+    const { data, error } = await callWorkersApi<{
+      user_id: string;
+      client_id: string;
+      scope: string;
+      access_token_jti: string;
+      refresh_token_jti: string;
+      session_id: string;
+      expires_in: number;
+    }>('/api/v1/mcp/token/refresh', {
+      method: 'POST',
+      body: { refresh_jti: payload.jti },
     });
 
     if (error) {
-      throw new Error(`Failed to refresh token: ${error.message}`);
+      throw new Error(`Failed to refresh token: ${error}`);
     }
 
     if (!data) {
-      throw new Error('No data returned from refresh_mcp_token');
+      throw new Error('No data returned from refresh token API');
     }
 
     // 3. 새 JWT 토큰 생성

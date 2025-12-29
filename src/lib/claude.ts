@@ -248,14 +248,15 @@ export const CLAUDE_SYSTEM_PROMPT = `당신은 IDEA on Action (생각과행동, 
 // ============================================================================
 
 /**
- * Supabase Auth 토큰 가져오기
+ * Workers Auth 토큰 가져오기
  */
-async function getAuthToken(): Promise<string | null> {
+function getAuthToken(): string | null {
   try {
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    return session?.access_token ?? null;
+    const stored = localStorage.getItem('workers_auth_tokens');
+    if (!stored) return null;
+
+    const tokens = JSON.parse(stored);
+    return tokens.accessToken ?? null;
   } catch (error) {
     devError(error, { service: 'Claude', operation: 'getAuthToken' });
     return null;
