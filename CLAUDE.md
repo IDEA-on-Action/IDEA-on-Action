@@ -98,7 +98,6 @@
 
 | Skill | 용도 | 키워드 |
 |-------|------|--------|
-| `supabase-helper` | DB/마이그레이션/Edge Functions | supabase, migration, RLS |
 | `react-component` | React 컴포넌트/shadcn/ui | component, 컴포넌트, shadcn |
 | `commit-helper` | 한글 커밋 메시지 생성 | commit, 커밋 |
 | `project-cleanup` | 문서 정리/아카이브 | 정리, cleanup, organize |
@@ -198,7 +197,7 @@ npm run release:patch && git push --follow-tags && gh release create v$(node -p 
 
 ## 🛠️ 기술 스택
 
-**Core**: Vite 5.4, React 18, TypeScript 5, Tailwind CSS 3.4, Supabase 2
+**Core**: Vite 5.4, React 18, TypeScript 5, Tailwind CSS 3.4, Cloudflare Workers (D1, R2)
 **UI**: shadcn/ui, Radix UI, Lucide Icons
 **State**: React Query, React Hook Form, Zustand
 **Routing**: React Router DOM, i18next
@@ -212,7 +211,6 @@ idea-on-action/
 ├── spec/, plan/, tasks/   # SDD 명세
 ├── src/                   # React 구현
 ├── docs/                  # 문서
-├── supabase/              # DB 마이그레이션
 └── tests/                 # 테스트
 ```
 
@@ -229,8 +227,7 @@ npm run dev  # http://localhost:8080
 
 **환경 변수** (`.env.local`):
 ```
-VITE_SUPABASE_URL=https://zykjdneewbzyazfukzyg.supabase.co
-VITE_SUPABASE_ANON_KEY=[YOUR_KEY]
+VITE_WORKERS_API_URL=https://api.ideaonaction.ai
 ```
 
 ---
