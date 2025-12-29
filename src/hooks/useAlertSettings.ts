@@ -198,21 +198,11 @@ export function useAlertSettings(): UseAlertSettingsReturn {
       setIsLoading(true);
       setError(null);
 
-      // localStorage 저장 (우선순위)
+      // localStorage 저장
       saveSettingsToStorage(settingsToSave);
 
-      // Supabase에 저장 (향후 user_preferences 테이블 연동)
-      // Note: user_preferences 테이블이 생성되면 아래 주석 해제
-      // import { supabase } from '@/integrations/supabase/client';
-      // if (user) {
-      //   await supabase
-      //     .from('user_preferences')
-      //     .upsert({
-      //       user_id: user.id,
-      //       alert_settings: settingsToSave,
-      //       updated_at: new Date().toISOString(),
-      //     }, { onConflict: 'user_id' });
-      // }
+      // TODO: Workers API user_preferences 엔드포인트 구현 시 연동
+      // await userPreferencesApi.upsert(token, { alert_settings: settingsToSave });
 
       setSettings(settingsToSave);
     } catch (err) {
