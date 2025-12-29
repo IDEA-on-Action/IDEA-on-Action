@@ -9,6 +9,48 @@
 
 ---
 
+## [2.40.6] - 2025-12-29 (테스트 파일 Workers API 마이그레이션)
+
+### 🧪 Phase 6: 테스트 파일 마이그레이션 완료
+
+44개 테스트 파일을 Supabase 모킹에서 Cloudflare Workers API 모킹으로 마이그레이션.
+
+#### 마이그레이션 현황
+
+| 카테고리 | 파일 수 | 주요 파일 |
+|----------|---------|-----------|
+| 훅 테스트 | 39개 | useCart, useOrders, useProjects 등 |
+| 컨텍스트 테스트 | 2개 | PermissionContext, MCPPermissionContext |
+| 라이브러리 테스트 | 2개 | mcp-token-service 등 |
+| 컴포넌트 테스트 | 1개 | AdminSidebar |
+
+#### 모킹 패턴 변경
+
+```typescript
+// Before (Supabase)
+vi.mock('@/integrations/supabase/client', () => ({
+  supabase: { from: vi.fn() }
+}))
+
+// After (Workers API)
+vi.mock('@/integrations/cloudflare/client', () => ({
+  cartApi: { get: vi.fn(), add: vi.fn() },
+  ordersApi: { list: vi.fn() }
+}))
+```
+
+#### 검증 결과
+
+| 항목 | 결과 |
+|------|------|
+| Supabase import (tests/) | 0건 ✅ |
+| 빌드 | 성공 ✅ |
+| 린트 에러 | 0개 ✅ |
+
+**Supabase 프로젝트 삭제 준비 완료**
+
+---
+
 ## [2.40.5] - 2025-12-29 (Supabase Edge Function 완전 제거)
 
 ### 🔥 Phase 5: Supabase API 직접 호출 완전 제거
