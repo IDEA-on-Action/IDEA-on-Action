@@ -32,9 +32,6 @@
     "release:auto": "npx tsx scripts/release/auto-release.ts",
     "generate:sitemap": "npx tsx scripts/deploy/generate-sitemap.ts",
     "generate:rss": "npx tsx scripts/deploy/generate-rss.ts",
-    "generate:screenshots": "node scripts/testing/capture-payment-screenshots.js",
-    "check:rls": "node scripts/db/check-rls-policies.js",
-    "fix:rls": "node scripts/db/apply-rls-policies.js",
     "verify:gtm": "node scripts/analytics/verify-google-tags.js",
     "cancel:workflows": "node scripts/deploy/cancel-non-deployment-workflows.js",
     "docs:archive": "node scripts/deploy/archive-completed-todos.js",
@@ -47,15 +44,7 @@
     "env:vault:new": "npx dotenv-vault new",
     "env:vault:push": "npx dotenv-vault push",
     "env:vault:pull": "npx dotenv-vault pull",
-    "generate:webhook-secret": "node scripts/generate-webhook-secret.js",
-    "migrate:r2": "npx tsx scripts/migrate-to-r2.ts",
-    "migrate:r2:dry": "npx tsx scripts/migrate-to-r2.ts --dry-run --verbose",
-    "migrate:d1:extract": "npx tsx scripts/migrate-to-d1.ts",
-    "migrate:d1:execute": "npx tsx scripts/d1-execute.ts",
-    "migrate:d1:all": "npx tsx scripts/d1-execute.ts --combined",
-    "migrate:supabase-to-d1": "npx tsx scripts/migrate-supabase-to-d1.ts --all",
-    "migrate:supabase-to-d1:dry": "npx tsx scripts/migrate-supabase-to-d1.ts --all --dry-run",
-    "migrate:supabase-to-d1:table": "npx tsx scripts/migrate-supabase-to-d1.ts"
+    "generate:webhook-secret": "node scripts/generate-webhook-secret.js"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
