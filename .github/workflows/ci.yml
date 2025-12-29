@@ -119,60 +119,12 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-node-modules-
 
-      # test:coverage가 모든 테스트 + 커버리지를 포함하므로 한 번만 실행
-      - name: Run unit tests with coverage
-        run: npm run test:coverage
+      # 메모리 최적화: 커버리지 없이 테스트만 실행
+      # 커버리지는 로컬에서 npm run test:coverage로 확인
+      - name: Run unit tests
+        run: npm run test:unit
         env:
           VITE_WORKERS_API_URL: ${{ secrets.VITE_WORKERS_API_URL }}
-
-      - name: Upload coverage reports
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: coverage-report
-          path: coverage/
-          retention-days: 30
-
-      - name: Comment PR with coverage
-        if: github.event_name == 'pull_request' && always()
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const fs = require('fs');
-
-            let comment = '## 🧪 Unit Test Coverage\n\n';
-
-            try {
-              const coveragePath = 'coverage/coverage-summary.json';
-              if (fs.existsSync(coveragePath)) {
-                const coverage = JSON.parse(fs.readFileSync(coveragePath, 'utf8'));
-                const total = coverage.total;
-
-                comment += '| Metric | Coverage |\n';
-                comment += '|--------|----------|\n';
-                comment += `| Statements | ${total.statements.pct}% |\n`;
-                comment += `| Branches | ${total.branches.pct}% |\n`;
-                comment += `| Functions | ${total.functions.pct}% |\n`;
-                comment += `| Lines | ${total.lines.pct}% |\n`;
-
-                const threshold = 80;
-                const meetsThreshold = total.lines.pct >= threshold;
-                comment += `\n**Status**: ${meetsThreshold ? '✅' : '❌'} ${meetsThreshold ? 'Meets' : 'Below'} threshold (${threshold}%)\n`;
-              } else {
-                comment += '⚠️ Coverage report not found\n';
-              }
-
-              comment += `\n[View detailed report](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})\n`;
-            } catch (error) {
-              comment += `\n⚠️ Could not read coverage: ${error.message}\n`;
-            }
-
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: comment
-            });
 
   # E2E Tests - 비활성화 (테스트 코드 정비 필요)
   # 로컬에서 npm run test:e2e로 실행
