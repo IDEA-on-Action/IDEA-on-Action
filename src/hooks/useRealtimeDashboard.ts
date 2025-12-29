@@ -172,61 +172,61 @@ export function useAutoRefresh(interval = 30000) {
  * 현재 온라인 사용자, 활성 세션 등
  */
 export function useRealtimeMetrics() {
+  const { user, workersTokens } = useAuth()
   const [onlineUsers, setOnlineUsers] = useState(0)
   const [activeSessions, setActiveSessions] = useState(0)
 
   useEffect(() => {
-    // Supabase Presence 사용 (온라인 사용자 추적)
-    const channel = supabase.channel('online-users', {
-      config: {
-        presence: {
-          key: 'user-presence',
-        },
-      },
-    })
+    // Workers WebSocket Presence 사용 (온라인 사용자 추적)
+    const ws = realtimeApi.connect('presence-online-users', user?.id)
 
-    channel
-      .on('presence', { event: 'sync' }, () => {
-        const state = channel.presenceState()
-        setOnlineUsers(Object.keys(state).length)
-      })
-      .on('presence', { event: 'join' }, ({ newPresences }) => {
-        devLog('User joined:', newPresences)
-      })
-      .on('presence', { event: 'leave' }, ({ leftPresences }) => {
-        devLog('User left:', leftPresences)
-      })
-      .subscribe(async (status) => {
-        if (status === 'SUBSCRIBED') {
-          // Track current user
-          await channel.track({
-            online_at: new Date().toISOString(),
-          })
+    ws.onopen = () => {
+      devLog('Presence WebSocket 연결됨')
+      ws.send(JSON.stringify({ type: 'presence_join', timestamp: new Date().toISOString() }))
+    }
+
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data)
+
+        if (data.type === 'presence_sync') {
+          setOnlineUsers(data.count || 0)
         }
-      })
+
+        if (data.type === 'presence_join') {
+          devLog('User joined:', data.userId)
+        }
+
+        if (data.type === 'presence_leave') {
+          devLog('User left:', data.userId)
+        }
+      } catch (e) {
+        devError(e as Error, { operation: 'Presence 메시지 파싱' })
+      }
+    }
 
     return () => {
-      supabase.removeChannel(channel)
+      ws.close()
     }
-  }, [])
+  }, [user?.id])
 
   // 활성 세션 조회 (최근 30분 내 이벤트가 있는 세션)
   useEffect(() => {
     const fetchActiveSessions = async () => {
       const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000)
 
-      const { data, error } = await supabase
-        .from('analytics_events')
-        .select('session_id')
-        .gte('created_at', thirtyMinutesAgo.toISOString())
+      const result = await callWorkersApi<{ session_id: string }[]>(
+        `/api/v1/analytics/sessions/active?since=${thirtyMinutesAgo.toISOString()}`,
+        { token: workersTokens?.accessToken }
+      )
 
-      if (error) {
-        devError(error, { operation: '활성 세션 조회', table: 'analytics_events' })
+      if (result.error) {
+        devError(new Error(result.error), { operation: '활성 세션 조회' })
         return
       }
 
       // 중복 제거
-      const uniqueSessions = new Set(data.map((row) => row.session_id))
+      const uniqueSessions = new Set((result.data || []).map((row) => row.session_id))
       setActiveSessions(uniqueSessions.size)
     }
 
@@ -236,7 +236,7 @@ export function useRealtimeMetrics() {
     const timer = setInterval(fetchActiveSessions, 60000)
 
     return () => clearInterval(timer)
-  }, [])
+  }, [workersTokens?.accessToken])
 
   return { onlineUsers, activeSessions }
 }

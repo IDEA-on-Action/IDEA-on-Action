@@ -1,7 +1,12 @@
+/**
+ * useNewsletter Hook 테스트
+ * @migration Supabase -> Cloudflare Workers (완전 마이그레이션 완료)
+ */
+
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { supabase } from '@/integrations/supabase/client'
+import * as cloudflareClient from '@/integrations/cloudflare/client'
 import {
   useSubscribeNewsletter,
   useConfirmNewsletter,
@@ -10,16 +15,13 @@ import {
 } from '@/hooks/useNewsletter'
 import { toast } from 'sonner'
 
-// Mock dependencies
-vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
-    from: vi.fn(() => ({
-      insert: vi.fn(),
-      update: vi.fn(),
-      select: vi.fn(),
-      single: vi.fn(),
-      eq: vi.fn(),
-    })),
+// Mock Workers API
+vi.mock('@/integrations/cloudflare/client', () => ({
+  newsletterApi: {
+    subscribe: vi.fn(),
+    confirm: vi.fn(),
+    unsubscribe: vi.fn(),
+    getStats: vi.fn(),
   },
 }))
 
@@ -61,14 +63,11 @@ describe('useNewsletter', () => {
         metadata: {},
       }
 
-      const mockChain = {
-        select: vi.fn().mockReturnThis(),
-        single: vi.fn().mockResolvedValue({ data: mockData, error: null }),
-      }
-
-      vi.mocked(supabase.from).mockReturnValue({
-        insert: vi.fn().mockReturnValue(mockChain),
-      } as ReturnType<typeof supabase.from>)
+      vi.mocked(cloudflareClient.newsletterApi.subscribe).mockResolvedValue({
+        data: mockData,
+        error: null,
+        status: 200,
+      })
 
       const { result } = renderHook(() => useSubscribeNewsletter(), {
         wrapper: createWrapper(),
@@ -80,6 +79,10 @@ describe('useNewsletter', () => {
         expect(result.current.isSuccess).toBe(true)
       })
 
+      expect(cloudflareClient.newsletterApi.subscribe).toHaveBeenCalledWith(
+        'test@example.com',
+        expect.any(Object)
+      )
       expect(toast.success).toHaveBeenCalledWith(
         '뉴스레터 구독 신청 완료!',
         expect.any(Object)
@@ -101,17 +104,11 @@ describe('useNewsletter', () => {
     })
 
     it('중복 이메일은 에러 메시지를 표시해야 함', async () => {
-      const mockChain = {
-        select: vi.fn().mockReturnThis(),
-        single: vi.fn().mockResolvedValue({
-          data: null,
-          error: { code: '23505', message: 'duplicate key' },
-        }),
-      }
-
-      vi.mocked(supabase.from).mockReturnValue({
-        insert: vi.fn().mockReturnValue(mockChain),
-      } as ReturnType<typeof supabase.from>)
+      vi.mocked(cloudflareClient.newsletterApi.subscribe).mockResolvedValue({
+        data: null,
+        error: '이미 구독 중인 이메일입니다.',
+        status: 409,
+      })
 
       const { result } = renderHook(() => useSubscribeNewsletter(), {
         wrapper: createWrapper(),
@@ -136,15 +133,11 @@ describe('useNewsletter', () => {
         confirmed_at: new Date().toISOString(),
       }
 
-      const mockChain = {
-        eq: vi.fn().mockReturnThis(),
-        select: vi.fn().mockReturnThis(),
-        single: vi.fn().mockResolvedValue({ data: mockData, error: null }),
-      }
-
-      vi.mocked(supabase.from).mockReturnValue({
-        update: vi.fn().mockReturnValue(mockChain),
-      } as ReturnType<typeof supabase.from>)
+      vi.mocked(cloudflareClient.newsletterApi.confirm).mockResolvedValue({
+        data: mockData,
+        error: null,
+        status: 200,
+      })
 
       const { result } = renderHook(() => useConfirmNewsletter(), {
         wrapper: createWrapper(),
@@ -156,6 +149,7 @@ describe('useNewsletter', () => {
         expect(result.current.isSuccess).toBe(true)
       })
 
+      expect(cloudflareClient.newsletterApi.confirm).toHaveBeenCalledWith('valid-token')
       expect(toast.success).toHaveBeenCalledWith(
         '구독 확인 완료!',
         expect.any(Object)
@@ -163,18 +157,11 @@ describe('useNewsletter', () => {
     })
 
     it('잘못된 토큰은 에러를 발생시켜야 함', async () => {
-      const mockChain = {
-        eq: vi.fn().mockReturnThis(),
-        select: vi.fn().mockReturnThis(),
-        single: vi.fn().mockResolvedValue({
-          data: null,
-          error: { message: 'Invalid token' },
-        }),
-      }
-
-      vi.mocked(supabase.from).mockReturnValue({
-        update: vi.fn().mockReturnValue(mockChain),
-      } as ReturnType<typeof supabase.from>)
+      vi.mocked(cloudflareClient.newsletterApi.confirm).mockResolvedValue({
+        data: null,
+        error: 'Invalid token',
+        status: 400,
+      })
 
       const { result } = renderHook(() => useConfirmNewsletter(), {
         wrapper: createWrapper(),
@@ -199,15 +186,11 @@ describe('useNewsletter', () => {
         unsubscribed_at: new Date().toISOString(),
       }
 
-      const mockChain = {
-        eq: vi.fn().mockReturnThis(),
-        select: vi.fn().mockReturnThis(),
-        single: vi.fn().mockResolvedValue({ data: mockData, error: null }),
-      }
-
-      vi.mocked(supabase.from).mockReturnValue({
-        update: vi.fn().mockReturnValue(mockChain),
-      } as ReturnType<typeof supabase.from>)
+      vi.mocked(cloudflareClient.newsletterApi.unsubscribe).mockResolvedValue({
+        data: mockData,
+        error: null,
+        status: 200,
+      })
 
       const { result } = renderHook(() => useUnsubscribeNewsletter(), {
         wrapper: createWrapper(),
@@ -219,6 +202,7 @@ describe('useNewsletter', () => {
         expect(result.current.isSuccess).toBe(true)
       })
 
+      expect(cloudflareClient.newsletterApi.unsubscribe).toHaveBeenCalledWith('test@example.com')
       expect(toast.success).toHaveBeenCalledWith(
         '구독 취소 완료',
         expect.any(Object)
@@ -226,18 +210,11 @@ describe('useNewsletter', () => {
     })
 
     it('존재하지 않는 이메일은 에러를 발생시켜야 함', async () => {
-      const mockChain = {
-        eq: vi.fn().mockReturnThis(),
-        select: vi.fn().mockReturnThis(),
-        single: vi.fn().mockResolvedValue({
-          data: null,
-          error: { message: 'Not found' },
-        }),
-      }
-
-      vi.mocked(supabase.from).mockReturnValue({
-        update: vi.fn().mockReturnValue(mockChain),
-      } as ReturnType<typeof supabase.from>)
+      vi.mocked(cloudflareClient.newsletterApi.unsubscribe).mockResolvedValue({
+        data: null,
+        error: 'Not found',
+        status: 404,
+      })
 
       const { result } = renderHook(() => useUnsubscribeNewsletter(), {
         wrapper: createWrapper(),
@@ -254,19 +231,19 @@ describe('useNewsletter', () => {
   })
 
   describe('useNewsletterStats', () => {
-    it('뉴스레터 통계를 올바르게 계산해야 함', async () => {
-      const mockData = [
-        { status: 'pending' },
-        { status: 'pending' },
-        { status: 'confirmed' },
-        { status: 'confirmed' },
-        { status: 'confirmed' },
-        { status: 'unsubscribed' },
-      ]
+    it('뉴스레터 통계를 올바르게 조회해야 함', async () => {
+      const mockData = {
+        total: 6,
+        pending: 2,
+        confirmed: 3,
+        unsubscribed: 1,
+      }
 
-      vi.mocked(supabase.from).mockReturnValue({
-        select: vi.fn().mockResolvedValue({ data: mockData, error: null }),
-      } as ReturnType<typeof supabase.from>)
+      vi.mocked(cloudflareClient.newsletterApi.getStats).mockResolvedValue({
+        data: mockData,
+        error: null,
+        status: 200,
+      })
 
       const { result } = renderHook(() => useNewsletterStats(), {
         wrapper: createWrapper(),
@@ -276,6 +253,7 @@ describe('useNewsletter', () => {
         expect(result.current.isSuccess).toBe(true)
       })
 
+      expect(cloudflareClient.newsletterApi.getStats).toHaveBeenCalledWith('test-token')
       expect(result.current.data).toEqual({
         total: 6,
         pending: 2,
@@ -285,9 +263,18 @@ describe('useNewsletter', () => {
     })
 
     it('빈 데이터는 0으로 통계를 계산해야 함', async () => {
-      vi.mocked(supabase.from).mockReturnValue({
-        select: vi.fn().mockResolvedValue({ data: [], error: null }),
-      } as ReturnType<typeof supabase.from>)
+      const mockData = {
+        total: 0,
+        pending: 0,
+        confirmed: 0,
+        unsubscribed: 0,
+      }
+
+      vi.mocked(cloudflareClient.newsletterApi.getStats).mockResolvedValue({
+        data: mockData,
+        error: null,
+        status: 200,
+      })
 
       const { result } = renderHook(() => useNewsletterStats(), {
         wrapper: createWrapper(),
@@ -306,12 +293,11 @@ describe('useNewsletter', () => {
     })
 
     it('데이터베이스 에러를 처리해야 함', async () => {
-      vi.mocked(supabase.from).mockReturnValue({
-        select: vi.fn().mockResolvedValue({
-          data: null,
-          error: { message: 'Database error' },
-        }),
-      } as ReturnType<typeof supabase.from>)
+      vi.mocked(cloudflareClient.newsletterApi.getStats).mockResolvedValue({
+        data: null,
+        error: 'Database error',
+        status: 500,
+      })
 
       const { result } = renderHook(() => useNewsletterStats(), {
         wrapper: createWrapper(),

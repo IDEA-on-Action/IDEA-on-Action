@@ -7,14 +7,12 @@ import {
   useAutoRefresh,
   useRealtimeMetrics
 } from '@/hooks/useRealtimeDashboard'
-import { supabase } from '@/integrations/supabase/client'
 
-// Mock Supabase
-vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
-    from: vi.fn(),
-    channel: vi.fn(),
-    removeChannel: vi.fn()
+// Mock Cloudflare Workers API
+vi.mock('@/integrations/cloudflare/client', () => ({
+  callWorkersApi: vi.fn(),
+  realtimeApi: {
+    connect: vi.fn()
   }
 }))
 
@@ -26,9 +24,7 @@ vi.mock('@/lib/errors', () => ({
 
 describe('useRealtimeDashboard Hooks', () => {
   let queryClient: QueryClient
-  let ordersChannelMock: any
-  let eventsChannelMock: any
-  let presenceChannelMock: any
+  let mockWebSocket: any
 
   beforeEach(() => {
     queryClient = new QueryClient({
@@ -38,22 +34,15 @@ describe('useRealtimeDashboard Hooks', () => {
       }
     })
 
-    // Create separate channel mocks for each channel
-    ordersChannelMock = {
-      on: vi.fn().mockReturnThis(),
-      subscribe: vi.fn()
-    }
-
-    eventsChannelMock = {
-      on: vi.fn().mockReturnThis(),
-      subscribe: vi.fn()
-    }
-
-    presenceChannelMock = {
-      on: vi.fn().mockReturnThis(),
-      subscribe: vi.fn(),
-      presenceState: vi.fn(() => ({})),
-      track: vi.fn()
+    // WebSocket Mock 생성
+    mockWebSocket = {
+      send: vi.fn(),
+      close: vi.fn(),
+      onopen: null,
+      onmessage: null,
+      onerror: null,
+      onclose: null,
+      readyState: 1, // OPEN
     }
 
     vi.clearAllMocks()
@@ -69,7 +58,8 @@ describe('useRealtimeDashboard Hooks', () => {
 
   describe('useRealtimeDashboard', () => {
     it('should load recent orders initially', async () => {
-      // 훅에서 items:order_items(count) 조인을 사용하므로 items 배열 포함
+      const { callWorkersApi, realtimeApi } = await import('@/integrations/cloudflare/client')
+
       const mockOrders = [
         {
           id: 'order1',
@@ -78,26 +68,19 @@ describe('useRealtimeDashboard Hooks', () => {
           total_amount: 100000,
           status: 'confirmed',
           created_at: '2025-11-09T12:00:00Z',
-          items: [{ count: 1 }] // order_items 조인 결과
+          items_count: 1
         }
       ]
 
-      const selectMock = vi.fn().mockReturnThis()
-      const orderMock = vi.fn().mockReturnThis()
-      const limitMock = vi.fn().mockResolvedValue({ data: mockOrders, error: null })
-
-      vi.mocked(supabase.from).mockReturnValue({
-        select: selectMock,
-        order: orderMock,
-        limit: limitMock
-      } as any)
-
-      // Mock channel to return different mocks based on channel name
-      vi.mocked(supabase.channel).mockImplementation((name) => {
-        if (name === 'realtime-orders') return ordersChannelMock
-        if (name === 'realtime-analytics-events') return eventsChannelMock
-        return ordersChannelMock
+      // callWorkersApi Mock 설정
+      vi.mocked(callWorkersApi).mockResolvedValue({
+        data: mockOrders,
+        error: null,
+        status: 200
       })
+
+      // WebSocket Mock 설정
+      vi.mocked(realtimeApi.connect).mockReturnValue(mockWebSocket)
 
       const { result } = renderHook(() => useRealtimeDashboard(), { wrapper })
 
@@ -106,7 +89,9 @@ describe('useRealtimeDashboard Hooks', () => {
         expect(result.current.liveOrders.length).toBe(1)
       }, { timeout: 1000 })
 
-      expect(supabase.from).toHaveBeenCalledWith('orders')
+      expect(callWorkersApi).toHaveBeenCalledWith('/api/v1/orders/recent?limit=10', {
+        token: 'test-token'
+      })
       expect(result.current.liveOrders[0]).toMatchObject({
         id: 'order1',
         order_number: 'ORD-001',
@@ -114,64 +99,41 @@ describe('useRealtimeDashboard Hooks', () => {
       })
     })
 
-    it('should subscribe to realtime orders channel', () => {
-      const selectMock = vi.fn().mockReturnThis()
-      const orderMock = vi.fn().mockReturnThis()
-      const limitMock = vi.fn().mockResolvedValue({ data: [], error: null })
+    it('should subscribe to realtime orders channel', async () => {
+      const { callWorkersApi, realtimeApi } = await import('@/integrations/cloudflare/client')
 
-      vi.mocked(supabase.from).mockReturnValue({
-        select: selectMock,
-        order: orderMock,
-        limit: limitMock
-      } as any)
-
-      vi.mocked(supabase.channel).mockImplementation((name) => {
-        if (name === 'realtime-orders') return ordersChannelMock
-        if (name === 'realtime-analytics-events') return eventsChannelMock
-        return ordersChannelMock
-      })
+      vi.mocked(callWorkersApi).mockResolvedValue({ data: [], error: null, status: 200 })
+      vi.mocked(realtimeApi.connect).mockReturnValue(mockWebSocket)
 
       renderHook(() => useRealtimeDashboard(), { wrapper })
 
-      expect(supabase.channel).toHaveBeenCalledWith('realtime-orders')
-      expect(ordersChannelMock.on).toHaveBeenCalledWith(
-        'postgres_changes',
-        expect.objectContaining({
-          event: '*',
-          schema: 'public',
-          table: 'orders'
-        }),
-        expect.any(Function)
+      expect(realtimeApi.connect).toHaveBeenCalledWith('dashboard', 'user-123')
+
+      // onopen 핸들러 트리거
+      if (mockWebSocket.onopen) {
+        mockWebSocket.onopen()
+      }
+
+      expect(mockWebSocket.send).toHaveBeenCalledWith(
+        JSON.stringify({ type: 'subscribe', channels: ['orders', 'analytics_events'] })
       )
     })
 
-    it('should cleanup channels on unmount', () => {
-      const selectMock = vi.fn().mockReturnThis()
-      const orderMock = vi.fn().mockReturnThis()
-      const limitMock = vi.fn().mockResolvedValue({ data: [], error: null })
+    it('should cleanup channels on unmount', async () => {
+      const { callWorkersApi, realtimeApi } = await import('@/integrations/cloudflare/client')
 
-      vi.mocked(supabase.from).mockReturnValue({
-        select: selectMock,
-        order: orderMock,
-        limit: limitMock
-      } as any)
-
-      vi.mocked(supabase.channel).mockImplementation((name) => {
-        if (name === 'realtime-orders') return ordersChannelMock
-        if (name === 'realtime-analytics-events') return eventsChannelMock
-        return ordersChannelMock
-      })
+      vi.mocked(callWorkersApi).mockResolvedValue({ data: [], error: null, status: 200 })
+      vi.mocked(realtimeApi.connect).mockReturnValue(mockWebSocket)
 
       const { unmount } = renderHook(() => useRealtimeDashboard(), { wrapper })
 
-      // Verify channels were created
-      expect(supabase.channel).toHaveBeenCalledWith('realtime-orders')
-      expect(supabase.channel).toHaveBeenCalledWith('realtime-analytics-events')
+      // Verify WebSocket connection
+      expect(realtimeApi.connect).toHaveBeenCalledWith('dashboard', 'user-123')
 
       unmount()
 
-      // Should remove both channels (cleanup function called twice)
-      expect(supabase.removeChannel).toHaveBeenCalledTimes(2)
+      // Should close WebSocket
+      expect(mockWebSocket.close).toHaveBeenCalledTimes(1)
     })
   })
 
@@ -234,15 +196,11 @@ describe('useRealtimeDashboard Hooks', () => {
   })
 
   describe('useRealtimeMetrics', () => {
-    it('should initialize with zero values', () => {
-      const gteMock = vi.fn().mockResolvedValue({ data: [], error: null })
-      const selectMock = vi.fn().mockReturnValue({ gte: gteMock })
+    it('should initialize with zero values', async () => {
+      const { callWorkersApi, realtimeApi } = await import('@/integrations/cloudflare/client')
 
-      vi.mocked(supabase.from).mockReturnValue({
-        select: selectMock
-      } as any)
-
-      vi.mocked(supabase.channel).mockReturnValue(presenceChannelMock as any)
+      vi.mocked(callWorkersApi).mockResolvedValue({ data: [], error: null, status: 200 })
+      vi.mocked(realtimeApi.connect).mockReturnValue(mockWebSocket)
 
       const { result } = renderHook(() => useRealtimeMetrics(), { wrapper })
 
@@ -250,41 +208,37 @@ describe('useRealtimeDashboard Hooks', () => {
       expect(result.current.activeSessions).toBe(0)
     })
 
-    it('should subscribe to presence channel', () => {
-      const gteMock = vi.fn().mockResolvedValue({ data: [], error: null })
-      const selectMock = vi.fn().mockReturnValue({ gte: gteMock })
+    it('should subscribe to presence channel', async () => {
+      const { callWorkersApi, realtimeApi } = await import('@/integrations/cloudflare/client')
 
-      vi.mocked(supabase.from).mockReturnValue({
-        select: selectMock
-      } as any)
-
-      vi.mocked(supabase.channel).mockReturnValue(presenceChannelMock as any)
+      vi.mocked(callWorkersApi).mockResolvedValue({ data: [], error: null, status: 200 })
+      vi.mocked(realtimeApi.connect).mockReturnValue(mockWebSocket)
 
       renderHook(() => useRealtimeMetrics(), { wrapper })
 
-      expect(supabase.channel).toHaveBeenCalledWith('online-users', expect.any(Object))
-      expect(presenceChannelMock.on).toHaveBeenCalledWith(
-        'presence',
-        { event: 'sync' },
-        expect.any(Function)
+      expect(realtimeApi.connect).toHaveBeenCalledWith('presence-online-users', 'user-123')
+
+      // onopen 핸들러 트리거
+      if (mockWebSocket.onopen) {
+        mockWebSocket.onopen()
+      }
+
+      expect(mockWebSocket.send).toHaveBeenCalledWith(
+        expect.stringContaining('presence_join')
       )
     })
 
     it('should fetch active sessions from analytics_events', async () => {
-      const mockEvents = [
+      const { callWorkersApi, realtimeApi } = await import('@/integrations/cloudflare/client')
+
+      const mockSessions = [
         { session_id: 'session1' },
         { session_id: 'session2' },
         { session_id: 'session1' } // Duplicate
       ]
 
-      const gteMock = vi.fn().mockResolvedValue({ data: mockEvents, error: null })
-      const selectMock = vi.fn().mockReturnValue({ gte: gteMock })
-
-      vi.mocked(supabase.from).mockReturnValue({
-        select: selectMock
-      } as any)
-
-      vi.mocked(supabase.channel).mockReturnValue(presenceChannelMock as any)
+      vi.mocked(callWorkersApi).mockResolvedValue({ data: mockSessions, error: null, status: 200 })
+      vi.mocked(realtimeApi.connect).mockReturnValue(mockWebSocket)
 
       const { result } = renderHook(() => useRealtimeMetrics(), { wrapper })
 
@@ -293,24 +247,24 @@ describe('useRealtimeDashboard Hooks', () => {
         expect(result.current.activeSessions).toBe(2) // Unique sessions
       }, { timeout: 3000 })
 
-      expect(supabase.from).toHaveBeenCalledWith('analytics_events')
+      expect(callWorkersApi).toHaveBeenCalledWith(
+        expect.stringContaining('/api/v1/analytics/sessions/active'),
+        { token: 'test-token' }
+      )
     })
 
-    it('should cleanup channel on unmount', () => {
-      const gteMock = vi.fn().mockResolvedValue({ data: [], error: null })
-      const selectMock = vi.fn().mockReturnValue({ gte: gteMock })
+    it('should cleanup channel on unmount', async () => {
+      const { callWorkersApi, realtimeApi } = await import('@/integrations/cloudflare/client')
 
-      vi.mocked(supabase.from).mockReturnValue({
-        select: selectMock
-      } as any)
-
-      vi.mocked(supabase.channel).mockReturnValue(presenceChannelMock as any)
+      vi.mocked(callWorkersApi).mockResolvedValue({ data: [], error: null, status: 200 })
+      vi.mocked(realtimeApi.connect).mockReturnValue(mockWebSocket)
 
       const { unmount } = renderHook(() => useRealtimeMetrics(), { wrapper })
 
       unmount()
 
-      expect(supabase.removeChannel).toHaveBeenCalledWith(presenceChannelMock)
+      // Should close WebSocket
+      expect(mockWebSocket.close).toHaveBeenCalled()
     })
   })
 })

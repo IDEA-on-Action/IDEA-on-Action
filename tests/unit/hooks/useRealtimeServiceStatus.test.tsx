@@ -7,17 +7,10 @@ import {
 } from '@/hooks/useRealtimeServiceStatus';
 import type { ConnectionState } from '@/hooks/useRealtimeServiceStatus';
 
-// Mock Supabase
-vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
-    channel: vi.fn(() => ({
-      on: vi.fn().mockReturnThis(),
-      subscribe: vi.fn((callback) => {
-        callback('SUBSCRIBED', null);
-        return {};
-      }),
-    })),
-    removeChannel: vi.fn(),
+// Mock Cloudflare Workers API
+vi.mock('@/integrations/cloudflare/client', () => ({
+  realtimeApi: {
+    connect: vi.fn(),
   },
 }));
 
@@ -35,12 +28,35 @@ const createWrapper = () => {
 };
 
 describe('useRealtimeServiceStatus', () => {
+  let mockWebSocket: {
+    send: ReturnType<typeof vi.fn>;
+    close: ReturnType<typeof vi.fn>;
+    onopen: (() => void) | null;
+    onmessage: ((event: { data: string }) => void) | null;
+    onerror: ((error: unknown) => void) | null;
+    onclose: (() => void) | null;
+    readyState: number;
+  };
+
   beforeEach(() => {
+    mockWebSocket = {
+      send: vi.fn(),
+      close: vi.fn(),
+      onopen: null,
+      onmessage: null,
+      onerror: null,
+      onclose: null,
+      readyState: 1, // OPEN
+    };
+
     vi.clearAllMocks();
   });
 
   describe('초기화', () => {
-    it('초기 상태가 올바르게 설정되어야 함', () => {
+    it('초기 상태가 올바르게 설정되어야 함', async () => {
+      const { realtimeApi } = await import('@/integrations/cloudflare/client');
+      vi.mocked(realtimeApi.connect).mockReturnValue(mockWebSocket as never);
+
       const { result } = renderHook(() => useRealtimeServiceStatus(), {
         wrapper: createWrapper(),
       });
@@ -50,7 +66,10 @@ describe('useRealtimeServiceStatus', () => {
       expect(result.current.statusHistory).toEqual([]);
     });
 
-    it('특정 서비스만 구독할 수 있어야 함', () => {
+    it('특정 서비스만 구독할 수 있어야 함', async () => {
+      const { realtimeApi } = await import('@/integrations/cloudflare/client');
+      vi.mocked(realtimeApi.connect).mockReturnValue(mockWebSocket as never);
+
       const { result } = renderHook(
         () =>
           useRealtimeServiceStatus({
@@ -60,14 +79,26 @@ describe('useRealtimeServiceStatus', () => {
       );
 
       expect(result.current).toBeDefined();
+      expect(realtimeApi.connect).toHaveBeenCalledWith('service-status-minu-build', 'user-123');
     });
   });
 
   describe('연결 관리', () => {
     it('마운트 시 자동으로 연결되어야 함', async () => {
+      const { realtimeApi } = await import('@/integrations/cloudflare/client');
+      vi.mocked(realtimeApi.connect).mockReturnValue(mockWebSocket as never);
+
       const { result } = renderHook(() => useRealtimeServiceStatus(), {
         wrapper: createWrapper(),
       });
+
+      // onopen 핸들러 트리거 → onmessage로 subscribed 메시지 전송
+      if (mockWebSocket.onopen) {
+        mockWebSocket.onopen();
+      }
+      if (mockWebSocket.onmessage) {
+        mockWebSocket.onmessage({ data: JSON.stringify({ type: 'subscribed' }) });
+      }
 
       await waitFor(() => {
         expect(result.current.isConnected).toBe(true);
@@ -75,6 +106,9 @@ describe('useRealtimeServiceStatus', () => {
     });
 
     it('수동으로 재연결할 수 있어야 함', async () => {
+      const { realtimeApi } = await import('@/integrations/cloudflare/client');
+      vi.mocked(realtimeApi.connect).mockReturnValue(mockWebSocket as never);
+
       const { result } = renderHook(() => useRealtimeServiceStatus(), {
         wrapper: createWrapper(),
       });
@@ -89,6 +123,9 @@ describe('useRealtimeServiceStatus', () => {
     });
 
     it('연결을 해제할 수 있어야 함', async () => {
+      const { realtimeApi } = await import('@/integrations/cloudflare/client');
+      vi.mocked(realtimeApi.connect).mockReturnValue(mockWebSocket as never);
+
       const { result } = renderHook(() => useRealtimeServiceStatus(), {
         wrapper: createWrapper(),
       });
@@ -98,11 +135,15 @@ describe('useRealtimeServiceStatus', () => {
       });
 
       expect(result.current.connectionState.status).toBe('disconnected');
+      expect(mockWebSocket.close).toHaveBeenCalled();
     });
   });
 
   describe('재연결 옵션', () => {
-    it('자동 재연결이 기본적으로 활성화되어야 함', () => {
+    it('자동 재연결이 기본적으로 활성화되어야 함', async () => {
+      const { realtimeApi } = await import('@/integrations/cloudflare/client');
+      vi.mocked(realtimeApi.connect).mockReturnValue(mockWebSocket as never);
+
       const { result } = renderHook(() => useRealtimeServiceStatus(), {
         wrapper: createWrapper(),
       });
@@ -110,7 +151,10 @@ describe('useRealtimeServiceStatus', () => {
       expect(result.current).toBeDefined();
     });
 
-    it('자동 재연결을 비활성화할 수 있어야 함', () => {
+    it('자동 재연결을 비활성화할 수 있어야 함', async () => {
+      const { realtimeApi } = await import('@/integrations/cloudflare/client');
+      vi.mocked(realtimeApi.connect).mockReturnValue(mockWebSocket as never);
+
       const { result } = renderHook(
         () =>
           useRealtimeServiceStatus({
@@ -122,7 +166,10 @@ describe('useRealtimeServiceStatus', () => {
       expect(result.current).toBeDefined();
     });
 
-    it('최대 재연결 시도 횟수를 설정할 수 있어야 함', () => {
+    it('최대 재연결 시도 횟수를 설정할 수 있어야 함', async () => {
+      const { realtimeApi } = await import('@/integrations/cloudflare/client');
+      vi.mocked(realtimeApi.connect).mockReturnValue(mockWebSocket as never);
+
       const { result } = renderHook(
         () =>
           useRealtimeServiceStatus({
@@ -134,7 +181,10 @@ describe('useRealtimeServiceStatus', () => {
       expect(result.current).toBeDefined();
     });
 
-    it('재연결 간격을 설정할 수 있어야 함', () => {
+    it('재연결 간격을 설정할 수 있어야 함', async () => {
+      const { realtimeApi } = await import('@/integrations/cloudflare/client');
+      vi.mocked(realtimeApi.connect).mockReturnValue(mockWebSocket as never);
+
       const { result } = renderHook(
         () =>
           useRealtimeServiceStatus({
@@ -149,6 +199,9 @@ describe('useRealtimeServiceStatus', () => {
 
   describe('콜백', () => {
     it('상태 변경 시 콜백이 호출되어야 함', async () => {
+      const { realtimeApi } = await import('@/integrations/cloudflare/client');
+      vi.mocked(realtimeApi.connect).mockReturnValue(mockWebSocket as never);
+
       const onStatusChange = vi.fn();
 
       renderHook(
@@ -165,6 +218,9 @@ describe('useRealtimeServiceStatus', () => {
     });
 
     it('연결 상태 변경 시 콜백이 호출되어야 함', async () => {
+      const { realtimeApi } = await import('@/integrations/cloudflare/client');
+      vi.mocked(realtimeApi.connect).mockReturnValue(mockWebSocket as never);
+
       const onConnectionChange = vi.fn();
 
       renderHook(
@@ -182,7 +238,10 @@ describe('useRealtimeServiceStatus', () => {
   });
 
   describe('상태 히스토리', () => {
-    it('상태 변경 히스토리를 추적해야 함', () => {
+    it('상태 변경 히스토리를 추적해야 함', async () => {
+      const { realtimeApi } = await import('@/integrations/cloudflare/client');
+      vi.mocked(realtimeApi.connect).mockReturnValue(mockWebSocket as never);
+
       const { result } = renderHook(() => useRealtimeServiceStatus(), {
         wrapper: createWrapper(),
       });
@@ -190,7 +249,10 @@ describe('useRealtimeServiceStatus', () => {
       expect(result.current.statusHistory).toEqual([]);
     });
 
-    it('최근 10개의 상태 변경만 유지해야 함', () => {
+    it('최근 10개의 상태 변경만 유지해야 함', async () => {
+      const { realtimeApi } = await import('@/integrations/cloudflare/client');
+      vi.mocked(realtimeApi.connect).mockReturnValue(mockWebSocket as never);
+
       const { result } = renderHook(() => useRealtimeServiceStatus(), {
         wrapper: createWrapper(),
       });
@@ -202,19 +264,17 @@ describe('useRealtimeServiceStatus', () => {
 
   describe('에러 처리', () => {
     it('연결 에러를 처리해야 함', async () => {
-      const { supabase } = await import('@/integrations/supabase/client');
-
-      vi.mocked(supabase.channel).mockReturnValue({
-        on: vi.fn().mockReturnThis(),
-        subscribe: vi.fn((callback) => {
-          callback('CHANNEL_ERROR', new Error('Connection failed'));
-          return {};
-        }),
-      } as never);
+      const { realtimeApi } = await import('@/integrations/cloudflare/client');
+      vi.mocked(realtimeApi.connect).mockReturnValue(mockWebSocket as never);
 
       const { result } = renderHook(() => useRealtimeServiceStatus(), {
         wrapper: createWrapper(),
       });
+
+      // onerror 핸들러 트리거
+      if (mockWebSocket.onerror) {
+        mockWebSocket.onerror(new Error('Connection failed'));
+      }
 
       await waitFor(() => {
         expect(result.current.connectionState.status).toBe('error');
@@ -222,19 +282,19 @@ describe('useRealtimeServiceStatus', () => {
     });
 
     it('타임아웃 에러를 처리해야 함', async () => {
-      const { supabase } = await import('@/integrations/supabase/client');
+      const { realtimeApi } = await import('@/integrations/cloudflare/client');
 
-      vi.mocked(supabase.channel).mockReturnValue({
-        on: vi.fn().mockReturnThis(),
-        subscribe: vi.fn((callback) => {
-          callback('TIMED_OUT', null);
-          return {};
-        }),
-      } as never);
+      // 타임아웃 시뮬레이션 (onerror 대신 직접 에러 상태 유도)
+      vi.mocked(realtimeApi.connect).mockReturnValue(mockWebSocket as never);
 
       const { result } = renderHook(() => useRealtimeServiceStatus(), {
         wrapper: createWrapper(),
       });
+
+      // onerror로 타임아웃 에러 트리거
+      if (mockWebSocket.onerror) {
+        mockWebSocket.onerror(new Error('WebSocket connection timeout'));
+      }
 
       await waitFor(() => {
         expect(result.current.connectionState.status).toBe('error');

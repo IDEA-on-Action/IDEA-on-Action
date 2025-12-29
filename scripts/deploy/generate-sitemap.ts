@@ -1,11 +1,11 @@
 /**
  * Generate sitemap.xml
  * Phase 11 Week 2: SEO Optimization
+ * Updated: Workers API 마이그레이션 (2025-12-29)
  *
  * Run: npm run generate:sitemap
  */
 
-import { createClient } from '@supabase/supabase-js'
 import fs from 'fs'
 import path from 'path'
 
@@ -34,34 +34,10 @@ function loadEnv() {
 loadEnv()
 
 const SITE_URL = 'https://www.ideaonaction.ai'
-
-// Support both VITE_ and NEXT_PUBLIC_ prefixes
-const supabaseUrl =
-  process.env.VITE_SUPABASE_URL ||
-  process.env.NEXT_PUBLIC_SUPABASE_URL ||
-  ''
-const supabaseKey =
-  process.env.VITE_SUPABASE_ANON_KEY ||
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-  ''
-
-if (!supabaseUrl || !supabaseKey) {
-  console.error('❌ Missing environment variables!')
-  console.error('Please check .env.local file')
-  console.error(`SUPABASE_URL: ${supabaseUrl ? '✓' : '✗'}`)
-  console.error(`SUPABASE_ANON_KEY: ${supabaseKey ? '✓' : '✗'}`)
-  process.exit(1)
-}
-
-const supabase = createClient(supabaseUrl, supabaseKey)
+const WORKERS_API_URL = process.env.VITE_WORKERS_API_URL || 'https://api.ideaonaction.ai'
 
 interface BlogPost {
   slug: string
-  updated_at: string
-}
-
-interface Notice {
-  id: string
   updated_at: string
 }
 
@@ -75,8 +51,29 @@ interface Project {
   updated_at: string
 }
 
+interface ApiResponse<T> {
+  data: T[]
+  total?: number
+}
+
+async function fetchFromWorkersAPI<T>(endpoint: string): Promise<T[]> {
+  try {
+    const response = await fetch(`${WORKERS_API_URL}${endpoint}`)
+    if (!response.ok) {
+      console.warn(`⚠️ API 호출 실패: ${endpoint} (${response.status})`)
+      return []
+    }
+    const result: ApiResponse<T> = await response.json()
+    return result.data || []
+  } catch (error) {
+    console.warn(`⚠️ API 호출 에러: ${endpoint}`, error)
+    return []
+  }
+}
+
 async function generateSitemap() {
   console.log('🔄 Generating sitemap.xml...')
+  console.log(`📡 Workers API: ${WORKERS_API_URL}`)
 
   // Static pages (Version 2.5 - Site Restructure)
   // 7개 메뉴 → 5개 메뉴로 재구성 (홈, 서비스, 프로젝트, 이야기, 함께하기)
@@ -94,32 +91,12 @@ async function generateSitemap() {
     { url: '/status', changefreq: 'daily', priority: '0.7' },
   ]
 
-  // Fetch blog posts
-  const { data: blogPosts } = await supabase
-    .from('blog_posts')
-    .select('slug, updated_at')
-    .eq('status', 'published')
-    .order('updated_at', { ascending: false })
-
-  // Fetch notices
-  const { data: notices } = await supabase
-    .from('notices')
-    .select('id, updated_at')
-    .eq('status', 'published')
-    .order('updated_at', { ascending: false })
-
-  // Fetch services
-  const { data: services } = await supabase
-    .from('services')
-    .select('slug, updated_at')
-    .eq('status', 'active')
-    .order('updated_at', { ascending: false })
-
-  // Fetch projects (Portfolio)
-  const { data: projects } = await supabase
-    .from('projects')
-    .select('id, updated_at')
-    .order('updated_at', { ascending: false })
+  // Fetch from Workers API
+  const [blogPosts, services, projects] = await Promise.all([
+    fetchFromWorkersAPI<BlogPost>('/api/v1/blog/posts?status=published&limit=1000'),
+    fetchFromWorkersAPI<Service>('/api/v1/services?status=active&limit=1000'),
+    fetchFromWorkersAPI<Project>('/api/v1/projects?limit=1000'),
+  ])
 
   // Build XML
   let xml = '<?xml version="1.0" encoding="UTF-8"?>\n'
@@ -135,42 +112,38 @@ async function generateSitemap() {
   })
 
   // Blog posts (새 경로: /stories/blog/:slug)
-  if (blogPosts) {
-    blogPosts.forEach((post: BlogPost) => {
-      xml += '  <url>\n'
-      xml += `    <loc>${SITE_URL}/stories/blog/${post.slug}</loc>\n`
-      xml += `    <lastmod>${new Date(post.updated_at).toISOString().split('T')[0]}</lastmod>\n`
-      xml += '    <changefreq>weekly</changefreq>\n'
-      xml += '    <priority>0.7</priority>\n'
-      xml += '  </url>\n'
-    })
-  }
+  blogPosts.forEach((post: BlogPost) => {
+    if (!post.slug) return
+    xml += '  <url>\n'
+    xml += `    <loc>${SITE_URL}/stories/blog/${post.slug}</loc>\n`
+    xml += `    <lastmod>${new Date(post.updated_at).toISOString().split('T')[0]}</lastmod>\n`
+    xml += '    <changefreq>weekly</changefreq>\n'
+    xml += '    <priority>0.7</priority>\n'
+    xml += '  </url>\n'
+  })
 
   // Services (filter out null slugs)
-  if (services) {
-    services
-      .filter((service: Service) => service.slug && service.slug !== 'null')
-      .forEach((service: Service) => {
-        xml += '  <url>\n'
-        xml += `    <loc>${SITE_URL}/services/${service.slug}</loc>\n`
-        xml += `    <lastmod>${new Date(service.updated_at).toISOString().split('T')[0]}</lastmod>\n`
-        xml += '    <changefreq>weekly</changefreq>\n'
-        xml += '    <priority>0.8</priority>\n'
-        xml += '  </url>\n'
-      })
-  }
-
-  // Projects (새 경로: /projects/:id)
-  if (projects) {
-    projects.forEach((project: Project) => {
+  services
+    .filter((service: Service) => service.slug && service.slug !== 'null')
+    .forEach((service: Service) => {
       xml += '  <url>\n'
-      xml += `    <loc>${SITE_URL}/projects/${project.id}</loc>\n`
-      xml += `    <lastmod>${new Date(project.updated_at).toISOString().split('T')[0]}</lastmod>\n`
+      xml += `    <loc>${SITE_URL}/services/${service.slug}</loc>\n`
+      xml += `    <lastmod>${new Date(service.updated_at).toISOString().split('T')[0]}</lastmod>\n`
       xml += '    <changefreq>weekly</changefreq>\n'
-      xml += '    <priority>0.7</priority>\n'
+      xml += '    <priority>0.8</priority>\n'
       xml += '  </url>\n'
     })
-  }
+
+  // Projects (새 경로: /projects/:id)
+  projects.forEach((project: Project) => {
+    if (!project.id) return
+    xml += '  <url>\n'
+    xml += `    <loc>${SITE_URL}/projects/${project.id}</loc>\n`
+    xml += `    <lastmod>${new Date(project.updated_at).toISOString().split('T')[0]}</lastmod>\n`
+    xml += '    <changefreq>weekly</changefreq>\n'
+    xml += '    <priority>0.7</priority>\n'
+    xml += '  </url>\n'
+  })
 
   xml += '</urlset>'
 
@@ -180,11 +153,10 @@ async function generateSitemap() {
 
   console.log('✅ Sitemap generated successfully!')
   console.log(`📊 Static pages: ${staticPages.length}`)
-  console.log(`📝 Blog posts: ${blogPosts?.length || 0}`)
-  console.log(`🔔 Notices: ${notices?.length || 0}`)
-  console.log(`📦 Services: ${services?.length || 0}`)
-  console.log(`💼 Projects: ${projects?.length || 0}`)
-  console.log(`📄 Total URLs: ${staticPages.length + (blogPosts?.length || 0) + (services?.length || 0) + (projects?.length || 0)}`)
+  console.log(`📝 Blog posts: ${blogPosts.length}`)
+  console.log(`📦 Services: ${services.length}`)
+  console.log(`💼 Projects: ${projects.length}`)
+  console.log(`📄 Total URLs: ${staticPages.length + blogPosts.length + services.length + projects.length}`)
   console.log(`💾 Saved to: ${outputPath}`)
 }
 

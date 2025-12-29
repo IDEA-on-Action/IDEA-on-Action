@@ -1,7 +1,7 @@
 /**
  * useAdmins Hook 테스트
  *
- * 관리자 관리 훅 테스트
+ * 관리자 관리 훅 테스트 (Workers API 모킹)
  * - 관리자 목록 조회
  * - 단일 관리자 조회
  * - 역할별 관리자 조회
@@ -23,27 +23,18 @@ import {
   useDeleteAdmin,
   adminKeys,
 } from '@/hooks/useAdmins';
-import { supabase } from '@/integrations/supabase/client';
+import { adminsApi } from '@/integrations/cloudflare/client';
 import React from 'react';
 
-// Mock Supabase
-vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
-    from: vi.fn(),
-    auth: {
-      getUser: vi.fn(),
-      admin: {
-        getUserById: vi.fn(),
-      },
-    },
-  },
-}));
-
-// Mock toast
-vi.mock('sonner', () => ({
-  toast: {
-    success: vi.fn(),
-    error: vi.fn(),
+// Mock Cloudflare Workers API
+vi.mock('@/integrations/cloudflare/client', () => ({
+  adminsApi: {
+    list: vi.fn(),
+    listByRole: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
+    delete: vi.fn(),
+    checkIsAdmin: vi.fn(),
   },
 }));
 
@@ -62,85 +53,63 @@ const createWrapper = () => {
 };
 
 // Mock 데이터
-const mockAdmins = [
+const mockAdminsWithEmail = [
   {
     id: '1',
     user_id: 'user-1',
+    email: 'admin@example.com',
     role: 'super_admin',
     created_at: '2025-12-01T10:00:00Z',
-    updated_at: '2025-12-01T10:00:00Z',
   },
   {
     id: '2',
     user_id: 'user-2',
+    email: 'editor@example.com',
     role: 'content_admin',
     created_at: '2025-12-01T11:00:00Z',
-    updated_at: '2025-12-01T11:00:00Z',
   },
 ];
 
-const mockUserData = {
-  user: {
-    id: 'user-1',
-    email: 'admin@example.com',
-  },
-};
-
-// Mock query 타입 정의
-interface MockQuery {
-  select: ReturnType<typeof vi.fn>;
-  eq: ReturnType<typeof vi.fn>;
-  order: ReturnType<typeof vi.fn>;
-  insert: ReturnType<typeof vi.fn>;
-  update: ReturnType<typeof vi.fn>;
-  delete: ReturnType<typeof vi.fn>;
-  maybeSingle: ReturnType<typeof vi.fn>;
-  single: ReturnType<typeof vi.fn>;
-  then?: ReturnType<typeof vi.fn>;
-}
-
 describe('useAdmins', () => {
-  let mockQuery: MockQuery;
-
   beforeEach(() => {
     vi.clearAllMocks();
 
-    // Mock query 체이닝
-    const createMockQuery = () => {
-      const query = {
-        select: vi.fn(),
-        eq: vi.fn(),
-        order: vi.fn(),
-        insert: vi.fn(),
-        update: vi.fn(),
-        delete: vi.fn(),
-        maybeSingle: vi.fn(),
-        single: vi.fn(),
-      };
+    // Workers API 기본 응답 설정
+    vi.mocked(adminsApi.list).mockResolvedValue({
+      data: { admins: mockAdminsWithEmail },
+      error: null,
+      status: 200,
+    });
 
-      query.select.mockReturnValue(query);
-      query.eq.mockReturnValue(query);
-      query.order.mockReturnValue(query);
-      query.insert.mockReturnValue(query);
-      query.update.mockReturnValue(query);
-      query.delete.mockReturnValue(query);
-      query.maybeSingle.mockReturnValue(query);
-      query.single.mockReturnValue(query);
+    vi.mocked(adminsApi.listByRole).mockResolvedValue({
+      data: { admins: [mockAdminsWithEmail[0]] },
+      error: null,
+      status: 200,
+    });
 
-      const queryWithThen = query as MockQuery;
-      queryWithThen.then = vi.fn((onFulfilled) => {
-        return Promise.resolve({ data: mockAdmins, error: null }).then(onFulfilled);
-      });
+    vi.mocked(adminsApi.checkIsAdmin).mockResolvedValue({
+      data: { isAdmin: true, role: 'super_admin' },
+      error: null,
+      status: 200,
+    });
 
-      return queryWithThen;
-    };
+    vi.mocked(adminsApi.create).mockResolvedValue({
+      data: mockAdminsWithEmail[0],
+      error: null,
+      status: 201,
+    });
 
-    mockQuery = createMockQuery();
-    vi.mocked(supabase.from).mockReturnValue(mockQuery as ReturnType<typeof supabase.from>);
-    vi.mocked(supabase.auth.admin.getUserById).mockResolvedValue({
-      data: mockUserData,
-      error: null
-    } as { data: typeof mockUserData; error: null });
+    vi.mocked(adminsApi.update).mockResolvedValue({
+      data: { success: true },
+      error: null,
+      status: 200,
+    });
+
+    vi.mocked(adminsApi.delete).mockResolvedValue({
+      data: { success: true },
+      error: null,
+      status: 200,
+    });
   });
 
   describe('초기 상태 확인', () => {
@@ -167,43 +136,39 @@ describe('useAdmins', () => {
       });
 
       await waitFor(() => {
-        expect(result.current.isLoading).toBe(false);
+        expect(result.current.isSuccess).toBe(true);
       });
 
-      expect(supabase.from).toHaveBeenCalledWith('admins');
-      expect(mockQuery.select).toHaveBeenCalledWith('*');
-      expect(mockQuery.order).toHaveBeenCalledWith('created_at', { ascending: false });
+      expect(adminsApi.list).toHaveBeenCalledWith('test-token');
+      expect(result.current.data).toEqual(mockAdminsWithEmail);
     });
 
-    it('각 관리자의 이메일을 조회해야 함', async () => {
+    it('각 관리자의 이메일이 포함되어야 함', async () => {
       const { result } = renderHook(() => useAdmins(), {
         wrapper: createWrapper(),
       });
 
       await waitFor(() => {
-        expect(result.current.isLoading).toBe(false);
+        expect(result.current.isSuccess).toBe(true);
       });
 
-      expect(supabase.auth.admin.getUserById).toHaveBeenCalled();
+      expect(result.current.data?.[0].email).toBe('admin@example.com');
+      expect(result.current.data?.[1].email).toBe('editor@example.com');
     });
   });
 
   describe('단일 관리자 조회', () => {
     it('특정 관리자를 조회해야 함', async () => {
-      mockQuery.then = vi.fn((onFulfilled) => {
-        return Promise.resolve({ data: mockAdmins[0], error: null }).then(onFulfilled);
-      });
-
       const { result } = renderHook(() => useAdmin('user-1'), {
         wrapper: createWrapper(),
       });
 
       await waitFor(() => {
-        expect(result.current.isLoading).toBe(false);
+        expect(result.current.isSuccess).toBe(true);
       });
 
-      expect(mockQuery.eq).toHaveBeenCalledWith('user_id', 'user-1');
-      expect(mockQuery.maybeSingle).toHaveBeenCalled();
+      expect(adminsApi.list).toHaveBeenCalledWith('test-token');
+      expect(result.current.data?.user_id).toBe('user-1');
     });
 
     it('userId가 없으면 쿼리를 비활성화해야 함', () => {
@@ -211,7 +176,7 @@ describe('useAdmins', () => {
         wrapper: createWrapper(),
       });
 
-      expect(result.current.isLoading).toBe(false);
+      expect(result.current.fetchStatus).toBe('idle');
     });
   });
 
@@ -222,10 +187,11 @@ describe('useAdmins', () => {
       });
 
       await waitFor(() => {
-        expect(result.current.isLoading).toBe(false);
+        expect(result.current.isSuccess).toBe(true);
       });
 
-      expect(mockQuery.eq).toHaveBeenCalledWith('role', 'super_admin');
+      expect(adminsApi.listByRole).toHaveBeenCalledWith('test-token', 'super_admin');
+      expect(result.current.data?.[0].role).toBe('super_admin');
     });
 
     it('역할이 없으면 쿼리를 비활성화해야 함', () => {
@@ -233,43 +199,27 @@ describe('useAdmins', () => {
         wrapper: createWrapper(),
       });
 
-      expect(result.current.isLoading).toBe(false);
+      expect(result.current.fetchStatus).toBe('idle');
     });
   });
 
   describe('현재 사용자 관리자 역할 조회', () => {
-    beforeEach(() => {
-      vi.mocked(supabase.auth.getUser).mockResolvedValue({
-        data: { user: mockUserData.user },
-        error: null,
-      } as { data: { user: typeof mockUserData.user }; error: null });
-    });
-
     it('현재 사용자의 역할을 조회해야 함', async () => {
-      mockQuery.then = vi.fn((onFulfilled) => {
-        return Promise.resolve({ data: { role: 'super_admin' }, error: null }).then(onFulfilled);
-      });
-
       const { result } = renderHook(() => useCurrentAdminRole(), {
         wrapper: createWrapper(),
       });
 
       await waitFor(() => {
-        expect(result.current.isLoading).toBe(false);
+        expect(result.current.isSuccess).toBe(true);
       });
 
-      expect(supabase.auth.getUser).toHaveBeenCalled();
+      expect(adminsApi.checkIsAdmin).toHaveBeenCalledWith('test-token');
+      expect(result.current.data).toBe('super_admin');
     });
   });
 
   describe('관리자 생성', () => {
     it('새 관리자를 생성해야 함', async () => {
-      mockQuery.single.mockReturnValue({
-        then: vi.fn((onFulfilled) => {
-          return Promise.resolve({ data: mockAdmins[0], error: null }).then(onFulfilled);
-        }),
-      });
-
       const { result } = renderHook(() => useCreateAdmin(), {
         wrapper: createWrapper(),
       });
@@ -279,23 +229,34 @@ describe('useAdmins', () => {
         role: 'super_admin',
       });
 
-      expect(mockQuery.insert).toHaveBeenCalledWith({
+      expect(adminsApi.create).toHaveBeenCalledWith('test-token', {
         user_id: 'user-1',
         role: 'super_admin',
       });
-      expect(mockQuery.select).toHaveBeenCalled();
-      expect(mockQuery.single).toHaveBeenCalled();
+    });
+
+    it('에러 발생 시 처리해야 함', async () => {
+      vi.mocked(adminsApi.create).mockResolvedValueOnce({
+        data: null,
+        error: '권한이 없습니다',
+        status: 403,
+      });
+
+      const { result } = renderHook(() => useCreateAdmin(), {
+        wrapper: createWrapper(),
+      });
+
+      await expect(
+        result.current.mutateAsync({
+          user_id: 'user-1',
+          role: 'super_admin',
+        })
+      ).rejects.toThrow('권한이 없습니다');
     });
   });
 
   describe('관리자 수정', () => {
     it('관리자 역할을 수정해야 함', async () => {
-      mockQuery.single.mockReturnValue({
-        then: vi.fn((onFulfilled) => {
-          return Promise.resolve({ data: mockAdmins[0], error: null }).then(onFulfilled);
-        }),
-      });
-
       const { result } = renderHook(() => useUpdateAdmin(), {
         wrapper: createWrapper(),
       });
@@ -305,25 +266,21 @@ describe('useAdmins', () => {
         role: 'content_admin',
       });
 
-      expect(mockQuery.update).toHaveBeenCalledWith({ role: 'content_admin' });
-      expect(mockQuery.eq).toHaveBeenCalledWith('id', '1');
+      expect(adminsApi.update).toHaveBeenCalledWith('test-token', '1', {
+        role: 'content_admin',
+      });
     });
   });
 
   describe('관리자 삭제', () => {
     it('관리자를 삭제해야 함', async () => {
-      mockQuery.then = vi.fn((onFulfilled) => {
-        return Promise.resolve({ data: null, error: null }).then(onFulfilled);
-      });
-
       const { result } = renderHook(() => useDeleteAdmin(), {
         wrapper: createWrapper(),
       });
 
       await result.current.mutateAsync('1');
 
-      expect(mockQuery.delete).toHaveBeenCalled();
-      expect(mockQuery.eq).toHaveBeenCalledWith('id', '1');
+      expect(adminsApi.delete).toHaveBeenCalledWith('test-token', '1');
     });
   });
 });

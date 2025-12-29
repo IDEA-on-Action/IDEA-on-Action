@@ -9,15 +9,19 @@ import {
   useUpdateRoadmap,
   useDeleteRoadmap,
 } from '@/hooks/useRoadmap';
-import { supabase } from '@/integrations/supabase/client';
+import { roadmapApi, callWorkersApi } from '@/integrations/cloudflare/client';
 import React, { type ReactNode } from 'react';
 import type { Roadmap } from '@/types/v2';
 
-// Mock supabase client
-vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
-    from: vi.fn(),
+// Mock Workers API client
+vi.mock('@/integrations/cloudflare/client', () => ({
+  roadmapApi: {
+    list: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
+    delete: vi.fn(),
   },
+  callWorkersApi: vi.fn(),
 }));
 
 describe('useRoadmap', () => {
@@ -93,19 +97,12 @@ describe('useRoadmap', () => {
 
   describe('useRoadmap', () => {
     it('전체 로드맵 목록을 성공적으로 조회해야 함', async () => {
-      // Setup
-      const orderMock = vi.fn().mockResolvedValue({
+      // Setup: Workers API Mock
+      vi.mocked(roadmapApi.list).mockResolvedValue({
         data: mockRoadmapItems,
         error: null,
+        status: 200,
       });
-
-      const selectMock = vi.fn().mockReturnValue({
-        order: orderMock,
-      });
-
-      vi.mocked(supabase.from).mockReturnValue({
-        select: selectMock,
-      } as any);
 
       // Execute
       const { result } = renderHook(() => useRoadmap(), { wrapper });
@@ -117,46 +114,38 @@ describe('useRoadmap', () => {
 
       if (result.current.isSuccess) {
         expect(result.current.data).toEqual(mockRoadmapItems);
-        expect(supabase.from).toHaveBeenCalledWith('roadmap');
-        expect(orderMock).toHaveBeenCalledWith('start_date', { ascending: true });
+        expect(roadmapApi.list).toHaveBeenCalled();
       }
     });
 
-    it('에러 발생 시 fallback 값을 반환해야 함', async () => {
-      // Setup
-      const orderMock = vi.fn().mockResolvedValue({
+    it('에러 발생 시 에러를 throw해야 함', async () => {
+      // Setup: Workers API Error Mock
+      vi.mocked(roadmapApi.list).mockResolvedValue({
         data: null,
-        error: { message: 'Database error', code: 'PGRST116' },
+        error: 'Database error',
+        status: 500,
       });
-
-      const selectMock = vi.fn().mockReturnValue({
-        order: orderMock,
-      });
-
-      vi.mocked(supabase.from).mockReturnValue({
-        select: selectMock,
-      } as any);
 
       // Execute
       const { result } = renderHook(() => useRoadmap(), { wrapper });
 
-      // Assert - supabaseQuery는 에러 시 fallbackValue([])를 반환
+      // Assert - Workers API는 에러 시 throw
       await waitFor(() => {
-        expect(result.current.isSuccess).toBe(true);
+        expect(result.current.isError).toBe(true);
       });
 
-      expect(result.current.data).toEqual([]);
+      expect(result.current.data).toBeUndefined();
     });
   });
 
   describe('useRoadmapByQuarter', () => {
     it('분기별로 로드맵을 조회해야 함', async () => {
-      // Setup
-      vi.mocked(supabase.from).mockReturnValue({
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        maybeSingle: vi.fn().mockResolvedValue({ data: mockRoadmapItems[0], error: null })
-      } as any);
+      // Setup: Workers API Mock
+      vi.mocked(callWorkersApi).mockResolvedValue({
+        data: mockRoadmapItems[0],
+        error: null,
+        status: 200,
+      });
 
       // Execute
       const { result } = renderHook(() => useRoadmapByQuarter('2024-Q1'), { wrapper });
@@ -168,6 +157,7 @@ describe('useRoadmap', () => {
 
       if (result.current.isSuccess) {
         expect(result.current.data).toEqual(mockRoadmapItems[0]);
+        expect(callWorkersApi).toHaveBeenCalledWith('/api/v1/roadmap/quarter/2024-Q1');
       }
     });
 
@@ -196,22 +186,19 @@ describe('useRoadmap', () => {
         end_date: '2024-09-30',
       };
 
-      const singleMock = vi.fn().mockResolvedValue({
-        data: { ...newRoadmap, id: 3, created_at: '2024-07-01T00:00:00Z', updated_at: '2024-07-01T00:00:00Z' },
+      const createdRoadmap = {
+        ...newRoadmap,
+        id: 3,
+        created_at: '2024-07-01T00:00:00Z',
+        updated_at: '2024-07-01T00:00:00Z'
+      };
+
+      // Setup: Workers API Mock
+      vi.mocked(roadmapApi.create).mockResolvedValue({
+        data: createdRoadmap,
         error: null,
+        status: 201,
       });
-
-      const selectMock = vi.fn().mockReturnValue({
-        single: singleMock,
-      });
-
-      const insertMock = vi.fn().mockReturnValue({
-        select: selectMock,
-      });
-
-      vi.mocked(supabase.from).mockReturnValue({
-        insert: insertMock,
-      } as any);
 
       // Execute
       const { result } = renderHook(() => useCreateRoadmap(), { wrapper });
@@ -228,8 +215,8 @@ describe('useRoadmap', () => {
       });
 
       if (result.current.isSuccess) {
-        expect(insertMock).toHaveBeenCalledWith([newRoadmap]);
-        expect(result.current.data).toBeDefined();
+        expect(roadmapApi.create).toHaveBeenCalledWith('test-token', newRoadmap);
+        expect(result.current.data).toEqual(createdRoadmap);
       }
     });
   });
@@ -240,26 +227,12 @@ describe('useRoadmap', () => {
       const updates = { progress: 80, theme: '업데이트된 테마' };
       const updatedRoadmap = { ...mockRoadmapItems[0], ...updates };
 
-      const singleMock = vi.fn().mockResolvedValue({
+      // Setup: Workers API Mock
+      vi.mocked(roadmapApi.update).mockResolvedValue({
         data: updatedRoadmap,
         error: null,
+        status: 200,
       });
-
-      const selectMock = vi.fn().mockReturnValue({
-        single: singleMock,
-      });
-
-      const eqMock = vi.fn().mockReturnValue({
-        select: selectMock,
-      });
-
-      const updateMock = vi.fn().mockReturnValue({
-        eq: eqMock,
-      });
-
-      vi.mocked(supabase.from).mockReturnValue({
-        update: updateMock,
-      } as any);
 
       // Execute
       const { result } = renderHook(() => useUpdateRoadmap(), { wrapper });
@@ -276,24 +249,20 @@ describe('useRoadmap', () => {
       });
 
       if (result.current.isSuccess) {
-        expect(updateMock).toHaveBeenCalledWith(updates);
-        expect(eqMock).toHaveBeenCalledWith('id', 1);
+        expect(roadmapApi.update).toHaveBeenCalledWith('test-token', '1', updates);
+        expect(result.current.data).toEqual(updatedRoadmap);
       }
     });
   });
 
   describe('useDeleteRoadmap', () => {
     it('로드맵을 삭제해야 함', async () => {
-      // Setup
-      const eqMock = vi.fn().mockReturnValue({
-        delete: vi.fn().mockResolvedValue({ data: null, error: null }),
+      // Setup: Workers API Mock
+      vi.mocked(roadmapApi.delete).mockResolvedValue({
+        data: null,
+        error: null,
+        status: 204,
       });
-
-      vi.mocked(supabase.from).mockReturnValue({
-        delete: vi.fn().mockReturnValue({
-          eq: eqMock,
-        }),
-      } as any);
 
       // Execute
       const { result } = renderHook(() => useDeleteRoadmap(), { wrapper });
@@ -310,7 +279,8 @@ describe('useRoadmap', () => {
       });
 
       if (result.current.isSuccess) {
-        expect(eqMock).toHaveBeenCalledWith('id', 1);
+        expect(roadmapApi.delete).toHaveBeenCalledWith('test-token', '1');
+        expect(result.current.data).toBe(1);
       }
     });
   });

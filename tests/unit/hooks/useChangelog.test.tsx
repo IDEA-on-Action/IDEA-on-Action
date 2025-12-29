@@ -1,5 +1,6 @@
 /**
  * useChangelog Hook 테스트
+ * @migration Supabase -> Cloudflare Workers (완전 마이그레이션 완료)
  *
  * Changelog 관리 훅 테스트
  * - Changelog 목록 조회
@@ -19,14 +20,12 @@ import {
   useChangelogByProjectSlug,
   type ChangelogEntry,
 } from '@/hooks/useChangelog';
-import { supabase } from '@/integrations/supabase/client';
+import * as cloudflareClient from '@/integrations/cloudflare/client';
 import React from 'react';
 
-// Mock Supabase
-vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
-    from: vi.fn(),
-  },
+// Mock Workers API
+vi.mock('@/integrations/cloudflare/client', () => ({
+  callWorkersApi: vi.fn(),
 }));
 
 // Test wrapper
@@ -85,48 +84,16 @@ const mockChangelog: ChangelogEntry[] = [
   },
 ];
 
-// Mock query 타입 정의
-interface MockQuery {
-  select: ReturnType<typeof vi.fn>;
-  eq: ReturnType<typeof vi.fn>;
-  order: ReturnType<typeof vi.fn>;
-  limit: ReturnType<typeof vi.fn>;
-  single: ReturnType<typeof vi.fn>;
-  then?: ReturnType<typeof vi.fn>;
-}
-
 describe('useChangelog', () => {
-  let mockQuery: MockQuery;
-
   beforeEach(() => {
     vi.clearAllMocks();
 
-    // Mock query 체이닝
-    const createMockQuery = () => {
-      const query = {
-        select: vi.fn(),
-        eq: vi.fn(),
-        order: vi.fn(),
-        limit: vi.fn(),
-        single: vi.fn(),
-      };
-
-      query.select.mockReturnValue(query);
-      query.eq.mockReturnValue(query);
-      query.order.mockReturnValue(query);
-      query.limit.mockReturnValue(query);
-      query.single.mockReturnValue(query);
-
-      const queryWithThen = query as MockQuery;
-      queryWithThen.then = vi.fn((onFulfilled) => {
-        return Promise.resolve({ data: mockChangelog, error: null }).then(onFulfilled);
-      });
-
-      return queryWithThen;
-    };
-
-    mockQuery = createMockQuery();
-    vi.mocked(supabase.from).mockReturnValue(mockQuery as ReturnType<typeof supabase.from>);
+    // 기본 성공 응답 설정
+    vi.mocked(cloudflareClient.callWorkersApi).mockResolvedValue({
+      data: mockChangelog,
+      error: null,
+      status: 200,
+    });
   });
 
   describe('초기 상태 확인', () => {
@@ -149,9 +116,11 @@ describe('useChangelog', () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      expect(supabase.from).toHaveBeenCalledWith('changelog_entries');
-      expect(mockQuery.select).toHaveBeenCalled();
-      expect(mockQuery.order).toHaveBeenCalledWith('released_at', { ascending: false });
+      expect(cloudflareClient.callWorkersApi).toHaveBeenCalledWith(
+        expect.stringContaining('/api/v1/changelog-entries'),
+        expect.objectContaining({ token: 'test-token' })
+      );
+      expect(result.current.data).toEqual(mockChangelog);
     });
 
     it('프로젝트 ID로 필터링해야 함', async () => {
@@ -163,7 +132,10 @@ describe('useChangelog', () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      expect(mockQuery.eq).toHaveBeenCalledWith('project_id', 'project-1');
+      expect(cloudflareClient.callWorkersApi).toHaveBeenCalledWith(
+        expect.stringContaining('project_id=project-1'),
+        expect.any(Object)
+      );
     });
 
     it('limit을 적용해야 함', async () => {
@@ -175,7 +147,10 @@ describe('useChangelog', () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      expect(mockQuery.limit).toHaveBeenCalledWith(5);
+      expect(cloudflareClient.callWorkersApi).toHaveBeenCalledWith(
+        expect.stringContaining('limit=5'),
+        expect.any(Object)
+      );
     });
 
     it('프로젝트 정보를 포함해야 함', async () => {
@@ -194,8 +169,10 @@ describe('useChangelog', () => {
 
   describe('단일 Changelog 항목 조회', () => {
     beforeEach(() => {
-      mockQuery.then = vi.fn((onFulfilled) => {
-        return Promise.resolve({ data: mockChangelog[0], error: null }).then(onFulfilled);
+      vi.mocked(cloudflareClient.callWorkersApi).mockResolvedValue({
+        data: mockChangelog[0],
+        error: null,
+        status: 200,
       });
     });
 
@@ -208,8 +185,11 @@ describe('useChangelog', () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      expect(mockQuery.eq).toHaveBeenCalledWith('id', '1');
-      expect(mockQuery.single).toHaveBeenCalled();
+      expect(cloudflareClient.callWorkersApi).toHaveBeenCalledWith(
+        expect.stringContaining('/api/v1/changelog-entries/1'),
+        expect.any(Object)
+      );
+      expect(result.current.data).toEqual(mockChangelog[0]);
     });
 
     it('ID가 없으면 쿼리를 비활성화해야 함', () => {
@@ -218,6 +198,7 @@ describe('useChangelog', () => {
       });
 
       expect(result.current.isLoading).toBe(false);
+      expect(cloudflareClient.callWorkersApi).not.toHaveBeenCalled();
     });
 
     it('프로젝트 정보를 포함해야 함', async () => {
@@ -235,40 +216,24 @@ describe('useChangelog', () => {
 
   describe('프로젝트 슬러그로 Changelog 조회', () => {
     beforeEach(() => {
-      // 프로젝트 조회 mock
-      const projectQuery = {
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        single: vi.fn().mockReturnThis(),
-        then: vi.fn((onFulfilled) => {
-          return Promise.resolve({
-            data: { id: 'project-1', slug: 'idea-on-action' },
-            error: null,
-          }).then(onFulfilled);
-        }),
-      };
-
-      // changelog 조회 mock
-      const changelogQuery = {
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        order: vi.fn().mockReturnThis(),
-        limit: vi.fn().mockReturnThis(),
-        then: vi.fn((onFulfilled) => {
-          return Promise.resolve({ data: mockChangelog, error: null }).then(onFulfilled);
-        }),
-      };
-
-      // from 호출에 따라 다른 query 반환
-      vi.mocked(supabase.from).mockImplementation((table: string) => {
-        if (table === 'projects') {
-          return projectQuery as ReturnType<typeof supabase.from>;
-        }
-        return changelogQuery as ReturnType<typeof supabase.from>;
-      });
+      // 이 블록에서만 사용할 mock 재설정
+      vi.clearAllMocks();
     });
 
     it('프로젝트 슬러그로 Changelog를 조회해야 함', async () => {
+      // 각 테스트마다 mock 설정
+      vi.mocked(cloudflareClient.callWorkersApi)
+        .mockResolvedValueOnce({
+          data: { id: 'project-1', slug: 'idea-on-action' },
+          error: null,
+          status: 200,
+        })
+        .mockResolvedValueOnce({
+          data: mockChangelog,
+          error: null,
+          status: 200,
+        });
+
       const { result } = renderHook(() => useChangelogByProjectSlug('idea-on-action'), {
         wrapper: createWrapper(),
       });
@@ -277,11 +242,32 @@ describe('useChangelog', () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      expect(supabase.from).toHaveBeenCalledWith('projects');
-      expect(supabase.from).toHaveBeenCalledWith('changelog_entries');
+      // 프로젝트 조회 호출 확인
+      expect(cloudflareClient.callWorkersApi).toHaveBeenCalledWith(
+        expect.stringContaining('/api/v1/projects/by-slug/idea-on-action'),
+        expect.any(Object)
+      );
+      // changelog 조회 호출 확인
+      expect(cloudflareClient.callWorkersApi).toHaveBeenCalledWith(
+        expect.stringContaining('/api/v1/changelog-entries'),
+        expect.any(Object)
+      );
+      expect(result.current.data).toEqual(mockChangelog);
     });
 
     it('limit을 적용해야 함', async () => {
+      vi.mocked(cloudflareClient.callWorkersApi)
+        .mockResolvedValueOnce({
+          data: { id: 'project-1', slug: 'idea-on-action' },
+          error: null,
+          status: 200,
+        })
+        .mockResolvedValueOnce({
+          data: mockChangelog,
+          error: null,
+          status: 200,
+        });
+
       const { result } = renderHook(() => useChangelogByProjectSlug('idea-on-action', 10), {
         wrapper: createWrapper(),
       });
@@ -289,6 +275,11 @@ describe('useChangelog', () => {
       await waitFor(() => {
         expect(result.current.isLoading).toBe(false);
       });
+
+      expect(cloudflareClient.callWorkersApi).toHaveBeenCalledWith(
+        expect.stringContaining('limit=10'),
+        expect.any(Object)
+      );
     });
 
     it('슬러그가 없으면 쿼리를 비활성화해야 함', () => {
@@ -297,14 +288,18 @@ describe('useChangelog', () => {
       });
 
       expect(result.current.isLoading).toBe(false);
+      expect(cloudflareClient.callWorkersApi).not.toHaveBeenCalled();
     });
   });
 
   describe('에러 처리', () => {
-    it('조회 실패 시 에러를 처리해야 함', async () => {
-      const error = new Error('Database error');
-      mockQuery.then = vi.fn((onFulfilled) => {
-        return Promise.resolve({ data: null, error }).then(onFulfilled);
+    it('조회 실패 시 빈 배열을 반환해야 함', async () => {
+      // 이 테스트에서만 에러 응답으로 재설정
+      vi.clearAllMocks();
+      vi.mocked(cloudflareClient.callWorkersApi).mockResolvedValueOnce({
+        data: null,
+        error: 'Database error',
+        status: 500,
       });
 
       const { result } = renderHook(() => useChangelog(), {
@@ -312,14 +307,20 @@ describe('useChangelog', () => {
       });
 
       await waitFor(() => {
-        expect(result.current.error).toBeTruthy();
+        expect(result.current.isLoading).toBe(false);
       });
+
+      // 에러 발생 시 빈 배열 반환 (useChangelog 구현 참고)
+      expect(result.current.data).toEqual([]);
     });
 
     it('단일 항목 조회 실패 시 에러를 처리해야 함', async () => {
-      const error = new Error('Not found');
-      mockQuery.then = vi.fn((onFulfilled) => {
-        return Promise.resolve({ data: null, error }).then(onFulfilled);
+      // 이 테스트에서만 에러 응답으로 재설정
+      vi.clearAllMocks();
+      vi.mocked(cloudflareClient.callWorkersApi).mockResolvedValueOnce({
+        data: null,
+        error: 'Not found',
+        status: 404,
       });
 
       const { result } = renderHook(() => useChangelogEntry('invalid-id'), {
@@ -327,8 +328,11 @@ describe('useChangelog', () => {
       });
 
       await waitFor(() => {
-        expect(result.current.error).toBeTruthy();
+        expect(result.current.isLoading).toBe(false);
       });
+
+      // 에러 발생 시 에러 throw (useChangelogEntry 구현 참고)
+      expect(result.current.isError).toBe(true);
     });
   });
 });
