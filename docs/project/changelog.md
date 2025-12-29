@@ -9,6 +9,54 @@
 
 ---
 
+## [2.40.9] - 2025-12-29 (Supabase 마이그레이션 완전 정리)
+
+### 🧹 Phase 9: 최종 정리 및 검증
+
+Supabase 마이그레이션 완료 후 orphaned scripts 제거 및 최종 검증.
+
+#### 제거된 npm scripts (11개)
+
+| 스크립트 | 사유 |
+|---------|------|
+| `generate:screenshots` | scripts/testing 폴더 삭제됨 |
+| `check:rls` | scripts/db 폴더 삭제됨 |
+| `fix:rls` | scripts/db 폴더 삭제됨 |
+| `migrate:r2` | scripts/migrate-to-r2.ts 삭제됨 |
+| `migrate:r2:dry` | scripts/migrate-to-r2.ts 삭제됨 |
+| `migrate:d1:extract` | scripts/migrate-to-d1.ts 삭제됨 |
+| `migrate:d1:execute` | scripts/d1-execute.ts 삭제됨 |
+| `migrate:d1:all` | scripts/d1-execute.ts 삭제됨 |
+| `migrate:supabase-to-d1` | scripts/migrate-supabase-to-d1.ts 삭제됨 |
+| `migrate:supabase-to-d1:dry` | scripts/migrate-supabase-to-d1.ts 삭제됨 |
+| `migrate:supabase-to-d1:table` | scripts/migrate-supabase-to-d1.ts 삭제됨 |
+
+#### 최종 검증 결과
+
+| 검증 항목 | 결과 |
+|----------|------|
+| `@supabase/supabase-js` import | 0개 ✅ |
+| `supabase.(from\|rpc\|auth\|storage)(` 호출 | 0개 ✅ |
+| `/functions/v1/` URL | 0개 ✅ |
+| 빌드 | 성공 ✅ |
+| 린트 | 0 에러 ✅ |
+| 테스트 (샘플 82개) | 통과 ✅ |
+
+#### 누적 정리 현황 (v2.40.5 ~ v2.40.9)
+
+| 버전 | 삭제 항목 | 파일/항목 수 |
+|------|----------|-------------|
+| v2.40.5 | Edge Function 코드 제거 | 5개 |
+| v2.40.6 | 테스트 파일 마이그레이션 | 44개 |
+| v2.40.7 | 스크립트/마이그레이션 삭제 | 250개 |
+| v2.40.8 | 문서 파일 삭제 | 175개 |
+| v2.40.9 | npm scripts 정리 | 11개 |
+| **총계** | | **480+ 파일, 120,000+ 줄** |
+
+**Supabase 프로젝트 삭제 준비 완료** ✅
+
+---
+
 ## [2.40.8] - 2025-12-29 (Supabase 문서 대규모 정리)
 
 ### 📚 Phase 8: 문서 정리
