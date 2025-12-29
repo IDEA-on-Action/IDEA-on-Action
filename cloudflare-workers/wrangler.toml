@@ -37,7 +37,7 @@ local_protocol = "http"
 # =============================================================================
 [vars]
 ENVIRONMENT = "production"
-API_VERSION = "2.40.0"
+API_VERSION = "3.0.0"
 CORS_ORIGINS = "https://www.ideaonaction.ai,https://preview.ideaonaction.ai"
 WORKER_URL = "https://api.ideaonaction.ai"
 FRONTEND_URL = "https://www.ideaonaction.ai"
