@@ -97,6 +97,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: setup
     timeout-minutes: 15
+    env:
+      # Node.js 힙 메모리 8GB로 증가 (OOM 방지)
+      NODE_OPTIONS: --max-old-space-size=8192
 
     steps:
       - name: Checkout code
