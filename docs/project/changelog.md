@@ -9,6 +9,47 @@
 
 ---
 
+## [2.40.2] - 2025-12-29 (Vercel/Supabase 레거시 정리)
+
+### 🧹 레거시 리소스 정리
+
+Cloudflare Workers 마이그레이션 완료 후 Vercel/Supabase 레거시 리소스 정리.
+
+#### Phase 1: 즉시 정리
+
+| 항목 | 변경 내용 |
+|------|----------|
+| `.vercelignore` | 파일 삭제 (Cloudflare Pages 사용) |
+| Vercel Toolbar CSS | `src/index.css` 25줄 제거 |
+| `VITE_SUPABASE_JWT_SECRET` | `.env.local`에서 제거 |
+| npm prune | 9개 extraneous 패키지 제거 |
+
+#### Phase 2: 타입 import 정리
+
+| 파일 | 변경 내용 |
+|------|----------|
+| `src/skills/xlsx/queries.ts` | `LegacySupabaseClient` 로컬 타입 정의 |
+| `src/skills/xlsx/generators/eventReportWithChart.ts` | 동일 |
+| `src/skills/xlsx/centralHubExport.ts` | 동일 |
+| `src/components/profile/ProfileHeader.tsx` | `AuthUser` 로컬 타입 정의 |
+
+### 🔄 마이그레이션
+
+| 파일 | 변경 내용 |
+|------|----------|
+| `scripts/deploy/generate-sitemap.ts` | Supabase → Workers API 마이그레이션 |
+| 8개 훅 테스트 파일 | Workers API 모킹으로 마이그레이션 |
+
+### 📊 결과
+
+| 항목 | 수치 |
+|------|------|
+| `@supabase/supabase-js` import in `src/` | 0개 (완전 제거) |
+| 빌드 | ✅ 성공 |
+| 린트 | 0 에러, 5 경고 |
+
+---
+
 ## [2.40.1] - 2025-12-28 (ExcelJS 보안 패치)
 
 ### 🔒 보안 수정
