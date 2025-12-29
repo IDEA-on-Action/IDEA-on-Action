@@ -32,13 +32,13 @@ describe('Button', () => {
   it('default variant 스타일이 적용되어야 함', () => {
     render(<Button variant="default">Default</Button>)
     const button = screen.getByRole('button')
-    expect(button.className).toContain('bg-blue-600')
+    expect(button.className).toContain('bg-primary')
   })
 
   it('destructive variant 스타일이 적용되어야 함', () => {
     render(<Button variant="destructive">Delete</Button>)
     const button = screen.getByRole('button')
-    expect(button.className).toContain('bg-red-600')
+    expect(button.className).toContain('bg-destructive')
   })
 
   it('outline variant 스타일이 적용되어야 함', () => {
@@ -50,13 +50,13 @@ describe('Button', () => {
   it('secondary variant 스타일이 적용되어야 함', () => {
     render(<Button variant="secondary">Secondary</Button>)
     const button = screen.getByRole('button')
-    expect(button.className).toContain('bg-slate-700')
+    expect(button.className).toContain('bg-secondary')
   })
 
   it('ghost variant 스타일이 적용되어야 함', () => {
     render(<Button variant="ghost">Ghost</Button>)
     const button = screen.getByRole('button')
-    expect(button.className).toContain('bg-slate-600')
+    expect(button.className).toContain('hover:bg-accent')
   })
 
   it('link variant 스타일이 적용되어야 함', () => {
@@ -121,7 +121,7 @@ describe('Button', () => {
   it('여러 variant와 size 조합이 동작해야 함', () => {
     render(<Button variant="destructive" size="lg">Large Delete</Button>)
     const button = screen.getByRole('button')
-    expect(button.className).toContain('bg-red-600')
+    expect(button.className).toContain('bg-destructive')
     expect(button.className).toContain('h-11')
   })
 
