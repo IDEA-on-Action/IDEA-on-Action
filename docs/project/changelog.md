@@ -9,6 +9,50 @@
 
 ---
 
+## [2.40.4] - 2025-12-29 (Supabase 환경변수 완전 제거)
+
+### 🧹 Phase 4: 환경변수 및 CI/CD 정리
+
+Supabase 프로젝트 삭제를 위한 최종 정리 작업.
+
+#### 프로덕션 코드 수정
+
+| 파일 | 변경 내용 |
+|------|----------|
+| `src/lib/claude.ts` | `VITE_SUPABASE_URL` → `VITE_WORKERS_API_URL` |
+| `src/lib/image-optimizer.ts` | `supabase.co/storage` → `media.ideaonaction.ai` |
+| `src/lib/media-utils.ts` | `isSupabaseStorageUrl` @deprecated 표시 |
+
+#### 환경변수 정리
+
+| 파일 | 변경 내용 |
+|------|----------|
+| `.github/workflows/ci.yml` | `VITE_SUPABASE_*` → `VITE_WORKERS_API_URL` |
+| `.env.example` | Supabase 환경변수 제거 |
+| `src/vite-env.d.ts` | `VITE_SUPABASE_*` 타입 제거 |
+
+#### 테스트 마이그레이션
+
+| 파일 | 변경 내용 |
+|------|----------|
+| `tests/unit/hooks/useCart.test.tsx` | `cartApi` 모킹으로 전환 |
+| `tests/unit/hooks/useOrders.test.tsx` | `ordersApi` 모킹으로 전환 |
+| `tests/unit/hooks/useProjects.test.tsx` | `projectsApi` 모킹으로 전환 |
+
+### 📊 Supabase 삭제 준비 완료
+
+| 항목 | 상태 |
+|------|------|
+| 프로덕션 코드 Supabase URL 참조 | ✅ 0개 |
+| CI/CD Supabase 환경변수 | ✅ 제거 |
+| 환경변수 타입 정의 | ✅ Workers API로 전환 |
+| 빌드 | ✅ 성공 |
+| 린트 | 0 에러, 5 경고 |
+
+**다음 단계**: GitHub Secrets에서 `VITE_SUPABASE_*` 제거, Supabase 프로젝트 삭제 가능
+
+---
+
 ## [2.40.3] - 2025-12-29 (프로덕션 코드 Workers API 완전 전환)
 
 ### 🔄 Phase 3: 프로덕션 코드 마이그레이션
