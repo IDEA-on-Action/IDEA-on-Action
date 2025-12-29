@@ -91,15 +91,19 @@ jobs:
       - name: TypeScript Type Check
         run: npx tsc --noEmit
 
-  # Unit Tests
+  # Unit Tests - 샤딩으로 메모리 분산
   test-unit:
-    name: Unit Tests
+    name: Unit Tests (${{ matrix.shard }})
     runs-on: ubuntu-latest
     needs: setup
     timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1/2, 2/2]
     env:
-      # Node.js 힙 메모리 6GB로 설정 (GitHub Actions runner 7GB 제한 고려)
-      NODE_OPTIONS: --max-old-space-size=6144
+      # Node.js 힙 메모리 4GB로 설정 (샤딩으로 분산)
+      NODE_OPTIONS: --max-old-space-size=4096
 
     steps:
       - name: Checkout code
@@ -119,10 +123,9 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-node-modules-
 
-      # 메모리 최적화: 커버리지 없이 테스트만 실행
-      # 커버리지는 로컬에서 npm run test:coverage로 확인
-      - name: Run unit tests
-        run: npm run test:unit
+      # 샤딩으로 테스트 분할 실행 (메모리 최적화)
+      - name: Run unit tests (shard ${{ matrix.shard }})
+        run: npx vitest run --shard=${{ matrix.shard }}
         env:
           VITE_WORKERS_API_URL: ${{ secrets.VITE_WORKERS_API_URL }}
 
