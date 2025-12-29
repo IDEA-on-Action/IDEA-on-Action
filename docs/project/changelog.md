@@ -9,6 +9,54 @@
 
 ---
 
+## [2.40.7] - 2025-12-29 (Supabase 레거시 완전 정리)
+
+### 🧹 Phase 7: 레거시 코드 및 문서 정리
+
+Supabase 프로젝트 삭제를 위한 최종 정리 작업 완료.
+
+#### 삭제된 코드
+
+| 항목 | 내용 |
+|------|------|
+| `src/integrations/supabase/` | Mock 레이어 폴더 전체 삭제 |
+| `src/hooks/useAlertSettings.ts` | Supabase 주석 → Workers API TODO |
+
+#### 삭제된 스크립트 (250+ 파일, 44,000+ 줄)
+
+| 폴더 | 내용 |
+|------|------|
+| `scripts/db/` | 29개 Supabase DB 스크립트 |
+| `scripts/sql/` | SQL 마이그레이션/수정 스크립트 |
+| `scripts/migration/` | 마이그레이션 스크립트 |
+| `scripts/testing/` | Supabase 테스트 스크립트 |
+| `scripts/validation/` | Supabase 검증 스크립트 |
+
+#### 삭제된 문서
+
+| 폴더 | 내용 |
+|------|------|
+| `docs/archive/supabase-migrations/` | 150+ SQL 마이그레이션 파일 |
+| `docs/guides/supabase-*.md` | Supabase 가이드 문서 |
+
+#### 정리된 JSDoc 주석
+
+| 파일 | 변경 |
+|------|------|
+| `src/lib/react-query.ts` | Supabase 예시 → Workers API 패턴 |
+| `src/hooks/useBillingPortal.ts` | Supabase 주석 → Workers API 패턴 |
+
+#### 최종 구조
+
+```
+src/integrations/
+└── cloudflare/   ← Workers API만 유지
+```
+
+**Supabase 프로젝트 삭제 준비 완료** ✅
+
+---
+
 ## [2.40.6] - 2025-12-29 (테스트 파일 Workers API 마이그레이션)
 
 ### 🧪 Phase 6: 테스트 파일 마이그레이션 완료
