@@ -193,13 +193,13 @@ export class ClaudeError extends Error {
 // ============================================================================
 
 /**
- * Supabase Edge Function URL
+ * Workers API URL
  */
 const CLAUDE_FUNCTION_URL =
-  (typeof import.meta !== 'undefined' && import.meta.env?.VITE_SUPABASE_URL) ||
-  'https://zykjdneewbzyazfukzyg.supabase.co';
+  (typeof import.meta !== 'undefined' && import.meta.env?.VITE_WORKERS_API_URL) ||
+  'https://api.ideaonaction.ai';
 
-const CLAUDE_CHAT_ENDPOINT = '/functions/v1/claude-chat';
+const CLAUDE_CHAT_ENDPOINT = '/api/v1/claude/chat';
 
 /**
  * 기본 설정

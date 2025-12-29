@@ -529,7 +529,8 @@ export function extractStoragePathFromUrl(url: string): string | null {
 }
 
 /**
- * Check if URL is a Supabase storage URL
+ * Check if URL is a legacy Supabase storage URL (for migration compatibility)
+ * @deprecated R2 스토리지로 마이그레이션 완료, 레거시 URL 변환용으로만 사용
  */
 export function isSupabaseStorageUrl(url: string): boolean {
   return url.includes('supabase.co/storage/v1/object');

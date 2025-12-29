@@ -57,8 +57,8 @@ export function getOptimizedImageUrl(
     return url;
   }
 
-  // Supabase Storage URL인 경우 변환 파라미터 추가
-  if (url.includes('supabase.co/storage')) {
+  // R2 Storage URL인 경우 변환 파라미터 추가
+  if (url.includes('media.ideaonaction.ai')) {
     const params = new URLSearchParams();
 
     if (maxWidth) params.append('width', maxWidth.toString());
