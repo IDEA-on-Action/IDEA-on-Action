@@ -1,15 +1,14 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useServices } from '@/hooks/useServices';
-import { supabase } from '@/integrations/supabase/client';
+import { servicesApi } from '@/integrations/cloudflare/client';
 import React, { type ReactNode } from 'react';
 
-// Mock supabase client
-vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
-    from: vi.fn(),
+// Mock Workers API client
+vi.mock('@/integrations/cloudflare/client', () => ({
+  servicesApi: {
+    list: vi.fn(),
   },
 }));
 
@@ -60,18 +59,20 @@ describe('useServices', () => {
     vi.clearAllMocks();
   });
 
+  afterEach(() => {
+    queryClient.clear();
+  });
+
   const wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   );
 
   it('서비스 목록을 성공적으로 조회해야 함', async () => {
-    // Setup - 실제 쿼리 체인: select() -> eq() -> order()
-    const mockChain = {
-      select: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockReturnThis(),
-      order: vi.fn().mockResolvedValue({ data: mockServices, error: null })
-    };
-    vi.mocked(supabase.from).mockReturnValue(mockChain as any);
+    // Setup - Workers API 모킹
+    vi.mocked(servicesApi.list).mockResolvedValue({
+      data: { data: mockServices },
+      error: null,
+    });
 
     // Execute
     const { result } = renderHook(() => useServices(), { wrapper });
@@ -83,23 +84,21 @@ describe('useServices', () => {
 
     if (result.current.isSuccess) {
       expect(result.current.data).toEqual(mockServices);
-      expect(supabase.from).toHaveBeenCalledWith('services');
+      expect(servicesApi.list).toHaveBeenCalledWith({
+        status: 'active',
+        category_id: undefined,
+        sort_by: undefined,
+      });
     }
   });
 
   it('카테고리 필터가 적용되어야 함', async () => {
-    // Note: Currently categoryId filter is disabled in the hook
-    // Setup - 실제 쿼리 체인: select() -> eq() -> order()
-    const mockChain = {
-      select: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockReturnThis(),
-      order: vi.fn().mockResolvedValue({
-        data: mockServices,
-        error: null,
-      })
-    };
-
-    vi.mocked(supabase.from).mockReturnValue(mockChain as any);
+    // Setup - Workers API 모킹
+    const filteredServices = mockServices.filter(s => s.category_id === 'cat-1');
+    vi.mocked(servicesApi.list).mockResolvedValue({
+      data: { data: filteredServices },
+      error: null,
+    });
 
     // Execute
     const { result } = renderHook(
@@ -114,21 +113,20 @@ describe('useServices', () => {
 
     if (result.current.isSuccess) {
       expect(result.current.data).toBeDefined();
+      expect(servicesApi.list).toHaveBeenCalledWith({
+        status: 'active',
+        category_id: 'cat-1',
+        sort_by: undefined,
+      });
     }
   });
 
   it('상태 필터가 적용되어야 함 (기본: active)', async () => {
-    // Setup - 실제 쿼리 체인: select() -> eq() -> order()
-    const mockChain = {
-      select: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockReturnThis(),
-      order: vi.fn().mockResolvedValue({
-        data: mockServices,
-        error: null,
-      })
-    };
-
-    vi.mocked(supabase.from).mockReturnValue(mockChain as any);
+    // Setup - Workers API 모킹
+    vi.mocked(servicesApi.list).mockResolvedValue({
+      data: { data: mockServices },
+      error: null,
+    });
 
     // Execute
     const { result } = renderHook(() => useServices(), { wrapper });
@@ -140,23 +138,18 @@ describe('useServices', () => {
 
     if (result.current.isSuccess) {
       expect(result.current.data).toBeDefined();
+      expect(servicesApi.list).toHaveBeenCalledWith(
+        expect.objectContaining({ status: 'active' })
+      );
     }
   });
 
   it('정렬 옵션이 적용되어야 함 (newest)', async () => {
-    // Setup - 실제 쿼리 체인: select() -> eq() -> order()
-    const orderMock = vi.fn().mockResolvedValue({
-      data: mockServices,
+    // Setup - Workers API 모킹
+    vi.mocked(servicesApi.list).mockResolvedValue({
+      data: { data: mockServices },
       error: null,
     });
-
-    const mockChain = {
-      select: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockReturnThis(),
-      order: orderMock,
-    };
-
-    vi.mocked(supabase.from).mockReturnValue(mockChain as any);
 
     // Execute
     const { result } = renderHook(
@@ -170,23 +163,25 @@ describe('useServices', () => {
     }, { timeout: 3000 });
 
     if (result.current.isSuccess) {
-      expect(orderMock).toHaveBeenCalledWith('created_at', { ascending: false });
+      expect(servicesApi.list).toHaveBeenCalledWith({
+        status: 'active',
+        category_id: undefined,
+        sort_by: 'newest',
+      });
     }
   });
 
   it('에러 발생 시 fallback 값을 반환해야 함', async () => {
-    // Setup - 실제 쿼리 체인: select() -> eq() -> order()
-    const mockChain = {
-      select: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockReturnThis(),
-      order: vi.fn().mockRejectedValue(new Error('Database error'))
-    };
-    vi.mocked(supabase.from).mockReturnValue(mockChain as any);
+    // Setup - Workers API 에러 모킹
+    vi.mocked(servicesApi.list).mockResolvedValue({
+      data: null,
+      error: 'Database error',
+    });
 
     // Execute
     const { result } = renderHook(() => useServices(), { wrapper });
 
-    // Assert - supabaseQuery는 에러 시 fallbackValue([])를 반환
+    // Assert - 에러 시 빈 배열 반환
     await waitFor(() => {
       expect(result.current.isSuccess).toBe(true);
     });
@@ -195,23 +190,15 @@ describe('useServices', () => {
   });
 
   it('로딩 상태가 올바르게 동작해야 함', async () => {
-    // Setup - 실제 쿼리 체인: select() -> eq() -> order()
-    const orderMock = vi.fn().mockImplementation(
+    // Setup - 지연된 응답 모킹
+    vi.mocked(servicesApi.list).mockImplementation(
       () =>
         new Promise((resolve) => {
           setTimeout(() => {
-            resolve({ data: mockServices, error: null });
+            resolve({ data: { data: mockServices }, error: null });
           }, 100);
         })
     );
-
-    const mockChain = {
-      select: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockReturnThis(),
-      order: orderMock,
-    };
-
-    vi.mocked(supabase.from).mockReturnValue(mockChain as any);
 
     // Execute
     const { result } = renderHook(() => useServices(), { wrapper });
