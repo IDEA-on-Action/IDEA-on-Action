@@ -9,6 +9,31 @@
 
 ---
 
+## [2.40.3] - 2025-12-29 (프로덕션 코드 Workers API 완전 전환)
+
+### 🔄 Phase 3: 프로덕션 코드 마이그레이션
+
+프로덕션 코드에서 `supabase` 변수를 직접 사용하던 6개 파일을 Workers API로 마이그레이션.
+
+| 파일 | 변경 내용 |
+|------|----------|
+| `src/pages/admin/AdminServices.tsx` | `servicesApi.list()`, `servicesApi.delete()` 사용 |
+| `src/pages/admin/CreateService.tsx` | `servicesApi.getCategories()`, `servicesApi.create()` 사용 |
+| `src/pages/admin/AdminUsers.tsx` | `callWorkersApi('/api/v1/admin/users/search')` 사용 |
+| `src/lib/claude.ts` | localStorage 기반 토큰 조회로 변경 |
+| `src/lib/audit/audit-logger.ts` | Workers API `/api/v1/audit/log` 엔드포인트 사용 |
+| `src/lib/auth/mcp-token-service.ts` | 4개 MCP 토큰 RPC를 Workers API로 마이그레이션 |
+
+### 📊 Supabase 마이그레이션 완료 현황
+
+| 항목 | 상태 |
+|------|------|
+| 프로덕션 코드 `supabase` 직접 사용 | 0개 (완전 제거) |
+| `@supabase/supabase-js` import in `src/` | 0개 |
+| 테스트 호환성 shim | `src/integrations/supabase/client.ts` 유지 |
+
+---
+
 ## [2.40.2] - 2025-12-29 (Vercel/Supabase 레거시 정리)
 
 ### 🧹 레거시 리소스 정리
