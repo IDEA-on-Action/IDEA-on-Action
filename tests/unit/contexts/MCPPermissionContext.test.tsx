@@ -7,18 +7,34 @@ import {
   MCPPermissionProvider,
   useMCPPermissionContext,
 } from '@/contexts';
-import type { ServiceId, PermissionInfo } from '@/contexts';
-import { supabase } from '@/integrations/supabase/client';
+import type { PermissionInfo } from '@/contexts';
+import { subscriptionsApi } from '@/integrations/cloudflare/client';
 
-// Mock supabase client
-vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
-    auth: {
-      getUser: vi.fn(),
-    },
-    from: vi.fn(),
+// Mock Workers API client
+vi.mock('@/integrations/cloudflare/client', () => ({
+  subscriptionsApi: {
+    getActiveSubscriptions: vi.fn(),
   },
 }));
+
+// Mock localStorage
+const localStorageMock = (() => {
+  let store: Record<string, string> = {};
+  return {
+    getItem: vi.fn((key: string) => store[key] || null),
+    setItem: vi.fn((key: string, value: string) => {
+      store[key] = value;
+    }),
+    removeItem: vi.fn((key: string) => {
+      delete store[key];
+    }),
+    clear: vi.fn(() => {
+      store = {};
+    }),
+  };
+})();
+
+Object.defineProperty(window, 'localStorage', { value: localStorageMock });
 
 describe('MCPPermissionContext', () => {
   let queryClient: QueryClient;
@@ -45,6 +61,11 @@ describe('MCPPermissionContext', () => {
     },
   ];
 
+  const mockTokens = {
+    accessToken: 'mock-access-token',
+    refreshToken: 'mock-refresh-token',
+  };
+
   beforeEach(() => {
     queryClient = new QueryClient({
       defaultOptions: {
@@ -54,6 +75,7 @@ describe('MCPPermissionContext', () => {
     });
 
     vi.clearAllMocks();
+    localStorageMock.clear();
   });
 
   afterEach(() => {
@@ -96,9 +118,8 @@ describe('MCPPermissionContext', () => {
 
   describe('checkPermission', () => {
     it('로그인하지 않은 경우 none 권한을 반환한다', async () => {
-      (supabase.auth.getUser as any).mockResolvedValue({
-        data: { user: null },
-      });
+      // localStorage에 토큰이 없는 경우
+      localStorageMock.getItem.mockReturnValue(null);
 
       const { result } = renderHook(() => useMCPPermissionContext(), {
         wrapper: createWrapper(),
@@ -116,23 +137,14 @@ describe('MCPPermissionContext', () => {
     });
 
     it('활성 구독이 있으면 권한을 반환한다', async () => {
-      (supabase.auth.getUser as any).mockResolvedValue({
-        data: { user: mockUser },
-      });
+      // localStorage에 토큰 설정
+      localStorageMock.getItem.mockReturnValue(JSON.stringify(mockTokens));
 
-      const mockEq = vi.fn().mockResolvedValue({
+      // Workers API 모킹
+      vi.mocked(subscriptionsApi.getActiveSubscriptions).mockResolvedValue({
         data: mockSubscriptions,
         error: null,
-      });
-
-      const mockSelect = vi.fn().mockReturnValue({
-        eq: vi.fn().mockReturnValue({
-          eq: mockEq,
-        }),
-      });
-
-      (supabase.from as any).mockReturnValue({
-        select: mockSelect,
+        status: 200,
       });
 
       const { result } = renderHook(() => useMCPPermissionContext(), {
@@ -147,28 +159,18 @@ describe('MCPPermissionContext', () => {
 
       expect(permissionInfo).toBeDefined();
       expect(permissionInfo!.permission).toBe('admin'); // Pro 플랜은 admin 권한 반환
-      expect(mockSelect).toHaveBeenCalledWith(expect.stringContaining('plan:subscription_plans'));
+      expect(subscriptionsApi.getActiveSubscriptions).toHaveBeenCalledWith('mock-access-token');
     });
 
     it('만료된 구독의 경우 expired 사유를 반환한다', async () => {
-      (supabase.auth.getUser as any).mockResolvedValue({
-        data: { user: mockUser },
-      });
+      // localStorage에 토큰 설정
+      localStorageMock.getItem.mockReturnValue(JSON.stringify(mockTokens));
 
-      // 만료된 구독 데이터 (status가 'active'가 아님)
-      const mockEq = vi.fn().mockResolvedValue({
-        data: [], // 활성 구독이 없음 (쿼리에서 .eq('status', 'active')로 필터링됨)
+      // 만료된 구독 데이터 (활성 구독이 없음)
+      vi.mocked(subscriptionsApi.getActiveSubscriptions).mockResolvedValue({
+        data: [],
         error: null,
-      });
-
-      const mockSelect = vi.fn().mockReturnValue({
-        eq: vi.fn().mockReturnValue({
-          eq: mockEq,
-        }),
-      });
-
-      (supabase.from as any).mockReturnValue({
-        select: mockSelect,
+        status: 200,
       });
 
       const { result } = renderHook(() => useMCPPermissionContext(), {
@@ -187,21 +189,14 @@ describe('MCPPermissionContext', () => {
     });
 
     it('DB 오류 시 service_unavailable 사유를 반환한다', async () => {
-      (supabase.auth.getUser as any).mockResolvedValue({
-        data: { user: mockUser },
-      });
+      // localStorage에 토큰 설정
+      localStorageMock.getItem.mockReturnValue(JSON.stringify(mockTokens));
 
-      const mockSelect = vi.fn().mockReturnThis();
-      const mockEq = vi.fn().mockReturnThis();
-
-      (supabase.from as any).mockReturnValue({
-        select: mockSelect,
-        eq: mockEq,
-      });
-
-      mockEq.mockResolvedValue({
+      // Workers API 에러 모킹
+      vi.mocked(subscriptionsApi.getActiveSubscriptions).mockResolvedValue({
         data: null,
-        error: new Error('DB error'),
+        error: 'DB error',
+        status: 500,
       });
 
       const { result } = renderHook(() => useMCPPermissionContext(), {
@@ -222,21 +217,12 @@ describe('MCPPermissionContext', () => {
 
   describe('캐싱', () => {
     beforeEach(() => {
-      (supabase.auth.getUser as any).mockResolvedValue({
-        data: { user: mockUser },
-      });
+      localStorageMock.getItem.mockReturnValue(JSON.stringify(mockTokens));
 
-      const mockSelect = vi.fn().mockReturnThis();
-      const mockEq = vi.fn().mockReturnThis();
-
-      (supabase.from as any).mockReturnValue({
-        select: mockSelect,
-        eq: mockEq,
-      });
-
-      mockEq.mockResolvedValue({
+      vi.mocked(subscriptionsApi.getActiveSubscriptions).mockResolvedValue({
         data: mockSubscriptions,
         error: null,
+        status: 200,
       });
     });
 
@@ -249,36 +235,25 @@ describe('MCPPermissionContext', () => {
         await result.current.checkPermission('minu-find');
       });
 
-      const firstCallCount = (supabase.from as any).mock.calls.length;
+      const firstCallCount = vi.mocked(subscriptionsApi.getActiveSubscriptions).mock.calls.length;
 
       await act(async () => {
         await result.current.checkPermission('minu-find');
       });
 
-      const secondCallCount = (supabase.from as any).mock.calls.length;
+      const secondCallCount = vi.mocked(subscriptionsApi.getActiveSubscriptions).mock.calls.length;
 
-      // 두 번째 호출은 캐시를 사용하므로 DB 호출 횟수가 증가하지 않음
+      // 두 번째 호출은 캐시를 사용하므로 API 호출 횟수가 증가하지 않음
       expect(secondCallCount).toBe(firstCallCount);
     });
 
     it('permissions Map에 캐시된 정보가 있다', async () => {
-      (supabase.auth.getUser as any).mockResolvedValue({
-        data: { user: mockUser },
-      });
+      localStorageMock.getItem.mockReturnValue(JSON.stringify(mockTokens));
 
-      const mockEq = vi.fn().mockResolvedValue({
+      vi.mocked(subscriptionsApi.getActiveSubscriptions).mockResolvedValue({
         data: mockSubscriptions,
         error: null,
-      });
-
-      const mockSelect = vi.fn().mockReturnValue({
-        eq: vi.fn().mockReturnValue({
-          eq: mockEq,
-        }),
-      });
-
-      (supabase.from as any).mockReturnValue({
-        select: mockSelect,
+        status: 200,
       });
 
       const { result } = renderHook(() => useMCPPermissionContext(), {
@@ -302,21 +277,12 @@ describe('MCPPermissionContext', () => {
 
   describe('invalidateCache', () => {
     beforeEach(() => {
-      (supabase.auth.getUser as any).mockResolvedValue({
-        data: { user: mockUser },
-      });
+      localStorageMock.getItem.mockReturnValue(JSON.stringify(mockTokens));
 
-      const mockSelect = vi.fn().mockReturnThis();
-      const mockEq = vi.fn().mockReturnThis();
-
-      (supabase.from as any).mockReturnValue({
-        select: mockSelect,
-        eq: mockEq,
-      });
-
-      mockEq.mockResolvedValue({
+      vi.mocked(subscriptionsApi.getActiveSubscriptions).mockResolvedValue({
         data: mockSubscriptions,
         error: null,
+        status: 200,
       });
     });
 
@@ -362,23 +328,12 @@ describe('MCPPermissionContext', () => {
 
   describe('구독 변경 감지', () => {
     it('구독 쿼리 변경 시 캐시가 자동으로 무효화된다', async () => {
-      (supabase.auth.getUser as any).mockResolvedValue({
-        data: { user: mockUser },
-      });
+      localStorageMock.getItem.mockReturnValue(JSON.stringify(mockTokens));
 
-      const mockEq = vi.fn().mockResolvedValue({
+      vi.mocked(subscriptionsApi.getActiveSubscriptions).mockResolvedValue({
         data: mockSubscriptions,
         error: null,
-      });
-
-      const mockSelect = vi.fn().mockReturnValue({
-        eq: vi.fn().mockReturnValue({
-          eq: mockEq,
-        }),
-      });
-
-      (supabase.from as any).mockReturnValue({
-        select: mockSelect,
+        status: 200,
       });
 
       const { result } = renderHook(() => useMCPPermissionContext(), {
@@ -415,30 +370,22 @@ describe('MCPPermissionContext', () => {
     });
 
     it('권한 확인 시작 시 로딩 상태가 true가 되어야 함', async () => {
-      (supabase.auth.getUser as any).mockResolvedValue({
-        data: { user: mockUser },
-      });
-
-      const mockSelect = vi.fn().mockReturnThis();
-      const mockEq = vi.fn().mockReturnThis();
-
-      (supabase.from as any).mockReturnValue({
-        select: mockSelect,
-        eq: mockEq,
-      });
+      localStorageMock.getItem.mockReturnValue(JSON.stringify(mockTokens));
 
       // 느린 응답 시뮬레이션
-      mockEq.mockImplementation(() =>
-        new Promise((resolve) => {
-          setTimeout(
-            () =>
-              resolve({
-                data: mockSubscriptions,
-                error: null,
-              }),
-            100
-          );
-        })
+      vi.mocked(subscriptionsApi.getActiveSubscriptions).mockImplementation(
+        () =>
+          new Promise((resolve) => {
+            setTimeout(
+              () =>
+                resolve({
+                  data: mockSubscriptions,
+                  error: null,
+                  status: 200,
+                }),
+              100
+            );
+          })
       );
 
       const { result } = renderHook(() => useMCPPermissionContext(), {
@@ -455,21 +402,12 @@ describe('MCPPermissionContext', () => {
     });
 
     it('권한 확인 완료 후 로딩 상태가 false가 되어야 함', async () => {
-      (supabase.auth.getUser as any).mockResolvedValue({
-        data: { user: mockUser },
-      });
+      localStorageMock.getItem.mockReturnValue(JSON.stringify(mockTokens));
 
-      const mockSelect = vi.fn().mockReturnThis();
-      const mockEq = vi.fn().mockReturnThis();
-
-      (supabase.from as any).mockReturnValue({
-        select: mockSelect,
-        eq: mockEq,
-      });
-
-      mockEq.mockResolvedValue({
+      vi.mocked(subscriptionsApi.getActiveSubscriptions).mockResolvedValue({
         data: mockSubscriptions,
         error: null,
+        status: 200,
       });
 
       const { result } = renderHook(() => useMCPPermissionContext(), {
@@ -486,21 +424,12 @@ describe('MCPPermissionContext', () => {
 
   describe('다중 서비스 권한 관리', () => {
     beforeEach(() => {
-      (supabase.auth.getUser as any).mockResolvedValue({
-        data: { user: mockUser },
-      });
+      localStorageMock.getItem.mockReturnValue(JSON.stringify(mockTokens));
 
-      const mockSelect = vi.fn().mockReturnThis();
-      const mockEq = vi.fn().mockReturnThis();
-
-      (supabase.from as any).mockReturnValue({
-        select: mockSelect,
-        eq: mockEq,
-      });
-
-      mockEq.mockResolvedValue({
+      vi.mocked(subscriptionsApi.getActiveSubscriptions).mockResolvedValue({
         data: mockSubscriptions,
         error: null,
+        status: 200,
       });
     });
 
@@ -542,21 +471,12 @@ describe('MCPPermissionContext', () => {
 
   describe('권한 정보 타임스탬프', () => {
     it('권한 확인 시 checkedAt 시각이 기록되어야 함', async () => {
-      (supabase.auth.getUser as any).mockResolvedValue({
-        data: { user: mockUser },
-      });
+      localStorageMock.getItem.mockReturnValue(JSON.stringify(mockTokens));
 
-      const mockSelect = vi.fn().mockReturnThis();
-      const mockEq = vi.fn().mockReturnThis();
-
-      (supabase.from as any).mockReturnValue({
-        select: mockSelect,
-        eq: mockEq,
-      });
-
-      mockEq.mockResolvedValue({
+      vi.mocked(subscriptionsApi.getActiveSubscriptions).mockResolvedValue({
         data: mockSubscriptions,
         error: null,
+        status: 200,
       });
 
       const { result } = renderHook(() => useMCPPermissionContext(), {
@@ -575,7 +495,8 @@ describe('MCPPermissionContext', () => {
 
   describe('에러 시나리오', () => {
     it('인증 에러 발생 시 안전하게 처리해야 함', async () => {
-      (supabase.auth.getUser as any).mockRejectedValue(new Error('Auth error'));
+      // 잘못된 JSON 형식의 토큰 (파싱 에러 유발)
+      localStorageMock.getItem.mockReturnValue('invalid-json');
 
       const { result } = renderHook(() => useMCPPermissionContext(), {
         wrapper: createWrapper(),
@@ -595,20 +516,13 @@ describe('MCPPermissionContext', () => {
       expect(result.current).toBeDefined();
     });
 
-    it('DB 연결 실패 시 service_unavailable을 반환해야 함', async () => {
-      (supabase.auth.getUser as any).mockResolvedValue({
-        data: { user: mockUser },
-      });
+    it('API 연결 실패 시 service_unavailable을 반환해야 함', async () => {
+      localStorageMock.getItem.mockReturnValue(JSON.stringify(mockTokens));
 
-      const mockSelect = vi.fn().mockReturnThis();
-      const mockEq = vi.fn().mockReturnThis();
-
-      (supabase.from as any).mockReturnValue({
-        select: mockSelect,
-        eq: mockEq,
-      });
-
-      mockEq.mockRejectedValue(new Error('Connection failed'));
+      // API 에러 모킹
+      vi.mocked(subscriptionsApi.getActiveSubscriptions).mockRejectedValue(
+        new Error('Connection failed')
+      );
 
       const { result } = renderHook(() => useMCPPermissionContext(), {
         wrapper: createWrapper(),
@@ -646,21 +560,12 @@ describe('MCPPermissionContext', () => {
 
   describe('invalidateCache 파라미터', () => {
     beforeEach(() => {
-      (supabase.auth.getUser as any).mockResolvedValue({
-        data: { user: mockUser },
-      });
+      localStorageMock.getItem.mockReturnValue(JSON.stringify(mockTokens));
 
-      const mockSelect = vi.fn().mockReturnThis();
-      const mockEq = vi.fn().mockReturnThis();
-
-      (supabase.from as any).mockReturnValue({
-        select: mockSelect,
-        eq: mockEq,
-      });
-
-      mockEq.mockResolvedValue({
+      vi.mocked(subscriptionsApi.getActiveSubscriptions).mockResolvedValue({
         data: mockSubscriptions,
         error: null,
+        status: 200,
       });
     });
 

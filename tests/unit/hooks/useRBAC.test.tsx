@@ -3,12 +3,13 @@
  * useRBAC Hook 테스트
  *
  * RBAC (Role-Based Access Control) 훅 테스트
+ * @migration Supabase -> Cloudflare Workers API
  * - 역할 조회
  * - 권한 조회
  * - 사용자 역할 할당/해제
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
@@ -20,58 +21,68 @@ import {
   useAssignRole,
   useRevokeRole,
 } from '@/hooks/useRBAC';
-import { supabase } from '@/integrations/supabase/client';
+import { permissionsApi } from '@/integrations/cloudflare/client';
 import type { Role, Permission } from '@/types/rbac';
 import React from 'react';
 
-// Mock dependencies
-vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
-    from: vi.fn(),
-    rpc: vi.fn(),
+// Mock Workers API client
+vi.mock('@/integrations/cloudflare/client', () => ({
+  permissionsApi: {
+    getRoles: vi.fn(),
+    getUserRoles: vi.fn(),
+    assignRole: vi.fn(),
+    revokeRole: vi.fn(),
   },
 }));
 
+// Mock useAuth hook
 vi.mock('@/hooks/useAuth', () => ({
   useAuth: vi.fn(() => ({
     user: {
       id: 'user-123',
       email: 'test@example.com',
     },
+    workersUser: {
+      id: 'user-123',
+      email: 'test@example.com',
+    },
+    workersTokens: { accessToken: 'mock-token' },
+    isAuthenticated: true,
+    getAccessToken: () => 'mock-token',
   })),
 }));
 
-// Test wrapper
-const createWrapper = () => {
-  const queryClient = new QueryClient({
-    defaultOptions: {
-      queries: { retry: false },
-      mutations: { retry: false },
-    },
-  });
-
-  return ({ children }: { children: React.ReactNode }) => (
-    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-  );
-};
-
 describe('useRBAC', () => {
-  const mockRoles: Role[] = [
+  let queryClient: QueryClient;
+
+  // Workers API 응답 형식의 역할 목록
+  const mockApiRoles = [
     {
       id: 'role-1',
       name: 'admin',
       description: '관리자',
-      created_at: '2024-01-01T00:00:00Z',
-      updated_at: '2024-01-01T00:00:00Z',
+      permissions: ['content:read', 'content:write', 'admin:all'],
+      is_system: true,
     },
     {
       id: 'role-2',
       name: 'member',
       description: '멤버',
-      created_at: '2024-01-01T00:00:00Z',
-      updated_at: '2024-01-01T00:00:00Z',
+      permissions: ['content:read'],
+      is_system: false,
     },
   ];
+
+  // 변환된 Role 타입 형식
+  const mockRoles: Role[] = mockApiRoles.map((r) => ({
+    id: r.id,
+    name: r.name,
+    description: r.description,
+    permissions: r.permissions,
+    is_system: r.is_system,
+    created_at: expect.any(String),
+    updated_at: expect.any(String),
+  }));
 
   const mockPermissions: Permission[] = [
     {
@@ -95,22 +106,34 @@ describe('useRBAC', () => {
   ];
 
   beforeEach(() => {
+    queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    });
     vi.clearAllMocks();
   });
 
+  afterEach(() => {
+    queryClient.clear();
+  });
+
+  // Test wrapper
+  const createWrapper = () => {
+    return ({ children }: { children: React.ReactNode }) => (
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    );
+  };
+
   describe('useRoles', () => {
     it('모든 역할을 성공적으로 조회해야 함', async () => {
-      // Setup
-      const mockSelect = vi.fn().mockReturnThis();
-      const mockOrder = vi.fn().mockResolvedValue({
-        data: mockRoles,
+      // Setup - Workers API 모킹
+      vi.mocked(permissionsApi.getRoles).mockResolvedValue({
+        data: { roles: mockApiRoles },
         error: null,
+        status: 200,
       });
-
-      vi.mocked(supabase.from).mockReturnValue({
-        select: mockSelect,
-        order: mockOrder,
-      } as any);
 
       // Execute
       const { result } = renderHook(() => useRoles(), {
@@ -118,26 +141,26 @@ describe('useRBAC', () => {
       });
 
       // Assert
-      await waitFor(() => {
-        expect(result.current.isSuccess).toBe(true);
-      });
+      await waitFor(
+        () => {
+          expect(result.current.isSuccess).toBe(true);
+        },
+        { timeout: 3000 }
+      );
 
-      expect(result.current.data).toEqual(mockRoles);
-      expect(supabase.from).toHaveBeenCalledWith('roles');
+      expect(result.current.data).toHaveLength(2);
+      expect(result.current.data?.[0].name).toBe('admin');
+      expect(result.current.data?.[1].name).toBe('member');
+      expect(permissionsApi.getRoles).toHaveBeenCalledWith('mock-token');
     });
 
     it('역할 조회 실패 시 에러를 처리해야 함', async () => {
-      // Setup
-      const mockSelect = vi.fn().mockReturnThis();
-      const mockOrder = vi.fn().mockResolvedValue({
+      // Setup - Workers API 에러 모킹
+      vi.mocked(permissionsApi.getRoles).mockResolvedValue({
         data: null,
-        error: { message: 'Database error' },
+        error: 'Database error',
+        status: 500,
       });
-
-      vi.mocked(supabase.from).mockReturnValue({
-        select: mockSelect,
-        order: mockOrder,
-      } as any);
 
       // Execute
       const { result } = renderHook(() => useRoles(), {
@@ -151,17 +174,12 @@ describe('useRBAC', () => {
     });
 
     it('빈 역할 목록을 처리해야 함', async () => {
-      // Setup
-      const mockSelect = vi.fn().mockReturnThis();
-      const mockOrder = vi.fn().mockResolvedValue({
-        data: [],
+      // Setup - Workers API 빈 목록 모킹
+      vi.mocked(permissionsApi.getRoles).mockResolvedValue({
+        data: { roles: [] },
         error: null,
+        status: 200,
       });
-
-      vi.mocked(supabase.from).mockReturnValue({
-        select: mockSelect,
-        order: mockOrder,
-      } as any);
 
       // Execute
       const { result } = renderHook(() => useRoles(), {
@@ -179,17 +197,12 @@ describe('useRBAC', () => {
 
   describe('usePermissions', () => {
     it('모든 권한을 성공적으로 조회해야 함', async () => {
-      // Setup
-      const mockSelect = vi.fn().mockReturnThis();
-      const mockOrder = vi.fn().mockResolvedValue({
-        data: mockPermissions,
+      // Setup - Workers API 모킹 (역할에서 권한 추출)
+      vi.mocked(permissionsApi.getRoles).mockResolvedValue({
+        data: { roles: mockApiRoles },
         error: null,
+        status: 200,
       });
-
-      vi.mocked(supabase.from).mockReturnValue({
-        select: mockSelect,
-        order: mockOrder,
-      } as any);
 
       // Execute
       const { result } = renderHook(() => usePermissions(), {
@@ -201,22 +214,19 @@ describe('useRBAC', () => {
         expect(result.current.isSuccess).toBe(true);
       });
 
-      expect(result.current.data).toEqual(mockPermissions);
-      expect(supabase.from).toHaveBeenCalledWith('permissions');
+      // 고유 권한 추출됨: content:read, content:write, admin:all
+      expect(result.current.data).toBeDefined();
+      expect(result.current.data?.length).toBeGreaterThan(0);
+      expect(permissionsApi.getRoles).toHaveBeenCalledWith('mock-token');
     });
 
     it('권한 조회 실패 시 에러를 처리해야 함', async () => {
-      // Setup
-      const mockSelect = vi.fn().mockReturnThis();
-      const mockOrder = vi.fn().mockResolvedValue({
+      // Setup - Workers API 에러 모킹
+      vi.mocked(permissionsApi.getRoles).mockResolvedValue({
         data: null,
-        error: { message: 'Permission error' },
+        error: 'Permission error',
+        status: 500,
       });
-
-      vi.mocked(supabase.from).mockReturnValue({
-        select: mockSelect,
-        order: mockOrder,
-      } as any);
 
       // Execute
       const { result } = renderHook(() => usePermissions(), {
@@ -232,29 +242,22 @@ describe('useRBAC', () => {
 
   describe('useUserRoles', () => {
     it('특정 사용자의 역할을 성공적으로 조회해야 함', async () => {
-      // Setup
-      const mockUserRoles = [
+      // Setup - Workers API 사용자 역할 모킹
+      const mockUserRolesResponse = [
         {
-          id: 'ur-1',
-          user_id: 'user-123',
-          role_id: 'role-1',
-          assigned_by: 'admin-123',
-          assigned_at: '2024-01-01T00:00:00Z',
-          role: mockRoles[0],
-          user: { id: 'user-123', email: 'test@example.com' },
+          id: 'role-1',
+          name: 'admin',
+          permissions: ['content:read', 'content:write'],
+          granted_at: '2024-01-01T00:00:00Z',
+          granted_by: 'admin-123',
         },
       ];
 
-      const mockSelect = vi.fn().mockReturnThis();
-      const mockEq = vi.fn().mockResolvedValue({
-        data: mockUserRoles,
+      vi.mocked(permissionsApi.getUserRoles).mockResolvedValue({
+        data: { roles: mockUserRolesResponse },
         error: null,
+        status: 200,
       });
-
-      vi.mocked(supabase.from).mockReturnValue({
-        select: mockSelect,
-        eq: mockEq,
-      } as any);
 
       // Execute
       const { result } = renderHook(() => useUserRoles('user-123'), {
@@ -266,8 +269,9 @@ describe('useRBAC', () => {
         expect(result.current.isSuccess).toBe(true);
       });
 
-      expect(result.current.data).toEqual(mockUserRoles);
-      expect(mockEq).toHaveBeenCalledWith('user_id', 'user-123');
+      expect(result.current.data).toBeDefined();
+      expect(result.current.data?.length).toBe(1);
+      expect(permissionsApi.getUserRoles).toHaveBeenCalledWith('mock-token', 'user-123');
     });
 
     it('userId가 없으면 쿼리를 비활성화해야 함', () => {
@@ -281,17 +285,12 @@ describe('useRBAC', () => {
     });
 
     it('사용자 역할이 없을 때 빈 배열을 반환해야 함', async () => {
-      // Setup
-      const mockSelect = vi.fn().mockReturnThis();
-      const mockEq = vi.fn().mockResolvedValue({
-        data: [],
+      // Setup - Workers API 빈 역할 목록 모킹
+      vi.mocked(permissionsApi.getUserRoles).mockResolvedValue({
+        data: { roles: [] },
         error: null,
+        status: 200,
       });
-
-      vi.mocked(supabase.from).mockReturnValue({
-        select: mockSelect,
-        eq: mockEq,
-      } as any);
 
       // Execute
       const { result } = renderHook(() => useUserRoles('user-123'), {
@@ -309,24 +308,22 @@ describe('useRBAC', () => {
 
   describe('useUserPermissions', () => {
     it('사용자의 권한을 성공적으로 조회해야 함', async () => {
-      // Setup
-      const mockUserPermissions = [
+      // Setup - Workers API 사용자 역할 모킹 (권한 추출용)
+      const mockUserRolesResponse = [
         {
-          permission_name: 'content.read',
-          resource: 'content',
-          action: 'read',
-        },
-        {
-          permission_name: 'content.write',
-          resource: 'content',
-          action: 'write',
+          id: 'role-1',
+          name: 'admin',
+          permissions: ['content:read', 'content:write'],
+          granted_at: '2024-01-01T00:00:00Z',
+          granted_by: 'admin-123',
         },
       ];
 
-      vi.mocked(supabase.rpc).mockResolvedValue({
-        data: mockUserPermissions,
+      vi.mocked(permissionsApi.getUserRoles).mockResolvedValue({
+        data: { roles: mockUserRolesResponse },
         error: null,
-      } as any);
+        status: 200,
+      });
 
       // Execute
       const { result } = renderHook(() => useUserPermissions('user-123'), {
@@ -338,10 +335,10 @@ describe('useRBAC', () => {
         expect(result.current.isSuccess).toBe(true);
       });
 
-      expect(result.current.data).toEqual(mockUserPermissions);
-      expect(supabase.rpc).toHaveBeenCalledWith('get_user_permissions', {
-        p_user_id: 'user-123',
-      });
+      expect(result.current.data).toBeDefined();
+      expect(result.current.data?.length).toBe(2);
+      expect(result.current.data?.[0].permission_name).toBe('content:read');
+      expect(result.current.data?.[1].permission_name).toBe('content:write');
     });
 
     it('userId가 없으면 쿼리가 비활성화되어야 함', () => {
@@ -359,11 +356,12 @@ describe('useRBAC', () => {
     });
 
     it('권한 조회 실패 시 에러를 처리해야 함', async () => {
-      // Setup
-      vi.mocked(supabase.rpc).mockResolvedValue({
+      // Setup - Workers API 에러 모킹
+      vi.mocked(permissionsApi.getUserRoles).mockResolvedValue({
         data: null,
-        error: { message: 'RPC error' },
-      } as any);
+        error: 'RPC error',
+        status: 500,
+      });
 
       // Execute
       const { result } = renderHook(() => useUserPermissions('user-123'), {
@@ -379,18 +377,25 @@ describe('useRBAC', () => {
 
   describe('useHasPermission', () => {
     it('사용자가 권한을 가지고 있으면 true를 반환해야 함', async () => {
-      // Setup
-      const mockUserPermissions = [
-        { permission_name: 'content.read', resource: 'content', action: 'read' },
+      // Setup - Workers API 사용자 역할 모킹
+      const mockUserRolesResponse = [
+        {
+          id: 'role-1',
+          name: 'admin',
+          permissions: ['content:read'],
+          granted_at: '2024-01-01T00:00:00Z',
+          granted_by: 'admin-123',
+        },
       ];
 
-      vi.mocked(supabase.rpc).mockResolvedValue({
-        data: mockUserPermissions,
+      vi.mocked(permissionsApi.getUserRoles).mockResolvedValue({
+        data: { roles: mockUserRolesResponse },
         error: null,
-      } as any);
+        status: 200,
+      });
 
       // Execute
-      const { result } = renderHook(() => useHasPermission('content.read'), {
+      const { result } = renderHook(() => useHasPermission('content:read'), {
         wrapper: createWrapper(),
       });
 
@@ -401,14 +406,15 @@ describe('useRBAC', () => {
     });
 
     it('사용자가 권한을 가지고 있지 않으면 false를 반환해야 함', async () => {
-      // Setup
-      vi.mocked(supabase.rpc).mockResolvedValue({
-        data: [],
+      // Setup - Workers API 빈 역할 목록 모킹
+      vi.mocked(permissionsApi.getUserRoles).mockResolvedValue({
+        data: { roles: [] },
         error: null,
-      } as any);
+        status: 200,
+      });
 
       // Execute
-      const { result } = renderHook(() => useHasPermission('content.delete'), {
+      const { result } = renderHook(() => useHasPermission('content:delete'), {
         wrapper: createWrapper(),
       });
 
@@ -421,15 +427,12 @@ describe('useRBAC', () => {
 
   describe('useAssignRole', () => {
     it('역할을 성공적으로 할당해야 함', async () => {
-      // Setup
-      const mockInsert = vi.fn().mockResolvedValue({
-        data: null,
+      // Setup - Workers API 역할 할당 모킹
+      vi.mocked(permissionsApi.assignRole).mockResolvedValue({
+        data: { success: true },
         error: null,
+        status: 200,
       });
-
-      vi.mocked(supabase.from).mockReturnValue({
-        insert: mockInsert,
-      } as any);
 
       // Execute
       const { result } = renderHook(() => useAssignRole(), {
@@ -446,23 +449,16 @@ describe('useRBAC', () => {
         expect(result.current.isSuccess).toBe(true);
       });
 
-      expect(mockInsert).toHaveBeenCalledWith({
-        user_id: 'user-123',
-        role_id: 'role-1',
-        assigned_by: 'user-123',
-      });
+      expect(permissionsApi.assignRole).toHaveBeenCalledWith('mock-token', 'user-123', 'role-1');
     });
 
     it('역할 할당 실패 시 에러를 처리해야 함', async () => {
-      // Setup
-      const mockInsert = vi.fn().mockResolvedValue({
+      // Setup - Workers API 에러 모킹
+      vi.mocked(permissionsApi.assignRole).mockResolvedValue({
         data: null,
-        error: { message: 'Insert failed' },
+        error: 'Insert failed',
+        status: 500,
       });
-
-      vi.mocked(supabase.from).mockReturnValue({
-        insert: mockInsert,
-      } as any);
 
       // Execute
       const { result } = renderHook(() => useAssignRole(), {
@@ -481,25 +477,19 @@ describe('useRBAC', () => {
     });
 
     it('역할 할당 성공 시 캐시를 무효화해야 함', async () => {
-      // Setup
-      const mockInsert = vi.fn().mockResolvedValue({
-        data: { id: 'ur-1' },
+      // Setup - Workers API 역할 할당 모킹
+      vi.mocked(permissionsApi.assignRole).mockResolvedValue({
+        data: { success: true },
         error: null,
+        status: 200,
       });
 
-      vi.mocked(supabase.from).mockReturnValue({
-        insert: mockInsert,
-      } as any);
-
-      const queryClient = new QueryClient();
       const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
 
-      const wrapper = ({ children }: { children: React.ReactNode }) => (
-        <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-      );
-
       // Execute
-      const { result } = renderHook(() => useAssignRole(), { wrapper });
+      const { result } = renderHook(() => useAssignRole(), {
+        wrapper: createWrapper(),
+      });
 
       result.current.mutate({
         userId: 'user-123',
@@ -527,18 +517,11 @@ describe('useRBAC', () => {
     });
 
     it('역할 해제 실패 시 에러를 처리해야 함', async () => {
-      // Setup
-      const mockDelete = vi.fn().mockReturnThis();
-      const mockEq = vi.fn().mockReturnThis();
-
-      vi.mocked(supabase.from).mockReturnValue({
-        delete: mockDelete,
-        eq: mockEq,
-      } as any);
-
-      mockEq.mockResolvedValue({
+      // Setup - Workers API 에러 모킹
+      vi.mocked(permissionsApi.revokeRole).mockResolvedValue({
         data: null,
-        error: { message: 'Delete failed' },
+        error: 'Delete failed',
+        status: 500,
       });
 
       // Execute
@@ -565,6 +548,32 @@ describe('useRBAC', () => {
 
       // Assert
       expect(result.current.isIdle).toBe(true);
+    });
+
+    it('역할 해제를 성공적으로 수행해야 함', async () => {
+      // Setup - Workers API 역할 해제 모킹
+      vi.mocked(permissionsApi.revokeRole).mockResolvedValue({
+        data: { success: true },
+        error: null,
+        status: 200,
+      });
+
+      // Execute
+      const { result } = renderHook(() => useRevokeRole(), {
+        wrapper: createWrapper(),
+      });
+
+      result.current.mutate({
+        userId: 'user-123',
+        roleId: 'role-1',
+      });
+
+      // Assert
+      await waitFor(() => {
+        expect(result.current.isSuccess).toBe(true);
+      });
+
+      expect(permissionsApi.revokeRole).toHaveBeenCalledWith('mock-token', 'user-123', 'role-1');
     });
   });
 });

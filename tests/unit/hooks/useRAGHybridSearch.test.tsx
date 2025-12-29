@@ -1,4 +1,4 @@
- 
+
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -9,23 +9,25 @@ import {
   useMinuBuildHybridSearch,
   useMinuKeepHybridSearch,
 } from '@/hooks/useRAGHybridSearch';
-import { supabase } from '@/integrations/supabase/client';
+import { ragApi } from '@/integrations/cloudflare/client';
 import React, { type ReactNode } from 'react';
 
-// Mock supabase client
-vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
-    functions: {
-      invoke: vi.fn(),
-    },
-    rpc: vi.fn(),
+// Mock Workers API client
+vi.mock('@/integrations/cloudflare/client', () => ({
+  ragApi: {
+    search: vi.fn(),
   },
+}));
+
+// Mock useAuth 훅
+vi.mock('@/hooks/useAuth', () => ({
+  useAuth: () => ({
+    workersTokens: { accessToken: 'test-token', refreshToken: 'test-refresh' },
+  }),
 }));
 
 describe('useRAGHybridSearch', () => {
   let queryClient: QueryClient;
-
-  const mockEmbedding = [0.1, 0.2, 0.3, 0.4, 0.5];
 
   const mockHybridResults = [
     {
@@ -104,17 +106,15 @@ describe('useRAGHybridSearch', () => {
   });
 
   describe('하이브리드 검색 실행', () => {
-    it('임베딩 생성 후 하이브리드 검색을 실행해야 함', async () => {
-      // 임베딩 생성 모킹
-      vi.mocked(supabase.functions.invoke).mockResolvedValue({
-        data: { embedding: mockEmbedding },
+    it('Workers API로 하이브리드 검색을 실행해야 함', async () => {
+      // Workers API 모킹
+      vi.mocked(ragApi.search).mockResolvedValue({
+        data: {
+          success: true,
+          data: { results: mockHybridResults },
+        },
         error: null,
-      });
-
-      // RPC 호출 모킹
-      vi.mocked(supabase.rpc).mockResolvedValue({
-        data: mockHybridResults,
-        error: null,
+        status: 200,
       });
 
       const { result } = renderHook(() => useRAGHybridSearch(), { wrapper });
@@ -127,30 +127,25 @@ describe('useRAGHybridSearch', () => {
         expect(result.current.results).toHaveLength(2);
       });
 
-      // 임베딩 API 호출 확인
-      expect(supabase.functions.invoke).toHaveBeenCalledWith('rag-embed', {
-        body: { text: '하이브리드 검색', mode: 'query' },
+      // Workers API 호출 확인
+      expect(ragApi.search).toHaveBeenCalledWith('test-token', {
+        query: '하이브리드 검색',
+        limit: 10,
+        threshold: 0.7,
+        filters: {},
+        searchType: 'hybrid',
+        hybridWeight: 0.7,
       });
-
-      // RPC 호출 확인
-      expect(supabase.rpc).toHaveBeenCalledWith(
-        'hybrid_search_documents',
-        expect.objectContaining({
-          query_text: '하이브리드 검색',
-          query_embedding: mockEmbedding,
-        })
-      );
     });
 
     it('커스텀 가중치를 적용해야 함', async () => {
-      vi.mocked(supabase.functions.invoke).mockResolvedValue({
-        data: { embedding: mockEmbedding },
+      vi.mocked(ragApi.search).mockResolvedValue({
+        data: {
+          success: true,
+          data: { results: mockHybridResults },
+        },
         error: null,
-      });
-
-      vi.mocked(supabase.rpc).mockResolvedValue({
-        data: mockHybridResults,
-        error: null,
+        status: 200,
       });
 
       const { result } = renderHook(
@@ -173,24 +168,22 @@ describe('useRAGHybridSearch', () => {
         });
       });
 
-      expect(supabase.rpc).toHaveBeenCalledWith(
-        'hybrid_search_documents',
+      expect(ragApi.search).toHaveBeenCalledWith(
+        'test-token',
         expect.objectContaining({
-          keyword_weight: 0.5,
-          vector_weight: 0.5,
+          hybridWeight: 0.5,
         })
       );
     });
 
     it('가중치를 정규화해야 함', async () => {
-      vi.mocked(supabase.functions.invoke).mockResolvedValue({
-        data: { embedding: mockEmbedding },
+      vi.mocked(ragApi.search).mockResolvedValue({
+        data: {
+          success: true,
+          data: { results: mockHybridResults },
+        },
         error: null,
-      });
-
-      vi.mocked(supabase.rpc).mockResolvedValue({
-        data: mockHybridResults,
-        error: null,
+        status: 200,
       });
 
       const { result } = renderHook(
@@ -222,19 +215,17 @@ describe('useRAGHybridSearch', () => {
       });
 
       expect(result.current.results).toEqual([]);
-      expect(supabase.functions.invoke).not.toHaveBeenCalled();
-      expect(supabase.rpc).not.toHaveBeenCalled();
+      expect(ragApi.search).not.toHaveBeenCalled();
     });
 
     it('프로젝트/서비스 필터를 적용해야 함', async () => {
-      vi.mocked(supabase.functions.invoke).mockResolvedValue({
-        data: { embedding: mockEmbedding },
+      vi.mocked(ragApi.search).mockResolvedValue({
+        data: {
+          success: true,
+          data: { results: mockHybridResults },
+        },
         error: null,
-      });
-
-      vi.mocked(supabase.rpc).mockResolvedValue({
-        data: mockHybridResults,
-        error: null,
+        status: 200,
       });
 
       const { result } = renderHook(
@@ -250,30 +241,30 @@ describe('useRAGHybridSearch', () => {
         await result.current.search('검색');
       });
 
-      expect(supabase.rpc).toHaveBeenCalledWith(
-        'hybrid_search_documents',
+      expect(ragApi.search).toHaveBeenCalledWith(
+        'test-token',
         expect.objectContaining({
-          p_project_id: 'project-1',
-          p_service_id: 'minu-find',
+          filters: {
+            project_id: 'project-1',
+            service_id: 'minu-find',
+          },
         })
       );
     });
 
     it('최소 점수 필터를 적용해야 함', async () => {
-      vi.mocked(supabase.functions.invoke).mockResolvedValue({
-        data: { embedding: mockEmbedding },
+      vi.mocked(ragApi.search).mockResolvedValue({
+        data: {
+          success: true,
+          data: { results: mockHybridResults },
+        },
         error: null,
-      });
-
-      vi.mocked(supabase.rpc).mockResolvedValue({
-        data: mockHybridResults,
-        error: null,
+        status: 200,
       });
 
       const { result } = renderHook(
         () =>
           useRAGHybridSearch({
-            minKeywordScore: 0.5,
             minVectorScore: 0.8,
           }),
         { wrapper }
@@ -283,11 +274,10 @@ describe('useRAGHybridSearch', () => {
         await result.current.search('검색');
       });
 
-      expect(supabase.rpc).toHaveBeenCalledWith(
-        'hybrid_search_documents',
+      expect(ragApi.search).toHaveBeenCalledWith(
+        'test-token',
         expect.objectContaining({
-          min_keyword_score: 0.5,
-          min_vector_score: 0.8,
+          threshold: 0.8,
         })
       );
     });
@@ -295,14 +285,13 @@ describe('useRAGHybridSearch', () => {
 
   describe('검색 결과 처리', () => {
     it('DB 타입을 클라이언트 타입으로 변환해야 함', async () => {
-      vi.mocked(supabase.functions.invoke).mockResolvedValue({
-        data: { embedding: mockEmbedding },
+      vi.mocked(ragApi.search).mockResolvedValue({
+        data: {
+          success: true,
+          data: { results: mockHybridResults },
+        },
         error: null,
-      });
-
-      vi.mocked(supabase.rpc).mockResolvedValue({
-        data: mockHybridResults,
-        error: null,
+        status: 200,
       });
 
       const { result } = renderHook(() => useRAGHybridSearch(), { wrapper });
@@ -329,14 +318,13 @@ describe('useRAGHybridSearch', () => {
     });
 
     it('빈 검색 결과를 처리해야 함', async () => {
-      vi.mocked(supabase.functions.invoke).mockResolvedValue({
-        data: { embedding: mockEmbedding },
+      vi.mocked(ragApi.search).mockResolvedValue({
+        data: {
+          success: true,
+          data: { results: [] },
+        },
         error: null,
-      });
-
-      vi.mocked(supabase.rpc).mockResolvedValue({
-        data: [],
-        error: null,
+        status: 200,
       });
 
       const { result } = renderHook(() => useRAGHybridSearch(), { wrapper });
@@ -353,14 +341,13 @@ describe('useRAGHybridSearch', () => {
     });
 
     it('clearResults로 검색 결과를 초기화할 수 있어야 함', async () => {
-      vi.mocked(supabase.functions.invoke).mockResolvedValue({
-        data: { embedding: mockEmbedding },
+      vi.mocked(ragApi.search).mockResolvedValue({
+        data: {
+          success: true,
+          data: { results: mockHybridResults },
+        },
         error: null,
-      });
-
-      vi.mocked(supabase.rpc).mockResolvedValue({
-        data: mockHybridResults,
-        error: null,
+        status: 200,
       });
 
       const { result } = renderHook(() => useRAGHybridSearch(), { wrapper });
@@ -383,62 +370,11 @@ describe('useRAGHybridSearch', () => {
   });
 
   describe('에러 처리', () => {
-    it('임베딩 생성 실패 시 에러를 처리해야 함', async () => {
-      vi.mocked(supabase.functions.invoke).mockResolvedValue({
+    it('API 에러 시 에러를 처리해야 함', async () => {
+      vi.mocked(ragApi.search).mockResolvedValue({
         data: null,
-        error: { message: '임베딩 에러' },
-      });
-
-      const { result } = renderHook(() => useRAGHybridSearch(), { wrapper });
-
-      await act(async () => {
-        try {
-          await result.current.search('검색');
-        } catch {
-          // 에러는 훅 내부에서 처리됨
-        }
-      });
-
-      await waitFor(() => {
-        expect(result.current.error).not.toBe(null);
-      });
-
-      expect(result.current.error?.message).toContain('임베딩 생성 실패');
-      expect(result.current.results).toEqual([]);
-    });
-
-    it('임베딩 데이터가 없으면 에러를 던져야 함', async () => {
-      vi.mocked(supabase.functions.invoke).mockResolvedValue({
-        data: {},
-        error: null,
-      });
-
-      const { result } = renderHook(() => useRAGHybridSearch(), { wrapper });
-
-      await act(async () => {
-        try {
-          await result.current.search('검색');
-        } catch {
-          // 에러는 훅 내부에서 처리됨
-        }
-      });
-
-      await waitFor(() => {
-        expect(result.current.error).not.toBe(null);
-      });
-
-      expect(result.current.error?.message).toContain('임베딩 데이터가 없습니다');
-    });
-
-    it('RPC 검색 실패 시 에러를 처리해야 함', async () => {
-      vi.mocked(supabase.functions.invoke).mockResolvedValue({
-        data: { embedding: mockEmbedding },
-        error: null,
-      });
-
-      vi.mocked(supabase.rpc).mockResolvedValue({
-        data: null,
-        error: { message: '검색 실패' },
+        error: '검색 서비스 오류',
+        status: 500,
       });
 
       const { result } = renderHook(() => useRAGHybridSearch(), { wrapper });
@@ -456,10 +392,35 @@ describe('useRAGHybridSearch', () => {
       });
 
       expect(result.current.error?.message).toContain('검색에 실패했습니다');
+      expect(result.current.results).toEqual([]);
+    });
+
+    it('응답 데이터가 없으면 에러를 던져야 함', async () => {
+      vi.mocked(ragApi.search).mockResolvedValue({
+        data: { success: false, error: { message: '데이터 없음' } },
+        error: null,
+        status: 200,
+      });
+
+      const { result } = renderHook(() => useRAGHybridSearch(), { wrapper });
+
+      await act(async () => {
+        try {
+          await result.current.search('검색');
+        } catch {
+          // 에러는 훅 내부에서 처리됨
+        }
+      });
+
+      await waitFor(() => {
+        expect(result.current.error).not.toBe(null);
+      });
+
+      expect(result.current.error?.message).toContain('데이터 없음');
     });
 
     it('네트워크 에러를 처리해야 함', async () => {
-      vi.mocked(supabase.functions.invoke).mockRejectedValue(new Error('Network error'));
+      vi.mocked(ragApi.search).mockRejectedValue(new Error('Network error'));
 
       const { result } = renderHook(() => useRAGHybridSearch(), { wrapper });
 
@@ -479,17 +440,18 @@ describe('useRAGHybridSearch', () => {
 
   describe('로딩 상태', () => {
     it('검색 중 isSearching이 true여야 함', async () => {
-      vi.mocked(supabase.functions.invoke).mockImplementation(
+      vi.mocked(ragApi.search).mockImplementation(
         () =>
           new Promise((resolve) =>
-            setTimeout(() => resolve({ data: { embedding: mockEmbedding }, error: null }), 50)
-          )
-      );
-
-      vi.mocked(supabase.rpc).mockImplementation(
-        () =>
-          new Promise((resolve) =>
-            setTimeout(() => resolve({ data: mockHybridResults, error: null }), 50)
+            setTimeout(
+              () =>
+                resolve({
+                  data: { success: true, data: { results: mockHybridResults } },
+                  error: null,
+                  status: 200,
+                }),
+              50
+            )
           )
       );
 
@@ -499,9 +461,12 @@ describe('useRAGHybridSearch', () => {
       const searchPromise = result.current.search('검색');
 
       // 즉시 로딩 상태 확인
-      await waitFor(() => {
-        expect(result.current.isSearching).toBe(true);
-      }, { timeout: 100 });
+      await waitFor(
+        () => {
+          expect(result.current.isSearching).toBe(true);
+        },
+        { timeout: 100 }
+      );
 
       // 검색 완료 대기
       await act(async () => {
@@ -519,14 +484,13 @@ describe('useRAGHybridSearch', () => {
 
   describe('서비스별 편의 훅', () => {
     it('useMinuFindHybridSearch가 serviceId를 자동 설정해야 함', async () => {
-      vi.mocked(supabase.functions.invoke).mockResolvedValue({
-        data: { embedding: mockEmbedding },
+      vi.mocked(ragApi.search).mockResolvedValue({
+        data: {
+          success: true,
+          data: { results: mockHybridResults },
+        },
         error: null,
-      });
-
-      vi.mocked(supabase.rpc).mockResolvedValue({
-        data: mockHybridResults,
-        error: null,
+        status: 200,
       });
 
       const { result } = renderHook(() => useMinuFindHybridSearch(), { wrapper });
@@ -535,23 +499,24 @@ describe('useRAGHybridSearch', () => {
         await result.current.search('검색');
       });
 
-      expect(supabase.rpc).toHaveBeenCalledWith(
-        'hybrid_search_documents',
+      expect(ragApi.search).toHaveBeenCalledWith(
+        'test-token',
         expect.objectContaining({
-          p_service_id: 'minu-find',
+          filters: expect.objectContaining({
+            service_id: 'minu-find',
+          }),
         })
       );
     });
 
     it('useMinuFrameHybridSearch가 serviceId를 자동 설정해야 함', async () => {
-      vi.mocked(supabase.functions.invoke).mockResolvedValue({
-        data: { embedding: mockEmbedding },
+      vi.mocked(ragApi.search).mockResolvedValue({
+        data: {
+          success: true,
+          data: { results: mockHybridResults },
+        },
         error: null,
-      });
-
-      vi.mocked(supabase.rpc).mockResolvedValue({
-        data: mockHybridResults,
-        error: null,
+        status: 200,
       });
 
       const { result } = renderHook(() => useMinuFrameHybridSearch(), { wrapper });
@@ -560,23 +525,24 @@ describe('useRAGHybridSearch', () => {
         await result.current.search('검색');
       });
 
-      expect(supabase.rpc).toHaveBeenCalledWith(
-        'hybrid_search_documents',
+      expect(ragApi.search).toHaveBeenCalledWith(
+        'test-token',
         expect.objectContaining({
-          p_service_id: 'minu-frame',
+          filters: expect.objectContaining({
+            service_id: 'minu-frame',
+          }),
         })
       );
     });
 
     it('useMinuBuildHybridSearch가 serviceId를 자동 설정해야 함', async () => {
-      vi.mocked(supabase.functions.invoke).mockResolvedValue({
-        data: { embedding: mockEmbedding },
+      vi.mocked(ragApi.search).mockResolvedValue({
+        data: {
+          success: true,
+          data: { results: mockHybridResults },
+        },
         error: null,
-      });
-
-      vi.mocked(supabase.rpc).mockResolvedValue({
-        data: mockHybridResults,
-        error: null,
+        status: 200,
       });
 
       const { result } = renderHook(() => useMinuBuildHybridSearch(), { wrapper });
@@ -585,23 +551,24 @@ describe('useRAGHybridSearch', () => {
         await result.current.search('검색');
       });
 
-      expect(supabase.rpc).toHaveBeenCalledWith(
-        'hybrid_search_documents',
+      expect(ragApi.search).toHaveBeenCalledWith(
+        'test-token',
         expect.objectContaining({
-          p_service_id: 'minu-build',
+          filters: expect.objectContaining({
+            service_id: 'minu-build',
+          }),
         })
       );
     });
 
     it('useMinuKeepHybridSearch가 serviceId를 자동 설정해야 함', async () => {
-      vi.mocked(supabase.functions.invoke).mockResolvedValue({
-        data: { embedding: mockEmbedding },
+      vi.mocked(ragApi.search).mockResolvedValue({
+        data: {
+          success: true,
+          data: { results: mockHybridResults },
+        },
         error: null,
-      });
-
-      vi.mocked(supabase.rpc).mockResolvedValue({
-        data: mockHybridResults,
-        error: null,
+        status: 200,
       });
 
       const { result } = renderHook(() => useMinuKeepHybridSearch(), { wrapper });
@@ -610,10 +577,12 @@ describe('useRAGHybridSearch', () => {
         await result.current.search('검색');
       });
 
-      expect(supabase.rpc).toHaveBeenCalledWith(
-        'hybrid_search_documents',
+      expect(ragApi.search).toHaveBeenCalledWith(
+        'test-token',
         expect.objectContaining({
-          p_service_id: 'minu-keep',
+          filters: expect.objectContaining({
+            service_id: 'minu-keep',
+          }),
         })
       );
     });
@@ -621,14 +590,13 @@ describe('useRAGHybridSearch', () => {
 
   describe('동적 옵션 변경', () => {
     it('검색 시 가중치를 동적으로 변경할 수 있어야 함', async () => {
-      vi.mocked(supabase.functions.invoke).mockResolvedValue({
-        data: { embedding: mockEmbedding },
+      vi.mocked(ragApi.search).mockResolvedValue({
+        data: {
+          success: true,
+          data: { results: mockHybridResults },
+        },
         error: null,
-      });
-
-      vi.mocked(supabase.rpc).mockResolvedValue({
-        data: mockHybridResults,
-        error: null,
+        status: 200,
       });
 
       const { result } = renderHook(() => useRAGHybridSearch(), { wrapper });

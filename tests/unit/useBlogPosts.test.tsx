@@ -1,181 +1,182 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { renderHook, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useBlogPosts, useCreateBlogPost, useUpdateBlogPost, useDeleteBlogPost } from '@/hooks/useBlogPosts'
-import { supabase } from '@/integrations/supabase/client'
+import { blogApi } from '@/integrations/cloudflare/client'
+import { useAuth } from '@/hooks/useAuth'
+import React, { type ReactNode } from 'react'
 
-// Mock Supabase
-vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
-    from: vi.fn()
-  }
+// Mock Workers API client
+vi.mock('@/integrations/cloudflare/client', () => ({
+  blogApi: {
+    getPosts: vi.fn(),
+    createPost: vi.fn(),
+    updatePost: vi.fn(),
+    deletePost: vi.fn(),
+  },
+}))
+
+// Mock useAuth
+vi.mock('@/hooks/useAuth', () => ({
+  useAuth: vi.fn(),
 }))
 
 describe('useBlogPosts', () => {
   let queryClient: QueryClient
 
+  const mockPosts = [
+    {
+      id: '1',
+      title: 'Test Post 1',
+      slug: 'test-post-1',
+      content: 'Content 1',
+      status: 'published',
+      author_id: 'user1',
+      category: { id: 'cat1', name: 'Tutorial', slug: 'tutorial' },
+      tags: [],
+    },
+    {
+      id: '2',
+      title: 'Test Post 2',
+      slug: 'test-post-2',
+      content: 'Content 2',
+      status: 'published',
+      author_id: 'user1',
+      category: { id: 'cat2', name: 'Guide', slug: 'guide' },
+      tags: [],
+    },
+  ]
+
   beforeEach(() => {
     queryClient = new QueryClient({
       defaultOptions: {
         queries: { retry: false },
-        mutations: { retry: false }
-      }
+        mutations: { retry: false },
+      },
     })
     vi.clearAllMocks()
   })
 
-  const wrapper = ({ children }: { children: React.ReactNode }) => (
+  afterEach(() => {
+    queryClient.clear()
+  })
+
+  const wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   )
 
-  it('should fetch blog posts successfully', async () => {
-    const mockRawPosts = [
-      {
-        id: '1',
-        title: 'Test Post 1',
-        slug: 'test-post-1',
-        content: 'Content 1',
-        status: 'published',
-        author_id: 'user1',
-        category: { id: 'cat1', name: 'Tutorial', slug: 'tutorial' },
-        tags: []
-      },
-      {
-        id: '2',
-        title: 'Test Post 2',
-        slug: 'test-post-2',
-        content: 'Content 2',
-        status: 'published',
-        author_id: 'user1',
-        category: { id: 'cat2', name: 'Guide', slug: 'guide' },
-        tags: []
-      }
-    ]
-
-    // Mock blog_posts query
-    vi.mocked(supabase.from).mockImplementation((table) => {
-      if (table === 'blog_posts') {
-        return {
-          select: vi.fn().mockReturnThis(),
-          eq: vi.fn().mockReturnThis(),
-          order: vi.fn().mockResolvedValue({ data: mockRawPosts, error: null })
-        } as any
-      }
-      // Mock user_profiles query
-      if (table === 'user_profiles') {
-        return {
-          select: vi.fn().mockReturnThis(),
-          in: vi.fn().mockResolvedValue({ data: [], error: null })
-        } as any
-      }
-      return {} as any
+  it('블로그 포스트 목록을 성공적으로 조회해야 함', async () => {
+    // Setup - Workers API 모킹
+    vi.mocked(blogApi.getPosts).mockResolvedValue({
+      data: { data: mockPosts },
+      error: null,
+      status: 200,
     })
 
+    // Execute
     const { result } = renderHook(() => useBlogPosts(), { wrapper })
 
-    await waitFor(() => expect(result.current.isSuccess || result.current.isError).toBe(true))
+    // Assert
+    await waitFor(() => {
+      expect(result.current.isSuccess || result.current.isError).toBe(true)
+    }, { timeout: 3000 })
 
-    // Check that data is defined and has correct length
     expect(result.current.data).toBeDefined()
     expect(result.current.data?.length).toBe(2)
     expect(result.current.data?.[0]).toHaveProperty('title', 'Test Post 1')
     expect(result.current.data?.[0].category).toEqual({ id: 'cat1', name: 'Tutorial', slug: 'tutorial' })
-    expect(supabase.from).toHaveBeenCalledWith('blog_posts')
+    expect(blogApi.getPosts).toHaveBeenCalled()
   })
 
-  it('should filter posts by status', async () => {
-    const mockPosts = [
-      {
-        id: '1',
-        title: 'Published Post',
-        slug: 'published-post',
-        status: 'published'
-      }
-    ]
+  it('상태 필터가 적용되어야 함', async () => {
+    // Setup - Workers API 모킹
+    const publishedPosts = mockPosts.filter(p => p.status === 'published')
+    vi.mocked(blogApi.getPosts).mockResolvedValue({
+      data: { data: publishedPosts },
+      error: null,
+      status: 200,
+    })
 
-    const selectMock = vi.fn().mockReturnThis()
-    const eqMock = vi.fn().mockReturnThis()
-    const orderMock = vi.fn().mockResolvedValue({ data: mockPosts, error: null })
-
-    vi.mocked(supabase.from).mockReturnValue({
-      select: selectMock,
-      eq: eqMock,
-      order: orderMock
-    } as any)
-
+    // Execute
     const { result } = renderHook(() => useBlogPosts({ filters: { status: 'published' } }), { wrapper })
 
-    await waitFor(() => expect(result.current.isSuccess || result.current.isError).toBe(true))
+    // Assert
+    await waitFor(() => {
+      expect(result.current.isSuccess || result.current.isError).toBe(true)
+    }, { timeout: 3000 })
 
-    expect(eqMock).toHaveBeenCalledWith('status', 'published')
+    expect(blogApi.getPosts).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 'published' })
+    )
   })
 
-  it('should handle fetch error', async () => {
-    const selectMock = vi.fn().mockReturnThis()
-    const eqMock = vi.fn().mockReturnThis()
-    const orderMock = vi.fn().mockResolvedValue({ data: null, error: new Error('Fetch failed') })
+  it('API 에러 발생 시 빈 배열을 반환해야 함', async () => {
+    // Setup - Workers API 에러 모킹
+    vi.mocked(blogApi.getPosts).mockResolvedValue({
+      data: null,
+      error: 'Fetch failed',
+      status: 500,
+    })
 
-    vi.mocked(supabase.from).mockReturnValue({
-      select: selectMock,
-      eq: eqMock,
-      order: orderMock
-    } as any)
-
+    // Execute
     const { result } = renderHook(() => useBlogPosts(), { wrapper })
 
-    await waitFor(() => expect(result.current.isError).toBe(true), { timeout: 3000 })
+    // Assert - 에러 시 빈 배열 반환
+    await waitFor(() => {
+      expect(result.current.isSuccess).toBe(true)
+    })
 
-    expect(result.current.error).toBeTruthy()
+    expect(result.current.data).toEqual([])
   })
 
-  it('should filter by category', async () => {
-    const mockPosts = [
-      {
-        id: '1',
-        title: 'Tutorial Post',
-        category_id: 'cat1'
-      }
-    ]
+  it('카테고리 필터가 적용되어야 함', async () => {
+    // Setup - Workers API 모킹
+    const filteredPosts = mockPosts.filter(p => p.category?.id === 'cat1')
+    vi.mocked(blogApi.getPosts).mockResolvedValue({
+      data: { data: filteredPosts },
+      error: null,
+      status: 200,
+    })
 
-    const selectMock = vi.fn().mockReturnThis()
-    const eqMock = vi.fn().mockReturnThis()
-    const orderMock = vi.fn().mockResolvedValue({ data: mockPosts, error: null })
-
-    vi.mocked(supabase.from).mockReturnValue({
-      select: selectMock,
-      eq: eqMock,
-      order: orderMock
-    } as any)
-
+    // Execute
     const { result } = renderHook(() => useBlogPosts({ filters: { category_id: 'cat1' } }), { wrapper })
 
-    await waitFor(() => expect(result.current.isSuccess || result.current.isError).toBe(true))
+    // Assert
+    await waitFor(() => {
+      expect(result.current.isSuccess || result.current.isError).toBe(true)
+    }, { timeout: 3000 })
 
-    expect(eqMock).toHaveBeenCalledWith('category_id', 'cat1')
+    expect(blogApi.getPosts).toHaveBeenCalledWith(
+      expect.objectContaining({ category_id: 'cat1' })
+    )
   })
 
-  it('should sort posts by creation date', async () => {
-    const mockPosts = [
-      { id: '1', title: 'Post 1', created_at: '2025-10-20' },
-      { id: '2', title: 'Post 2', created_at: '2025-10-19' }
-    ]
+  it('로딩 상태가 올바르게 동작해야 함', async () => {
+    // Setup - 지연된 응답 모킹
+    vi.mocked(blogApi.getPosts).mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          setTimeout(() => {
+            resolve({ data: { data: mockPosts }, error: null, status: 200 })
+          }, 100)
+        })
+    )
 
-    const selectMock = vi.fn().mockReturnThis()
-    const eqMock = vi.fn().mockReturnThis()
-    const orderMock = vi.fn().mockResolvedValue({ data: mockPosts, error: null })
+    // Execute
+    const { result } = renderHook(() => useBlogPosts(), { wrapper })
 
-    vi.mocked(supabase.from).mockReturnValue({
-      select: selectMock,
-      eq: eqMock,
-      order: orderMock
-    } as any)
+    // Assert - 초기 로딩 상태
+    expect(result.current.isLoading).toBe(true)
+    expect(result.current.data).toBeUndefined()
 
-    const { result } = renderHook(() => useBlogPosts({ sortBy: 'created_at', sortOrder: 'desc' }), { wrapper })
+    // Assert - 완료 후
+    await waitFor(() => {
+      expect(result.current.isSuccess || result.current.isError).toBe(true)
+    }, { timeout: 3000 })
 
-    await waitFor(() => expect(result.current.isSuccess || result.current.isError).toBe(true))
-
-    expect(orderMock).toHaveBeenCalledWith('created_at', { ascending: false })
+    expect(result.current.isLoading).toBe(false)
+    expect(result.current.data).toEqual(mockPosts)
   })
 })
 
@@ -186,70 +187,111 @@ describe('useCreateBlogPost', () => {
     queryClient = new QueryClient({
       defaultOptions: {
         queries: { retry: false },
-        mutations: { retry: false }
-      }
+        mutations: { retry: false },
+      },
     })
     vi.clearAllMocks()
+
+    // Mock useAuth
+    vi.mocked(useAuth).mockReturnValue({
+      workersTokens: { accessToken: 'test-token', refreshToken: 'refresh-token' },
+    } as any)
   })
 
-  const wrapper = ({ children }: { children: React.ReactNode }) => (
+  afterEach(() => {
+    queryClient.clear()
+  })
+
+  const wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   )
 
-  it('should create post successfully', async () => {
-    const mockPost = {
+  it('포스트를 성공적으로 생성해야 함', async () => {
+    // Setup - Workers API 모킹
+    const mockCreatedPost = {
       id: '1',
       title: 'New Post',
       slug: 'new-post',
       content: 'Content',
-      status: 'draft'
+      status: 'draft',
     }
 
-    const insertMock = vi.fn().mockReturnThis()
-    const selectMock = vi.fn().mockReturnThis()
-    const singleMock = vi.fn().mockResolvedValue({ data: mockPost, error: null })
+    vi.mocked(blogApi.createPost).mockResolvedValue({
+      data: { data: mockCreatedPost },
+      error: null,
+      status: 201,
+    })
 
-    vi.mocked(supabase.from).mockReturnValue({
-      insert: insertMock,
-      select: selectMock,
-      single: singleMock
-    } as any)
-
+    // Execute
     const { result } = renderHook(() => useCreateBlogPost(), { wrapper })
 
     result.current.mutate({
       title: 'New Post',
       slug: 'new-post',
       content: 'Content',
-      status: 'draft'
+      status: 'draft',
     } as any)
 
-    await waitFor(() => expect(result.current.isSuccess || result.current.isError).toBe(true))
+    // Assert
+    await waitFor(() => {
+      expect(result.current.isSuccess || result.current.isError).toBe(true)
+    }, { timeout: 3000 })
 
-    expect(insertMock).toHaveBeenCalled()
-    expect(result.current.data).toEqual(mockPost)
+    expect(blogApi.createPost).toHaveBeenCalledWith(
+      'test-token',
+      expect.objectContaining({
+        title: 'New Post',
+        slug: 'new-post',
+        content: 'Content',
+      })
+    )
+    expect(result.current.data).toEqual(mockCreatedPost)
   })
 
-  it('should handle create error', async () => {
-    const insertMock = vi.fn().mockReturnThis()
-    const selectMock = vi.fn().mockReturnThis()
-    const singleMock = vi.fn().mockResolvedValue({ data: null, error: new Error('Create failed') })
-
-    vi.mocked(supabase.from).mockReturnValue({
-      insert: insertMock,
-      select: selectMock,
-      single: singleMock
+  it('인증 없이 생성 시도 시 에러가 발생해야 함', async () => {
+    // Setup - 인증 없음
+    vi.mocked(useAuth).mockReturnValue({
+      workersTokens: null,
     } as any)
 
+    // Execute
     const { result } = renderHook(() => useCreateBlogPost(), { wrapper })
 
     result.current.mutate({
       title: 'New Post',
       slug: 'new-post',
-      content: 'Content'
+      content: 'Content',
     } as any)
 
-    await waitFor(() => expect(result.current.isError || result.current.isSuccess).toBe(true), { timeout: 3000 })
+    // Assert
+    await waitFor(() => {
+      expect(result.current.isError || result.current.isSuccess).toBe(true)
+    }, { timeout: 3000 })
+
+    expect(result.current.error).toBeTruthy()
+  })
+
+  it('API 에러 발생 시 에러 상태가 되어야 함', async () => {
+    // Setup - Workers API 에러 모킹
+    vi.mocked(blogApi.createPost).mockResolvedValue({
+      data: null,
+      error: 'Create failed',
+      status: 500,
+    })
+
+    // Execute
+    const { result } = renderHook(() => useCreateBlogPost(), { wrapper })
+
+    result.current.mutate({
+      title: 'New Post',
+      slug: 'new-post',
+      content: 'Content',
+    } as any)
+
+    // Assert
+    await waitFor(() => {
+      expect(result.current.isError || result.current.isSuccess).toBe(true)
+    }, { timeout: 3000 })
 
     expect(result.current.error).toBeTruthy()
   })
@@ -262,36 +304,41 @@ describe('useUpdateBlogPost', () => {
     queryClient = new QueryClient({
       defaultOptions: {
         queries: { retry: false },
-        mutations: { retry: false }
-      }
+        mutations: { retry: false },
+      },
     })
     vi.clearAllMocks()
+
+    // Mock useAuth
+    vi.mocked(useAuth).mockReturnValue({
+      workersTokens: { accessToken: 'test-token', refreshToken: 'refresh-token' },
+    } as any)
   })
 
-  const wrapper = ({ children }: { children: React.ReactNode }) => (
+  afterEach(() => {
+    queryClient.clear()
+  })
+
+  const wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   )
 
-  it('should update post successfully', async () => {
-    const mockPost = {
+  it('포스트를 성공적으로 업데이트해야 함', async () => {
+    // Setup - Workers API 모킹
+    const mockUpdatedPost = {
       id: '1',
       title: 'Updated Post',
       slug: 'updated-post',
-      content: 'Updated content'
+      content: 'Updated content',
     }
 
-    const updateMock = vi.fn().mockReturnThis()
-    const eqMock = vi.fn().mockReturnThis()
-    const selectMock = vi.fn().mockReturnThis()
-    const singleMock = vi.fn().mockResolvedValue({ data: mockPost, error: null })
+    vi.mocked(blogApi.updatePost).mockResolvedValue({
+      data: { data: mockUpdatedPost },
+      error: null,
+      status: 200,
+    })
 
-    vi.mocked(supabase.from).mockReturnValue({
-      update: updateMock,
-      eq: eqMock,
-      select: selectMock,
-      single: singleMock
-    } as any)
-
+    // Execute
     const { result } = renderHook(() => useUpdateBlogPost(), { wrapper })
 
     result.current.mutate({
@@ -299,14 +346,48 @@ describe('useUpdateBlogPost', () => {
       data: {
         title: 'Updated Post',
         slug: 'updated-post',
-        content: 'Updated content'
-      }
+        content: 'Updated content',
+      },
     } as any)
 
-    await waitFor(() => expect(result.current.isSuccess || result.current.isError).toBe(true))
+    // Assert
+    await waitFor(() => {
+      expect(result.current.isSuccess || result.current.isError).toBe(true)
+    }, { timeout: 3000 })
 
-    expect(updateMock).toHaveBeenCalled()
-    expect(eqMock).toHaveBeenCalledWith('id', '1')
+    expect(blogApi.updatePost).toHaveBeenCalledWith(
+      'test-token',
+      '1',
+      expect.objectContaining({
+        title: 'Updated Post',
+        slug: 'updated-post',
+        content: 'Updated content',
+      })
+    )
+  })
+
+  it('인증 없이 업데이트 시도 시 에러가 발생해야 함', async () => {
+    // Setup - 인증 없음
+    vi.mocked(useAuth).mockReturnValue({
+      workersTokens: null,
+    } as any)
+
+    // Execute
+    const { result } = renderHook(() => useUpdateBlogPost(), { wrapper })
+
+    result.current.mutate({
+      id: '1',
+      data: {
+        title: 'Updated Post',
+      },
+    } as any)
+
+    // Assert
+    await waitFor(() => {
+      expect(result.current.isError || result.current.isSuccess).toBe(true)
+    }, { timeout: 3000 })
+
+    expect(result.current.error).toBeTruthy()
   })
 })
 
@@ -317,49 +398,82 @@ describe('useDeleteBlogPost', () => {
     queryClient = new QueryClient({
       defaultOptions: {
         queries: { retry: false },
-        mutations: { retry: false }
-      }
+        mutations: { retry: false },
+      },
     })
     vi.clearAllMocks()
+
+    // Mock useAuth
+    vi.mocked(useAuth).mockReturnValue({
+      workersTokens: { accessToken: 'test-token', refreshToken: 'refresh-token' },
+    } as any)
   })
 
-  const wrapper = ({ children }: { children: React.ReactNode }) => (
+  afterEach(() => {
+    queryClient.clear()
+  })
+
+  const wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   )
 
-  it('should delete post successfully', async () => {
-    const deleteMock = vi.fn().mockReturnThis()
-    const eqMock = vi.fn().mockResolvedValue({ error: null })
+  it('포스트를 성공적으로 삭제해야 함', async () => {
+    // Setup - Workers API 모킹
+    vi.mocked(blogApi.deletePost).mockResolvedValue({
+      data: { success: true },
+      error: null,
+      status: 200,
+    })
 
-    vi.mocked(supabase.from).mockReturnValue({
-      delete: deleteMock,
-      eq: eqMock
-    } as any)
-
+    // Execute
     const { result } = renderHook(() => useDeleteBlogPost(), { wrapper })
 
     result.current.mutate('1')
 
-    await waitFor(() => expect(result.current.isSuccess || result.current.isError).toBe(true))
+    // Assert
+    await waitFor(() => {
+      expect(result.current.isSuccess || result.current.isError).toBe(true)
+    }, { timeout: 3000 })
 
-    expect(deleteMock).toHaveBeenCalled()
-    expect(eqMock).toHaveBeenCalledWith('id', '1')
+    expect(blogApi.deletePost).toHaveBeenCalledWith('test-token', '1')
   })
 
-  it('should handle delete error', async () => {
-    const deleteMock = vi.fn().mockReturnThis()
-    const eqMock = vi.fn().mockResolvedValue({ error: new Error('Delete failed') })
-
-    vi.mocked(supabase.from).mockReturnValue({
-      delete: deleteMock,
-      eq: eqMock
+  it('인증 없이 삭제 시도 시 에러가 발생해야 함', async () => {
+    // Setup - 인증 없음
+    vi.mocked(useAuth).mockReturnValue({
+      workersTokens: null,
     } as any)
 
+    // Execute
     const { result } = renderHook(() => useDeleteBlogPost(), { wrapper })
 
     result.current.mutate('1')
 
-    await waitFor(() => expect(result.current.isError || result.current.isSuccess).toBe(true), { timeout: 3000 })
+    // Assert
+    await waitFor(() => {
+      expect(result.current.isError || result.current.isSuccess).toBe(true)
+    }, { timeout: 3000 })
+
+    expect(result.current.error).toBeTruthy()
+  })
+
+  it('API 에러 발생 시 에러 상태가 되어야 함', async () => {
+    // Setup - Workers API 에러 모킹
+    vi.mocked(blogApi.deletePost).mockResolvedValue({
+      data: null,
+      error: 'Delete failed',
+      status: 500,
+    })
+
+    // Execute
+    const { result } = renderHook(() => useDeleteBlogPost(), { wrapper })
+
+    result.current.mutate('1')
+
+    // Assert
+    await waitFor(() => {
+      expect(result.current.isError || result.current.isSuccess).toBe(true)
+    }, { timeout: 3000 })
 
     expect(result.current.error).toBeTruthy()
   })

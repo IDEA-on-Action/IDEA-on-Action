@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
- 
+
 /**
  * AdminSidebar Component 테스트
  *
@@ -8,6 +8,10 @@
  * - 로딩 상태 처리
  * - 메뉴 접기/펼치기 기능
  * - 모바일/데스크톱 반응형 동작
+ *
+ * Workers API 마이그레이션 완료:
+ * - 이 컴포넌트는 직접 API를 호출하지 않고 훅을 통해 데이터를 조회
+ * - useAuth, useUserPermissions, useSidebarStore 훅 모킹으로 테스트
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -15,17 +19,9 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AdminSidebar } from '@/components/admin/layout/AdminSidebar';
-import { supabase } from '@/integrations/supabase/client';
 import React from 'react';
 
-// Mock dependencies
-vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
-    from: vi.fn(),
-    rpc: vi.fn(),
-  },
-}));
-
+// Mock hooks - Workers API는 훅 내부에서 처리됨
 vi.mock('@/hooks/useAuth', () => ({
   useAuth: vi.fn(() => ({
     user: {

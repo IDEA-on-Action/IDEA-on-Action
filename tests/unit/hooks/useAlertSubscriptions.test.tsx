@@ -1,7 +1,7 @@
 /**
  * useAlertSubscriptions Hook 테스트
  *
- * 알림 구독 설정 조회 및 관리 훅 테스트
+ * 알림 구독 설정 조회 및 관리 훅 테스트 (Workers API 모킹)
  * - 구독 목록 조회
  * - 구독 생성
  * - 구독 업데이트
@@ -22,14 +22,12 @@ import {
   isInQuietHours,
   type AlertSubscription,
 } from '@/hooks/useAlertSubscriptions';
-import { supabase } from '@/integrations/supabase/client';
+import { callWorkersApi } from '@/integrations/cloudflare/client';
 import React from 'react';
 
-// Mock Supabase
-vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
-    from: vi.fn(),
-  },
+// Mock Workers API client
+vi.mock('@/integrations/cloudflare/client', () => ({
+  callWorkersApi: vi.fn(),
 }));
 
 // Test wrapper
@@ -46,8 +44,8 @@ const createWrapper = () => {
   );
 };
 
-// Mock 데이터
-const mockSubscriptions = [
+// Mock 데이터 (DB 형식)
+const mockSubscriptionsDB = [
   {
     id: '1',
     user_id: 'user-1',
@@ -86,53 +84,16 @@ const mockSubscriptions = [
   },
 ];
 
-// Mock query 타입 정의
-interface MockQuery {
-  select: ReturnType<typeof vi.fn>;
-  eq: ReturnType<typeof vi.fn>;
-  order: ReturnType<typeof vi.fn>;
-  insert: ReturnType<typeof vi.fn>;
-  update: ReturnType<typeof vi.fn>;
-  delete: ReturnType<typeof vi.fn>;
-  then?: ReturnType<typeof vi.fn>;
-}
-
 describe('useAlertSubscriptions', () => {
-  let mockQuery: MockQuery;
-
   beforeEach(() => {
     vi.clearAllMocks();
 
-    // 완전한 체이닝 지원하는 mock 객체 생성
-    const createMockQuery = () => {
-      const query = {
-        select: vi.fn(),
-        eq: vi.fn(),
-        order: vi.fn(),
-        insert: vi.fn(),
-        update: vi.fn(),
-        delete: vi.fn(),
-      };
-
-      // 모든 메서드는 자기 자신을 반환하되, then을 가진 Promise처럼 동작
-      query.select.mockReturnValue(query);
-      query.eq.mockReturnValue(query);
-      query.order.mockReturnValue(query);
-      query.insert.mockReturnValue(query);
-      query.update.mockReturnValue(query);
-      query.delete.mockReturnValue(query);
-
-      // then을 추가하여 Promise처럼 동작하도록
-      const queryWithThen = query as MockQuery;
-      queryWithThen.then = vi.fn((onFulfilled) => {
-        return Promise.resolve({ data: mockSubscriptions, error: null }).then(onFulfilled);
-      });
-
-      return queryWithThen;
-    };
-
-    mockQuery = createMockQuery();
-    vi.mocked(supabase.from).mockReturnValue(mockQuery as ReturnType<typeof supabase.from>);
+    // Workers API 기본 응답 설정
+    vi.mocked(callWorkersApi).mockResolvedValue({
+      data: mockSubscriptionsDB,
+      error: null,
+      status: 200,
+    });
   });
 
   describe('초기 상태 확인', () => {
@@ -190,7 +151,7 @@ describe('useAlertSubscriptions', () => {
       expect(result.current.error).toBeNull();
     });
 
-    it('alert_subscriptions 테이블에서 데이터를 조회해야 함', async () => {
+    it('Workers API를 호출해야 함', async () => {
       // Execute
       const { result } = renderHook(() => useAlertSubscriptions('user-1'), {
         wrapper: createWrapper(),
@@ -201,10 +162,10 @@ describe('useAlertSubscriptions', () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      expect(supabase.from).toHaveBeenCalledWith('alert_subscriptions');
-      expect(mockQuery.select).toHaveBeenCalledWith('*');
-      expect(mockQuery.eq).toHaveBeenCalledWith('user_id', 'user-1');
-      expect(mockQuery.order).toHaveBeenCalledWith('created_at', { ascending: false });
+      expect(callWorkersApi).toHaveBeenCalledWith(
+        '/api/v1/alert-subscriptions?user_id=user-1',
+        { token: 'test-token' }
+      );
     });
 
     it('DB 데이터를 올바른 타입으로 변환해야 함', async () => {
@@ -233,8 +194,10 @@ describe('useAlertSubscriptions', () => {
 
     it('빈 목록을 올바르게 처리해야 함', async () => {
       // Setup
-      mockQuery.then = vi.fn((onFulfilled) => {
-        return Promise.resolve({ data: [], error: null }).then(onFulfilled);
+      vi.mocked(callWorkersApi).mockResolvedValueOnce({
+        data: [],
+        error: null,
+        status: 200,
       });
 
       // Execute
@@ -263,9 +226,9 @@ describe('useAlertSubscriptions', () => {
         isEnabled: true,
       };
 
-      mockQuery.then = vi.fn((onFulfilled) => {
-        return Promise.resolve({ data: null, error: null }).then(onFulfilled);
-      });
+      vi.mocked(callWorkersApi)
+        .mockResolvedValueOnce({ data: mockSubscriptionsDB, error: null, status: 200 }) // 초기 조회
+        .mockResolvedValueOnce({ data: null, error: null, status: 201 }); // 생성
 
       // Execute
       const { result } = renderHook(() => useAlertSubscriptions('user-1'), {
@@ -279,15 +242,22 @@ describe('useAlertSubscriptions', () => {
       await result.current.createSubscription(newSubscription);
 
       // Assert
-      expect(mockQuery.insert).toHaveBeenCalledWith({
-        user_id: 'user-1',
-        topic_type: 'service',
-        topic_value: 'minu-find',
-        enabled_channels: ['in_app'],
-        quiet_hours_start: undefined,
-        quiet_hours_end: undefined,
-        is_enabled: true,
-      });
+      expect(callWorkersApi).toHaveBeenCalledWith(
+        '/api/v1/alert-subscriptions',
+        {
+          method: 'POST',
+          token: 'test-token',
+          body: {
+            user_id: 'user-1',
+            topic_type: 'service',
+            topic_value: 'minu-find',
+            enabled_channels: ['in_app'],
+            quiet_hours_start: undefined,
+            quiet_hours_end: undefined,
+            is_enabled: true,
+          },
+        }
+      );
     });
 
     it('조용한 시간이 포함된 구독을 생성해야 함', async () => {
@@ -302,9 +272,9 @@ describe('useAlertSubscriptions', () => {
         isEnabled: true,
       };
 
-      mockQuery.then = vi.fn((onFulfilled) => {
-        return Promise.resolve({ data: null, error: null }).then(onFulfilled);
-      });
+      vi.mocked(callWorkersApi)
+        .mockResolvedValueOnce({ data: mockSubscriptionsDB, error: null, status: 200 }) // 초기 조회
+        .mockResolvedValueOnce({ data: null, error: null, status: 201 }); // 생성
 
       // Execute
       const { result } = renderHook(() => useAlertSubscriptions('user-1'), {
@@ -318,24 +288,31 @@ describe('useAlertSubscriptions', () => {
       await result.current.createSubscription(newSubscription);
 
       // Assert
-      expect(mockQuery.insert).toHaveBeenCalledWith({
-        user_id: 'user-1',
-        topic_type: 'severity',
-        topic_value: 'high',
-        enabled_channels: ['email'],
-        quiet_hours_start: '23:00',
-        quiet_hours_end: '07:00',
-        is_enabled: true,
-      });
+      expect(callWorkersApi).toHaveBeenCalledWith(
+        '/api/v1/alert-subscriptions',
+        {
+          method: 'POST',
+          token: 'test-token',
+          body: {
+            user_id: 'user-1',
+            topic_type: 'severity',
+            topic_value: 'high',
+            enabled_channels: ['email'],
+            quiet_hours_start: '23:00',
+            quiet_hours_end: '07:00',
+            is_enabled: true,
+          },
+        }
+      );
     });
   });
 
   describe('구독 업데이트', () => {
     it('구독 설정을 업데이트해야 함', async () => {
       // Setup
-      mockQuery.then = vi.fn((onFulfilled) => {
-        return Promise.resolve({ data: null, error: null }).then(onFulfilled);
-      });
+      vi.mocked(callWorkersApi)
+        .mockResolvedValueOnce({ data: mockSubscriptionsDB, error: null, status: 200 }) // 초기 조회
+        .mockResolvedValueOnce({ data: null, error: null, status: 200 }); // 업데이트
 
       // Execute
       const { result } = renderHook(() => useAlertSubscriptions('user-1'), {
@@ -351,15 +328,23 @@ describe('useAlertSubscriptions', () => {
       });
 
       // Assert
-      expect(mockQuery.update).toHaveBeenCalled();
-      expect(mockQuery.eq).toHaveBeenCalledWith('id', '1');
+      expect(callWorkersApi).toHaveBeenCalledWith(
+        '/api/v1/alert-subscriptions/1',
+        expect.objectContaining({
+          method: 'PATCH',
+          token: 'test-token',
+          body: expect.objectContaining({
+            is_enabled: false,
+          }),
+        })
+      );
     });
 
     it('여러 필드를 동시에 업데이트해야 함', async () => {
       // Setup
-      mockQuery.then = vi.fn((onFulfilled) => {
-        return Promise.resolve({ data: null, error: null }).then(onFulfilled);
-      });
+      vi.mocked(callWorkersApi)
+        .mockResolvedValueOnce({ data: mockSubscriptionsDB, error: null, status: 200 }) // 초기 조회
+        .mockResolvedValueOnce({ data: null, error: null, status: 200 }); // 업데이트
 
       // Execute
       const { result } = renderHook(() => useAlertSubscriptions('user-1'), {
@@ -378,16 +363,28 @@ describe('useAlertSubscriptions', () => {
       });
 
       // Assert
-      expect(mockQuery.update).toHaveBeenCalled();
+      expect(callWorkersApi).toHaveBeenCalledWith(
+        '/api/v1/alert-subscriptions/1',
+        expect.objectContaining({
+          method: 'PATCH',
+          token: 'test-token',
+          body: expect.objectContaining({
+            enabled_channels: ['email'],
+            is_enabled: false,
+            quiet_hours_start: '21:00',
+            quiet_hours_end: '09:00',
+          }),
+        })
+      );
     });
   });
 
   describe('구독 삭제', () => {
     it('구독을 삭제해야 함', async () => {
       // Setup
-      mockQuery.then = vi.fn((onFulfilled) => {
-        return Promise.resolve({ data: null, error: null }).then(onFulfilled);
-      });
+      vi.mocked(callWorkersApi)
+        .mockResolvedValueOnce({ data: mockSubscriptionsDB, error: null, status: 200 }) // 초기 조회
+        .mockResolvedValueOnce({ data: null, error: null, status: 204 }); // 삭제
 
       // Execute
       const { result } = renderHook(() => useAlertSubscriptions('user-1'), {
@@ -401,17 +398,22 @@ describe('useAlertSubscriptions', () => {
       await result.current.deleteSubscription('1');
 
       // Assert
-      expect(mockQuery.delete).toHaveBeenCalled();
-      expect(mockQuery.eq).toHaveBeenCalledWith('id', '1');
+      expect(callWorkersApi).toHaveBeenCalledWith(
+        '/api/v1/alert-subscriptions/1',
+        {
+          method: 'DELETE',
+          token: 'test-token',
+        }
+      );
     });
   });
 
   describe('채널 관리', () => {
     it('채널을 활성화해야 함', async () => {
       // Setup
-      mockQuery.then = vi.fn((onFulfilled) => {
-        return Promise.resolve({ data: mockSubscriptions, error: null }).then(onFulfilled);
-      });
+      vi.mocked(callWorkersApi)
+        .mockResolvedValueOnce({ data: mockSubscriptionsDB, error: null, status: 200 }) // 초기 조회
+        .mockResolvedValueOnce({ data: null, error: null, status: 200 }); // 업데이트
 
       // Execute
       const { result } = renderHook(() => useAlertSubscriptions('user-1'), {
@@ -426,14 +428,23 @@ describe('useAlertSubscriptions', () => {
       await result.current.enableChannel('2', 'in_app');
 
       // Assert
-      expect(mockQuery.update).toHaveBeenCalled();
+      expect(callWorkersApi).toHaveBeenCalledWith(
+        '/api/v1/alert-subscriptions/2',
+        expect.objectContaining({
+          method: 'PATCH',
+          token: 'test-token',
+          body: expect.objectContaining({
+            enabled_channels: ['email', 'in_app'],
+          }),
+        })
+      );
     });
 
     it('이미 활성화된 채널은 중복 추가하지 않아야 함', async () => {
       // Setup
-      mockQuery.then = vi.fn((onFulfilled) => {
-        return Promise.resolve({ data: mockSubscriptions, error: null }).then(onFulfilled);
-      });
+      vi.mocked(callWorkersApi)
+        .mockResolvedValueOnce({ data: mockSubscriptionsDB, error: null, status: 200 }) // 초기 조회
+        .mockResolvedValueOnce({ data: null, error: null, status: 200 }); // 업데이트
 
       // Execute
       const { result } = renderHook(() => useAlertSubscriptions('user-1'), {
@@ -448,14 +459,22 @@ describe('useAlertSubscriptions', () => {
       await result.current.enableChannel('1', 'email');
 
       // Assert - 업데이트는 호출되지만 채널은 중복되지 않음
-      expect(mockQuery.update).toHaveBeenCalled();
+      expect(callWorkersApi).toHaveBeenCalledWith(
+        '/api/v1/alert-subscriptions/1',
+        expect.objectContaining({
+          method: 'PATCH',
+          body: expect.objectContaining({
+            enabled_channels: ['in_app', 'email'], // 중복 없이 유지
+          }),
+        })
+      );
     });
 
     it('채널을 비활성화해야 함', async () => {
       // Setup
-      mockQuery.then = vi.fn((onFulfilled) => {
-        return Promise.resolve({ data: mockSubscriptions, error: null }).then(onFulfilled);
-      });
+      vi.mocked(callWorkersApi)
+        .mockResolvedValueOnce({ data: mockSubscriptionsDB, error: null, status: 200 }) // 초기 조회
+        .mockResolvedValueOnce({ data: null, error: null, status: 200 }); // 업데이트
 
       // Execute
       const { result } = renderHook(() => useAlertSubscriptions('user-1'), {
@@ -470,13 +489,23 @@ describe('useAlertSubscriptions', () => {
       await result.current.disableChannel('1', 'in_app');
 
       // Assert
-      expect(mockQuery.update).toHaveBeenCalled();
+      expect(callWorkersApi).toHaveBeenCalledWith(
+        '/api/v1/alert-subscriptions/1',
+        expect.objectContaining({
+          method: 'PATCH',
+          body: expect.objectContaining({
+            enabled_channels: ['email'], // in_app 제거됨
+          }),
+        })
+      );
     });
 
     it('존재하지 않는 구독의 채널 활성화 시 에러를 던져야 함', async () => {
       // Setup
-      mockQuery.then = vi.fn((onFulfilled) => {
-        return Promise.resolve({ data: mockSubscriptions, error: null }).then(onFulfilled);
+      vi.mocked(callWorkersApi).mockResolvedValueOnce({
+        data: mockSubscriptionsDB,
+        error: null,
+        status: 200,
       });
 
       // Execute
@@ -496,8 +525,10 @@ describe('useAlertSubscriptions', () => {
 
     it('존재하지 않는 구독의 채널 비활성화 시 에러를 던져야 함', async () => {
       // Setup
-      mockQuery.then = vi.fn((onFulfilled) => {
-        return Promise.resolve({ data: mockSubscriptions, error: null }).then(onFulfilled);
+      vi.mocked(callWorkersApi).mockResolvedValueOnce({
+        data: mockSubscriptionsDB,
+        error: null,
+        status: 200,
       });
 
       // Execute
@@ -519,9 +550,9 @@ describe('useAlertSubscriptions', () => {
   describe('조용한 시간 설정', () => {
     it('조용한 시간을 설정해야 함', async () => {
       // Setup
-      mockQuery.then = vi.fn((onFulfilled) => {
-        return Promise.resolve({ data: mockSubscriptions, error: null }).then(onFulfilled);
-      });
+      vi.mocked(callWorkersApi)
+        .mockResolvedValueOnce({ data: mockSubscriptionsDB, error: null, status: 200 }) // 초기 조회
+        .mockResolvedValueOnce({ data: null, error: null, status: 200 }); // 업데이트
 
       // Execute
       const { result } = renderHook(() => useAlertSubscriptions('user-1'), {
@@ -535,7 +566,16 @@ describe('useAlertSubscriptions', () => {
       await result.current.setQuietHours('2', '23:00', '07:00');
 
       // Assert
-      expect(mockQuery.update).toHaveBeenCalled();
+      expect(callWorkersApi).toHaveBeenCalledWith(
+        '/api/v1/alert-subscriptions/2',
+        expect.objectContaining({
+          method: 'PATCH',
+          body: expect.objectContaining({
+            quiet_hours_start: '23:00',
+            quiet_hours_end: '07:00',
+          }),
+        })
+      );
     });
   });
 
@@ -552,17 +592,18 @@ describe('useAlertSubscriptions', () => {
 
       await result.current.refetch();
 
-      // Assert
-      expect(mockQuery.select).toHaveBeenCalled();
+      // Assert - 두 번 호출됨 (초기 + refetch)
+      expect(callWorkersApi).toHaveBeenCalledTimes(2);
     });
   });
 
   describe('에러 처리', () => {
     it('조회 실패 시 에러를 처리해야 함', async () => {
       // Setup
-      const error = new Error('Database error');
-      mockQuery.then = vi.fn((onFulfilled) => {
-        return Promise.resolve({ data: null, error }).then(onFulfilled);
+      vi.mocked(callWorkersApi).mockResolvedValueOnce({
+        data: null,
+        error: 'Database error',
+        status: 500,
       });
 
       // Execute
@@ -575,15 +616,14 @@ describe('useAlertSubscriptions', () => {
         expect(result.current.error).toBeTruthy();
       });
 
-      expect(result.current.error).toBe(error);
+      expect(result.current.error?.message).toBe('Database error');
     });
 
     it('생성 실패 시 에러를 던져야 함', async () => {
       // Setup
-      const error = new Error('Insert failed');
-      mockQuery.then = vi.fn((onFulfilled) => {
-        return Promise.resolve({ data: null, error }).then(onFulfilled);
-      });
+      vi.mocked(callWorkersApi)
+        .mockResolvedValueOnce({ data: mockSubscriptionsDB, error: null, status: 200 }) // 초기 조회
+        .mockResolvedValueOnce({ data: null, error: 'Insert failed', status: 400 }); // 생성 실패
 
       // Execute
       const { result } = renderHook(() => useAlertSubscriptions('user-1'), {
@@ -608,10 +648,9 @@ describe('useAlertSubscriptions', () => {
 
     it('업데이트 실패 시 에러를 던져야 함', async () => {
       // Setup
-      const error = new Error('Update failed');
-      mockQuery.then = vi.fn((onFulfilled) => {
-        return Promise.resolve({ data: null, error }).then(onFulfilled);
-      });
+      vi.mocked(callWorkersApi)
+        .mockResolvedValueOnce({ data: mockSubscriptionsDB, error: null, status: 200 }) // 초기 조회
+        .mockResolvedValueOnce({ data: null, error: 'Update failed', status: 400 }); // 업데이트 실패
 
       // Execute
       const { result } = renderHook(() => useAlertSubscriptions('user-1'), {
@@ -630,10 +669,9 @@ describe('useAlertSubscriptions', () => {
 
     it('삭제 실패 시 에러를 던져야 함', async () => {
       // Setup
-      const error = new Error('Delete failed');
-      mockQuery.then = vi.fn((onFulfilled) => {
-        return Promise.resolve({ data: null, error }).then(onFulfilled);
-      });
+      vi.mocked(callWorkersApi)
+        .mockResolvedValueOnce({ data: mockSubscriptionsDB, error: null, status: 200 }) // 초기 조회
+        .mockResolvedValueOnce({ data: null, error: 'Delete failed', status: 400 }); // 삭제 실패
 
       // Execute
       const { result } = renderHook(() => useAlertSubscriptions('user-1'), {

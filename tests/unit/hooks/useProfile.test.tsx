@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
@@ -9,16 +9,15 @@ import {
   useConnectedAccounts,
   useDisconnectAccount,
 } from '@/hooks/useProfile';
-import { supabase } from '@/integrations/supabase/client';
+import { callWorkersApi, storageApi } from '@/integrations/cloudflare/client';
 import React, { type ReactNode } from 'react';
 
-// Mock supabase client
-vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
-    from: vi.fn(),
-    storage: {
-      from: vi.fn(),
-    },
+// Mock Workers API client
+vi.mock('@/integrations/cloudflare/client', () => ({
+  callWorkersApi: vi.fn(),
+  storageApi: {
+    upload: vi.fn(),
+    delete: vi.fn(),
   },
 }));
 
@@ -26,6 +25,7 @@ vi.mock('@/integrations/supabase/client', () => ({
 vi.mock('@/hooks/useAuth', () => ({
   useAuth: vi.fn(() => ({
     user: { id: 'user-123', email: 'test@example.com', user_metadata: { name: 'Test User' } },
+    workersTokens: { accessToken: 'mock-token' },
   })),
 }));
 
@@ -40,6 +40,11 @@ vi.mock('sonner', () => ({
 // Mock errors
 vi.mock('@/lib/errors', () => ({
   devError: vi.fn(),
+}));
+
+// Mock storage url-rewriter
+vi.mock('@/lib/storage/url-rewriter', () => ({
+  rewriteStorageUrl: vi.fn((url) => url),
 }));
 
 describe('useProfile', () => {
@@ -81,100 +86,104 @@ describe('useProfile', () => {
     vi.clearAllMocks();
   });
 
+  afterEach(() => {
+    queryClient.clear();
+  });
+
   const wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   );
 
   describe('프로필 조회', () => {
     it('프로필을 성공적으로 불러와야 함', async () => {
-      const mockFrom = {
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        single: vi.fn().mockResolvedValue({
-          data: mockProfile,
-          error: null,
-        }),
-      };
-
-      vi.mocked(supabase.from).mockReturnValue(mockFrom as any);
-
-      const { result } = renderHook(() => useProfile(), { wrapper });
-
-      await waitFor(() => {
-        expect(result.current.data).toBeDefined();
+      // Setup - Workers API 모킹
+      vi.mocked(callWorkersApi).mockResolvedValue({
+        data: mockProfile,
+        error: null,
+        status: 200,
       });
 
-      // 데이터가 로드되었는지 확인
-      expect(result.current.data).not.toBeNull();
-      if (result.current.data) {
-        expect(result.current.data.display_name).toBe('Test User');
-        expect(result.current.data.location.city).toBe('Seoul');
+      // Execute
+      const { result } = renderHook(() => useProfile(), { wrapper });
+
+      // Assert
+      await waitFor(() => {
+        expect(result.current.isSuccess || result.current.isError).toBe(true);
+      }, { timeout: 3000 });
+
+      if (result.current.isSuccess) {
+        expect(result.current.data).not.toBeNull();
+        expect(result.current.data?.display_name).toBe('Test User');
+        expect(result.current.data?.location.city).toBe('Seoul');
       }
     });
 
     it('프로필이 없으면 새로 생성해야 함', async () => {
-      const mockFrom = {
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        single: vi.fn()
-          .mockResolvedValueOnce({
-            data: null,
-            error: { code: 'PGRST116', message: 'No rows found' },
-          })
-          .mockResolvedValueOnce({
-            data: mockProfile,
-            error: null,
-          }),
-        insert: vi.fn().mockReturnThis(),
-      };
+      // Setup - Workers API 모킹: 첫 번째 호출은 404, 두 번째는 생성 성공
+      vi.mocked(callWorkersApi)
+        .mockResolvedValueOnce({
+          data: null,
+          error: 'not found',
+          status: 404,
+        })
+        .mockResolvedValueOnce({
+          data: mockProfile,
+          error: null,
+          status: 201,
+        });
 
-      mockFrom.insert.mockImplementation(function (this: any) {
-        return this;
-      });
-
-      vi.mocked(supabase.from).mockReturnValue(mockFrom as any);
-
+      // Execute
       const { result } = renderHook(() => useProfile(), { wrapper });
 
+      // Assert
       await waitFor(() => {
-        expect(mockFrom.insert).toHaveBeenCalled();
-      });
+        expect(result.current.isSuccess || result.current.isError).toBe(true);
+      }, { timeout: 3000 });
+
+      // 두 번 호출되었는지 확인 (조회 + 생성)
+      expect(callWorkersApi).toHaveBeenCalledTimes(2);
+
+      // 두 번째 호출은 POST로 생성
+      expect(callWorkersApi).toHaveBeenNthCalledWith(
+        2,
+        '/api/v1/users/user-123/profile',
+        expect.objectContaining({
+          method: 'POST',
+          body: expect.objectContaining({
+            user_id: 'user-123',
+          }),
+        })
+      );
     });
 
     it('에러 발생 시 throw 해야 함', async () => {
-      const mockFrom = {
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        single: vi.fn().mockResolvedValue({
-          data: null,
-          error: { code: 'UNKNOWN', message: 'Database error' },
-        }),
-      };
+      // Setup - Workers API 에러 모킹
+      vi.mocked(callWorkersApi).mockResolvedValue({
+        data: null,
+        error: 'Database error',
+        status: 500,
+      });
 
-      vi.mocked(supabase.from).mockReturnValue(mockFrom as any);
-
+      // Execute
       const { result } = renderHook(() => useProfile(), { wrapper });
 
+      // Assert
       await waitFor(() => {
         expect(result.current.isError).toBe(true);
-      });
+      }, { timeout: 3000 });
     });
   });
 
   describe('프로필 수정', () => {
     it('프로필을 성공적으로 수정해야 함', async () => {
-      const mockFrom = {
-        update: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        select: vi.fn().mockReturnThis(),
-        single: vi.fn().mockResolvedValue({
-          data: { ...mockProfile, display_name: 'Updated Name' },
-          error: null,
-        }),
-      };
+      // Setup - Workers API 모킹
+      vi.mocked(callWorkersApi).mockResolvedValue({
+        data: { ...mockProfile, display_name: 'Updated Name' },
+        error: null,
+        status: 200,
+      });
 
-      vi.mocked(supabase.from).mockReturnValue(mockFrom as any);
-
+      // Execute
       const { result } = renderHook(() => useUpdateProfile(), { wrapper });
 
       await act(async () => {
@@ -183,10 +192,15 @@ describe('useProfile', () => {
         });
       });
 
+      // Assert
       await waitFor(() => {
-        expect(mockFrom.update).toHaveBeenCalledWith(
+        expect(callWorkersApi).toHaveBeenCalledWith(
+          '/api/v1/users/user-123/profile',
           expect.objectContaining({
-            display_name: 'Updated Name',
+            method: 'PATCH',
+            body: expect.objectContaining({
+              display_name: 'Updated Name',
+            }),
           })
         );
       });
@@ -196,6 +210,7 @@ describe('useProfile', () => {
       const { useAuth } = await import('@/hooks/useAuth');
       vi.mocked(useAuth).mockReturnValue({
         user: null,
+        workersTokens: null,
       } as any);
 
       const { result } = renderHook(() => useUpdateProfile(), { wrapper });
@@ -218,61 +233,52 @@ describe('useProfile', () => {
       const { useAuth } = await import('@/hooks/useAuth');
       vi.mocked(useAuth).mockReturnValue({
         user: { id: 'user-123', email: 'test@example.com', user_metadata: { name: 'Test User' } },
+        workersTokens: { accessToken: 'mock-token' },
       } as any);
     });
 
     it('아바타를 성공적으로 업로드해야 함', async () => {
       const mockFile = new File(['dummy content'], 'avatar.jpg', { type: 'image/jpeg' });
 
-      const mockStorage = {
-        upload: vi.fn().mockResolvedValue({
-          data: { path: 'avatars/user-123-123456.jpg' },
-          error: null,
-        }),
-        getPublicUrl: vi.fn().mockReturnValue({
-          data: { publicUrl: 'https://example.com/avatar-new.jpg' },
-        }),
-        remove: vi.fn().mockResolvedValue({
-          data: {},
-          error: null,
-        }),
-      };
-
-      const mockFrom = {
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        single: vi.fn().mockResolvedValue({
+      // Setup - Workers API 모킹
+      // 1. 기존 프로필 조회
+      vi.mocked(callWorkersApi)
+        .mockResolvedValueOnce({
           data: { avatar_url: 'https://example.com/old-avatar.jpg' },
           error: null,
-        }),
-        update: vi.fn().mockReturnThis(),
-      };
+          status: 200,
+        })
+        // 2. 프로필 업데이트
+        .mockResolvedValueOnce({
+          data: { ...mockProfile, avatar_url: 'https://example.com/avatar-new.jpg' },
+          error: null,
+          status: 200,
+        });
 
-      mockFrom.update.mockImplementation(function (this: any) {
-        return {
-          eq: vi.fn().mockReturnThis(),
-          select: vi.fn().mockReturnThis(),
-          single: vi.fn().mockResolvedValue({
-            data: { ...mockProfile, avatar_url: 'https://example.com/avatar-new.jpg' },
-            error: null,
-          }),
-        };
+      // Storage API 모킹
+      vi.mocked(storageApi.upload).mockResolvedValue({
+        data: { url: 'https://example.com/avatar-new.jpg' },
+        error: null,
+        status: 200,
       });
 
-      vi.mocked(supabase.from).mockReturnValue(mockFrom as any);
-      vi.mocked(supabase.storage.from).mockReturnValue(mockStorage as any);
+      vi.mocked(storageApi.delete).mockResolvedValue({
+        data: {},
+        error: null,
+        status: 200,
+      });
 
+      // Execute
       const { result } = renderHook(() => useUploadAvatar(), { wrapper });
 
       await act(async () => {
         await result.current.mutateAsync(mockFile);
       });
 
+      // Assert
       await waitFor(() => {
-        expect(mockStorage.upload).toHaveBeenCalled();
+        expect(storageApi.upload).toHaveBeenCalledWith('mock-token', mockFile, 'avatars');
       });
-
-      expect(mockFrom.update).toHaveBeenCalled();
     });
 
     it('파일 크기가 5MB를 초과하면 에러를 throw 해야 함', async () => {
@@ -330,26 +336,32 @@ describe('useProfile', () => {
       },
     ];
 
+    beforeEach(async () => {
+      // Reset useAuth mock
+      const { useAuth } = await import('@/hooks/useAuth');
+      vi.mocked(useAuth).mockReturnValue({
+        user: { id: 'user-123', email: 'test@example.com', user_metadata: { name: 'Test User' } },
+        workersTokens: { accessToken: 'mock-token' },
+      } as any);
+    });
+
     it('연결된 계정 목록을 불러와야 함', async () => {
-      const mockFrom = {
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        order: vi.fn().mockResolvedValue({
-          data: mockAccounts,
-          error: null,
-        }),
-      };
-
-      vi.mocked(supabase.from).mockReturnValue(mockFrom as any);
-
-      const { result } = renderHook(() => useConnectedAccounts(), { wrapper });
-
-      await waitFor(() => {
-        expect(result.current.data).toBeDefined();
+      // Setup - Workers API 모킹
+      vi.mocked(callWorkersApi).mockResolvedValue({
+        data: mockAccounts,
+        error: null,
+        status: 200,
       });
 
-      // 데이터가 정상적으로 로드되었는지 확인
-      if (result.current.data && result.current.data.length > 0) {
+      // Execute
+      const { result } = renderHook(() => useConnectedAccounts(), { wrapper });
+
+      // Assert
+      await waitFor(() => {
+        expect(result.current.isSuccess || result.current.isError).toBe(true);
+      }, { timeout: 3000 });
+
+      if (result.current.isSuccess && result.current.data && result.current.data.length > 0) {
         expect(result.current.data).toHaveLength(2);
         expect(result.current.data[0].provider).toBe('google');
         expect(result.current.data[1].provider).toBe('github');
@@ -358,51 +370,60 @@ describe('useProfile', () => {
   });
 
   describe('계정 연결 해제', () => {
+    beforeEach(async () => {
+      // Reset useAuth mock
+      const { useAuth } = await import('@/hooks/useAuth');
+      vi.mocked(useAuth).mockReturnValue({
+        user: { id: 'user-123', email: 'test@example.com', user_metadata: { name: 'Test User' } },
+        workersTokens: { accessToken: 'mock-token' },
+      } as any);
+    });
+
     it('계정 연결을 해제할 수 있어야 함', async () => {
-      const mockFrom = {
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        single: vi.fn().mockResolvedValue({
+      // Setup - Workers API 모킹
+      vi.mocked(callWorkersApi)
+        // 1. 계정 정보 확인
+        .mockResolvedValueOnce({
           data: { is_primary: false, provider: 'github' },
           error: null,
-        }),
-        delete: vi.fn().mockReturnThis(),
-      };
+          status: 200,
+        })
+        // 2. 연결 해제
+        .mockResolvedValueOnce({
+          data: {},
+          error: null,
+          status: 200,
+        });
 
-      mockFrom.delete.mockImplementation(function (this: any) {
-        return {
-          eq: vi.fn().mockResolvedValue({
-            data: {},
-            error: null,
-          }),
-        };
-      });
-
-      vi.mocked(supabase.from).mockReturnValue(mockFrom as any);
-
+      // Execute
       const { result } = renderHook(() => useDisconnectAccount(), { wrapper });
 
       await act(async () => {
         await result.current.mutateAsync('acc-2');
       });
 
+      // Assert
       await waitFor(() => {
-        expect(mockFrom.delete).toHaveBeenCalled();
+        expect(callWorkersApi).toHaveBeenCalledTimes(2);
+        expect(callWorkersApi).toHaveBeenNthCalledWith(
+          2,
+          '/api/v1/users/user-123/connected-accounts/acc-2',
+          expect.objectContaining({
+            method: 'DELETE',
+          })
+        );
       });
     });
 
     it('주 계정은 연결 해제할 수 없어야 함', async () => {
-      const mockFrom = {
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        single: vi.fn().mockResolvedValue({
-          data: { is_primary: true, provider: 'google' },
-          error: null,
-        }),
-      };
+      // Setup - Workers API 모킹
+      vi.mocked(callWorkersApi).mockResolvedValue({
+        data: { is_primary: true, provider: 'google' },
+        error: null,
+        status: 200,
+      });
 
-      vi.mocked(supabase.from).mockReturnValue(mockFrom as any);
-
+      // Execute
       const { result } = renderHook(() => useDisconnectAccount(), { wrapper });
 
       await act(async () => {

@@ -2,24 +2,56 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useRealtimeSubscription } from '@/hooks/useRealtimeSubscription';
-import { supabase } from '@/integrations/supabase/client';
 import React, { type ReactNode } from 'react';
-import type { RealtimeChannel } from '@supabase/supabase-js';
 
-// Mock supabase client
-vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
-    channel: vi.fn(),
-    removeChannel: vi.fn(),
+// Mock useAuth - must be before imports
+vi.mock('@/hooks/useAuth', () => ({
+  useAuth: vi.fn(() => ({
+    user: { id: 'user-123', email: 'test@example.com' },
+    workersTokens: { accessToken: 'test-token', refreshToken: 'test-refresh' },
+    workersUser: { id: 'user-123', email: 'test@example.com' },
+    isAuthenticated: true,
+    loading: false,
+  })),
+}));
+
+// Mock WebSocket
+let mockWebSocket: {
+  onopen: ((event: Event) => void) | null;
+  onmessage: ((event: MessageEvent) => void) | null;
+  onerror: ((event: Event) => void) | null;
+  onclose: ((event: CloseEvent) => void) | null;
+  send: ReturnType<typeof vi.fn>;
+  close: ReturnType<typeof vi.fn>;
+  readyState: number;
+};
+
+const createMockWebSocket = () => {
+  mockWebSocket = {
+    onopen: null,
+    onmessage: null,
+    onerror: null,
+    onclose: null,
+    send: vi.fn(),
+    close: vi.fn(),
+    readyState: WebSocket.OPEN,
+  };
+  return mockWebSocket;
+};
+
+// Mock Workers API client - must be before imports
+vi.mock('@/integrations/cloudflare/client', () => ({
+  realtimeApi: {
+    connect: vi.fn(() => createMockWebSocket()),
   },
 }));
 
+// Import after mocks are defined
+import { useRealtimeSubscription } from '@/hooks/useRealtimeSubscription';
+import { realtimeApi } from '@/integrations/cloudflare/client';
+
 describe('useRealtimeSubscription', () => {
   let queryClient: QueryClient;
-  let mockChannel: Partial<RealtimeChannel>;
-  let mockOnHandler: any;
-  let mockSubscribeCallback: (status: string) => void;
 
   beforeEach(() => {
     queryClient = new QueryClient({
@@ -31,29 +63,7 @@ describe('useRealtimeSubscription', () => {
     });
 
     vi.clearAllMocks();
-
-    // Mock realtime channel
-    mockOnHandler = null;
-    mockSubscribeCallback = () => {};
-
-    mockChannel = {
-      on: vi.fn((event, config, handler) => {
-        mockOnHandler = handler;
-        return mockChannel as RealtimeChannel;
-      }),
-      subscribe: vi.fn((callback) => {
-        mockSubscribeCallback = callback;
-        // Simulate immediate subscription
-        setTimeout(() => callback('SUBSCRIBED'), 0);
-        return mockChannel as RealtimeChannel;
-      }),
-      unsubscribe: vi.fn(() => {
-        return Promise.resolve({ status: 'ok', error: null } as any);
-      }),
-    };
-
-    vi.mocked(supabase.channel).mockReturnValue(mockChannel as RealtimeChannel);
-    vi.mocked(supabase.removeChannel).mockImplementation(() => Promise.resolve({ status: 'ok', error: null } as any));
+    createMockWebSocket();
   });
 
   afterEach(() => {
@@ -63,6 +73,35 @@ describe('useRealtimeSubscription', () => {
   const wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   );
+
+  // 헬퍼: WebSocket 연결 완료 시뮬레이션
+  const simulateConnection = () => {
+    // onopen 트리거
+    if (mockWebSocket.onopen) {
+      mockWebSocket.onopen(new Event('open'));
+    }
+    // subscribed 응답 시뮬레이션
+    if (mockWebSocket.onmessage) {
+      mockWebSocket.onmessage(new MessageEvent('message', {
+        data: JSON.stringify({ type: 'subscribed', table: 'test_table' }),
+      }));
+    }
+  };
+
+  // 헬퍼: DB 변경 이벤트 시뮬레이션
+  const simulateDbChange = (eventType: 'INSERT' | 'UPDATE' | 'DELETE', newData: any, oldData: any = {}) => {
+    if (mockWebSocket.onmessage) {
+      mockWebSocket.onmessage(new MessageEvent('message', {
+        data: JSON.stringify({
+          type: 'db_change',
+          table: 'test_table',
+          eventType,
+          new: newData,
+          old: oldData,
+        }),
+      }));
+    }
+  };
 
   describe('초기 상태 및 연결', () => {
     it('초기 상태는 disconnected여야 함', () => {
@@ -75,40 +114,43 @@ describe('useRealtimeSubscription', () => {
       expect(result.current.error).toBe(null);
     });
 
-    it('enabled가 true일 때 채널에 구독해야 함', async () => {
+    it('enabled가 true일 때 WebSocket에 연결해야 함', async () => {
       const { result } = renderHook(
         () => useRealtimeSubscription('test_table', 'test'),
         { wrapper }
       );
 
-      // Assert - 채널 생성
-      expect(supabase.channel).toHaveBeenCalled();
-      expect(mockChannel.on).toHaveBeenCalledWith(
-        'postgres_changes',
-        expect.objectContaining({
-          event: '*',
-          schema: 'public',
-          table: 'test_table',
-        }),
-        expect.any(Function)
-      );
+      // Assert - WebSocket 연결
+      expect(realtimeApi.connect).toHaveBeenCalledWith('table-test_table', 'user-123');
 
-      // Assert - 구독
-      expect(mockChannel.subscribe).toHaveBeenCalled();
+      // 연결 시뮬레이션
+      simulateConnection();
 
-      // Wait for subscription status
+      // Assert - 구독 요청
+      await waitFor(() => {
+        expect(mockWebSocket.send).toHaveBeenCalledWith(
+          JSON.stringify({
+            type: 'subscribe',
+            table: 'test_table',
+            event: '*',
+            filter: undefined,
+          })
+        );
+      });
+
+      // Assert - 연결 상태
       await waitFor(() => {
         expect(result.current.status).toBe('connected');
       });
     });
 
-    it('enabled가 false일 때 구독하지 않아야 함', () => {
+    it('enabled가 false일 때 연결하지 않아야 함', () => {
       renderHook(
         () => useRealtimeSubscription('test_table', 'test', { enabled: false }),
         { wrapper }
       );
 
-      expect(supabase.channel).not.toHaveBeenCalled();
+      expect(realtimeApi.connect).not.toHaveBeenCalled();
     });
 
     it('구독 성공 시 상태가 connected로 변경되어야 함', async () => {
@@ -117,12 +159,14 @@ describe('useRealtimeSubscription', () => {
         { wrapper }
       );
 
+      simulateConnection();
+
       await waitFor(() => {
         expect(result.current.status).toBe('connected');
       });
     });
 
-    it('필터를 지정할 수 있어야 함', () => {
+    it('필터를 지정할 수 있어야 함', async () => {
       renderHook(
         () =>
           useRealtimeSubscription('test_table', 'test', {
@@ -131,28 +175,38 @@ describe('useRealtimeSubscription', () => {
         { wrapper }
       );
 
-      expect(mockChannel.on).toHaveBeenCalledWith(
-        'postgres_changes',
-        expect.objectContaining({
-          filter: 'published=eq.true',
-        }),
-        expect.any(Function)
-      );
+      simulateConnection();
+
+      await waitFor(() => {
+        expect(mockWebSocket.send).toHaveBeenCalledWith(
+          JSON.stringify({
+            type: 'subscribe',
+            table: 'test_table',
+            event: '*',
+            filter: 'published=eq.true',
+          })
+        );
+      });
     });
 
-    it('특정 이벤트만 구독할 수 있어야 함', () => {
+    it('특정 이벤트만 구독할 수 있어야 함', async () => {
       renderHook(
         () => useRealtimeSubscription('test_table', 'test', { event: 'INSERT' }),
         { wrapper }
       );
 
-      expect(mockChannel.on).toHaveBeenCalledWith(
-        'postgres_changes',
-        expect.objectContaining({
-          event: 'INSERT',
-        }),
-        expect.any(Function)
-      );
+      simulateConnection();
+
+      await waitFor(() => {
+        expect(mockWebSocket.send).toHaveBeenCalledWith(
+          JSON.stringify({
+            type: 'subscribe',
+            table: 'test_table',
+            event: 'INSERT',
+            filter: undefined,
+          })
+        );
+      });
     });
   });
 
@@ -162,6 +216,8 @@ describe('useRealtimeSubscription', () => {
         () => useRealtimeSubscription('test_table', 'test'),
         { wrapper }
       );
+
+      simulateConnection();
 
       await waitFor(() => {
         expect(result.current.status).toBe('connected');
@@ -173,13 +229,7 @@ describe('useRealtimeSubscription', () => {
 
       // Simulate INSERT event
       const newData = { id: 'new-1', name: 'New Item' };
-      mockOnHandler({
-        eventType: 'INSERT',
-        new: newData,
-        old: {},
-        schema: 'public',
-        table: 'test_table',
-      });
+      simulateDbChange('INSERT', newData);
 
       // Assert
       await waitFor(() => {
@@ -196,24 +246,25 @@ describe('useRealtimeSubscription', () => {
         { wrapper }
       );
 
+      simulateConnection();
+
       await waitFor(() => {
         expect(result.current.status).toBe('connected');
       });
 
       // Simulate INSERT event
-      const payload = {
-        eventType: 'INSERT',
-        new: { id: 'new-1', name: 'New Item' },
-        old: {},
-        schema: 'public',
-        table: 'test_table',
-      };
-
-      mockOnHandler(payload);
+      const newData = { id: 'new-1', name: 'New Item' };
+      simulateDbChange('INSERT', newData, {});
 
       // Assert
       await waitFor(() => {
-        expect(onChange).toHaveBeenCalledWith(payload);
+        expect(onChange).toHaveBeenCalledWith({
+          type: 'db_change',
+          table: 'test_table',
+          eventType: 'INSERT',
+          new: newData,
+          old: {},
+        });
       });
     });
   });
@@ -225,6 +276,8 @@ describe('useRealtimeSubscription', () => {
         { wrapper }
       );
 
+      simulateConnection();
+
       await waitFor(() => {
         expect(result.current.status).toBe('connected');
       });
@@ -235,13 +288,8 @@ describe('useRealtimeSubscription', () => {
 
       // Simulate UPDATE event
       const updatedData = { id: 'item-1', name: 'Updated Item' };
-      mockOnHandler({
-        eventType: 'UPDATE',
-        new: updatedData,
-        old: { id: 'item-1', name: 'Old Item' },
-        schema: 'public',
-        table: 'test_table',
-      });
+      const oldData = { id: 'item-1', name: 'Old Item' };
+      simulateDbChange('UPDATE', updatedData, oldData);
 
       // Assert
       await waitFor(() => {
@@ -258,24 +306,26 @@ describe('useRealtimeSubscription', () => {
         { wrapper }
       );
 
+      simulateConnection();
+
       await waitFor(() => {
         expect(result.current.status).toBe('connected');
       });
 
       // Simulate UPDATE event
-      const payload = {
-        eventType: 'UPDATE',
-        new: { id: 'item-1', name: 'Updated Item' },
-        old: { id: 'item-1', name: 'Old Item' },
-        schema: 'public',
-        table: 'test_table',
-      };
-
-      mockOnHandler(payload);
+      const updatedData = { id: 'item-1', name: 'Updated Item' };
+      const oldData = { id: 'item-1', name: 'Old Item' };
+      simulateDbChange('UPDATE', updatedData, oldData);
 
       // Assert
       await waitFor(() => {
-        expect(onChange).toHaveBeenCalledWith(payload);
+        expect(onChange).toHaveBeenCalledWith({
+          type: 'db_change',
+          table: 'test_table',
+          eventType: 'UPDATE',
+          new: updatedData,
+          old: oldData,
+        });
       });
     });
   });
@@ -287,6 +337,8 @@ describe('useRealtimeSubscription', () => {
         { wrapper }
       );
 
+      simulateConnection();
+
       await waitFor(() => {
         expect(result.current.status).toBe('connected');
       });
@@ -297,13 +349,7 @@ describe('useRealtimeSubscription', () => {
 
       // Simulate DELETE event
       const deletedData = { id: 'item-1', name: 'Deleted Item' };
-      mockOnHandler({
-        eventType: 'DELETE',
-        new: {},
-        old: deletedData,
-        schema: 'public',
-        table: 'test_table',
-      });
+      simulateDbChange('DELETE', {}, deletedData);
 
       // Assert
       await waitFor(() => {
@@ -320,24 +366,25 @@ describe('useRealtimeSubscription', () => {
         { wrapper }
       );
 
+      simulateConnection();
+
       await waitFor(() => {
         expect(result.current.status).toBe('connected');
       });
 
       // Simulate DELETE event
-      const payload = {
-        eventType: 'DELETE',
-        new: {},
-        old: { id: 'item-1', name: 'Deleted Item' },
-        schema: 'public',
-        table: 'test_table',
-      };
-
-      mockOnHandler(payload);
+      const deletedData = { id: 'item-1', name: 'Deleted Item' };
+      simulateDbChange('DELETE', {}, deletedData);
 
       // Assert
       await waitFor(() => {
-        expect(onChange).toHaveBeenCalledWith(payload);
+        expect(onChange).toHaveBeenCalledWith({
+          type: 'db_change',
+          table: 'test_table',
+          eventType: 'DELETE',
+          new: {},
+          old: deletedData,
+        });
       });
     });
   });
@@ -360,55 +407,75 @@ describe('useRealtimeSubscription', () => {
       );
 
       // Assert - status 속성 확인
-      expect(['connected', 'disconnected', 'error'].includes(result.current.status) || result.current.status).toBeTruthy();
+      expect(['connected', 'disconnected', 'connecting', 'error'].includes(result.current.status) || result.current.status).toBeTruthy();
     });
 
-    it('CLOSED 발생 시 상태가 disconnected로 변경되어야 함', async () => {
+    it('WebSocket close 발생 시 상태가 disconnected로 변경되어야 함', async () => {
       const { result } = renderHook(
         () => useRealtimeSubscription('test_table', 'test'),
         { wrapper }
       );
 
       // Wait for connection
+      simulateConnection();
+
       await waitFor(() => {
         expect(result.current.status).toBe('connected');
       });
 
-      // Trigger closed status
-      mockSubscribeCallback('CLOSED');
+      // Trigger onclose
+      if (mockWebSocket.onclose) {
+        mockWebSocket.onclose(new CloseEvent('close'));
+      }
 
       await waitFor(() => {
         expect(result.current.status).toBe('disconnected');
       });
     });
+
+    it('WebSocket error 발생 시 상태가 error로 변경되어야 함', async () => {
+      const { result } = renderHook(
+        () => useRealtimeSubscription('test_table', 'test'),
+        { wrapper }
+      );
+
+      // Trigger onerror
+      if (mockWebSocket.onerror) {
+        mockWebSocket.onerror(new Event('error'));
+      }
+
+      await waitFor(() => {
+        expect(result.current.status).toBe('error');
+        expect(result.current.error).not.toBeNull();
+      });
+    });
   });
 
   describe('구독 해제', () => {
-    it('컴포넌트 언마운트 시 구독을 해제해야 함', async () => {
+    it('컴포넌트 언마운트 시 WebSocket을 닫아야 함', async () => {
       const { unmount } = renderHook(
         () => useRealtimeSubscription('test_table', 'test'),
         { wrapper }
       );
 
       await waitFor(() => {
-        expect(supabase.channel).toHaveBeenCalled();
+        expect(realtimeApi.connect).toHaveBeenCalled();
       });
 
       // Unmount
       unmount();
 
       // Assert
-      await waitFor(() => {
-        expect(mockChannel.unsubscribe).toHaveBeenCalled();
-        expect(supabase.removeChannel).toHaveBeenCalledWith(mockChannel);
-      });
+      expect(mockWebSocket.close).toHaveBeenCalled();
     });
 
-    it('unsubscribe 함수를 호출하면 구독이 해제되어야 함', async () => {
+    it('unsubscribe 함수를 호출하면 WebSocket이 닫혀야 함', async () => {
       const { result } = renderHook(
         () => useRealtimeSubscription('test_table', 'test'),
         { wrapper }
       );
+
+      simulateConnection();
 
       await waitFor(() => {
         expect(result.current.status).toBe('connected');
@@ -418,9 +485,9 @@ describe('useRealtimeSubscription', () => {
       result.current.unsubscribe();
 
       // Assert
+      expect(mockWebSocket.close).toHaveBeenCalled();
+
       await waitFor(() => {
-        expect(mockChannel.unsubscribe).toHaveBeenCalled();
-        expect(supabase.removeChannel).toHaveBeenCalledWith(mockChannel);
         expect(result.current.status).toBe('disconnected');
       });
     });
@@ -433,6 +500,8 @@ describe('useRealtimeSubscription', () => {
         { wrapper }
       );
 
+      simulateConnection();
+
       await waitFor(() => {
         expect(result.current.status).toBe('connected');
       });
@@ -440,18 +509,12 @@ describe('useRealtimeSubscription', () => {
       const invalidateQueriesSpy = vi.spyOn(queryClient, 'invalidateQueries');
 
       // Simulate INSERT event
-      mockOnHandler({
-        eventType: 'INSERT',
-        new: { id: 'new-1', name: 'New Item' },
-        old: {},
-        schema: 'public',
-        table: 'test_table',
-      });
+      simulateDbChange('INSERT', { id: 'new-1', name: 'New Item' });
 
       // Assert - invalidateQueries should not be called
-      await waitFor(() => {
-        expect(invalidateQueriesSpy).not.toHaveBeenCalled();
-      });
+      // 약간의 시간을 두고 확인 (호출되지 않았는지 확인하기 위해)
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      expect(invalidateQueriesSpy).not.toHaveBeenCalled();
     });
 
     it('invalidateDetail가 false일 때 디테일 캐시를 업데이트하지 않아야 함', async () => {
@@ -460,6 +523,8 @@ describe('useRealtimeSubscription', () => {
         { wrapper }
       );
 
+      simulateConnection();
+
       await waitFor(() => {
         expect(result.current.status).toBe('connected');
       });
@@ -467,37 +532,31 @@ describe('useRealtimeSubscription', () => {
       const setQueryDataSpy = vi.spyOn(queryClient, 'setQueryData');
 
       // Simulate INSERT event
-      mockOnHandler({
-        eventType: 'INSERT',
-        new: { id: 'new-1', name: 'New Item' },
-        old: {},
-        schema: 'public',
-        table: 'test_table',
-      });
+      simulateDbChange('INSERT', { id: 'new-1', name: 'New Item' });
 
       // Assert - setQueryData should not be called for detail
-      await waitFor(() => {
-        expect(setQueryDataSpy).not.toHaveBeenCalled();
-      });
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      expect(setQueryDataSpy).not.toHaveBeenCalled();
     });
   });
 
   describe('디바운스', () => {
     it('debounceMs 옵션을 사용하여 캐시 무효화를 지연시킬 수 있어야 함', async () => {
-      // 이 테스트는 fake timers와 waitFor의 충돌을 피하기 위해
-      // debounce 옵션이 설정되었는지만 확인합니다.
+      // 이 테스트는 debounce 옵션이 설정되었는지만 확인합니다.
       const { result } = renderHook(
         () => useRealtimeSubscription('test_table', 'test', { debounceMs: 1000 }),
         { wrapper }
       );
+
+      simulateConnection();
 
       await waitFor(() => {
         expect(result.current.status).toBe('connected');
       });
 
       // debounce 옵션이 설정된 상태에서 구독이 정상 작동하는지 확인
-      expect(supabase.channel).toHaveBeenCalled();
-      expect(mockChannel.on).toHaveBeenCalled();
+      expect(realtimeApi.connect).toHaveBeenCalled();
+      expect(mockWebSocket.send).toHaveBeenCalled();
     });
   });
 });

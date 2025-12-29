@@ -112,8 +112,9 @@ describe('useCart', () => {
 
   describe('useCart', () => {
     it('장바구니를 성공적으로 조회해야 함', async () => {
+      // 훅은 response.data.data를 추출함
       vi.mocked(cartApi.get).mockResolvedValue({
-        data: mockCart,
+        data: { data: mockCart },
         error: null,
       });
 
@@ -260,7 +261,8 @@ describe('useCart', () => {
 
   describe('useRemoveCartItem', () => {
     it('장바구니 항목을 삭제해야 함', async () => {
-      vi.mocked(cartApi.removeItem).mockResolvedValue({
+      // cartApi.remove를 사용
+      vi.mocked(cartApi.remove).mockResolvedValue({
         data: { success: true },
         error: null,
       });
@@ -271,7 +273,7 @@ describe('useCart', () => {
         await result.current.mutateAsync('item-1');
       });
 
-      expect(cartApi.removeItem).toHaveBeenCalledWith(mockAccessToken, 'item-1');
+      expect(cartApi.remove).toHaveBeenCalledWith(mockAccessToken, 'item-1');
     });
   });
 

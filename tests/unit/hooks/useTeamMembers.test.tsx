@@ -1,7 +1,7 @@
 /**
  * useTeamMembers Hook 테스트
  *
- * 팀원 관리 훅 테스트
+ * 팀원 관리 훅 테스트 (Workers API 마이그레이션)
  * - 팀원 목록 조회
  * - 팀원 생성
  * - 팀원 수정
@@ -22,14 +22,19 @@ import {
   useDeleteTeamMember,
   useToggleTeamMemberActive,
 } from '@/hooks/useTeamMembers';
-import { supabase } from '@/integrations/supabase/client';
+import { callWorkersApi } from '@/integrations/cloudflare/client';
 import React from 'react';
 
-// Mock Supabase
-vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
-    from: vi.fn(),
-  },
+// Mock Workers API client
+vi.mock('@/integrations/cloudflare/client', () => ({
+  callWorkersApi: vi.fn(),
+}));
+
+// Mock useAuth
+vi.mock('@/hooks/useAuth', () => ({
+  useAuth: vi.fn(() => ({
+    workersTokens: { accessToken: 'mock-token' },
+  })),
 }));
 
 // Test wrapper
@@ -86,58 +91,23 @@ const mockTeamMembers = [
   },
 ];
 
-// Mock query 타입 정의
-interface MockQuery {
-  select: ReturnType<typeof vi.fn>;
-  eq: ReturnType<typeof vi.fn>;
-  order: ReturnType<typeof vi.fn>;
-  insert: ReturnType<typeof vi.fn>;
-  update: ReturnType<typeof vi.fn>;
-  delete: ReturnType<typeof vi.fn>;
-  single: ReturnType<typeof vi.fn>;
-  then?: ReturnType<typeof vi.fn>;
-}
-
 describe('useTeamMembers', () => {
-  let mockQuery: MockQuery;
-
   beforeEach(() => {
     vi.clearAllMocks();
-
-    // Mock query 체이닝
-    const createMockQuery = () => {
-      const query = {
-        select: vi.fn(),
-        eq: vi.fn(),
-        order: vi.fn(),
-        insert: vi.fn(),
-        update: vi.fn(),
-        delete: vi.fn(),
-        single: vi.fn(),
-      };
-
-      query.select.mockReturnValue(query);
-      query.eq.mockReturnValue(query);
-      query.order.mockReturnValue(query);
-      query.insert.mockReturnValue(query);
-      query.update.mockReturnValue(query);
-      query.delete.mockReturnValue(query);
-      query.single.mockReturnValue(query);
-
-      const queryWithThen = query as MockQuery;
-      queryWithThen.then = vi.fn((onFulfilled) => {
-        return Promise.resolve({ data: mockTeamMembers, error: null }).then(onFulfilled);
-      });
-
-      return queryWithThen;
-    };
-
-    mockQuery = createMockQuery();
-    vi.mocked(supabase.from).mockReturnValue(mockQuery as ReturnType<typeof supabase.from>);
   });
 
   describe('초기 상태 확인', () => {
     it('초기 로딩 상태여야 함', () => {
+      // Setup - 지연된 응답 모킹
+      vi.mocked(callWorkersApi).mockImplementation(
+        () =>
+          new Promise((resolve) => {
+            setTimeout(() => {
+              resolve({ data: mockTeamMembers, error: null, status: 200 });
+            }, 100);
+          })
+      );
+
       const { result } = renderHook(() => useTeamMembers(), {
         wrapper: createWrapper(),
       });
@@ -148,6 +118,13 @@ describe('useTeamMembers', () => {
 
   describe('팀원 목록 조회', () => {
     it('모든 팀원을 조회해야 함', async () => {
+      // Setup - Workers API 모킹
+      vi.mocked(callWorkersApi).mockResolvedValue({
+        data: mockTeamMembers,
+        error: null,
+        status: 200,
+      });
+
       const { result } = renderHook(() => useTeamMembers(), {
         wrapper: createWrapper(),
       });
@@ -156,12 +133,21 @@ describe('useTeamMembers', () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      expect(supabase.from).toHaveBeenCalledWith('team_members');
-      expect(mockQuery.select).toHaveBeenCalledWith('*');
-      expect(mockQuery.order).toHaveBeenCalledWith('priority', { ascending: false });
+      expect(callWorkersApi).toHaveBeenCalledWith(
+        '/api/v1/team-members?order_by=priority:desc,created_at:desc',
+        { token: 'mock-token' }
+      );
+      expect(result.current.data).toEqual(mockTeamMembers);
     });
 
     it('priority 내림차순으로 정렬되어야 함', async () => {
+      // Setup - Workers API 모킹
+      vi.mocked(callWorkersApi).mockResolvedValue({
+        data: mockTeamMembers,
+        error: null,
+        status: 200,
+      });
+
       const { result } = renderHook(() => useTeamMembers(), {
         wrapper: createWrapper(),
       });
@@ -170,13 +156,18 @@ describe('useTeamMembers', () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      expect(mockQuery.order).toHaveBeenCalledWith('priority', { ascending: false });
-      expect(mockQuery.order).toHaveBeenCalledWith('created_at', { ascending: false });
+      expect(callWorkersApi).toHaveBeenCalledWith(
+        expect.stringContaining('order_by=priority:desc,created_at:desc'),
+        expect.any(Object)
+      );
     });
 
     it('빈 목록을 올바르게 처리해야 함', async () => {
-      mockQuery.then = vi.fn((onFulfilled) => {
-        return Promise.resolve({ data: [], error: null }).then(onFulfilled);
+      // Setup - 빈 배열 반환 모킹
+      vi.mocked(callWorkersApi).mockResolvedValue({
+        data: [],
+        error: null,
+        status: 200,
       });
 
       const { result } = renderHook(() => useTeamMembers(), {
@@ -193,8 +184,11 @@ describe('useTeamMembers', () => {
 
   describe('개별 팀원 조회', () => {
     it('ID로 특정 팀원을 조회해야 함', async () => {
-      mockQuery.then = vi.fn((onFulfilled) => {
-        return Promise.resolve({ data: mockTeamMembers[0], error: null }).then(onFulfilled);
+      // Setup - Workers API 모킹
+      vi.mocked(callWorkersApi).mockResolvedValue({
+        data: mockTeamMembers[0],
+        error: null,
+        status: 200,
       });
 
       const { result } = renderHook(() => useTeamMember('1'), {
@@ -205,13 +199,19 @@ describe('useTeamMembers', () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      expect(mockQuery.eq).toHaveBeenCalledWith('id', '1');
-      expect(mockQuery.single).toHaveBeenCalled();
+      expect(callWorkersApi).toHaveBeenCalledWith(
+        '/api/v1/team-members/1',
+        { token: 'mock-token' }
+      );
+      expect(result.current.data).toEqual(mockTeamMembers[0]);
     });
 
     it('존재하지 않는 팀원 조회 시 null을 반환해야 함', async () => {
-      mockQuery.then = vi.fn((onFulfilled) => {
-        return Promise.resolve({ data: null, error: null }).then(onFulfilled);
+      // Setup - null 반환 모킹
+      vi.mocked(callWorkersApi).mockResolvedValue({
+        data: null,
+        error: null,
+        status: 200,
       });
 
       const { result } = renderHook(() => useTeamMember('999'), {
@@ -237,8 +237,12 @@ describe('useTeamMembers', () => {
   describe('활성 팀원 조회', () => {
     it('활성 상태인 팀원만 조회해야 함', async () => {
       const activeMembers = mockTeamMembers.filter((m) => m.active);
-      mockQuery.then = vi.fn((onFulfilled) => {
-        return Promise.resolve({ data: activeMembers, error: null }).then(onFulfilled);
+
+      // Setup - Workers API 모킹
+      vi.mocked(callWorkersApi).mockResolvedValue({
+        data: activeMembers,
+        error: null,
+        status: 200,
       });
 
       const { result } = renderHook(() => useActiveTeamMembers(), {
@@ -249,7 +253,10 @@ describe('useTeamMembers', () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      expect(mockQuery.eq).toHaveBeenCalledWith('active', true);
+      expect(callWorkersApi).toHaveBeenCalledWith(
+        '/api/v1/team-members?active=true&order_by=priority:desc,created_at:desc',
+        { token: 'mock-token' }
+      );
       expect(result.current.data?.every((m) => m.active)).toBe(true);
     });
   });
@@ -266,8 +273,11 @@ describe('useTeamMembers', () => {
         social_links: {},
       };
 
-      mockQuery.then = vi.fn((onFulfilled) => {
-        return Promise.resolve({ data: { id: '4', ...newMember }, error: null }).then(onFulfilled);
+      // Setup - Workers API 모킹
+      vi.mocked(callWorkersApi).mockResolvedValue({
+        data: { id: '4', ...newMember },
+        error: null,
+        status: 201,
       });
 
       const { result } = renderHook(() => useCreateTeamMember(), {
@@ -276,15 +286,22 @@ describe('useTeamMembers', () => {
 
       await result.current.mutateAsync(newMember);
 
-      expect(mockQuery.insert).toHaveBeenCalledWith([newMember]);
-      expect(mockQuery.select).toHaveBeenCalled();
-      expect(mockQuery.single).toHaveBeenCalled();
+      expect(callWorkersApi).toHaveBeenCalledWith(
+        '/api/v1/team-members',
+        {
+          method: 'POST',
+          token: 'mock-token',
+          body: newMember,
+        }
+      );
     });
 
     it('팀원 생성 실패 시 에러를 던져야 함', async () => {
-      const error = new Error('Insert failed');
-      mockQuery.then = vi.fn((onFulfilled) => {
-        return Promise.resolve({ data: null, error }).then(onFulfilled);
+      // Setup - 에러 반환 모킹
+      vi.mocked(callWorkersApi).mockResolvedValue({
+        data: null,
+        error: 'Insert failed',
+        status: 500,
       });
 
       const { result } = renderHook(() => useCreateTeamMember(), {
@@ -308,8 +325,11 @@ describe('useTeamMembers', () => {
         <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
       );
 
-      mockQuery.then = vi.fn((onFulfilled) => {
-        return Promise.resolve({ data: {}, error: null }).then(onFulfilled);
+      // Setup - Workers API 모킹
+      vi.mocked(callWorkersApi).mockResolvedValue({
+        data: { id: '4', name: 'Test', role: 'Test Role', bio: 'Test Bio' },
+        error: null,
+        status: 201,
       });
 
       const { result } = renderHook(() => useCreateTeamMember(), { wrapper });
@@ -335,10 +355,11 @@ describe('useTeamMembers', () => {
         role: 'CEO & Founder',
       };
 
-      mockQuery.then = vi.fn((onFulfilled) => {
-        return Promise.resolve({ data: { ...mockTeamMembers[0], ...updates }, error: null }).then(
-          onFulfilled
-        );
+      // Setup - Workers API 모킹
+      vi.mocked(callWorkersApi).mockResolvedValue({
+        data: { ...mockTeamMembers[0], ...updates },
+        error: null,
+        status: 200,
       });
 
       const { result } = renderHook(() => useUpdateTeamMember(), {
@@ -347,16 +368,22 @@ describe('useTeamMembers', () => {
 
       await result.current.mutateAsync({ id: '1', updates });
 
-      expect(mockQuery.update).toHaveBeenCalledWith(updates);
-      expect(mockQuery.eq).toHaveBeenCalledWith('id', '1');
-      expect(mockQuery.select).toHaveBeenCalled();
-      expect(mockQuery.single).toHaveBeenCalled();
+      expect(callWorkersApi).toHaveBeenCalledWith(
+        '/api/v1/team-members/1',
+        {
+          method: 'PATCH',
+          token: 'mock-token',
+          body: updates,
+        }
+      );
     });
 
     it('팀원 수정 실패 시 에러를 던져야 함', async () => {
-      const error = new Error('Update failed');
-      mockQuery.then = vi.fn((onFulfilled) => {
-        return Promise.resolve({ data: null, error }).then(onFulfilled);
+      // Setup - 에러 반환 모킹
+      vi.mocked(callWorkersApi).mockResolvedValue({
+        data: null,
+        error: 'Update failed',
+        status: 500,
       });
 
       const { result } = renderHook(() => useUpdateTeamMember(), {
@@ -374,13 +401,16 @@ describe('useTeamMembers', () => {
         <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
       );
 
-      mockQuery.then = vi.fn((onFulfilled) => {
-        return Promise.resolve({ data: { id: '1' }, error: null }).then(onFulfilled);
+      // Setup - Workers API 모킹
+      vi.mocked(callWorkersApi).mockResolvedValue({
+        data: { id: '1', name: 'Updated', role: 'Updated Role' },
+        error: null,
+        status: 200,
       });
 
       const { result } = renderHook(() => useUpdateTeamMember(), { wrapper });
 
-      await result.current.mutateAsync({ id: '1', updates: {} });
+      await result.current.mutateAsync({ id: '1', updates: { name: 'Updated' } });
 
       await waitFor(() => {
         expect(invalidateSpy).toHaveBeenCalledWith(
@@ -395,8 +425,11 @@ describe('useTeamMembers', () => {
 
   describe('팀원 삭제', () => {
     it('팀원을 삭제해야 함', async () => {
-      mockQuery.then = vi.fn((onFulfilled) => {
-        return Promise.resolve({ data: null, error: null }).then(onFulfilled);
+      // Setup - Workers API 모킹
+      vi.mocked(callWorkersApi).mockResolvedValue({
+        data: null,
+        error: null,
+        status: 204,
       });
 
       const { result } = renderHook(() => useDeleteTeamMember(), {
@@ -405,14 +438,21 @@ describe('useTeamMembers', () => {
 
       await result.current.mutateAsync('1');
 
-      expect(mockQuery.delete).toHaveBeenCalled();
-      expect(mockQuery.eq).toHaveBeenCalledWith('id', '1');
+      expect(callWorkersApi).toHaveBeenCalledWith(
+        '/api/v1/team-members/1',
+        {
+          method: 'DELETE',
+          token: 'mock-token',
+        }
+      );
     });
 
     it('팀원 삭제 실패 시 에러를 던져야 함', async () => {
-      const error = new Error('Delete failed');
-      mockQuery.then = vi.fn((onFulfilled) => {
-        return Promise.resolve({ data: null, error }).then(onFulfilled);
+      // Setup - 에러 반환 모킹
+      vi.mocked(callWorkersApi).mockResolvedValue({
+        data: null,
+        error: 'Delete failed',
+        status: 500,
       });
 
       const { result } = renderHook(() => useDeleteTeamMember(), {
@@ -430,8 +470,11 @@ describe('useTeamMembers', () => {
         <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
       );
 
-      mockQuery.then = vi.fn((onFulfilled) => {
-        return Promise.resolve({ data: null, error: null }).then(onFulfilled);
+      // Setup - Workers API 모킹
+      vi.mocked(callWorkersApi).mockResolvedValue({
+        data: null,
+        error: null,
+        status: 204,
       });
 
       const { result } = renderHook(() => useDeleteTeamMember(), { wrapper });
@@ -448,10 +491,11 @@ describe('useTeamMembers', () => {
 
   describe('활성 상태 토글', () => {
     it('팀원의 활성 상태를 변경해야 함', async () => {
-      mockQuery.then = vi.fn((onFulfilled) => {
-        return Promise.resolve(
-          { data: { ...mockTeamMembers[0], active: false }, error: null }
-        ).then(onFulfilled);
+      // Setup - Workers API 모킹
+      vi.mocked(callWorkersApi).mockResolvedValue({
+        data: { ...mockTeamMembers[0], active: false },
+        error: null,
+        status: 200,
       });
 
       const { result } = renderHook(() => useToggleTeamMemberActive(), {
@@ -460,14 +504,22 @@ describe('useTeamMembers', () => {
 
       await result.current.mutateAsync({ id: '1', active: false });
 
-      expect(mockQuery.update).toHaveBeenCalledWith({ active: false });
-      expect(mockQuery.eq).toHaveBeenCalledWith('id', '1');
+      expect(callWorkersApi).toHaveBeenCalledWith(
+        '/api/v1/team-members/1',
+        {
+          method: 'PATCH',
+          token: 'mock-token',
+          body: { active: false },
+        }
+      );
     });
 
     it('활성 상태 토글 실패 시 에러를 던져야 함', async () => {
-      const error = new Error('Toggle failed');
-      mockQuery.then = vi.fn((onFulfilled) => {
-        return Promise.resolve({ data: null, error }).then(onFulfilled);
+      // Setup - 에러 반환 모킹
+      vi.mocked(callWorkersApi).mockResolvedValue({
+        data: null,
+        error: 'Toggle failed',
+        status: 500,
       });
 
       const { result } = renderHook(() => useToggleTeamMemberActive(), {
@@ -485,8 +537,11 @@ describe('useTeamMembers', () => {
         <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
       );
 
-      mockQuery.then = vi.fn((onFulfilled) => {
-        return Promise.resolve({ data: { id: '1' }, error: null }).then(onFulfilled);
+      // Setup - Workers API 모킹
+      vi.mocked(callWorkersApi).mockResolvedValue({
+        data: { id: '1', active: false },
+        error: null,
+        status: 200,
       });
 
       const { result } = renderHook(() => useToggleTeamMemberActive(), { wrapper });
@@ -509,9 +564,11 @@ describe('useTeamMembers', () => {
 
   describe('에러 처리', () => {
     it('조회 실패 시 fallback 데이터를 반환해야 함', async () => {
-      const error = new Error('Database error');
-      mockQuery.then = vi.fn((onFulfilled) => {
-        return Promise.resolve({ data: null, error }).then(onFulfilled);
+      // Setup - Workers API 에러 모킹
+      vi.mocked(callWorkersApi).mockResolvedValue({
+        data: null,
+        error: 'Database error',
+        status: 500,
       });
 
       const { result } = renderHook(() => useTeamMembers(), {
@@ -522,18 +579,16 @@ describe('useTeamMembers', () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      // useSupabaseQuery는 에러 시 fallbackValue를 반환
+      // Workers API 에러 시 빈 배열 반환
       expect(result.current.data).toEqual([]);
     });
 
     it('네트워크 에러를 처리하고 fallback 데이터를 반환해야 함', async () => {
-      const error = new Error('Network error');
-      mockQuery.then = vi.fn((onFulfilled, onRejected) => {
-        return Promise.reject(error).catch((err) => {
-          // Simulate fallback behavior
-          if (onRejected) return onRejected(err);
-          return { data: [], error: err };
-        }).then(onFulfilled);
+      // Setup - 네트워크 에러 모킹
+      vi.mocked(callWorkersApi).mockResolvedValue({
+        data: null,
+        error: 'Network error',
+        status: 0,
       });
 
       const { result } = renderHook(() => useTeamMembers(), {
@@ -547,7 +602,7 @@ describe('useTeamMembers', () => {
         { timeout: 3000 }
       );
 
-      // useSupabaseQuery는 에러 시 fallbackValue를 반환
+      // 에러 시 fallbackValue(빈 배열) 반환
       expect(result.current.data).toEqual([]);
     });
   });
@@ -571,10 +626,11 @@ describe('useTeamMembers', () => {
         priority: -1,
       };
 
-      mockQuery.then = vi.fn((onFulfilled) => {
-        return Promise.resolve({ data: { id: '5', ...memberWithInvalidPriority }, error: null }).then(
-          onFulfilled
-        );
+      // Setup - Workers API 모킹
+      vi.mocked(callWorkersApi).mockResolvedValue({
+        data: { id: '5', ...memberWithInvalidPriority },
+        error: null,
+        status: 201,
       });
 
       const { result } = renderHook(() => useCreateTeamMember(), {

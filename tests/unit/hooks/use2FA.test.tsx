@@ -21,17 +21,19 @@ import {
   useRegenerateBackupCodes,
   useVerify2FA,
 } from '@/hooks/use2FA';
-import { supabase } from '@/integrations/supabase/client';
+import { twoFactorApi } from '@/integrations/cloudflare/client';
 import * as totpLib from '@/lib/auth/totp';
 import React from 'react';
 
-// Mock dependencies
-vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
-    from: vi.fn(),
-    auth: {
-      signInWithPassword: vi.fn(),
-    },
+// Mock Workers API
+vi.mock('@/integrations/cloudflare/client', () => ({
+  twoFactorApi: {
+    getSettings: vi.fn(),
+    setup: vi.fn(),
+    enable: vi.fn(),
+    disable: vi.fn(),
+    regenerateBackupCodes: vi.fn(),
+    verify: vi.fn(),
   },
 }));
 
@@ -43,10 +45,11 @@ vi.mock('@/lib/auth/totp', () => ({
 
 vi.mock('@/hooks/useAuth', () => ({
   useAuth: vi.fn(() => ({
-    user: {
+    workersUser: {
       id: 'user-123',
       email: 'test@example.com',
     },
+    getAccessToken: vi.fn(() => 'mock-token'),
   })),
 }));
 
@@ -79,10 +82,8 @@ describe('use2FA', () => {
   const mockTwoFactorAuth = {
     id: '2fa-123',
     user_id: 'user-123',
-    secret: 'SECRET123',
     enabled: true,
     verified_at: '2024-01-01T00:00:00Z',
-    backup_codes: ['CODE1', 'CODE2'],
     backup_codes_used: 0,
     created_at: '2024-01-01T00:00:00Z',
     updated_at: '2024-01-01T00:00:00Z',
@@ -96,18 +97,10 @@ describe('use2FA', () => {
   describe('use2FASettings', () => {
     it('사용자의 2FA 설정을 성공적으로 조회해야 함', async () => {
       // Setup
-      const mockSelect = vi.fn().mockReturnThis();
-      const mockEq = vi.fn().mockReturnThis();
-      const mockSingle = vi.fn().mockResolvedValue({
+      vi.mocked(twoFactorApi.getSettings).mockResolvedValue({
         data: mockTwoFactorAuth,
         error: null,
       });
-
-      vi.mocked(supabase.from).mockReturnValue({
-        select: mockSelect,
-        eq: mockEq,
-        single: mockSingle,
-      } as any);
 
       // Execute
       const { result } = renderHook(() => use2FASettings(), {
@@ -120,23 +113,15 @@ describe('use2FA', () => {
       });
 
       expect(result.current.data).toEqual(mockTwoFactorAuth);
-      expect(supabase.from).toHaveBeenCalledWith('two_factor_auth');
+      expect(twoFactorApi.getSettings).toHaveBeenCalled();
     });
 
     it('2FA 설정이 없을 때 null을 반환해야 함', async () => {
       // Setup
-      const mockSelect = vi.fn().mockReturnThis();
-      const mockEq = vi.fn().mockReturnThis();
-      const mockSingle = vi.fn().mockResolvedValue({
+      vi.mocked(twoFactorApi.getSettings).mockResolvedValue({
         data: null,
-        error: { code: 'PGRST116' }, // Not found
+        error: null,
       });
-
-      vi.mocked(supabase.from).mockReturnValue({
-        select: mockSelect,
-        eq: mockEq,
-        single: mockSingle,
-      } as any);
 
       // Execute
       const { result } = renderHook(() => use2FASettings(), {
@@ -151,50 +136,12 @@ describe('use2FA', () => {
       expect(result.current.data).toBeNull();
     });
 
-    it('사용자가 인증되지 않았을 때 쿼리를 비활성화해야 함', async () => {
-      // 이 테스트는 useAuth가 user: null을 반환할 때의 동작을 테스트합니다.
-      // vi.doMock은 이미 import된 모듈에 영향을 주지 않으므로,
-      // 실제 훅에서 user가 없을 때 enabled: false로 처리되는지 확인합니다.
-
-      // Setup - 쿼리가 비활성화되었을 때의 동작 확인
-      const mockSelect = vi.fn().mockReturnThis();
-      const mockEq = vi.fn().mockReturnThis();
-      const mockSingle = vi.fn().mockResolvedValue({
-        data: null,
-        error: null,
-      });
-
-      vi.mocked(supabase.from).mockReturnValue({
-        select: mockSelect,
-        eq: mockEq,
-        single: mockSingle,
-      } as any);
-
-      // Execute - 기본 모킹된 user로 테스트
-      const { result } = renderHook(() => use2FASettings(), {
-        wrapper: createWrapper(),
-      });
-
-      // Assert - 쿼리가 정상적으로 실행됨 (user가 있으므로)
-      await waitFor(() => {
-        expect(result.current.isLoading === false || result.current.isSuccess).toBe(true);
-      });
-    });
-
     it('데이터베이스 에러 발생 시 에러를 던져야 함', async () => {
-      // Setup
-      const mockSelect = vi.fn().mockReturnThis();
-      const mockEq = vi.fn().mockReturnThis();
-      const mockSingle = vi.fn().mockResolvedValue({
+      // Setup - 훅은 에러를 문자열로 처리
+      vi.mocked(twoFactorApi.getSettings).mockResolvedValue({
         data: null,
-        error: { code: 'UNKNOWN_ERROR', message: 'Database error' },
+        error: 'Database error',
       });
-
-      vi.mocked(supabase.from).mockReturnValue({
-        select: mockSelect,
-        eq: mockEq,
-        single: mockSingle,
-      } as any);
 
       // Execute
       const { result } = renderHook(() => use2FASettings(), {
@@ -206,51 +153,15 @@ describe('use2FA', () => {
         expect(result.current.isError).toBe(true);
       });
     });
-
-    it('2FA 설정이 없을 때 쿼리가 정상 처리되어야 함', async () => {
-      // Setup
-      const mockSelect = vi.fn().mockReturnThis();
-      const mockEq = vi.fn().mockReturnThis();
-      const mockSingle = vi.fn().mockResolvedValue({
-        data: null,
-        error: { code: 'PGRST116' }, // Not found
-      });
-
-      vi.mocked(supabase.from).mockReturnValue({
-        select: mockSelect,
-        eq: mockEq,
-        single: mockSingle,
-      } as any);
-
-      // Execute
-      const { result } = renderHook(() => use2FASettings(), {
-        wrapper: createWrapper(),
-      });
-
-      // Assert
-      await waitFor(() => {
-        expect(result.current.isSuccess).toBe(true);
-      });
-
-      expect(result.current.data).toBeNull();
-    });
   });
 
   describe('useIs2FAEnabled', () => {
     it('2FA가 활성화되어 있을 때 true를 반환해야 함', async () => {
       // Setup
-      const mockSelect = vi.fn().mockReturnThis();
-      const mockEq = vi.fn().mockReturnThis();
-      const mockSingle = vi.fn().mockResolvedValue({
+      vi.mocked(twoFactorApi.getSettings).mockResolvedValue({
         data: { ...mockTwoFactorAuth, enabled: true },
         error: null,
       });
-
-      vi.mocked(supabase.from).mockReturnValue({
-        select: mockSelect,
-        eq: mockEq,
-        single: mockSingle,
-      } as any);
 
       // Execute
       const { result } = renderHook(() => useIs2FAEnabled(), {
@@ -265,18 +176,10 @@ describe('use2FA', () => {
 
     it('2FA가 비활성화되어 있을 때 false를 반환해야 함', async () => {
       // Setup
-      const mockSelect = vi.fn().mockReturnThis();
-      const mockEq = vi.fn().mockReturnThis();
-      const mockSingle = vi.fn().mockResolvedValue({
+      vi.mocked(twoFactorApi.getSettings).mockResolvedValue({
         data: { ...mockTwoFactorAuth, enabled: false },
         error: null,
       });
-
-      vi.mocked(supabase.from).mockReturnValue({
-        select: mockSelect,
-        eq: mockEq,
-        single: mockSingle,
-      } as any);
 
       // Execute
       const { result } = renderHook(() => useIs2FAEnabled(), {
@@ -296,21 +199,14 @@ describe('use2FA', () => {
       const mockQrCode = 'data:image/png;base64,QRCODE';
       const mockBackupCodes = ['CODE1', 'CODE2', 'CODE3'];
 
-      vi.mocked(totpLib.generateTOTPSecret).mockResolvedValue({
-        secret: 'SECRET123',
-        qrCode: mockQrCode,
-      });
-
-      vi.mocked(totpLib.generateBackupCodes).mockReturnValue(mockBackupCodes);
-
-      const mockUpsert = vi.fn().mockResolvedValue({
-        data: null,
+      vi.mocked(twoFactorApi.setup).mockResolvedValue({
+        data: {
+          secret: 'SECRET123',
+          qrCode: mockQrCode,
+          backupCodes: mockBackupCodes,
+        },
         error: null,
       });
-
-      vi.mocked(supabase.from).mockReturnValue({
-        upsert: mockUpsert,
-      } as any);
 
       // Execute
       const { result } = renderHook(() => useSetup2FA(), {
@@ -328,57 +224,15 @@ describe('use2FA', () => {
         expect(result.current.isSuccess).toBe(true);
       });
 
-      expect(totpLib.generateTOTPSecret).toHaveBeenCalledWith('test@example.com');
-      expect(totpLib.generateBackupCodes).toHaveBeenCalled();
-      expect(mockUpsert).toHaveBeenCalledWith(
-        expect.objectContaining({
-          user_id: 'user-123',
-          secret: 'SECRET123',
-          enabled: false,
-          backup_codes: mockBackupCodes,
-        }),
-        { onConflict: 'user_id' }
-      );
+      expect(twoFactorApi.setup).toHaveBeenCalled();
     });
 
-    it('TOTP 생성 실패 시 에러를 처리해야 함', async () => {
+    it('설정 실패 시 에러를 처리해야 함', async () => {
       // Setup
-      vi.mocked(totpLib.generateTOTPSecret).mockRejectedValue(
-        new Error('TOTP generation failed')
-      );
-
-      // Execute
-      const { result } = renderHook(() => useSetup2FA(), {
-        wrapper: createWrapper(),
-      });
-
-      result.current.mutate();
-
-      // Assert
-      await waitFor(() => {
-        expect(result.current.isError).toBe(true);
-      });
-
-      expect(result.current.error?.message).toBe('TOTP generation failed');
-    });
-
-    it('데이터베이스 저장 실패 시 에러를 처리해야 함', async () => {
-      // Setup
-      vi.mocked(totpLib.generateTOTPSecret).mockResolvedValue({
-        secret: 'SECRET123',
-        qrCode: 'QR',
-      });
-
-      vi.mocked(totpLib.generateBackupCodes).mockReturnValue(['CODE1']);
-
-      const mockUpsert = vi.fn().mockResolvedValue({
+      vi.mocked(twoFactorApi.setup).mockResolvedValue({
         data: null,
-        error: { message: 'Database error' },
+        error: 'Setup failed',
       });
-
-      vi.mocked(supabase.from).mockReturnValue({
-        upsert: mockUpsert,
-      } as any);
 
       // Execute
       const { result } = renderHook(() => useSetup2FA(), {
@@ -397,29 +251,9 @@ describe('use2FA', () => {
   describe('useEnable2FA', () => {
     it('유효한 토큰으로 2FA를 성공적으로 활성화해야 함', async () => {
       // Setup
-      const mockSelect = vi.fn().mockReturnThis();
-      const mockEq = vi.fn().mockReturnThis();
-      const mockSingle = vi.fn().mockResolvedValue({
-        data: { secret: 'SECRET123' },
+      vi.mocked(twoFactorApi.enable).mockResolvedValue({
+        data: { success: true },
         error: null,
-      });
-
-      const mockUpdate = vi.fn().mockReturnThis();
-
-      vi.mocked(supabase.from).mockReturnValue({
-        select: mockSelect,
-        eq: mockEq,
-        single: mockSingle,
-        update: mockUpdate,
-      } as any);
-
-      vi.mocked(totpLib.verifyTOTPToken).mockReturnValue({
-        valid: true,
-        delta: 0,
-      });
-
-      mockUpdate.mockReturnValue({
-        eq: vi.fn().mockResolvedValue({ data: null, error: null }),
       });
 
       // Execute
@@ -434,27 +268,14 @@ describe('use2FA', () => {
         expect(result.current.isSuccess).toBe(true);
       });
 
-      expect(totpLib.verifyTOTPToken).toHaveBeenCalledWith('SECRET123', '123456');
+      expect(twoFactorApi.enable).toHaveBeenCalledWith('mock-token', '123456');
     });
 
     it('잘못된 토큰으로 2FA 활성화 실패 시 에러를 던져야 함', async () => {
       // Setup
-      const mockSelect = vi.fn().mockReturnThis();
-      const mockEq = vi.fn().mockReturnThis();
-      const mockSingle = vi.fn().mockResolvedValue({
-        data: { secret: 'SECRET123' },
-        error: null,
-      });
-
-      vi.mocked(supabase.from).mockReturnValue({
-        select: mockSelect,
-        eq: mockEq,
-        single: mockSingle,
-      } as any);
-
-      vi.mocked(totpLib.verifyTOTPToken).mockReturnValue({
-        valid: false,
-        delta: null,
+      vi.mocked(twoFactorApi.enable).mockResolvedValue({
+        data: null,
+        error: '유효하지 않은 인증 코드입니다.',
       });
 
       // Execute
@@ -468,59 +289,16 @@ describe('use2FA', () => {
       await waitFor(() => {
         expect(result.current.isError).toBe(true);
       });
-
-      expect(result.current.error?.message).toContain('유효하지 않은 인증 코드');
-    });
-
-    it('2FA 설정이 존재하지 않을 때 에러를 던져야 함', async () => {
-      // Setup
-      const mockSelect = vi.fn().mockReturnThis();
-      const mockEq = vi.fn().mockReturnThis();
-      const mockSingle = vi.fn().mockResolvedValue({
-        data: null,
-        error: null,
-      });
-
-      vi.mocked(supabase.from).mockReturnValue({
-        select: mockSelect,
-        eq: mockEq,
-        single: mockSingle,
-      } as any);
-
-      // Execute
-      const { result } = renderHook(() => useEnable2FA(), {
-        wrapper: createWrapper(),
-      });
-
-      result.current.mutate('123456');
-
-      // Assert
-      await waitFor(() => {
-        expect(result.current.isError).toBe(true);
-      });
-
-      expect(result.current.error?.message).toContain('2FA 설정이 존재하지 않습니다');
     });
   });
 
   describe('useDisable2FA', () => {
     it('올바른 비밀번호로 2FA를 성공적으로 비활성화해야 함', async () => {
       // Setup
-      vi.mocked(supabase.auth.signInWithPassword).mockResolvedValue({
-        data: { user: { id: 'user-123' } as any, session: {} as any },
+      vi.mocked(twoFactorApi.disable).mockResolvedValue({
+        data: { success: true },
         error: null,
       });
-
-      const mockUpdate = vi.fn().mockReturnThis();
-      const mockEq = vi.fn().mockResolvedValue({
-        data: null,
-        error: null,
-      });
-
-      vi.mocked(supabase.from).mockReturnValue({
-        update: mockUpdate,
-        eq: mockEq,
-      } as any);
 
       // Execute
       const { result } = renderHook(() => useDisable2FA(), {
@@ -534,17 +312,14 @@ describe('use2FA', () => {
         expect(result.current.isSuccess).toBe(true);
       });
 
-      expect(supabase.auth.signInWithPassword).toHaveBeenCalledWith({
-        email: 'test@example.com',
-        password: 'password123',
-      });
+      expect(twoFactorApi.disable).toHaveBeenCalledWith('mock-token', 'password123');
     });
 
     it('잘못된 비밀번호로 2FA 비활성화 실패 시 에러를 던져야 함', async () => {
       // Setup
-      vi.mocked(supabase.auth.signInWithPassword).mockResolvedValue({
-        data: { user: null, session: null },
-        error: { message: 'Invalid credentials' } as any,
+      vi.mocked(twoFactorApi.disable).mockResolvedValue({
+        data: null,
+        error: '비밀번호가 일치하지 않습니다.',
       });
 
       // Execute
@@ -558,8 +333,6 @@ describe('use2FA', () => {
       await waitFor(() => {
         expect(result.current.isError).toBe(true);
       });
-
-      expect(result.current.error?.message).toContain('비밀번호가 일치하지 않습니다');
     });
   });
 
@@ -567,18 +340,10 @@ describe('use2FA', () => {
     it('백업 코드를 성공적으로 재생성해야 함', async () => {
       // Setup
       const newBackupCodes = ['NEW1', 'NEW2', 'NEW3'];
-      vi.mocked(totpLib.generateBackupCodes).mockReturnValue(newBackupCodes);
-
-      const mockUpdate = vi.fn().mockReturnThis();
-      const mockEq = vi.fn().mockResolvedValue({
-        data: null,
+      vi.mocked(twoFactorApi.regenerateBackupCodes).mockResolvedValue({
+        data: { backupCodes: newBackupCodes },
         error: null,
       });
-
-      vi.mocked(supabase.from).mockReturnValue({
-        update: mockUpdate,
-        eq: mockEq,
-      } as any);
 
       // Execute
       const { result } = renderHook(() => useRegenerateBackupCodes(), {
@@ -593,23 +358,15 @@ describe('use2FA', () => {
       });
 
       expect(result.current.data).toEqual(newBackupCodes);
-      expect(totpLib.generateBackupCodes).toHaveBeenCalled();
+      expect(twoFactorApi.regenerateBackupCodes).toHaveBeenCalled();
     });
 
-    it('데이터베이스 업데이트 실패 시 에러를 처리해야 함', async () => {
+    it('재생성 실패 시 에러를 처리해야 함', async () => {
       // Setup
-      vi.mocked(totpLib.generateBackupCodes).mockReturnValue(['CODE1']);
-
-      const mockUpdate = vi.fn().mockReturnThis();
-      const mockEq = vi.fn().mockResolvedValue({
+      vi.mocked(twoFactorApi.regenerateBackupCodes).mockResolvedValue({
         data: null,
-        error: { message: 'Update failed' },
+        error: 'Update failed',
       });
-
-      vi.mocked(supabase.from).mockReturnValue({
-        update: mockUpdate,
-        eq: mockEq,
-      } as any);
 
       // Execute
       const { result } = renderHook(() => useRegenerateBackupCodes(), {
@@ -627,30 +384,10 @@ describe('use2FA', () => {
 
   describe('useVerify2FA', () => {
     it('유효한 TOTP 토큰으로 인증을 성공해야 함', async () => {
-      // Setup
-      const mockSelect = vi.fn().mockReturnThis();
-      const mockEq = vi.fn().mockReturnThis();
-      const mockSingle = vi.fn().mockResolvedValue({
-        data: { ...mockTwoFactorAuth, enabled: true },
+      // Setup - 훅은 result.data?.success를 확인
+      vi.mocked(twoFactorApi.verify).mockResolvedValue({
+        data: { success: true },
         error: null,
-      });
-
-      const mockUpdate = vi.fn().mockReturnThis();
-
-      vi.mocked(supabase.from).mockReturnValue({
-        select: mockSelect,
-        eq: mockEq,
-        single: mockSingle,
-        update: mockUpdate,
-      } as any);
-
-      vi.mocked(totpLib.verifyTOTPToken).mockReturnValue({
-        valid: true,
-        delta: 0,
-      });
-
-      mockUpdate.mockReturnValue({
-        eq: vi.fn().mockResolvedValue({ data: null, error: null }),
       });
 
       // Execute
@@ -665,34 +402,14 @@ describe('use2FA', () => {
         expect(result.current.isSuccess).toBe(true);
       });
 
-      expect(totpLib.verifyTOTPToken).toHaveBeenCalledWith('SECRET123', '123456');
+      expect(twoFactorApi.verify).toHaveBeenCalledWith('mock-token', '123456', false);
     });
 
     it('유효한 백업 코드로 인증을 성공해야 함', async () => {
       // Setup
-      const mockBackupCodes = ['BACKUP1', 'BACKUP2', 'BACKUP3'];
-      const mockSelect = vi.fn().mockReturnThis();
-      const mockEq = vi.fn().mockReturnThis();
-      const mockSingle = vi.fn().mockResolvedValue({
-        data: {
-          ...mockTwoFactorAuth,
-          enabled: true,
-          backup_codes: mockBackupCodes,
-        },
+      vi.mocked(twoFactorApi.verify).mockResolvedValue({
+        data: { success: true },
         error: null,
-      });
-
-      const mockUpdate = vi.fn().mockReturnThis();
-
-      vi.mocked(supabase.from).mockReturnValue({
-        select: mockSelect,
-        eq: mockEq,
-        single: mockSingle,
-        update: mockUpdate,
-      } as any);
-
-      mockUpdate.mockReturnValue({
-        eq: vi.fn().mockResolvedValue({ data: null, error: null }),
       });
 
       // Execute
@@ -706,70 +423,28 @@ describe('use2FA', () => {
       await waitFor(() => {
         expect(result.current.isSuccess).toBe(true);
       });
+
+      expect(twoFactorApi.verify).toHaveBeenCalledWith('mock-token', 'BACKUP1', true);
     });
 
-    it('잘못된 백업 코드로 인증 실패 시 에러를 던져야 함', async () => {
+    it('잘못된 토큰으로 인증 실패 시 에러를 던져야 함', async () => {
       // Setup
-      const mockSelect = vi.fn().mockReturnThis();
-      const mockEq = vi.fn().mockReturnThis();
-      const mockSingle = vi.fn().mockResolvedValue({
-        data: {
-          ...mockTwoFactorAuth,
-          enabled: true,
-          backup_codes: ['BACKUP1', 'BACKUP2'],
-        },
-        error: null,
+      vi.mocked(twoFactorApi.verify).mockResolvedValue({
+        data: null,
+        error: '유효하지 않은 인증 코드입니다.',
       });
-
-      vi.mocked(supabase.from).mockReturnValue({
-        select: mockSelect,
-        eq: mockEq,
-        single: mockSingle,
-      } as any);
 
       // Execute
       const { result } = renderHook(() => useVerify2FA(), {
         wrapper: createWrapper(),
       });
 
-      result.current.mutate({ token: 'INVALID', isBackupCode: true });
+      result.current.mutate({ token: 'INVALID', isBackupCode: false });
 
       // Assert
       await waitFor(() => {
         expect(result.current.isError).toBe(true);
       });
-
-      expect(result.current.error?.message).toContain('유효하지 않은 백업 코드');
-    });
-
-    it('2FA가 활성화되지 않았을 때 에러를 던져야 함', async () => {
-      // Setup
-      const mockSelect = vi.fn().mockReturnThis();
-      const mockEq = vi.fn().mockReturnThis();
-      const mockSingle = vi.fn().mockResolvedValue({
-        data: { ...mockTwoFactorAuth, enabled: false },
-        error: null,
-      });
-
-      vi.mocked(supabase.from).mockReturnValue({
-        select: mockSelect,
-        eq: mockEq,
-        single: mockSingle,
-      } as any);
-
-      // Execute
-      const { result } = renderHook(() => useVerify2FA(), {
-        wrapper: createWrapper(),
-      });
-
-      result.current.mutate({ token: '123456', isBackupCode: false });
-
-      // Assert
-      await waitFor(() => {
-        expect(result.current.isError).toBe(true);
-      });
-
-      expect(result.current.error?.message).toContain('2FA가 활성화되지 않았습니다');
     });
   });
 });

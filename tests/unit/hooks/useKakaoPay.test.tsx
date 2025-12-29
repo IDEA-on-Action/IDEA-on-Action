@@ -2,18 +2,19 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { useKakaoPay } from '@/hooks/payments/useKakaoPay';
-import { supabase } from '@/integrations/supabase/client';
+import { callWorkersApi } from '@/integrations/cloudflare/client';
 import * as kakaoPayLib from '@/lib/payments/kakao-pay';
+import { useAuth } from '@/hooks/useAuth';
 import React, { type ReactNode } from 'react';
 
-// Mock supabase client
-vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
-    auth: {
-      getUser: vi.fn(),
-    },
-    from: vi.fn(),
-  },
+// Mock Workers API client
+vi.mock('@/integrations/cloudflare/client', () => ({
+  callWorkersApi: vi.fn(),
+}));
+
+// Mock useAuth hook
+vi.mock('@/hooks/useAuth', () => ({
+  useAuth: vi.fn(),
 }));
 
 // Mock kakao-pay library
@@ -33,6 +34,11 @@ describe('useKakaoPay', () => {
   const mockUser = {
     id: 'user-123',
     email: 'test@example.com',
+  };
+
+  const mockWorkersTokens = {
+    accessToken: 'test-access-token',
+    refreshToken: 'test-refresh-token',
   };
 
   const mockOrder = {
@@ -74,6 +80,12 @@ describe('useKakaoPay', () => {
 
     // Reset sessionStorage
     sessionStorage.clear();
+
+    // 기본 useAuth 모킹
+    vi.mocked(useAuth).mockReturnValue({
+      user: mockUser,
+      workersTokens: mockWorkersTokens,
+    } as ReturnType<typeof useAuth>);
   });
 
   afterEach(() => {
@@ -98,11 +110,6 @@ describe('useKakaoPay', () => {
   describe('initiateKakaoPay - 결제 시작', () => {
     it('결제 시작 시 Kakao Pay 준비 API를 호출하고 리다이렉트해야 함', async () => {
       // Setup
-      vi.mocked(supabase.auth.getUser).mockResolvedValue({
-        data: { user: mockUser as any },
-        error: null,
-      });
-
       vi.mocked(kakaoPayLib.getKakaoPayRedirectUrls).mockReturnValue({
         approval_url: 'http://localhost/success',
         cancel_url: 'http://localhost/cancel',
@@ -138,11 +145,11 @@ describe('useKakaoPay', () => {
     });
 
     it('로그인하지 않은 경우 에러를 발생시켜야 함', async () => {
-      // Setup
-      vi.mocked(supabase.auth.getUser).mockResolvedValue({
-        data: { user: null },
-        error: null,
-      });
+      // Setup - 로그인하지 않은 상태
+      vi.mocked(useAuth).mockReturnValue({
+        user: null,
+        workersTokens: null,
+      } as ReturnType<typeof useAuth>);
 
       // Execute
       const { result } = renderHook(() => useKakaoPay(), { wrapper });
@@ -163,11 +170,6 @@ describe('useKakaoPay', () => {
 
     it('Kakao Pay API 실패 시 에러를 처리해야 함', async () => {
       // Setup
-      vi.mocked(supabase.auth.getUser).mockResolvedValue({
-        data: { user: mockUser as any },
-        error: null,
-      });
-
       vi.mocked(kakaoPayLib.getKakaoPayRedirectUrls).mockReturnValue({
         approval_url: 'http://localhost/success',
         cancel_url: 'http://localhost/cancel',
@@ -198,52 +200,21 @@ describe('useKakaoPay', () => {
 
   describe('approveKakaoPay - 결제 승인', () => {
     it('결제 승인 시 Kakao Pay 승인 API를 호출하고 DB에 저장해야 함', async () => {
-      // Setup
-      vi.mocked(supabase.auth.getUser).mockResolvedValue({
-        data: { user: mockUser as any },
-        error: null,
-      });
-
-      const singleMock = vi.fn().mockResolvedValue({
-        data: mockOrder,
-        error: null,
-      });
-
-      const eqMock = vi.fn().mockReturnValue({
-        single: singleMock,
-      });
-
-      const selectMock = vi.fn().mockReturnValue({
-        eq: eqMock,
-      });
-
-      const insertMock = vi.fn().mockResolvedValue({
-        data: null,
-        error: null,
-      });
-
-      const orderUpdateEqMock = vi.fn().mockResolvedValue({
-        data: null,
-        error: null,
-      });
-
-      const updateMock = vi.fn().mockReturnValue({
-        eq: orderUpdateEqMock,
-      });
-
-      vi.mocked(supabase.from).mockImplementation((table: string) => {
-        if (table === 'orders') {
-          return {
-            select: selectMock,
-            update: updateMock,
-          } as any;
+      // Setup - Workers API 모킹
+      vi.mocked(callWorkersApi).mockImplementation(async (url: string, options?: any) => {
+        if (url === '/api/v1/orders/order-1' && !options?.method) {
+          // GET 주문 조회
+          return { data: mockOrder, error: null };
         }
-        if (table === 'payments') {
-          return {
-            insert: insertMock,
-          } as any;
+        if (url === '/api/v1/payments' && options?.method === 'POST') {
+          // POST 결제 정보 저장
+          return { data: null, error: null };
         }
-        return {} as any;
+        if (url === '/api/v1/orders/order-1' && options?.method === 'PATCH') {
+          // PATCH 주문 상태 업데이트
+          return { data: null, error: null };
+        }
+        return { data: null, error: null };
       });
 
       vi.mocked(kakaoPayLib.approveKakaoPayment).mockResolvedValue(
@@ -266,29 +237,35 @@ describe('useKakaoPay', () => {
         pg_token: 'pg-token-456',
       });
 
-      // Assert - payments 테이블 삽입
-      expect(insertMock).toHaveBeenCalledWith({
-        order_id: 'order-1',
-        amount: 10000,
-        status: 'completed',
-        provider: 'kakao',
-        provider_transaction_id: 'tid-12345',
-        payment_method: 'card',
-        card_info: {
-          cardType: 'CREDIT',
-          issuer: '신한카드',
-          approveNo: 'APPROVE-123',
+      // Assert - Workers API payments 호출 확인
+      expect(callWorkersApi).toHaveBeenCalledWith('/api/v1/payments', {
+        method: 'POST',
+        token: mockWorkersTokens.accessToken,
+        body: {
+          order_id: 'order-1',
+          amount: 10000,
+          status: 'completed',
+          provider: 'kakao',
+          provider_transaction_id: 'tid-12345',
+          payment_method: 'card',
+          card_info: {
+            cardType: 'CREDIT',
+            issuer: '신한카드',
+            approveNo: 'APPROVE-123',
+          },
+          metadata: mockKakaoApproveResponse,
+          paid_at: '2024-01-01T01:00:00Z',
         },
-        metadata: mockKakaoApproveResponse,
-        paid_at: '2024-01-01T01:00:00Z',
       });
 
-      // Assert - orders 테이블 업데이트
-      expect(updateMock).toHaveBeenCalledWith(
-        expect.objectContaining({
+      // Assert - Workers API orders 업데이트 호출 확인
+      expect(callWorkersApi).toHaveBeenCalledWith('/api/v1/orders/order-1', expect.objectContaining({
+        method: 'PATCH',
+        token: mockWorkersTokens.accessToken,
+        body: expect.objectContaining({
           status: 'confirmed',
-        })
-      );
+        }),
+      }));
 
       // Assert - 반환값 확인
       expect(paymentResult).toEqual({
@@ -302,27 +279,11 @@ describe('useKakaoPay', () => {
     });
 
     it('주문 정보를 찾을 수 없으면 에러를 발생시켜야 함', async () => {
-      // Setup
-      vi.mocked(supabase.auth.getUser).mockResolvedValue({
-        data: { user: mockUser as any },
-        error: null,
-      });
-
-      const singleMock = vi.fn().mockResolvedValue({
+      // Setup - Workers API 주문 조회 실패 모킹
+      vi.mocked(callWorkersApi).mockResolvedValue({
         data: null,
-        error: { message: 'Not found' },
+        error: 'Not found',
       });
-
-      vi.mocked(supabase.from).mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            single: singleMock,
-          }),
-        }),
-        update: vi.fn().mockReturnValue({
-          eq: vi.fn().mockResolvedValue({ data: null, error: null }),
-        }),
-      } as any);
 
       // Execute
       const { result } = renderHook(() => useKakaoPay(), { wrapper });
@@ -341,38 +302,17 @@ describe('useKakaoPay', () => {
     });
 
     it('결제 승인 실패 시 주문 상태를 cancelled로 업데이트해야 함', async () => {
-      // Setup
-      vi.mocked(supabase.auth.getUser).mockResolvedValue({
-        data: { user: mockUser as any },
-        error: null,
-      });
-
-      const singleMock = vi.fn().mockResolvedValue({
-        data: mockOrder,
-        error: null,
-      });
-
-      const orderUpdateEqMock = vi.fn().mockResolvedValue({
-        data: null,
-        error: null,
-      });
-
-      const updateMock = vi.fn().mockReturnValue({
-        eq: orderUpdateEqMock,
-      });
-
-      vi.mocked(supabase.from).mockImplementation((table: string) => {
-        if (table === 'orders') {
-          return {
-            select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                single: singleMock,
-              }),
-            }),
-            update: updateMock,
-          } as any;
+      // Setup - Workers API 모킹
+      vi.mocked(callWorkersApi).mockImplementation(async (url: string, options?: any) => {
+        if (url === '/api/v1/orders/order-1' && !options?.method) {
+          // GET 주문 조회
+          return { data: mockOrder, error: null };
         }
-        return {} as any;
+        if (url === '/api/v1/orders/order-1' && options?.method === 'PATCH') {
+          // PATCH 주문 상태 업데이트
+          return { data: null, error: null };
+        }
+        return { data: null, error: null };
       });
 
       vi.mocked(kakaoPayLib.approveKakaoPayment).mockRejectedValue(
@@ -395,9 +335,13 @@ describe('useKakaoPay', () => {
       expect(error).toBeDefined();
       expect(error.message).toBe('승인 실패');
 
-      // Assert - 주문 상태 업데이트
+      // Assert - 주문 상태 cancelled로 업데이트 호출 확인
       await waitFor(() => {
-        expect(updateMock).toHaveBeenCalledWith({ status: 'cancelled' });
+        expect(callWorkersApi).toHaveBeenCalledWith('/api/v1/orders/order-1', {
+          method: 'PATCH',
+          token: mockWorkersTokens.accessToken,
+          body: { status: 'cancelled' },
+        });
       });
     });
 
@@ -405,35 +349,17 @@ describe('useKakaoPay', () => {
       // Setup
       sessionStorage.setItem('kakao_pay_tid_order-1', 'tid-12345');
 
-      vi.mocked(supabase.auth.getUser).mockResolvedValue({
-        data: { user: mockUser as any },
-        error: null,
-      });
-
-      const singleMock = vi.fn().mockResolvedValue({
-        data: mockOrder,
-        error: null,
-      });
-
-      vi.mocked(supabase.from).mockImplementation((table: string) => {
-        if (table === 'orders') {
-          return {
-            select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                single: singleMock,
-              }),
-            }),
-            update: vi.fn().mockReturnValue({
-              eq: vi.fn().mockResolvedValue({ data: null, error: null }),
-            }),
-          } as any;
+      vi.mocked(callWorkersApi).mockImplementation(async (url: string, options?: any) => {
+        if (url === '/api/v1/orders/order-1' && !options?.method) {
+          return { data: mockOrder, error: null };
         }
-        if (table === 'payments') {
-          return {
-            insert: vi.fn().mockResolvedValue({ data: null, error: null }),
-          } as any;
+        if (url === '/api/v1/payments' && options?.method === 'POST') {
+          return { data: null, error: null };
         }
-        return {} as any;
+        if (url === '/api/v1/orders/order-1' && options?.method === 'PATCH') {
+          return { data: null, error: null };
+        }
+        return { data: null, error: null };
       });
 
       vi.mocked(kakaoPayLib.approveKakaoPayment).mockResolvedValue(
@@ -515,11 +441,6 @@ describe('useKakaoPay', () => {
   describe('로딩 상태', () => {
     it('결제 완료 후 isProcessing이 false여야 함', async () => {
       // Setup
-      vi.mocked(supabase.auth.getUser).mockResolvedValue({
-        data: { user: mockUser as any },
-        error: null,
-      });
-
       vi.mocked(kakaoPayLib.getKakaoPayRedirectUrls).mockReturnValue({
         approval_url: 'http://localhost/success',
         cancel_url: 'http://localhost/cancel',

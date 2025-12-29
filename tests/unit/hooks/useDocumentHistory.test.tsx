@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * useDocumentHistory Hook Tests
+ * @migration Supabase -> Cloudflare Workers (완전 마이그레이션 완료)
  *
  * 문서 이력 관리 훅 테스트
  * - 문서 목록 조회
@@ -15,21 +16,19 @@ import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
 import { useDocumentHistory, useDocumentStats, formatFileSize, getFileTypeIcon, getFileTypeLabel } from '@/hooks/useDocumentHistory';
-import { supabase } from '@/integrations/supabase/client';
+import * as cloudflareClient from '@/integrations/cloudflare/client';
 import type { GeneratedDocument, CreateGeneratedDocument } from '@/types/document-history.types';
 
-// Mock dependencies
-vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
-    from: vi.fn(),
-    rpc: vi.fn(),
-  },
+// Mock Workers API client
+vi.mock('@/integrations/cloudflare/client', () => ({
+  callWorkersApi: vi.fn(),
 }));
 
+// Mock useAuth with Workers tokens
 vi.mock('@/hooks/useAuth', () => ({
   useAuth: () => ({
     user: { id: 'test-user-id', email: 'test@example.com' },
-    session: { access_token: 'mock-token' },
+    workersTokens: { accessToken: 'mock-token' },
   }),
 }));
 
@@ -98,26 +97,12 @@ describe('useDocumentHistory', () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
-    // Setup Supabase mock chain with default data
-    const createMockChain = (initialData = [mockDocument, mockDocument2]) => {
-      const queryResult = {
-        data: initialData,
-        error: null,
-      };
-
-      const chain: any = {
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        order: vi.fn().mockReturnThis(),
-        limit: vi.fn().mockResolvedValue(queryResult),
-        insert: vi.fn().mockReturnThis(),
-        delete: vi.fn().mockReturnThis(),
-        single: vi.fn().mockResolvedValue(queryResult),
-      };
-      return chain;
-    };
-
-    vi.mocked(supabase.from).mockImplementation(() => createMockChain());
+    // 기본 성공 응답 설정
+    vi.mocked(cloudflareClient.callWorkersApi).mockResolvedValue({
+      data: [mockDocument, mockDocument2],
+      error: null,
+      status: 200,
+    });
   });
 
   afterEach(() => {
@@ -139,24 +124,21 @@ describe('useDocumentHistory', () => {
       expect(result.current.isLoading).toBe(false);
     }, { timeout: 3000 });
 
-    // Assert - since we have default mock, we should get 2 documents
+    // Assert
     expect(result.current.documents.length).toBeGreaterThanOrEqual(0);
-    expect(supabase.from).toHaveBeenCalledWith('generated_documents');
+    expect(cloudflareClient.callWorkersApi).toHaveBeenCalledWith(
+      expect.stringContaining('/api/v1/documents'),
+      expect.objectContaining({ token: 'mock-token' })
+    );
   });
 
   it('빈 목록을 반환해야 함 (문서가 없는 경우)', async () => {
     // Setup - override with empty data
-    const createMockChain = () => {
-      const queryResult = { data: [], error: null };
-      const chain: any = {
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        order: vi.fn().mockReturnThis(),
-        limit: vi.fn().mockResolvedValue(queryResult),
-      };
-      return chain;
-    };
-    vi.mocked(supabase.from).mockImplementation(() => createMockChain());
+    vi.mocked(cloudflareClient.callWorkersApi).mockResolvedValue({
+      data: [],
+      error: null,
+      status: 200,
+    });
 
     // Execute
     const { result } = renderHook(() => useDocumentHistory(), {
@@ -173,17 +155,11 @@ describe('useDocumentHistory', () => {
 
   it('파일 유형으로 필터링해야 함', async () => {
     // Setup
-    const createMockChain = () => {
-      const queryResult = { data: [mockDocument], error: null };
-      const chain: any = {
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        order: vi.fn().mockReturnThis(),
-        limit: vi.fn().mockResolvedValue(queryResult),
-      };
-      return chain;
-    };
-    vi.mocked(supabase.from).mockImplementation(() => createMockChain());
+    vi.mocked(cloudflareClient.callWorkersApi).mockResolvedValue({
+      data: [mockDocument],
+      error: null,
+      status: 200,
+    });
 
     // Execute
     const { result } = renderHook(() => useDocumentHistory({ fileType: 'xlsx' }), {
@@ -195,9 +171,11 @@ describe('useDocumentHistory', () => {
       expect(result.current.isLoading).toBe(false);
     }, { timeout: 3000 });
 
-    // Check that the hook at least tried to fetch
-    expect(result.current.documents.length).toBeGreaterThanOrEqual(0);
-    expect(supabase.from).toHaveBeenCalled();
+    // Check that the API was called with the file_type filter
+    expect(cloudflareClient.callWorkersApi).toHaveBeenCalledWith(
+      expect.stringContaining('file_type=xlsx'),
+      expect.any(Object)
+    );
   });
 
   it('정렬 순서를 적용해야 함 (오름차순)', async () => {
@@ -211,7 +189,10 @@ describe('useDocumentHistory', () => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    expect(supabase.from).toHaveBeenCalled();
+    expect(cloudflareClient.callWorkersApi).toHaveBeenCalledWith(
+      expect.stringContaining('order_by=asc'),
+      expect.any(Object)
+    );
   });
 
   it('정렬 순서를 적용해야 함 (내림차순)', async () => {
@@ -225,7 +206,10 @@ describe('useDocumentHistory', () => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    expect(supabase.from).toHaveBeenCalled();
+    expect(cloudflareClient.callWorkersApi).toHaveBeenCalledWith(
+      expect.stringContaining('order_by=desc'),
+      expect.any(Object)
+    );
   });
 
   it('개수 제한을 적용해야 함', async () => {
@@ -239,36 +223,32 @@ describe('useDocumentHistory', () => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    expect(supabase.from).toHaveBeenCalled();
+    expect(cloudflareClient.callWorkersApi).toHaveBeenCalledWith(
+      expect.stringContaining('limit=10'),
+      expect.any(Object)
+    );
   });
 
   it('조회 에러를 처리해야 함', async () => {
     // Setup
-    const createMockChain = () => {
-      const queryResult = { data: null, error: new Error('Database error') };
-      const chain: any = {
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        order: vi.fn().mockReturnThis(),
-        limit: vi.fn().mockRejectedValue(new Error('문서 목록 조회 실패: Database error')),
-      };
-      return chain;
-    };
-    vi.mocked(supabase.from).mockImplementation(() => createMockChain());
+    vi.mocked(cloudflareClient.callWorkersApi).mockResolvedValue({
+      data: null,
+      error: 'Database error',
+      status: 500,
+    });
 
     // Execute
     const { result } = renderHook(() => useDocumentHistory(), {
       wrapper: createWrapper(),
     });
 
-    // Assert - wait for the query to fail
+    // Assert - wait for the query to complete
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
     }, { timeout: 3000 });
 
-    // The error may or may not be captured depending on React Query's error handling
-    // Just check that loading completed
-    expect(result.current.isLoading).toBe(false);
+    // The error should be captured
+    expect(result.current.error).toBeTruthy();
   });
 
   // ============================================================================
@@ -287,23 +267,18 @@ describe('useDocumentHistory', () => {
 
     const savedDocument = { ...mockDocument, ...newDoc, id: 'doc-new' };
 
-    // Mock both query and insert chains
-    const createMockChain = (tableName: string) => {
-      if (tableName === 'generated_documents') {
-        return {
-          select: vi.fn().mockReturnThis(),
-          eq: vi.fn().mockReturnThis(),
-          order: vi.fn().mockReturnThis(),
-          limit: vi.fn().mockResolvedValue({ data: [], error: null }),
-          insert: vi.fn().mockReturnThis(),
-          single: vi.fn().mockResolvedValue({ data: savedDocument, error: null }),
-          delete: vi.fn(),
-        } as any;
-      }
-      return {} as any;
-    };
-
-    vi.mocked(supabase.from).mockImplementation(createMockChain);
+    // Mock: 첫 번째 호출은 목록 조회, 이후 호출은 저장
+    vi.mocked(cloudflareClient.callWorkersApi)
+      .mockResolvedValueOnce({
+        data: [],
+        error: null,
+        status: 200,
+      })
+      .mockResolvedValueOnce({
+        data: savedDocument,
+        error: null,
+        status: 201,
+      });
 
     // Execute
     const { result } = renderHook(() => useDocumentHistory(), {
@@ -318,7 +293,14 @@ describe('useDocumentHistory', () => {
 
     // Assert
     expect(savedDoc.file_name).toBe('new-report.xlsx');
-    expect(supabase.from).toHaveBeenCalledWith('generated_documents');
+    expect(cloudflareClient.callWorkersApi).toHaveBeenCalledWith(
+      '/api/v1/documents',
+      expect.objectContaining({
+        method: 'POST',
+        token: 'mock-token',
+        body: newDoc,
+      })
+    );
   });
 
   it('문서 저장 에러를 처리해야 함', async () => {
@@ -330,25 +312,18 @@ describe('useDocumentHistory', () => {
       file_size: 1000,
     };
 
-    const mockError = new Error('Insert failed');
-
-    // Mock both query and insert chains with error
-    const createMockChain = (tableName: string) => {
-      if (tableName === 'generated_documents') {
-        return {
-          select: vi.fn().mockReturnThis(),
-          eq: vi.fn().mockReturnThis(),
-          order: vi.fn().mockReturnThis(),
-          limit: vi.fn().mockResolvedValue({ data: [], error: null }),
-          insert: vi.fn().mockReturnThis(),
-          single: vi.fn().mockResolvedValue({ data: null, error: mockError }),
-          delete: vi.fn(),
-        } as any;
-      }
-      return {} as any;
-    };
-
-    vi.mocked(supabase.from).mockImplementation(createMockChain);
+    // Mock: 첫 번째 호출은 목록 조회, 이후 호출은 저장 실패
+    vi.mocked(cloudflareClient.callWorkersApi)
+      .mockResolvedValueOnce({
+        data: [],
+        error: null,
+        status: 200,
+      })
+      .mockResolvedValueOnce({
+        data: null,
+        error: 'Insert failed',
+        status: 500,
+      });
 
     // Execute
     const { result } = renderHook(() => useDocumentHistory(), {
@@ -369,24 +344,17 @@ describe('useDocumentHistory', () => {
 
   it('문서를 삭제해야 함', async () => {
     // Setup
-    const createMockChain = (tableName: string) => {
-      if (tableName === 'generated_documents') {
-        const deleteChain = {
-          eq: vi.fn().mockResolvedValue({ data: null, error: null }),
-        };
-        return {
-          select: vi.fn().mockReturnThis(),
-          eq: vi.fn().mockReturnThis(),
-          order: vi.fn().mockReturnThis(),
-          limit: vi.fn().mockResolvedValue({ data: [mockDocument], error: null }),
-          insert: vi.fn(),
-          delete: vi.fn().mockReturnValue(deleteChain),
-        } as any;
-      }
-      return {} as any;
-    };
-
-    vi.mocked(supabase.from).mockImplementation(createMockChain);
+    vi.mocked(cloudflareClient.callWorkersApi)
+      .mockResolvedValueOnce({
+        data: [mockDocument],
+        error: null,
+        status: 200,
+      })
+      .mockResolvedValueOnce({
+        data: null,
+        error: null,
+        status: 204,
+      });
 
     // Execute
     const { result } = renderHook(() => useDocumentHistory(), {
@@ -400,31 +368,28 @@ describe('useDocumentHistory', () => {
     await result.current.deleteDocument('doc-1');
 
     // Assert
-    expect(supabase.from).toHaveBeenCalledWith('generated_documents');
+    expect(cloudflareClient.callWorkersApi).toHaveBeenCalledWith(
+      '/api/v1/documents/doc-1',
+      expect.objectContaining({
+        method: 'DELETE',
+        token: 'mock-token',
+      })
+    );
   });
 
   it('문서 삭제 에러를 처리해야 함', async () => {
     // Setup
-    const mockError = new Error('Delete failed');
-
-    const createMockChain = (tableName: string) => {
-      if (tableName === 'generated_documents') {
-        const deleteChain = {
-          eq: vi.fn().mockResolvedValue({ data: null, error: mockError }),
-        };
-        return {
-          select: vi.fn().mockReturnThis(),
-          eq: vi.fn().mockReturnThis(),
-          order: vi.fn().mockReturnThis(),
-          limit: vi.fn().mockResolvedValue({ data: [mockDocument], error: null }),
-          insert: vi.fn(),
-          delete: vi.fn().mockReturnValue(deleteChain),
-        } as any;
-      }
-      return {} as any;
-    };
-
-    vi.mocked(supabase.from).mockImplementation(createMockChain);
+    vi.mocked(cloudflareClient.callWorkersApi)
+      .mockResolvedValueOnce({
+        data: [mockDocument],
+        error: null,
+        status: 200,
+      })
+      .mockResolvedValueOnce({
+        data: null,
+        error: 'Delete failed',
+        status: 500,
+      });
 
     // Execute
     const { result } = renderHook(() => useDocumentHistory(), {
@@ -444,8 +409,6 @@ describe('useDocumentHistory', () => {
   // ============================================================================
 
   it('데이터를 다시 불러올 수 있어야 함', async () => {
-    // Setup - use default mock (from beforeEach)
-
     // Execute
     const { result } = renderHook(() => useDocumentHistory(), {
       wrapper: createWrapper(),
@@ -490,10 +453,11 @@ describe('useDocumentStats', () => {
 
   it('문서 통계를 조회해야 함', async () => {
     // Setup
-    vi.mocked(supabase.rpc).mockResolvedValue({
+    vi.mocked(cloudflareClient.callWorkersApi).mockResolvedValue({
       data: mockStats,
       error: null,
-    } as any);
+      status: 200,
+    });
 
     // Execute
     const { result } = renderHook(() => useDocumentStats(), {
@@ -509,17 +473,19 @@ describe('useDocumentStats', () => {
     expect(result.current.stats[0].file_type).toBe('xlsx');
     expect(result.current.stats[0].count).toBe(5);
     expect(result.current.stats[1].file_type).toBe('docx');
-    expect(supabase.rpc).toHaveBeenCalledWith('get_user_document_stats', {
-      p_user_id: 'test-user-id',
-    });
+    expect(cloudflareClient.callWorkersApi).toHaveBeenCalledWith(
+      '/api/v1/documents/stats',
+      expect.objectContaining({ token: 'mock-token' })
+    );
   });
 
   it('빈 통계를 반환해야 함', async () => {
     // Setup
-    vi.mocked(supabase.rpc).mockResolvedValue({
+    vi.mocked(cloudflareClient.callWorkersApi).mockResolvedValue({
       data: [],
       error: null,
-    } as any);
+      status: 200,
+    });
 
     // Execute
     const { result } = renderHook(() => useDocumentStats(), {
@@ -536,11 +502,11 @@ describe('useDocumentStats', () => {
 
   it('통계 조회 에러를 처리해야 함', async () => {
     // Setup
-    const mockError = new Error('RPC failed');
-    vi.mocked(supabase.rpc).mockResolvedValue({
+    vi.mocked(cloudflareClient.callWorkersApi).mockResolvedValue({
       data: null,
-      error: mockError,
-    } as any);
+      error: 'RPC failed',
+      status: 500,
+    });
 
     // Execute
     const { result } = renderHook(() => useDocumentStats(), {

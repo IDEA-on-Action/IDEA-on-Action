@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
@@ -10,18 +10,26 @@ import {
   useUpdateProposalStatus,
   useDeleteProposal,
 } from '@/hooks/useProposals';
-import { supabase } from '@/integrations/supabase/client';
+import { proposalsApi } from '@/integrations/cloudflare/client';
 import React, { type ReactNode } from 'react';
 import type { Proposal, ProposalFormValues } from '@/types/v2';
 
-// Mock supabase client
-vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
-    from: vi.fn(),
-    auth: {
-      getUser: vi.fn(),
-    },
+// Mock Workers API client
+vi.mock('@/integrations/cloudflare/client', () => ({
+  proposalsApi: {
+    list: vi.fn(),
+    getMyProposals: vi.fn(),
+    submit: vi.fn(),
+    updateStatus: vi.fn(),
+    delete: vi.fn(),
   },
+}));
+
+// Mock useAuth hook
+vi.mock('@/hooks/useAuth', () => ({
+  useAuth: () => ({
+    workersTokens: { accessToken: 'mock-token' },
+  }),
 }));
 
 describe('useProposals', () => {
@@ -69,25 +77,21 @@ describe('useProposals', () => {
     vi.clearAllMocks();
   });
 
+  afterEach(() => {
+    queryClient.clear();
+  });
+
   const wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   );
 
   describe('useProposals', () => {
     it('전체 제안서 목록을 성공적으로 조회해야 함', async () => {
-      // Setup
-      const orderMock = vi.fn().mockResolvedValue({
+      // Setup - Workers API 모킹
+      vi.mocked(proposalsApi.list).mockResolvedValue({
         data: mockProposals,
         error: null,
       });
-
-      const selectMock = vi.fn().mockReturnValue({
-        order: orderMock,
-      });
-
-      vi.mocked(supabase.from).mockReturnValue({
-        select: selectMock,
-      } as any);
 
       // Execute
       const { result } = renderHook(() => useProposals(), { wrapper });
@@ -95,34 +99,25 @@ describe('useProposals', () => {
       // Assert
       await waitFor(() => {
         expect(result.current.isSuccess || result.current.isError).toBe(true);
-      });
+      }, { timeout: 3000 });
 
       if (result.current.isSuccess) {
         expect(result.current.data).toEqual(mockProposals);
-        expect(supabase.from).toHaveBeenCalledWith('proposals');
-        expect(orderMock).toHaveBeenCalledWith('created_at', { ascending: false });
+        expect(proposalsApi.list).toHaveBeenCalledWith('mock-token');
       }
     });
 
     it('에러 발생 시 fallback 값을 반환해야 함', async () => {
-      // Setup
-      const orderMock = vi.fn().mockResolvedValue({
+      // Setup - Workers API 에러 모킹
+      vi.mocked(proposalsApi.list).mockResolvedValue({
         data: null,
-        error: { message: 'Database error', code: 'PGRST116' },
+        error: 'Database error',
       });
-
-      const selectMock = vi.fn().mockReturnValue({
-        order: orderMock,
-      });
-
-      vi.mocked(supabase.from).mockReturnValue({
-        select: selectMock,
-      } as any);
 
       // Execute
       const { result } = renderHook(() => useProposals(), { wrapper });
 
-      // Assert - supabaseQuery는 에러 시 fallbackValue([])를 반환
+      // Assert - 에러 시 빈 배열 반환
       await waitFor(() => {
         expect(result.current.isSuccess).toBe(true);
       });
@@ -133,76 +128,36 @@ describe('useProposals', () => {
 
   describe('useMyProposals', () => {
     it('사용자의 제안서를 조회해야 함', async () => {
-      // Setup
-      const mockUser = { id: 'user-1', email: 'user@example.com' };
-      vi.mocked(supabase.auth.getUser).mockResolvedValue({
-        data: { user: mockUser },
-        error: null,
-      });
-
+      // Setup - Workers API 모킹
       const filteredProposals = mockProposals.filter((p) => p.user_id === 'user-1');
-      const orderMock = vi.fn().mockResolvedValue({
+      vi.mocked(proposalsApi.getMyProposals).mockResolvedValue({
         data: filteredProposals,
         error: null,
       });
 
-      const eqMock = vi.fn().mockReturnValue({
-        order: orderMock,
-      });
-
-      const selectMock = vi.fn().mockReturnValue({
-        eq: eqMock,
-      });
-
-      vi.mocked(supabase.from).mockReturnValue({
-        select: selectMock,
-      } as any);
-
       // Execute
       const { result } = renderHook(() => useMyProposals(), { wrapper });
 
       // Assert
       await waitFor(() => {
         expect(result.current.isSuccess || result.current.isError).toBe(true);
-      });
+      }, { timeout: 3000 });
 
       if (result.current.isSuccess) {
         expect(result.current.data).toEqual(filteredProposals);
-        expect(eqMock).toHaveBeenCalledWith('user_id', 'user-1');
-      }
-    });
-
-    it('사용자가 없으면 빈 배열을 반환해야 함', async () => {
-      // Setup
-      vi.mocked(supabase.auth.getUser).mockResolvedValue({
-        data: { user: null },
-        error: null,
-      });
-
-      // Execute
-      const { result } = renderHook(() => useMyProposals(), { wrapper });
-
-      // Assert
-      await waitFor(() => {
-        expect(result.current.isSuccess || result.current.isError).toBe(true);
-      });
-
-      if (result.current.isSuccess) {
-        expect(result.current.data).toEqual([]);
+        expect(proposalsApi.getMyProposals).toHaveBeenCalledWith('mock-token');
       }
     });
   });
 
   describe('useProposalsByStatus', () => {
     it('상태별로 제안서를 필터링해야 함', async () => {
-      // Setup
+      // Setup - Workers API 모킹
       const filteredProposals = mockProposals.filter((p) => p.status === 'pending');
-
-      vi.mocked(supabase.from).mockReturnValue({
-        select: vi.fn().mockReturnThis(),
-        order: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockResolvedValue({ data: filteredProposals, error: null })
-      } as any);
+      vi.mocked(proposalsApi.list).mockResolvedValue({
+        data: filteredProposals,
+        error: null,
+      });
 
       // Execute
       const { result } = renderHook(() => useProposalsByStatus('pending'), { wrapper });
@@ -210,27 +165,20 @@ describe('useProposals', () => {
       // Assert
       await waitFor(() => {
         expect(result.current.isSuccess || result.current.isError).toBe(true);
-      });
+      }, { timeout: 3000 });
 
       if (result.current.isSuccess) {
         expect(result.current.data).toEqual(filteredProposals);
+        expect(proposalsApi.list).toHaveBeenCalledWith('mock-token', { status: 'pending' });
       }
     });
 
     it('상태가 없으면 전체 제안서를 반환해야 함', async () => {
-      // Setup
-      const orderMock = vi.fn().mockResolvedValue({
+      // Setup - Workers API 모킹
+      vi.mocked(proposalsApi.list).mockResolvedValue({
         data: mockProposals,
         error: null,
       });
-
-      const selectMock = vi.fn().mockReturnValue({
-        order: orderMock,
-      });
-
-      vi.mocked(supabase.from).mockReturnValue({
-        select: selectMock,
-      } as any);
 
       // Execute
       const { result } = renderHook(() => useProposalsByStatus(), { wrapper });
@@ -238,10 +186,11 @@ describe('useProposals', () => {
       // Assert
       await waitFor(() => {
         expect(result.current.isSuccess || result.current.isError).toBe(true);
-      });
+      }, { timeout: 3000 });
 
       if (result.current.isSuccess) {
         expect(result.current.data).toEqual(mockProposals);
+        expect(proposalsApi.list).toHaveBeenCalledWith('mock-token', { status: undefined });
       }
     });
   });
@@ -260,28 +209,19 @@ describe('useProposals', () => {
         phone: '010-1234-5678',
       };
 
-      const singleMock = vi.fn().mockResolvedValue({
-        data: {
-          ...newProposal,
-          id: 3,
-          status: 'pending',
-          created_at: '2024-01-03T00:00:00Z',
-          updated_at: '2024-01-03T00:00:00Z',
-        },
+      const createdProposal = {
+        ...newProposal,
+        id: 3,
+        status: 'pending',
+        created_at: '2024-01-03T00:00:00Z',
+        updated_at: '2024-01-03T00:00:00Z',
+      };
+
+      // Workers API 모킹
+      vi.mocked(proposalsApi.submit).mockResolvedValue({
+        data: createdProposal,
         error: null,
       });
-
-      const selectMock = vi.fn().mockReturnValue({
-        single: singleMock,
-      });
-
-      const insertMock = vi.fn().mockReturnValue({
-        select: selectMock,
-      });
-
-      vi.mocked(supabase.from).mockReturnValue({
-        insert: insertMock,
-      } as any);
 
       // Execute
       const { result } = renderHook(() => useSubmitProposal(), { wrapper });
@@ -295,10 +235,10 @@ describe('useProposals', () => {
       // Assert
       await waitFor(() => {
         expect(result.current.isSuccess || result.current.isError).toBe(true);
-      });
+      }, { timeout: 3000 });
 
       if (result.current.isSuccess) {
-        expect(insertMock).toHaveBeenCalledWith([{ ...newProposal, status: 'pending' }]);
+        expect(proposalsApi.submit).toHaveBeenCalledWith('mock-token', { ...newProposal, status: 'pending' });
         expect(result.current.data).toBeDefined();
       }
     });
@@ -309,26 +249,11 @@ describe('useProposals', () => {
       // Setup
       const updatedProposal = { ...mockProposals[0], status: 'accepted' as const, admin_notes: '승인됨' };
 
-      const singleMock = vi.fn().mockResolvedValue({
+      // Workers API 모킹
+      vi.mocked(proposalsApi.updateStatus).mockResolvedValue({
         data: updatedProposal,
         error: null,
       });
-
-      const selectMock = vi.fn().mockReturnValue({
-        single: singleMock,
-      });
-
-      const eqMock = vi.fn().mockReturnValue({
-        select: selectMock,
-      });
-
-      const updateMock = vi.fn().mockReturnValue({
-        eq: eqMock,
-      });
-
-      vi.mocked(supabase.from).mockReturnValue({
-        update: updateMock,
-      } as any);
 
       // Execute
       const { result } = renderHook(() => useUpdateProposalStatus(), { wrapper });
@@ -346,30 +271,22 @@ describe('useProposals', () => {
       // Assert
       await waitFor(() => {
         expect(result.current.isSuccess || result.current.isError).toBe(true);
-      });
+      }, { timeout: 3000 });
 
       if (result.current.isSuccess) {
-        expect(updateMock).toHaveBeenCalledWith({
-          status: 'accepted',
-          admin_notes: '승인됨',
-        });
-        expect(eqMock).toHaveBeenCalledWith('id', 1);
+        expect(proposalsApi.updateStatus).toHaveBeenCalledWith('mock-token', 1, 'accepted', '승인됨');
+        expect(result.current.data).toEqual(updatedProposal);
       }
     });
   });
 
   describe('useDeleteProposal', () => {
     it('제안서를 삭제해야 함', async () => {
-      // Setup
-      const eqMock = vi.fn().mockReturnValue({
-        delete: vi.fn().mockResolvedValue({ data: null, error: null }),
+      // Setup - Workers API 모킹
+      vi.mocked(proposalsApi.delete).mockResolvedValue({
+        data: null,
+        error: null,
       });
-
-      vi.mocked(supabase.from).mockReturnValue({
-        delete: vi.fn().mockReturnValue({
-          eq: eqMock,
-        }),
-      } as any);
 
       // Execute
       const { result } = renderHook(() => useDeleteProposal(), { wrapper });
@@ -383,12 +300,12 @@ describe('useProposals', () => {
       // Assert
       await waitFor(() => {
         expect(result.current.isSuccess || result.current.isError).toBe(true);
-      });
+      }, { timeout: 3000 });
 
       if (result.current.isSuccess) {
-        expect(eqMock).toHaveBeenCalledWith('id', 1);
+        expect(proposalsApi.delete).toHaveBeenCalledWith('mock-token', 1);
+        expect(result.current.data).toBe(1);
       }
     });
   });
 });
-

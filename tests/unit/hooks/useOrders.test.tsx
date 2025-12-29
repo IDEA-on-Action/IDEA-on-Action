@@ -156,8 +156,9 @@ describe('useOrders', () => {
 
   describe('useOrderDetail', () => {
     it('주문 상세를 성공적으로 조회해야 함', async () => {
-      vi.mocked(ordersApi.getDetail).mockResolvedValue({
-        data: mockOrders[0],
+      // 훅은 response.data.data를 추출함
+      vi.mocked(ordersApi.getById).mockResolvedValue({
+        data: { data: mockOrders[0] },
         error: null,
       });
 
@@ -169,7 +170,7 @@ describe('useOrders', () => {
 
       if (result.current.isSuccess) {
         expect(result.current.data).toEqual(mockOrders[0]);
-        expect(ordersApi.getDetail).toHaveBeenCalledWith(mockAccessToken, 'order-1');
+        expect(ordersApi.getById).toHaveBeenCalledWith(mockAccessToken, 'order-1');
       }
     });
 
@@ -181,14 +182,15 @@ describe('useOrders', () => {
       });
 
       expect(result.current.data).toBeUndefined();
-      expect(ordersApi.getDetail).not.toHaveBeenCalled();
+      expect(ordersApi.getById).not.toHaveBeenCalled();
     });
   });
 
   describe('useCreateOrder', () => {
     it('주문을 성공적으로 생성해야 함', async () => {
-      vi.mocked(ordersApi.create).mockResolvedValue({
-        data: { order: { id: 'order-new', order_number: 'ORD-NEW' } },
+      // 훅은 cartApi.checkout을 사용함
+      vi.mocked(cartApi.checkout).mockResolvedValue({
+        data: { data: { id: 'order-new', order_number: 'ORD-NEW' } },
         error: null,
       });
 
@@ -209,7 +211,7 @@ describe('useOrders', () => {
         });
       });
 
-      expect(ordersApi.create).toHaveBeenCalled();
+      expect(cartApi.checkout).toHaveBeenCalledWith(mockAccessToken);
     });
 
     it('로그인하지 않은 경우 에러를 발생시켜야 함', async () => {
@@ -257,7 +259,7 @@ describe('useOrders', () => {
 
   describe('useAdminOrders', () => {
     it('모든 주문을 성공적으로 조회해야 함', async () => {
-      vi.mocked(ordersApi.listAdmin).mockResolvedValue({
+      vi.mocked(ordersApi.list).mockResolvedValue({
         data: { data: mockOrders },
         error: null,
       });
@@ -270,14 +272,15 @@ describe('useOrders', () => {
 
       if (result.current.isSuccess) {
         expect(result.current.data).toEqual(mockOrders);
-        expect(ordersApi.listAdmin).toHaveBeenCalledWith(mockAccessToken);
+        expect(ordersApi.list).toHaveBeenCalledWith(mockAccessToken, { limit: 100 });
       }
     });
   });
 
   describe('useUpdateOrderStatus', () => {
     it('주문 상태를 성공적으로 변경해야 함', async () => {
-      vi.mocked(ordersApi.updateStatus).mockResolvedValue({
+      // 훅은 ordersApi.update를 사용함
+      vi.mocked(ordersApi.update).mockResolvedValue({
         data: { success: true },
         error: null,
       });
@@ -291,10 +294,10 @@ describe('useOrders', () => {
         });
       });
 
-      expect(ordersApi.updateStatus).toHaveBeenCalledWith(
+      expect(ordersApi.update).toHaveBeenCalledWith(
         mockAccessToken,
         'order-1',
-        'shipped'
+        { status: 'shipped' }
       );
     });
   });

@@ -3,19 +3,30 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useClaudeVision, useUIDesignAnalysis } from '@/hooks/useClaudeVision';
-import { supabase } from '@/integrations/supabase/client';
+import * as cloudflareClient from '@/integrations/cloudflare/client';
 import React, { type ReactNode } from 'react';
 
-// Mock supabase client
-vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
-    auth: {
-      getSession: vi.fn(),
-    },
-    functions: {
-      invoke: vi.fn(),
-    },
-  },
+// Mock Workers API client
+vi.mock('@/integrations/cloudflare/client', () => ({
+  callWorkersApi: vi.fn(),
+}));
+
+// Mock useAuth
+vi.mock('@/hooks/useAuth', () => ({
+  useAuth: vi.fn(() => ({
+    workersTokens: { accessToken: 'mock-token' },
+    workersUser: { id: 'user-123', email: 'test@example.com' },
+    isAuthenticated: true,
+    loading: false,
+    error: null,
+    user: { id: 'user-123', email: 'test@example.com' },
+    session: null,
+    login: vi.fn(),
+    logout: vi.fn(),
+    signUp: vi.fn(),
+    getAccessToken: vi.fn(() => 'mock-token'),
+    refreshTokens: vi.fn(),
+  })),
 }));
 
 // Mock errors
@@ -29,11 +40,7 @@ global.fetch = vi.fn();
 describe('useClaudeVision', () => {
   let queryClient: QueryClient;
 
-  const mockSession = {
-    access_token: 'mock-token-123',
-    user: { id: 'user-123' },
-  };
-
+  // Workers API 응답 형식
   const mockVisionResponse = {
     success: true,
     data: {
@@ -47,7 +54,7 @@ describe('useClaudeVision', () => {
     },
   };
 
-  beforeEach(() => {
+  beforeEach(async () => {
     queryClient = new QueryClient({
       defaultOptions: {
         queries: { retry: false },
@@ -57,10 +64,28 @@ describe('useClaudeVision', () => {
 
     vi.clearAllMocks();
 
-    // 기본 세션 모킹
-    vi.mocked(supabase.auth.getSession).mockResolvedValue({
-      data: { session: mockSession as any },
+    // useAuth 기본 모킹 복원
+    const useAuthModule = await import('@/hooks/useAuth');
+    vi.mocked(useAuthModule.useAuth).mockReturnValue({
+      workersTokens: { accessToken: 'mock-token' },
+      workersUser: { id: 'user-123', email: 'test@example.com' },
+      isAuthenticated: true,
+      loading: false,
       error: null,
+      user: { id: 'user-123', email: 'test@example.com' },
+      session: null,
+      login: vi.fn(),
+      logout: vi.fn(),
+      signUp: vi.fn(),
+      getAccessToken: vi.fn(() => 'mock-token'),
+      refreshTokens: vi.fn(),
+    } as any);
+
+    // Workers API 기본 모킹 (성공 응답)
+    vi.mocked(cloudflareClient.callWorkersApi).mockResolvedValue({
+      data: mockVisionResponse,
+      error: null,
+      status: 200,
     });
   });
 
@@ -90,11 +115,6 @@ describe('useClaudeVision', () => {
 
   describe('이미지 분석 (비스트리밍)', () => {
     it('이미지 분석이 성공해야 함', async () => {
-      vi.mocked(supabase.functions.invoke).mockResolvedValue({
-        data: mockVisionResponse,
-        error: null,
-      });
-
       const { result } = renderHook(() => useClaudeVision(), { wrapper });
 
       const request = {
@@ -125,11 +145,6 @@ describe('useClaudeVision', () => {
     });
 
     it('analysisType이 올바르게 전달되어야 함', async () => {
-      vi.mocked(supabase.functions.invoke).mockResolvedValue({
-        data: mockVisionResponse,
-        error: null,
-      });
-
       const { result } = renderHook(
         () => useClaudeVision({ defaultAnalysisType: 'ui-design' }),
         { wrapper }
@@ -150,12 +165,14 @@ describe('useClaudeVision', () => {
       });
 
       await waitFor(() => {
-        expect(supabase.functions.invoke).toHaveBeenCalled();
+        expect(cloudflareClient.callWorkersApi).toHaveBeenCalled();
       });
 
-      expect(supabase.functions.invoke).toHaveBeenCalledWith(
-        'claude-ai/vision',
+      expect(cloudflareClient.callWorkersApi).toHaveBeenCalledWith(
+        '/api/v1/ai/vision',
         expect.objectContaining({
+          method: 'POST',
+          token: 'mock-token',
           body: expect.objectContaining({
             analysisType: 'ui-design',
           }),
@@ -164,11 +181,6 @@ describe('useClaudeVision', () => {
     });
 
     it('onSuccess 콜백이 호출되어야 함', async () => {
-      vi.mocked(supabase.functions.invoke).mockResolvedValue({
-        data: mockVisionResponse,
-        error: null,
-      });
-
       const onSuccess = vi.fn();
       const { result } = renderHook(() => useClaudeVision({ onSuccess }), { wrapper });
 
@@ -324,10 +336,22 @@ describe('useClaudeVision', () => {
 
   describe('에러 처리', () => {
     it('인증 토큰이 없으면 에러가 발생해야 함', async () => {
-      vi.mocked(supabase.auth.getSession).mockResolvedValue({
-        data: { session: null },
+      // useAuth 모킹 변경 - 토큰 없음
+      const useAuthModule = await import('@/hooks/useAuth');
+      vi.mocked(useAuthModule.useAuth).mockReturnValue({
+        workersTokens: null,
+        workersUser: null,
+        isAuthenticated: false,
+        loading: false,
         error: null,
-      });
+        user: null,
+        session: null,
+        login: vi.fn(),
+        logout: vi.fn(),
+        signUp: vi.fn(),
+        getAccessToken: vi.fn(() => null),
+        refreshTokens: vi.fn(),
+      } as any);
 
       const { result } = renderHook(() => useClaudeVision(), { wrapper });
 
@@ -357,9 +381,10 @@ describe('useClaudeVision', () => {
     });
 
     it('API 에러 발생 시 에러 상태가 업데이트되어야 함', async () => {
-      vi.mocked(supabase.functions.invoke).mockResolvedValue({
+      vi.mocked(cloudflareClient.callWorkersApi).mockResolvedValue({
         data: null,
-        error: { message: 'Vision API 오류' },
+        error: 'Vision API 오류',
+        status: 500,
       });
 
       const { result } = renderHook(() => useClaudeVision(), { wrapper });
@@ -390,7 +415,7 @@ describe('useClaudeVision', () => {
     });
 
     it('onError 콜백이 호출되어야 함', async () => {
-      vi.mocked(supabase.functions.invoke).mockResolvedValue({
+      vi.mocked(cloudflareClient.callWorkersApi).mockResolvedValue({
         data: {
           success: false,
           error: {
@@ -399,6 +424,7 @@ describe('useClaudeVision', () => {
           },
         },
         error: null,
+        status: 200,
       });
 
       const onError = vi.fn();
@@ -430,11 +456,6 @@ describe('useClaudeVision', () => {
 
   describe('상태 관리', () => {
     it('reset으로 상태를 초기화할 수 있어야 함', async () => {
-      vi.mocked(supabase.functions.invoke).mockResolvedValue({
-        data: mockVisionResponse,
-        error: null,
-      });
-
       const { result } = renderHook(() => useClaudeVision(), { wrapper });
 
       const request = {
@@ -467,7 +488,7 @@ describe('useClaudeVision', () => {
 
   describe('로딩 상태', () => {
     it('분석 중 isAnalyzing이 true여야 함', async () => {
-      vi.mocked(supabase.functions.invoke).mockImplementation(
+      vi.mocked(cloudflareClient.callWorkersApi).mockImplementation(
         () =>
           new Promise((resolve) =>
             setTimeout(
@@ -475,6 +496,7 @@ describe('useClaudeVision', () => {
                 resolve({
                   data: mockVisionResponse,
                   error: null,
+                  status: 200,
                 }),
               100
             )
@@ -514,7 +536,7 @@ describe('useClaudeVision', () => {
 describe('useUIDesignAnalysis', () => {
   let queryClient: QueryClient;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     queryClient = new QueryClient({
       defaultOptions: {
         queries: { retry: false },
@@ -524,18 +546,25 @@ describe('useUIDesignAnalysis', () => {
 
     vi.clearAllMocks();
 
-    vi.mocked(supabase.auth.getSession).mockResolvedValue({
-      data: { session: { access_token: 'mock-token', user: { id: 'user-123' } } as any },
+    // useAuth 기본 모킹 복원
+    const useAuthModule = await import('@/hooks/useAuth');
+    vi.mocked(useAuthModule.useAuth).mockReturnValue({
+      workersTokens: { accessToken: 'mock-token' },
+      workersUser: { id: 'user-123', email: 'test@example.com' },
+      isAuthenticated: true,
+      loading: false,
       error: null,
-    });
-  });
+      user: { id: 'user-123', email: 'test@example.com' },
+      session: null,
+      login: vi.fn(),
+      logout: vi.fn(),
+      signUp: vi.fn(),
+      getAccessToken: vi.fn(() => 'mock-token'),
+      refreshTokens: vi.fn(),
+    } as any);
 
-  const wrapper = ({ children }: { children: ReactNode }) => (
-    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-  );
-
-  it('UI 디자인 분석 타입으로 초기화되어야 함', async () => {
-    vi.mocked(supabase.functions.invoke).mockResolvedValue({
+    // Workers API 기본 모킹 (성공 응답)
+    vi.mocked(cloudflareClient.callWorkersApi).mockResolvedValue({
       data: {
         success: true,
         data: {
@@ -544,8 +573,15 @@ describe('useUIDesignAnalysis', () => {
         },
       },
       error: null,
+      status: 200,
     });
+  });
 
+  const wrapper = ({ children }: { children: ReactNode }) => (
+    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+  );
+
+  it('UI 디자인 분석 타입으로 초기화되어야 함', async () => {
     const { result } = renderHook(() => useUIDesignAnalysis(), { wrapper });
 
     const request = {
@@ -563,12 +599,14 @@ describe('useUIDesignAnalysis', () => {
     });
 
     await waitFor(() => {
-      expect(supabase.functions.invoke).toHaveBeenCalled();
+      expect(cloudflareClient.callWorkersApi).toHaveBeenCalled();
     });
 
-    expect(supabase.functions.invoke).toHaveBeenCalledWith(
-      'claude-ai/vision',
+    expect(cloudflareClient.callWorkersApi).toHaveBeenCalledWith(
+      '/api/v1/ai/vision',
       expect.objectContaining({
+        method: 'POST',
+        token: 'mock-token',
         body: expect.objectContaining({
           analysisType: 'ui-design',
         }),

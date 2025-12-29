@@ -6,21 +6,18 @@
  * - PKCE 기반 인증
  * - 토큰 자동 갱신
  * - localStorage 토큰 관리
+ *
+ * @migration Supabase -> Workers API 모킹으로 마이그레이션
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { useOAuthClient, useOAuthAccessToken, useOAuthHeaders } from '@/hooks/useOAuthClient';
-import { supabase } from '@/integrations/supabase/client';
+import { callWorkersApi } from '@/integrations/cloudflare/client';
 
-// Mock dependencies
-vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
-    auth: {
-      refreshSession: vi.fn(),
-      exchangeCodeForSession: vi.fn(),
-    },
-  },
+// Mock Workers API client
+vi.mock('@/integrations/cloudflare/client', () => ({
+  callWorkersApi: vi.fn(),
 }));
 
 // Mock localStorage
@@ -70,6 +67,10 @@ describe('useOAuthClient', () => {
     localStorageMock.clear();
   });
 
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
   describe('초기화', () => {
     it('초기 상태는 인증되지 않은 상태여야 함', () => {
       // Execute
@@ -109,6 +110,17 @@ describe('useOAuthClient', () => {
       localStorageMock.setItem('minu_oauth_access_token', mockAccessToken);
       localStorageMock.setItem('minu_oauth_refresh_token', mockRefreshToken);
       localStorageMock.setItem('minu_oauth_expires_at', expiredExpiresAt.toString());
+
+      // Workers API 모킹 - 토큰 갱신 성공
+      vi.mocked(callWorkersApi).mockResolvedValue({
+        data: {
+          access_token: 'new-access-token',
+          refresh_token: 'new-refresh-token',
+          expires_in: 3600,
+        },
+        error: null,
+        status: 200,
+      });
 
       // Execute
       const { result } = renderHook(() => useOAuthClient());
@@ -210,6 +222,58 @@ describe('useOAuthClient', () => {
 
       expect(error).toBeDefined();
     });
+
+    it('유효한 code와 state로 토큰을 교환해야 함', async () => {
+      // Setup
+      const code = 'auth-code-123';
+      const state = 'valid-state';
+      const verifier = 'verifier-123';
+
+      localStorageMock.setItem('minu_oauth_pkce_verifier', verifier);
+      localStorageMock.setItem('minu_oauth_pkce_state', state);
+
+      // JWT 형식의 mock access token (base64 인코딩된 payload 포함)
+      const jwtPayload = {
+        sub: 'user-123',
+        email: 'test@example.com',
+        name: 'Test User',
+      };
+      const encodedPayload = btoa(JSON.stringify(jwtPayload));
+      const mockJwtToken = `header.${encodedPayload}.signature`;
+
+      // Workers API 모킹 - 토큰 교환 성공
+      vi.mocked(callWorkersApi).mockResolvedValue({
+        data: {
+          access_token: mockJwtToken,
+          refresh_token: 'new-refresh-token',
+          expires_in: 3600,
+        },
+        error: null,
+        status: 200,
+      });
+
+      // Execute
+      const { result } = renderHook(() => useOAuthClient());
+
+      await act(async () => {
+        await result.current.handleCallback(code, state);
+      });
+
+      // Assert
+      expect(callWorkersApi).toHaveBeenCalledWith('/auth/oauth/token', {
+        method: 'POST',
+        body: {
+          grant_type: 'authorization_code',
+          code,
+          redirect_uri: expect.any(String),
+          code_verifier: verifier,
+          client_id: expect.any(String),
+        },
+      });
+
+      expect(result.current.isAuthenticated).toBe(true);
+      expect(result.current.user?.email).toBe('test@example.com');
+    });
   });
 
   describe('logout', () => {
@@ -233,6 +297,25 @@ describe('useOAuthClient', () => {
       // Assert
       expect(result.current.isAuthenticated).toBe(false);
       expect(result.current.user).toBeNull();
+    });
+
+    it('logout 호출 시 localStorage가 클리어되어야 함', async () => {
+      // Setup
+      localStorageMock.setItem('minu_oauth_access_token', mockAccessToken);
+      localStorageMock.setItem('minu_oauth_refresh_token', mockRefreshToken);
+      localStorageMock.setItem('minu_oauth_user', JSON.stringify({ id: 'user-123' }));
+
+      const { result } = renderHook(() => useOAuthClient());
+
+      // Execute
+      await act(async () => {
+        await result.current.logout();
+      });
+
+      // Assert
+      expect(localStorageMock.getItem('minu_oauth_access_token')).toBeNull();
+      expect(localStorageMock.getItem('minu_oauth_refresh_token')).toBeNull();
+      expect(localStorageMock.getItem('minu_oauth_user')).toBeNull();
     });
   });
 
@@ -258,6 +341,69 @@ describe('useOAuthClient', () => {
       }
 
       expect(error).toBeDefined();
+    });
+
+    it('유효한 refresh 토큰으로 새 토큰을 발급받아야 함', async () => {
+      // Setup
+      localStorageMock.setItem('minu_oauth_refresh_token', mockRefreshToken);
+
+      // Workers API 모킹 - 토큰 갱신 성공
+      vi.mocked(callWorkersApi).mockResolvedValue({
+        data: {
+          access_token: 'new-access-token',
+          refresh_token: 'new-refresh-token',
+          expires_in: 3600,
+        },
+        error: null,
+        status: 200,
+      });
+
+      const { result } = renderHook(() => useOAuthClient());
+
+      // Execute
+      await act(async () => {
+        await result.current.refreshToken();
+      });
+
+      // Assert
+      expect(callWorkersApi).toHaveBeenCalledWith('/auth/oauth/token', {
+        method: 'POST',
+        body: {
+          grant_type: 'refresh_token',
+          refresh_token: mockRefreshToken,
+          client_id: expect.any(String),
+        },
+      });
+
+      expect(localStorageMock.getItem('minu_oauth_access_token')).toBe('new-access-token');
+      expect(localStorageMock.getItem('minu_oauth_refresh_token')).toBe('new-refresh-token');
+    });
+
+    it('토큰 갱신 실패 시 로그아웃되어야 함', async () => {
+      // Setup
+      localStorageMock.setItem('minu_oauth_refresh_token', mockRefreshToken);
+
+      // Workers API 모킹 - 토큰 갱신 실패
+      vi.mocked(callWorkersApi).mockResolvedValue({
+        data: null,
+        error: 'Token refresh failed',
+        status: 401,
+      });
+
+      const { result } = renderHook(() => useOAuthClient());
+
+      // Execute & Assert
+      let error: Error | undefined;
+      try {
+        await act(async () => {
+          await result.current.refreshToken();
+        });
+      } catch (e) {
+        error = e as Error;
+      }
+
+      expect(error).toBeDefined();
+      expect(result.current.isAuthenticated).toBe(false);
     });
   });
 

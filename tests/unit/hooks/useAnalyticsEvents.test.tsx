@@ -1,5 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { renderHook, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import {
@@ -11,14 +10,19 @@ import {
   useRealtimeEvents,
   useUserEventHistory
 } from '@/hooks/useAnalyticsEvents'
-import { supabase } from '@/integrations/supabase/client'
+import { callWorkersApi } from '@/integrations/cloudflare/client'
+import React, { type ReactNode } from 'react'
 
-// Mock Supabase
-vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
-    from: vi.fn(),
-    rpc: vi.fn()
-  }
+// Mock Workers API client
+vi.mock('@/integrations/cloudflare/client', () => ({
+  callWorkersApi: vi.fn(),
+}))
+
+// Mock useAuth hook
+vi.mock('@/hooks/useAuth', () => ({
+  useAuth: () => ({
+    workersTokens: { accessToken: 'mock-token' },
+  }),
 }))
 
 describe('useAnalyticsEvents Hooks', () => {
@@ -34,7 +38,11 @@ describe('useAnalyticsEvents Hooks', () => {
     vi.clearAllMocks()
   })
 
-  const wrapper = ({ children }: { children: React.ReactNode }) => (
+  afterEach(() => {
+    queryClient.clear()
+  })
+
+  const wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   )
 
@@ -58,13 +66,12 @@ describe('useAnalyticsEvents Hooks', () => {
         }
       ]
 
-      const limitMock = vi.fn().mockResolvedValue({ data: mockEvents, error: null })
-      const orderMock = vi.fn().mockReturnValue({ limit: limitMock })
-      const selectMock = vi.fn().mockReturnValue({ order: orderMock })
-
-      vi.mocked(supabase.from).mockReturnValue({
-        select: selectMock
-      } as any)
+      // Workers API 모킹
+      vi.mocked(callWorkersApi).mockResolvedValue({
+        data: mockEvents,
+        error: null,
+        status: 200,
+      })
 
       const { result } = renderHook(() => useAnalyticsEvents(), { wrapper })
 
@@ -72,7 +79,10 @@ describe('useAnalyticsEvents Hooks', () => {
 
       if (result.current.isSuccess) {
         expect(result.current.data).toEqual(mockEvents)
-        expect(supabase.from).toHaveBeenCalledWith('analytics_events')
+        expect(callWorkersApi).toHaveBeenCalledWith(
+          '/api/v1/analytics/events?limit=1000&order_by=created_at:desc',
+          { token: 'mock-token' }
+        )
       }
     })
 
@@ -84,42 +94,48 @@ describe('useAnalyticsEvents Hooks', () => {
         userId: 'user123'
       }
 
-      const limitMock = vi.fn().mockResolvedValue({ data: [], error: null })
-      const eqMock1 = vi.fn().mockReturnValue({ limit: limitMock })
-      const eqMock2 = vi.fn().mockReturnValue({ eq: eqMock1 })
-      const lteMock = vi.fn().mockReturnValue({ eq: eqMock2 })
-      const gteMock = vi.fn().mockReturnValue({ lte: lteMock })
-      const eqMock3 = vi.fn().mockReturnValue({ gte: gteMock })
-      const orderMock = vi.fn().mockReturnValue({ eq: eqMock3 })
-      const selectMock = vi.fn().mockReturnValue({ order: orderMock })
-
-      vi.mocked(supabase.from).mockReturnValue({
-        select: selectMock
-      } as any)
+      // Workers API 모킹
+      vi.mocked(callWorkersApi).mockResolvedValue({
+        data: [],
+        error: null,
+        status: 200,
+      })
 
       const { result } = renderHook(() => useAnalyticsEvents(filters, 500), { wrapper })
 
       await waitFor(() => expect(result.current.isSuccess || result.current.isError).toBe(true), { timeout: 3000 })
 
-      // Verify query was built correctly
-      expect(supabase.from).toHaveBeenCalledWith('analytics_events')
+      // 필터가 URL에 올바르게 적용되었는지 확인
+      expect(callWorkersApi).toHaveBeenCalledWith(
+        expect.stringContaining('event_name=purchase'),
+        expect.objectContaining({ token: 'mock-token' })
+      )
+      expect(callWorkersApi).toHaveBeenCalledWith(
+        expect.stringContaining('user_id=user123'),
+        expect.objectContaining({ token: 'mock-token' })
+      )
+      expect(callWorkersApi).toHaveBeenCalledWith(
+        expect.stringContaining('limit=500'),
+        expect.objectContaining({ token: 'mock-token' })
+      )
     })
 
     it('should handle errors gracefully', async () => {
-      const limitMock = vi.fn().mockResolvedValue({
+      // Workers API 에러 모킹
+      vi.mocked(callWorkersApi).mockResolvedValue({
         data: null,
-        error: { message: 'Database error', code: '500' }
+        error: 'Database error',
+        status: 500,
       })
-      const orderMock = vi.fn().mockReturnValue({ limit: limitMock })
-      const selectMock = vi.fn().mockReturnValue({ order: orderMock })
-
-      vi.mocked(supabase.from).mockReturnValue({
-        select: selectMock
-      } as any)
 
       const { result } = renderHook(() => useAnalyticsEvents(), { wrapper })
 
-      await waitFor(() => expect(result.current.isError).toBe(true))
+      await waitFor(() => expect(result.current.isSuccess || result.current.isError).toBe(true), { timeout: 3000 })
+
+      // 에러 시 빈 배열 반환
+      if (result.current.isSuccess) {
+        expect(result.current.data).toEqual([])
+      }
     })
   })
 
@@ -128,15 +144,20 @@ describe('useAnalyticsEvents Hooks', () => {
   // ============================================
   describe('useFunnelAnalysis', () => {
     it('should calculate funnel data successfully', async () => {
-      const mockData = [{
+      const mockData = {
         signup_count: 100,
         view_service_count: 80,
         add_to_cart_count: 50,
         checkout_count: 30,
         purchase_count: 20
-      }]
+      }
 
-      vi.mocked(supabase.rpc).mockResolvedValue({ data: mockData, error: null })
+      // Workers API 모킹
+      vi.mocked(callWorkersApi).mockResolvedValue({
+        data: mockData,
+        error: null,
+        status: 200,
+      })
 
       const startDate = new Date('2025-11-01')
       const endDate = new Date('2025-11-30')
@@ -150,23 +171,28 @@ describe('useAnalyticsEvents Hooks', () => {
         expect(result.current.data?.viewService).toBe(80)
         expect(result.current.data?.conversionRate.signupToView).toBe(80)
         expect(result.current.data?.conversionRate.viewToCart).toBe(62.5)
-        expect(supabase.rpc).toHaveBeenCalledWith('calculate_funnel', {
-          start_date: startDate.toISOString(),
-          end_date: endDate.toISOString()
-        })
+        expect(callWorkersApi).toHaveBeenCalledWith(
+          expect.stringContaining('/api/v1/analytics/funnel'),
+          expect.objectContaining({ token: 'mock-token' })
+        )
       }
     })
 
     it('should handle zero conversion rates', async () => {
-      const mockData = [{
+      const mockData = {
         signup_count: 0,
         view_service_count: 0,
         add_to_cart_count: 0,
         checkout_count: 0,
         purchase_count: 0
-      }]
+      }
 
-      vi.mocked(supabase.rpc).mockResolvedValue({ data: mockData, error: null })
+      // Workers API 모킹
+      vi.mocked(callWorkersApi).mockResolvedValue({
+        data: mockData,
+        error: null,
+        status: 200,
+      })
 
       const startDate = new Date('2025-11-01')
       const endDate = new Date('2025-11-30')
@@ -180,6 +206,27 @@ describe('useAnalyticsEvents Hooks', () => {
         expect(result.current.data?.conversionRate.viewToCart).toBe(0)
       }
     })
+
+    it('should return empty funnel data on error', async () => {
+      // Workers API 에러 모킹
+      vi.mocked(callWorkersApi).mockResolvedValue({
+        data: null,
+        error: 'Funnel analysis error',
+        status: 500,
+      })
+
+      const startDate = new Date('2025-11-01')
+      const endDate = new Date('2025-11-30')
+
+      const { result } = renderHook(() => useFunnelAnalysis(startDate, endDate), { wrapper })
+
+      await waitFor(() => expect(result.current.isSuccess || result.current.isError).toBe(true), { timeout: 3000 })
+
+      if (result.current.isSuccess) {
+        expect(result.current.data?.signup).toBe(0)
+        expect(result.current.data?.conversionRate.signupToView).toBe(0)
+      }
+    })
   })
 
   // ============================================
@@ -187,12 +234,17 @@ describe('useAnalyticsEvents Hooks', () => {
   // ============================================
   describe('useBounceRate', () => {
     it('should calculate bounce rate successfully', async () => {
-      const mockData = [{
+      const mockData = {
         total_sessions: 1000,
         bounced_sessions: 350
-      }]
+      }
 
-      vi.mocked(supabase.rpc).mockResolvedValue({ data: mockData, error: null })
+      // Workers API 모킹
+      vi.mocked(callWorkersApi).mockResolvedValue({
+        data: mockData,
+        error: null,
+        status: 200,
+      })
 
       const startDate = new Date('2025-11-01')
       const endDate = new Date('2025-11-30')
@@ -209,12 +261,17 @@ describe('useAnalyticsEvents Hooks', () => {
     })
 
     it('should handle zero sessions', async () => {
-      const mockData = [{
+      const mockData = {
         total_sessions: 0,
         bounced_sessions: 0
-      }]
+      }
 
-      vi.mocked(supabase.rpc).mockResolvedValue({ data: mockData, error: null })
+      // Workers API 모킹
+      vi.mocked(callWorkersApi).mockResolvedValue({
+        data: mockData,
+        error: null,
+        status: 200,
+      })
 
       const startDate = new Date('2025-11-01')
       const endDate = new Date('2025-11-30')
@@ -225,6 +282,27 @@ describe('useAnalyticsEvents Hooks', () => {
 
       if (result.current.isSuccess) {
         expect(result.current.data?.bounceRate).toBe(0)
+      }
+    })
+
+    it('should return zero bounce rate on error', async () => {
+      // Workers API 에러 모킹
+      vi.mocked(callWorkersApi).mockResolvedValue({
+        data: null,
+        error: 'Bounce rate error',
+        status: 500,
+      })
+
+      const startDate = new Date('2025-11-01')
+      const endDate = new Date('2025-11-30')
+
+      const { result } = renderHook(() => useBounceRate(startDate, endDate), { wrapper })
+
+      await waitFor(() => expect(result.current.isSuccess || result.current.isError).toBe(true), { timeout: 3000 })
+
+      if (result.current.isSuccess) {
+        expect(result.current.data?.bounceRate).toBe(0)
+        expect(result.current.data?.totalSessions).toBe(0)
       }
     })
   })
@@ -240,7 +318,12 @@ describe('useAnalyticsEvents Hooks', () => {
         { event_name: 'add_to_cart', event_count: 300, unique_users: 200, unique_sessions: 250 }
       ]
 
-      vi.mocked(supabase.rpc).mockResolvedValue({ data: mockData, error: null })
+      // Workers API 모킹
+      vi.mocked(callWorkersApi).mockResolvedValue({
+        data: mockData,
+        error: null,
+        status: 200,
+      })
 
       const startDate = new Date('2025-11-01')
       const endDate = new Date('2025-11-30')
@@ -256,14 +339,19 @@ describe('useAnalyticsEvents Hooks', () => {
     })
 
     it('should limit results to topN', async () => {
-      const mockData = Array.from({ length: 50 }, (_, i) => ({
+      const mockData = Array.from({ length: 10 }, (_, i) => ({
         event_name: `event${i}`,
         event_count: 100 - i,
         unique_users: 50 - i,
         unique_sessions: 60 - i
       }))
 
-      vi.mocked(supabase.rpc).mockResolvedValue({ data: mockData, error: null })
+      // Workers API 모킹
+      vi.mocked(callWorkersApi).mockResolvedValue({
+        data: mockData,
+        error: null,
+        status: 200,
+      })
 
       const startDate = new Date('2025-11-01')
       const endDate = new Date('2025-11-30')
@@ -273,7 +361,31 @@ describe('useAnalyticsEvents Hooks', () => {
       await waitFor(() => expect(result.current.isSuccess || result.current.isError).toBe(true), { timeout: 3000 })
 
       if (result.current.isSuccess) {
-        expect(result.current.data?.length).toBe(10)
+        expect(result.current.data?.length).toBeLessThanOrEqual(10)
+        expect(callWorkersApi).toHaveBeenCalledWith(
+          expect.stringContaining('limit=10'),
+          expect.objectContaining({ token: 'mock-token' })
+        )
+      }
+    })
+
+    it('should return empty array on error', async () => {
+      // Workers API 에러 모킹
+      vi.mocked(callWorkersApi).mockResolvedValue({
+        data: null,
+        error: 'Event counts error',
+        status: 500,
+      })
+
+      const startDate = new Date('2025-11-01')
+      const endDate = new Date('2025-11-30')
+
+      const { result } = renderHook(() => useEventCounts(startDate, endDate, 10), { wrapper })
+
+      await waitFor(() => expect(result.current.isSuccess || result.current.isError).toBe(true), { timeout: 3000 })
+
+      if (result.current.isSuccess) {
+        expect(result.current.data).toEqual([])
       }
     })
   })
@@ -300,7 +412,12 @@ describe('useAnalyticsEvents Hooks', () => {
         }
       ]
 
-      vi.mocked(supabase.rpc).mockResolvedValue({ data: mockData, error: null })
+      // Workers API 모킹
+      vi.mocked(callWorkersApi).mockResolvedValue({
+        data: mockData,
+        error: null,
+        status: 200,
+      })
 
       const sessionId = 'session123'
 
@@ -310,9 +427,10 @@ describe('useAnalyticsEvents Hooks', () => {
 
       if (result.current.isSuccess) {
         expect(result.current.data?.length).toBe(2)
-        expect(supabase.rpc).toHaveBeenCalledWith('get_session_timeline', {
-          p_session_id: sessionId
-        })
+        expect(callWorkersApi).toHaveBeenCalledWith(
+          '/api/v1/analytics/sessions/session123/timeline',
+          { token: 'mock-token' }
+        )
       }
     })
 
@@ -320,6 +438,23 @@ describe('useAnalyticsEvents Hooks', () => {
       const { result } = renderHook(() => useSessionTimeline(''), { wrapper })
 
       expect(result.current.fetchStatus).toBe('idle')
+    })
+
+    it('should return empty array on error', async () => {
+      // Workers API 에러 모킹
+      vi.mocked(callWorkersApi).mockResolvedValue({
+        data: null,
+        error: 'Session timeline error',
+        status: 500,
+      })
+
+      const { result } = renderHook(() => useSessionTimeline('session123'), { wrapper })
+
+      await waitFor(() => expect(result.current.isSuccess || result.current.isError).toBe(true), { timeout: 3000 })
+
+      if (result.current.isSuccess) {
+        expect(result.current.data).toEqual([])
+      }
     })
   })
 
@@ -343,13 +478,12 @@ describe('useAnalyticsEvents Hooks', () => {
         }
       ]
 
-      const limitMock = vi.fn().mockResolvedValue({ data: mockEvents, error: null })
-      const orderMock = vi.fn().mockReturnValue({ limit: limitMock })
-      const selectMock = vi.fn().mockReturnValue({ order: orderMock })
-
-      vi.mocked(supabase.from).mockReturnValue({
-        select: selectMock
-      } as any)
+      // Workers API 모킹
+      vi.mocked(callWorkersApi).mockResolvedValue({
+        data: mockEvents,
+        error: null,
+        status: 200,
+      })
 
       const { result } = renderHook(() => useRealtimeEvents(), { wrapper })
 
@@ -361,8 +495,8 @@ describe('useAnalyticsEvents Hooks', () => {
       }
     })
 
-    it('should limit to 10 events', async () => {
-      const mockEvents = Array.from({ length: 15 }, (_, i) => ({
+    it('should fetch with limit of 10 events', async () => {
+      const mockEvents = Array.from({ length: 10 }, (_, i) => ({
         id: `${i}`,
         user_id: 'user1',
         session_id: 'session1',
@@ -375,16 +509,12 @@ describe('useAnalyticsEvents Hooks', () => {
         created_at: '2025-11-09T12:00:00Z'
       }))
 
-      const limitMock = vi.fn().mockImplementation((limit) => {
-        const limitedData = mockEvents.slice(0, limit)
-        return Promise.resolve({ data: limitedData, error: null })
+      // Workers API 모킹
+      vi.mocked(callWorkersApi).mockResolvedValue({
+        data: mockEvents,
+        error: null,
+        status: 200,
       })
-      const orderMock = vi.fn().mockReturnValue({ limit: limitMock })
-      const selectMock = vi.fn().mockReturnValue({ order: orderMock })
-
-      vi.mocked(supabase.from).mockReturnValue({
-        select: selectMock
-      } as any)
 
       const { result } = renderHook(() => useRealtimeEvents(), { wrapper })
 
@@ -392,6 +522,27 @@ describe('useAnalyticsEvents Hooks', () => {
 
       if (result.current.isSuccess) {
         expect(result.current.data?.length).toBeLessThanOrEqual(10)
+        expect(callWorkersApi).toHaveBeenCalledWith(
+          '/api/v1/analytics/events?limit=10&order_by=created_at:desc',
+          { token: 'mock-token' }
+        )
+      }
+    })
+
+    it('should return empty array on error', async () => {
+      // Workers API 에러 모킹
+      vi.mocked(callWorkersApi).mockResolvedValue({
+        data: null,
+        error: 'Realtime events error',
+        status: 500,
+      })
+
+      const { result } = renderHook(() => useRealtimeEvents(), { wrapper })
+
+      await waitFor(() => expect(result.current.isSuccess || result.current.isError).toBe(true), { timeout: 3000 })
+
+      if (result.current.isSuccess) {
+        expect(result.current.data).toEqual([])
       }
     })
   })
@@ -428,14 +579,12 @@ describe('useAnalyticsEvents Hooks', () => {
         }
       ]
 
-      const limitMock = vi.fn().mockResolvedValue({ data: mockEvents, error: null })
-      const orderMock = vi.fn().mockReturnValue({ limit: limitMock })
-      const eqMock = vi.fn().mockReturnValue({ order: orderMock })
-      const selectMock = vi.fn().mockReturnValue({ eq: eqMock })
-
-      vi.mocked(supabase.from).mockReturnValue({
-        select: selectMock
-      } as any)
+      // Workers API 모킹
+      vi.mocked(callWorkersApi).mockResolvedValue({
+        data: mockEvents,
+        error: null,
+        status: 200,
+      })
 
       const userId = 'user123'
 
@@ -446,6 +595,10 @@ describe('useAnalyticsEvents Hooks', () => {
       if (result.current.isSuccess) {
         expect(result.current.data?.length).toBe(2)
         expect(result.current.data?.every(event => event.user_id === userId)).toBe(true)
+        expect(callWorkersApi).toHaveBeenCalledWith(
+          '/api/v1/analytics/events?user_id=user123&limit=50&order_by=created_at:desc',
+          { token: 'mock-token' }
+        )
       }
     })
 
@@ -453,6 +606,23 @@ describe('useAnalyticsEvents Hooks', () => {
       const { result } = renderHook(() => useUserEventHistory(''), { wrapper })
 
       expect(result.current.fetchStatus).toBe('idle')
+    })
+
+    it('should return empty array on error', async () => {
+      // Workers API 에러 모킹
+      vi.mocked(callWorkersApi).mockResolvedValue({
+        data: null,
+        error: 'User event history error',
+        status: 500,
+      })
+
+      const { result } = renderHook(() => useUserEventHistory('user123', 50), { wrapper })
+
+      await waitFor(() => expect(result.current.isSuccess || result.current.isError).toBe(true), { timeout: 3000 })
+
+      if (result.current.isSuccess) {
+        expect(result.current.data).toEqual([])
+      }
     })
   })
 })

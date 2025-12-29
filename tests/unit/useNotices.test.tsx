@@ -1,392 +1,509 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { renderHook, waitFor } from '@testing-library/react'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { useNotices, useCreateNotice, useUpdateNotice, useDeleteNotice } from '@/hooks/useNotices'
-import { supabase } from '@/integrations/supabase/client'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { renderHook, waitFor } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { useNotices, useCreateNotice, useUpdateNotice, useDeleteNotice } from '@/hooks/useNotices';
+import { noticesApi } from '@/integrations/cloudflare/client';
+import React, { type ReactNode } from 'react';
 
-// Mock Supabase
-vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
-    from: vi.fn()
-  }
-}))
+// Mock Workers API client
+vi.mock('@/integrations/cloudflare/client', () => ({
+  noticesApi: {
+    list: vi.fn(),
+    getById: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
+    delete: vi.fn(),
+  },
+}));
+
+// Mock useAuth (setupTests.ts에서 기본 모킹 제공)
 
 describe('useNotices', () => {
-  let queryClient: QueryClient
+  let queryClient: QueryClient;
+
+  const mockNotices = [
+    {
+      id: '1',
+      type: 'info',
+      title: 'Test Notice 1',
+      content: 'Content 1',
+      is_pinned: true,
+      author: { id: 'user1', email: 'author@test.com' },
+    },
+    {
+      id: '2',
+      type: 'warning',
+      title: 'Test Notice 2',
+      content: 'Content 2',
+      is_pinned: false,
+      author: { id: 'user1', email: 'author@test.com' },
+    },
+  ];
 
   beforeEach(() => {
     queryClient = new QueryClient({
       defaultOptions: {
         queries: { retry: false },
-        mutations: { retry: false }
-      }
-    })
-    vi.clearAllMocks()
-  })
-
-  const wrapper = ({ children }: { children: React.ReactNode }) => (
-    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-  )
-
-  it('should fetch notices successfully', async () => {
-    const mockNotices = [
-      {
-        id: '1',
-        type: 'info',
-        title: 'Test Notice 1',
-        content: 'Content 1',
-        is_pinned: true,
-        author: { id: 'user1', email: 'author@test.com' }
+        mutations: { retry: false },
       },
-      {
-        id: '2',
-        type: 'warning',
-        title: 'Test Notice 2',
-        content: 'Content 2',
-        is_pinned: false,
-        author: { id: 'user1', email: 'author@test.com' }
-      }
-    ]
+    });
+    vi.clearAllMocks();
+  });
 
-    // Hook calls: select -> or -> order(is_pinned) -> order(published_at) -> (range if limit)
-    // Since no limit, the second order returns the final result
-    const orderMock2 = vi.fn().mockResolvedValue({ data: mockNotices, error: null })
-    const orderMock1 = vi.fn().mockReturnValue({ order: orderMock2 } as any)
-    const orMock = vi.fn().mockReturnValue({ order: orderMock1 } as any)
-    const selectMock = vi.fn().mockReturnValue({ or: orMock } as any)
+  afterEach(() => {
+    queryClient.clear();
+  });
 
-    vi.mocked(supabase.from).mockReturnValue({
-      select: selectMock
-    } as any)
+  const wrapper = ({ children }: { children: ReactNode }) => (
+    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+  );
 
-    const { result } = renderHook(() => useNotices(), { wrapper })
+  it('공지사항 목록을 성공적으로 조회해야 함', async () => {
+    // Setup - Workers API 모킹
+    vi.mocked(noticesApi.list).mockResolvedValue({
+      data: { data: mockNotices },
+      error: null,
+      status: 200,
+    });
 
-    await waitFor(() => expect(result.current.isSuccess || result.current.isError).toBe(true), { timeout: 3000 })
+    // Execute
+    const { result } = renderHook(() => useNotices(), { wrapper });
+
+    // Assert
+    await waitFor(
+      () => {
+        expect(result.current.isSuccess || result.current.isError).toBe(true);
+      },
+      { timeout: 3000 }
+    );
 
     if (result.current.isSuccess) {
-      expect(result.current.data).toEqual(mockNotices)
-      expect(supabase.from).toHaveBeenCalledWith('notices')
+      expect(result.current.data).toEqual(mockNotices);
+      expect(noticesApi.list).toHaveBeenCalledWith({
+        type: undefined,
+        include_expired: undefined,
+        limit: undefined,
+        offset: 0,
+      });
     }
-  })
+  });
 
-  it('should filter notices by type', async () => {
-    const mockNotices = [
+  it('타입 필터가 적용되어야 함', async () => {
+    // Setup - Workers API 모킹
+    const urgentNotices = [
       {
         id: '1',
         type: 'urgent',
         title: 'Urgent Notice',
-        content: 'Urgent content'
-      }
-    ]
+        content: 'Urgent content',
+      },
+    ];
 
-    const rangeMock = vi.fn().mockResolvedValue({ data: mockNotices, error: null })
-    const orderMock2 = vi.fn().mockReturnValue({ range: rangeMock } as any)
-    const orderMock1 = vi.fn().mockReturnValue({ order: orderMock2 } as any)
-    const orMock = vi.fn().mockReturnValue({ order: orderMock1 } as any)
-    const eqMock = vi.fn().mockReturnValue({ or: orMock } as any)
-    const selectMock = vi.fn().mockReturnValue({ eq: eqMock } as any)
+    vi.mocked(noticesApi.list).mockResolvedValue({
+      data: { data: urgentNotices },
+      error: null,
+      status: 200,
+    });
 
-    vi.mocked(supabase.from).mockReturnValue({
-      select: selectMock
-    } as any)
+    // Execute
+    const { result } = renderHook(() => useNotices({ filters: { type: 'urgent' } }), { wrapper });
 
-    const { result } = renderHook(() => useNotices({ filters: { type: 'urgent' } }), { wrapper })
-
-    await waitFor(() => expect(result.current.isSuccess || result.current.isError).toBe(true), { timeout: 3000 })
+    // Assert
+    await waitFor(
+      () => {
+        expect(result.current.isSuccess || result.current.isError).toBe(true);
+      },
+      { timeout: 3000 }
+    );
 
     if (result.current.isSuccess) {
-      expect(eqMock).toHaveBeenCalledWith('type', 'urgent')
+      expect(noticesApi.list).toHaveBeenCalledWith({
+        type: 'urgent',
+        include_expired: undefined,
+        limit: undefined,
+        offset: 0,
+      });
     }
-  })
+  });
 
-  it('should handle fetch error', async () => {
-    const selectMock = vi.fn().mockReturnThis()
-    const isNotMock = vi.fn().mockReturnThis()
-    const orderMock = vi.fn().mockResolvedValue({ data: null, error: new Error('Fetch failed') })
+  it('에러 발생 시 빈 배열을 반환해야 함', async () => {
+    // Setup - Workers API 에러 모킹
+    vi.mocked(noticesApi.list).mockResolvedValue({
+      data: null,
+      error: 'Fetch failed',
+      status: 500,
+    });
 
-    vi.mocked(supabase.from).mockReturnValue({
-      select: selectMock,
-      is: isNotMock,
-      order: orderMock
-    } as any)
+    // Execute
+    const { result } = renderHook(() => useNotices(), { wrapper });
 
-    const { result } = renderHook(() => useNotices(), { wrapper })
+    // Assert
+    await waitFor(() => {
+      expect(result.current.isSuccess).toBe(true);
+    });
 
-    await waitFor(() => expect(result.current.isError).toBe(true))
+    expect(result.current.data).toEqual([]);
+  });
 
-    expect(result.current.error).toBeTruthy()
-  })
-
-  it('should sort pinned notices first', async () => {
-    const mockNotices = [
+  it('고정된 공지사항이 먼저 표시되어야 함 (API에서 정렬됨)', async () => {
+    // Setup - Workers API 모킹 (서버에서 is_pinned 기준 정렬)
+    const sortedNotices = [
       { id: '1', title: 'Pinned', is_pinned: true, created_at: '2025-10-19' },
-      { id: '2', title: 'Regular', is_pinned: false, created_at: '2025-10-20' }
-    ]
+      { id: '2', title: 'Regular', is_pinned: false, created_at: '2025-10-20' },
+    ];
 
-    const rangeMock = vi.fn().mockResolvedValue({ data: mockNotices, error: null })
-    const orderMock2 = vi.fn().mockReturnValue({ range: rangeMock } as any)
-    const orderMock1 = vi.fn().mockReturnValue({ order: orderMock2 } as any)
-    const orMock = vi.fn().mockReturnValue({ order: orderMock1 } as any)
-    const selectMock = vi.fn().mockReturnValue({ or: orMock } as any)
+    vi.mocked(noticesApi.list).mockResolvedValue({
+      data: { data: sortedNotices },
+      error: null,
+      status: 200,
+    });
 
-    vi.mocked(supabase.from).mockReturnValue({
-      select: selectMock
-    } as any)
+    // Execute
+    const { result } = renderHook(() => useNotices(), { wrapper });
 
-    const { result } = renderHook(() => useNotices(), { wrapper })
-
-    await waitFor(() => expect(result.current.isSuccess || result.current.isError).toBe(true), { timeout: 3000 })
+    // Assert
+    await waitFor(
+      () => {
+        expect(result.current.isSuccess || result.current.isError).toBe(true);
+      },
+      { timeout: 3000 }
+    );
 
     if (result.current.isSuccess) {
-      expect(orderMock1).toHaveBeenCalledWith('is_pinned', { ascending: false })
+      expect(result.current.data?.[0]?.is_pinned).toBe(true);
+      expect(noticesApi.list).toHaveBeenCalled();
     }
-  })
+  });
 
-  it('should exclude expired notices', async () => {
-    const mockNotices = [
+  it('만료된 공지사항 제외 필터가 적용되어야 함', async () => {
+    // Setup - Workers API 모킹
+    const activeNotices = [
       {
         id: '1',
         title: 'Active Notice',
-        expires_at: null
-      }
-    ]
+        expires_at: null,
+      },
+    ];
 
-    const rangeMock = vi.fn().mockResolvedValue({ data: mockNotices, error: null })
-    const orderMock2 = vi.fn().mockReturnValue({ range: rangeMock } as any)
-    const orderMock1 = vi.fn().mockReturnValue({ order: orderMock2 } as any)
-    const orMock = vi.fn().mockReturnValue({ order: orderMock1 } as any)
-    const selectMock = vi.fn().mockReturnValue({ or: orMock } as any)
+    vi.mocked(noticesApi.list).mockResolvedValue({
+      data: { data: activeNotices },
+      error: null,
+      status: 200,
+    });
 
-    vi.mocked(supabase.from).mockReturnValue({
-      select: selectMock
-    } as any)
+    // Execute
+    const { result } = renderHook(
+      () => useNotices({ filters: { include_expired: false } }),
+      { wrapper }
+    );
 
-    const { result } = renderHook(() => useNotices({ filters: { include_expired: false } }), { wrapper })
-
-    await waitFor(() => expect(result.current.isSuccess || result.current.isError).toBe(true), { timeout: 3000 })
+    // Assert
+    await waitFor(
+      () => {
+        expect(result.current.isSuccess || result.current.isError).toBe(true);
+      },
+      { timeout: 3000 }
+    );
 
     if (result.current.isSuccess) {
-      expect(orMock).toHaveBeenCalled()
+      expect(noticesApi.list).toHaveBeenCalledWith({
+        type: undefined,
+        include_expired: false,
+        limit: undefined,
+        offset: 0,
+      });
     }
-  })
-})
+  });
+
+  it('로딩 상태가 올바르게 동작해야 함', async () => {
+    // Setup - 지연된 응답 모킹
+    vi.mocked(noticesApi.list).mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          setTimeout(() => {
+            resolve({ data: { data: mockNotices }, error: null, status: 200 });
+          }, 100);
+        })
+    );
+
+    // Execute
+    const { result } = renderHook(() => useNotices(), { wrapper });
+
+    // Assert - 초기 로딩 상태
+    expect(result.current.isLoading).toBe(true);
+    expect(result.current.data).toBeUndefined();
+
+    // Assert - 완료 후
+    await waitFor(
+      () => {
+        expect(result.current.isSuccess || result.current.isError).toBe(true);
+      },
+      { timeout: 3000 }
+    );
+
+    if (result.current.isSuccess) {
+      expect(result.current.isLoading).toBe(false);
+      expect(result.current.data).toEqual(mockNotices);
+    }
+  });
+});
 
 describe('useCreateNotice', () => {
-  let queryClient: QueryClient
+  let queryClient: QueryClient;
 
   beforeEach(() => {
     queryClient = new QueryClient({
       defaultOptions: {
         queries: { retry: false },
-        mutations: { retry: false }
-      }
-    })
-    vi.clearAllMocks()
-  })
+        mutations: { retry: false },
+      },
+    });
+    vi.clearAllMocks();
+  });
 
-  const wrapper = ({ children }: { children: React.ReactNode }) => (
+  afterEach(() => {
+    queryClient.clear();
+  });
+
+  const wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-  )
+  );
 
-  it('should create notice successfully', async () => {
+  it('공지사항을 성공적으로 생성해야 함', async () => {
+    // Setup - Workers API 모킹
     const mockNotice = {
       id: '1',
       type: 'info',
       title: 'New Notice',
-      content: 'Content'
+      content: 'Content',
+    };
+
+    vi.mocked(noticesApi.create).mockResolvedValue({
+      data: { data: mockNotice },
+      error: null,
+      status: 201,
+    });
+
+    // Execute
+    const { result } = renderHook(() => useCreateNotice(), { wrapper });
+
+    result.current.mutate({
+      type: 'info',
+      title: 'New Notice',
+      content: 'Content',
+    } as any);
+
+    // Assert
+    await waitFor(
+      () => {
+        expect(result.current.isSuccess || result.current.isError).toBe(true);
+      },
+      { timeout: 3000 }
+    );
+
+    if (result.current.isSuccess) {
+      expect(noticesApi.create).toHaveBeenCalledWith('test-token', {
+        type: 'info',
+        title: 'New Notice',
+        content: 'Content',
+      });
+      expect(result.current.data).toEqual(mockNotice);
     }
+  });
 
-    const insertMock = vi.fn().mockReturnThis()
-    const selectMock = vi.fn().mockReturnThis()
-    const singleMock = vi.fn().mockResolvedValue({ data: mockNotice, error: null })
+  it('생성 에러를 처리해야 함', async () => {
+    // Setup - Workers API 에러 모킹
+    vi.mocked(noticesApi.create).mockResolvedValue({
+      data: null,
+      error: 'Create failed',
+      status: 500,
+    });
 
-    vi.mocked(supabase.from).mockReturnValue({
-      insert: insertMock,
-      select: selectMock,
-      single: singleMock
-    } as any)
-
-    const { result } = renderHook(() => useCreateNotice(), { wrapper })
-
-    result.current.mutate({
-      type: 'info',
-      title: 'New Notice',
-      content: 'Content'
-    } as any)
-
-    await waitFor(() => expect(result.current.isSuccess || result.current.isError).toBe(true), { timeout: 3000 })
-
-    expect(insertMock).toHaveBeenCalled()
-    expect(result.current.data).toEqual(mockNotice)
-  })
-
-  it('should handle create error', async () => {
-    const insertMock = vi.fn().mockReturnThis()
-    const selectMock = vi.fn().mockReturnThis()
-    const singleMock = vi.fn().mockResolvedValue({ data: null, error: new Error('Create failed') })
-
-    vi.mocked(supabase.from).mockReturnValue({
-      insert: insertMock,
-      select: selectMock,
-      single: singleMock
-    } as any)
-
-    const { result } = renderHook(() => useCreateNotice(), { wrapper })
+    // Execute
+    const { result } = renderHook(() => useCreateNotice(), { wrapper });
 
     result.current.mutate({
       type: 'info',
       title: 'New Notice',
-      content: 'Content'
-    } as any)
+      content: 'Content',
+    } as any);
 
-    await waitFor(() => expect(result.current.isError).toBe(true))
+    // Assert
+    await waitFor(() => {
+      expect(result.current.isError).toBe(true);
+    });
 
-    expect(result.current.error).toBeTruthy()
-  })
-})
+    expect(result.current.error).toBeTruthy();
+  });
+});
 
 describe('useUpdateNotice', () => {
-  let queryClient: QueryClient
+  let queryClient: QueryClient;
 
   beforeEach(() => {
     queryClient = new QueryClient({
       defaultOptions: {
         queries: { retry: false },
-        mutations: { retry: false }
-      }
-    })
-    vi.clearAllMocks()
-  })
+        mutations: { retry: false },
+      },
+    });
+    vi.clearAllMocks();
+  });
 
-  const wrapper = ({ children }: { children: React.ReactNode }) => (
+  afterEach(() => {
+    queryClient.clear();
+  });
+
+  const wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-  )
+  );
 
-  it('should update notice successfully', async () => {
+  it('공지사항을 성공적으로 수정해야 함', async () => {
+    // Setup - Workers API 모킹
     const mockNotice = {
       id: '1',
       title: 'Updated Notice',
-      content: 'Updated content'
-    }
+      content: 'Updated content',
+    };
 
-    const updateMock = vi.fn().mockReturnThis()
-    const eqMock = vi.fn().mockReturnThis()
-    const selectMock = vi.fn().mockReturnThis()
-    const singleMock = vi.fn().mockResolvedValue({ data: mockNotice, error: null })
+    vi.mocked(noticesApi.update).mockResolvedValue({
+      data: { data: mockNotice },
+      error: null,
+      status: 200,
+    });
 
-    vi.mocked(supabase.from).mockReturnValue({
-      update: updateMock,
-      eq: eqMock,
-      select: selectMock,
-      single: singleMock
-    } as any)
-
-    const { result } = renderHook(() => useUpdateNotice(), { wrapper })
+    // Execute
+    const { result } = renderHook(() => useUpdateNotice(), { wrapper });
 
     result.current.mutate({
       id: '1',
       data: {
         title: 'Updated Notice',
-        content: 'Updated content'
-      }
-    } as any)
+        content: 'Updated content',
+      },
+    } as any);
 
-    await waitFor(() => expect(result.current.isSuccess || result.current.isError).toBe(true), { timeout: 3000 })
+    // Assert
+    await waitFor(
+      () => {
+        expect(result.current.isSuccess || result.current.isError).toBe(true);
+      },
+      { timeout: 3000 }
+    );
 
     if (result.current.isSuccess) {
-      expect(updateMock).toHaveBeenCalled()
-      expect(eqMock).toHaveBeenCalledWith('id', '1')
+      expect(noticesApi.update).toHaveBeenCalledWith('test-token', '1', {
+        title: 'Updated Notice',
+        content: 'Updated content',
+      });
     }
-  })
+  });
 
-  it('should toggle pinned status', async () => {
+  it('고정 상태를 토글할 수 있어야 함', async () => {
+    // Setup - Workers API 모킹
     const mockNotice = {
       id: '1',
-      is_pinned: true
-    }
+      is_pinned: true,
+    };
 
-    const updateMock = vi.fn().mockReturnThis()
-    const eqMock = vi.fn().mockReturnThis()
-    const selectMock = vi.fn().mockReturnThis()
-    const singleMock = vi.fn().mockResolvedValue({ data: mockNotice, error: null })
+    vi.mocked(noticesApi.update).mockResolvedValue({
+      data: { data: mockNotice },
+      error: null,
+      status: 200,
+    });
 
-    vi.mocked(supabase.from).mockReturnValue({
-      update: updateMock,
-      eq: eqMock,
-      select: selectMock,
-      single: singleMock
-    } as any)
-
-    const { result } = renderHook(() => useUpdateNotice(), { wrapper })
+    // Execute
+    const { result } = renderHook(() => useUpdateNotice(), { wrapper });
 
     result.current.mutate({
       id: '1',
       data: {
         is_pinned: true,
-        updated_at: new Date().toISOString()
-      }
-    } as any)
+        updated_at: new Date().toISOString(),
+      },
+    } as any);
 
-    await waitFor(() => expect(result.current.isSuccess || result.current.isError).toBe(true), { timeout: 3000 })
+    // Assert
+    await waitFor(
+      () => {
+        expect(result.current.isSuccess || result.current.isError).toBe(true);
+      },
+      { timeout: 3000 }
+    );
 
     if (result.current.isSuccess) {
-      expect(updateMock).toHaveBeenCalledWith(expect.objectContaining({ is_pinned: true }))
+      expect(noticesApi.update).toHaveBeenCalledWith(
+        'test-token',
+        '1',
+        expect.objectContaining({ is_pinned: true })
+      );
     }
-  })
-})
+  });
+});
 
 describe('useDeleteNotice', () => {
-  let queryClient: QueryClient
+  let queryClient: QueryClient;
 
   beforeEach(() => {
     queryClient = new QueryClient({
       defaultOptions: {
         queries: { retry: false },
-        mutations: { retry: false }
-      }
-    })
-    vi.clearAllMocks()
-  })
+        mutations: { retry: false },
+      },
+    });
+    vi.clearAllMocks();
+  });
 
-  const wrapper = ({ children }: { children: React.ReactNode }) => (
+  afterEach(() => {
+    queryClient.clear();
+  });
+
+  const wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-  )
+  );
 
-  it('should delete notice successfully', async () => {
-    const deleteMock = vi.fn().mockReturnThis()
-    const eqMock = vi.fn().mockResolvedValue({ error: null })
+  it('공지사항을 성공적으로 삭제해야 함', async () => {
+    // Setup - Workers API 모킹
+    vi.mocked(noticesApi.delete).mockResolvedValue({
+      data: { success: true },
+      error: null,
+      status: 200,
+    });
 
-    vi.mocked(supabase.from).mockReturnValue({
-      delete: deleteMock,
-      eq: eqMock
-    } as any)
+    // Execute
+    const { result } = renderHook(() => useDeleteNotice(), { wrapper });
 
-    const { result } = renderHook(() => useDeleteNotice(), { wrapper })
+    result.current.mutate('1');
 
-    result.current.mutate('1')
+    // Assert
+    await waitFor(
+      () => {
+        expect(result.current.isSuccess || result.current.isError).toBe(true);
+      },
+      { timeout: 3000 }
+    );
 
-    await waitFor(() => expect(result.current.isSuccess || result.current.isError).toBe(true), { timeout: 3000 })
+    expect(noticesApi.delete).toHaveBeenCalledWith('test-token', '1');
+  });
 
-    expect(deleteMock).toHaveBeenCalled()
-    expect(eqMock).toHaveBeenCalledWith('id', '1')
-  })
+  it('삭제 에러를 처리해야 함', async () => {
+    // Setup - Workers API 에러 모킹
+    vi.mocked(noticesApi.delete).mockResolvedValue({
+      data: null,
+      error: 'Delete failed',
+      status: 500,
+    });
 
-  it('should handle delete error', async () => {
-    const deleteMock = vi.fn().mockReturnThis()
-    const eqMock = vi.fn().mockResolvedValue({ error: new Error('Delete failed') })
+    // Execute
+    const { result } = renderHook(() => useDeleteNotice(), { wrapper });
 
-    vi.mocked(supabase.from).mockReturnValue({
-      delete: deleteMock,
-      eq: eqMock
-    } as any)
+    result.current.mutate('1');
 
-    const { result } = renderHook(() => useDeleteNotice(), { wrapper })
+    // Assert
+    await waitFor(() => {
+      expect(result.current.isError).toBe(true);
+    });
 
-    result.current.mutate('1')
-
-    await waitFor(() => expect(result.current.isError).toBe(true))
-
-    expect(result.current.error).toBeTruthy()
-  })
-})
+    expect(result.current.error).toBeTruthy();
+  });
+});

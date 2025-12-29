@@ -1,18 +1,20 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { renderHook, waitFor, act } from '@testing-library/react';
+import { renderHook, act } from '@testing-library/react';
 import { usePayment } from '@/hooks/usePayment';
-import { supabase } from '@/integrations/supabase/client';
+import { paymentsApi } from '@/integrations/cloudflare/client';
 import React, { type ReactNode } from 'react';
 
-// Mock supabase client
-vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
-    from: vi.fn(),
-    auth: {
-      getUser: vi.fn(),
-    },
+// Mock Workers API client
+vi.mock('@/integrations/cloudflare/client', () => ({
+  paymentsApi: {
+    cancel: vi.fn(),
   },
+}));
+
+// Mock useAuth
+vi.mock('@/hooks/useAuth', () => ({
+  useAuth: vi.fn(),
 }));
 
 // Mock useKakaoPay
@@ -52,10 +54,13 @@ vi.mock('@/lib/errors', () => ({
   devError: vi.fn(),
 }));
 
+import { useAuth } from '@/hooks/useAuth';
 import { useKakaoPay } from '@/hooks/payments/useKakaoPay';
 import { useTossPay } from '@/hooks/payments/useTossPay';
 
 describe('usePayment', () => {
+  const mockAccessToken = 'mock-access-token';
+
   const mockKakaoPayReturn = {
     isProcessing: false,
     error: null,
@@ -74,18 +79,14 @@ describe('usePayment', () => {
     clearError: vi.fn(),
   };
 
-  const mockPaymentData = {
-    id: 'payment-1',
-    provider_transaction_id: 'tid-12345',
-    amount: 10000,
-    order_id: 'order-1',
-    status: 'completed',
-  };
-
   beforeEach(() => {
     vi.clearAllMocks();
 
     // Reset mocks to default state
+    vi.mocked(useAuth).mockReturnValue({
+      workersTokens: { accessToken: mockAccessToken, refreshToken: 'mock-refresh' },
+    } as ReturnType<typeof useAuth>);
+
     vi.mocked(useKakaoPay).mockReturnValue(mockKakaoPayReturn);
     vi.mocked(useTossPay).mockReturnValue(mockTossPayReturn);
 
@@ -237,233 +238,64 @@ describe('usePayment', () => {
 
   describe('cancelPayment - 공통 결제 취소', () => {
     it('Kakao Pay 결제를 취소해야 함', async () => {
-      // Setup
-      const singleMock = vi.fn().mockResolvedValue({
-        data: mockPaymentData,
-        error: null,
-      });
-
-      const eqMock = vi.fn().mockReturnValue({
-        single: singleMock,
-      });
-
-      const selectMock = vi.fn().mockReturnValue({
-        eq: eqMock,
-      });
-
-      const updateMock = vi.fn().mockReturnValue({
-        eq: vi.fn().mockResolvedValue({ data: null, error: null }),
-      });
-
-      vi.mocked(supabase.from).mockImplementation((table: string) => {
-        if (table === 'payments') {
-          return {
-            select: selectMock,
-            update: updateMock,
-          } as any;
-        }
-        if (table === 'orders') {
-          return {
-            update: updateMock,
-          } as any;
-        }
-        return {} as any;
-      });
-
-      // Execute
       const { result } = renderHook(() => usePayment(), { wrapper });
 
       await act(async () => {
         await result.current.cancelPayment('payment-1', 'kakao', '고객 요청');
       });
 
-      // Assert
-      expect(selectMock).toHaveBeenCalled();
-      expect(eqMock).toHaveBeenCalledWith('id', 'payment-1');
-      expect(mockKakaoPayReturn.cancelKakaoPay).toHaveBeenCalledWith(
-        mockPaymentData.provider_transaction_id,
-        mockPaymentData.amount
-      );
+      // Kakao 결제는 cancelKakaoPay를 호출
+      expect(mockKakaoPayReturn.cancelKakaoPay).toHaveBeenCalledWith('payment-1', 0);
     });
 
     it('Toss Pay 결제를 취소해야 함', async () => {
-      // Setup
-      const singleMock = vi.fn().mockResolvedValue({
-        data: mockPaymentData,
+      vi.mocked(paymentsApi.cancel).mockResolvedValue({
+        data: { success: true },
         error: null,
+        status: 200,
       });
 
-      const eqMock = vi.fn().mockReturnValue({
-        single: singleMock,
-      });
-
-      const selectMock = vi.fn().mockReturnValue({
-        eq: eqMock,
-      });
-
-      const updateMock = vi.fn().mockReturnValue({
-        eq: vi.fn().mockResolvedValue({ data: null, error: null }),
-      });
-
-      vi.mocked(supabase.from).mockImplementation((table: string) => {
-        if (table === 'payments') {
-          return {
-            select: selectMock,
-            update: updateMock,
-          } as any;
-        }
-        if (table === 'orders') {
-          return {
-            update: updateMock,
-          } as any;
-        }
-        return {} as any;
-      });
-
-      // Execute
       const { result } = renderHook(() => usePayment(), { wrapper });
 
       await act(async () => {
-        await result.current.cancelPayment('payment-1', 'toss', '고객 요청');
+        await result.current.cancelPayment('payment-key-1', 'toss', '고객 요청');
       });
 
-      // Assert
-      expect(selectMock).toHaveBeenCalled();
-      expect(eqMock).toHaveBeenCalledWith('id', 'payment-1');
-      expect(mockTossPayReturn.cancelTossPay).toHaveBeenCalledWith(
-        mockPaymentData.provider_transaction_id,
-        '고객 요청',
-        mockPaymentData.amount
-      );
+      // Toss 결제는 Workers API를 호출
+      expect(paymentsApi.cancel).toHaveBeenCalledWith(mockAccessToken, {
+        paymentKey: 'payment-key-1',
+        cancelReason: '고객 요청',
+      });
     });
 
-    it('결제 정보를 찾을 수 없으면 에러를 발생시켜야 함', async () => {
-      // Setup
-      const singleMock = vi.fn().mockResolvedValue({
-        data: null,
-        error: { message: 'Not found' },
-      });
-
-      const eqMock = vi.fn().mockReturnValue({
-        single: singleMock,
-      });
-
-      const selectMock = vi.fn().mockReturnValue({
-        eq: eqMock,
-      });
-
-      vi.mocked(supabase.from).mockReturnValue({
-        select: selectMock,
+    it('로그인하지 않은 경우 에러를 발생시켜야 함', async () => {
+      vi.mocked(useAuth).mockReturnValue({
+        workersTokens: null,
       } as any);
 
-      // Execute & Assert
       const { result } = renderHook(() => usePayment(), { wrapper });
 
       await expect(
         act(async () => {
-          await result.current.cancelPayment('payment-1', 'kakao', '고객 요청');
+          await result.current.cancelPayment('payment-1', 'toss', '고객 요청');
         })
-      ).rejects.toThrow('결제 정보를 찾을 수 없습니다.');
+      ).rejects.toThrow('로그인이 필요합니다.');
     });
 
-    it('취소 후 payments 테이블 상태를 업데이트해야 함', async () => {
-      // Setup
-      const singleMock = vi.fn().mockResolvedValue({
-        data: mockPaymentData,
-        error: null,
+    it('Toss 취소 API 에러 시 에러를 발생시켜야 함', async () => {
+      vi.mocked(paymentsApi.cancel).mockResolvedValue({
+        data: null,
+        error: '취소 처리 실패',
+        status: 400,
       });
 
-      const eqMock = vi.fn().mockReturnValue({
-        single: singleMock,
-      });
-
-      const selectMock = vi.fn().mockReturnValue({
-        eq: eqMock,
-      });
-
-      const updateEqMock = vi.fn().mockResolvedValue({ data: null, error: null });
-      const updateMock = vi.fn().mockReturnValue({
-        eq: updateEqMock,
-      });
-
-      vi.mocked(supabase.from).mockImplementation((table: string) => {
-        if (table === 'payments') {
-          return {
-            select: selectMock,
-            update: updateMock,
-          } as any;
-        }
-        if (table === 'orders') {
-          return {
-            update: updateMock,
-          } as any;
-        }
-        return {} as any;
-      });
-
-      // Execute
       const { result } = renderHook(() => usePayment(), { wrapper });
 
-      await act(async () => {
-        await result.current.cancelPayment('payment-1', 'kakao', '고객 요청');
-      });
-
-      // Assert
-      expect(updateMock).toHaveBeenCalledWith({
-        status: 'cancelled',
-        failure_reason: '고객 요청',
-      });
-      expect(updateEqMock).toHaveBeenCalledWith('id', 'payment-1');
-    });
-
-    it('취소 후 orders 테이블 상태를 업데이트해야 함', async () => {
-      // Setup
-      const singleMock = vi.fn().mockResolvedValue({
-        data: mockPaymentData,
-        error: null,
-      });
-
-      const eqMock = vi.fn().mockReturnValue({
-        single: singleMock,
-      });
-
-      const selectMock = vi.fn().mockReturnValue({
-        eq: eqMock,
-      });
-
-      const orderUpdateEqMock = vi.fn().mockResolvedValue({ data: null, error: null });
-      const updateMock = vi.fn().mockReturnValue({
-        eq: orderUpdateEqMock,
-      });
-
-      vi.mocked(supabase.from).mockImplementation((table: string) => {
-        if (table === 'payments') {
-          return {
-            select: selectMock,
-            update: updateMock,
-          } as any;
-        }
-        if (table === 'orders') {
-          return {
-            update: updateMock,
-          } as any;
-        }
-        return {} as any;
-      });
-
-      // Execute
-      const { result } = renderHook(() => usePayment(), { wrapper });
-
-      await act(async () => {
-        await result.current.cancelPayment('payment-1', 'kakao', '고객 요청');
-      });
-
-      // Assert - orders 테이블 업데이트 확인
-      const ordersUpdateCalls = vi
-        .mocked(supabase.from)
-        .mock.results.filter((r) => r.value.update);
-
-      expect(ordersUpdateCalls.length).toBeGreaterThan(0);
+      await expect(
+        act(async () => {
+          await result.current.cancelPayment('payment-key-1', 'toss', '고객 요청');
+        })
+      ).rejects.toThrow('취소 처리 실패');
     });
   });
 
@@ -482,28 +314,9 @@ describe('usePayment', () => {
 
   describe('에러 처리', () => {
     it('게이트웨이 취소 중 에러가 발생하면 전파되어야 함', async () => {
-      // Setup
-      const singleMock = vi.fn().mockResolvedValue({
-        data: mockPaymentData,
-        error: null,
-      });
-
-      const eqMock = vi.fn().mockReturnValue({
-        single: singleMock,
-      });
-
-      const selectMock = vi.fn().mockReturnValue({
-        eq: eqMock,
-      });
-
-      vi.mocked(supabase.from).mockReturnValue({
-        select: selectMock,
-      } as any);
-
       // Kakao Pay 취소 실패 모킹
       mockKakaoPayReturn.cancelKakaoPay = vi.fn().mockRejectedValue(new Error('취소 실패'));
 
-      // Execute & Assert
       const { result } = renderHook(() => usePayment(), { wrapper });
 
       await expect(
@@ -516,10 +329,9 @@ describe('usePayment', () => {
 
   describe('추가 결제 시나리오', () => {
     it('동시에 여러 결제 제공자를 사용할 수 있어야 함', () => {
-      // Execute
       const { result } = renderHook(() => usePayment(), { wrapper });
 
-      // Assert - 모든 메서드가 정의되어 있어야 함
+      // 모든 메서드가 정의되어 있어야 함
       expect(result.current.initiateKakaoPay).toBeDefined();
       expect(result.current.approveKakaoPay).toBeDefined();
       expect(result.current.initiateTossPay).toBeDefined();
@@ -528,7 +340,6 @@ describe('usePayment', () => {
     });
 
     it('Kakao Pay와 Toss Pay 에러가 동시에 발생하면 첫 번째 에러를 반환해야 함', () => {
-      // Setup
       const kakaoError = {
         provider: 'kakao' as const,
         code: 'KAKAO_ERROR',
@@ -551,29 +362,24 @@ describe('usePayment', () => {
         error: tossError,
       });
 
-      // Execute
       const { result } = renderHook(() => usePayment(), { wrapper });
 
-      // Assert - Kakao 에러가 우선
+      // Kakao 에러가 우선
       expect(result.current.error).toEqual(kakaoError);
     });
 
     it('결제 프로세스 중 isProcessing이 true여야 함', () => {
-      // Setup
       vi.mocked(useKakaoPay).mockReturnValue({
         ...mockKakaoPayReturn,
         isProcessing: true,
       });
 
-      // Execute
       const { result } = renderHook(() => usePayment(), { wrapper });
 
-      // Assert
       expect(result.current.isProcessing).toBe(true);
     });
 
     it('여러 번 clearError를 호출해도 안전해야 함', () => {
-      // Execute
       const { result } = renderHook(() => usePayment(), { wrapper });
 
       act(() => {
@@ -582,58 +388,36 @@ describe('usePayment', () => {
         result.current.clearError();
       });
 
-      // Assert
       expect(mockKakaoPayReturn.clearError).toHaveBeenCalledTimes(3);
       expect(mockTossPayReturn.clearError).toHaveBeenCalledTimes(3);
     });
 
-    it('cancelPayment에서 존재하지 않는 provider를 전달하면 에러를 발생시켜야 함', async () => {
-      // Setup
-      const singleMock = vi.fn().mockResolvedValue({
-        data: mockPaymentData,
+    it('cancelPayment에서 존재하지 않는 provider를 전달하면 아무것도 호출되지 않아야 함', async () => {
+      vi.mocked(paymentsApi.cancel).mockResolvedValue({
+        data: { success: true },
         error: null,
+        status: 200,
       });
 
-      const eqMock = vi.fn().mockReturnValue({
-        single: singleMock,
-      });
-
-      const selectMock = vi.fn().mockReturnValue({
-        eq: eqMock,
-      });
-
-      const updateMock = vi.fn().mockReturnValue({
-        eq: vi.fn().mockResolvedValue({ error: null }),
-      });
-
-      vi.mocked(supabase.from).mockReturnValue({
-        select: selectMock,
-        update: updateMock,
-      } as any);
-
-      // Execute
       const { result } = renderHook(() => usePayment(), { wrapper });
 
-      // Assert - 잘못된 provider 전달
-      // Note: TypeScript에서는 컴파일 에러가 나지만, 런타임 테스트
       await act(async () => {
         await result.current.cancelPayment('payment-1', 'invalid' as any, '사유');
       });
 
-      // Assert - 게이트웨이 메서드가 호출되지 않아야 함
+      // 잘못된 provider - 게이트웨이 메서드가 호출되지 않아야 함
       expect(mockKakaoPayReturn.cancelKakaoPay).not.toHaveBeenCalled();
       expect(mockTossPayReturn.cancelTossPay).not.toHaveBeenCalled();
+      expect(paymentsApi.cancel).not.toHaveBeenCalled();
     });
 
     it('결제 금액이 0원일 때도 처리할 수 있어야 함', async () => {
-      // Execute
       const { result } = renderHook(() => usePayment(), { wrapper });
 
       await act(async () => {
         await result.current.initiateKakaoPay('order-1', 'ORD-001', 0, '무료 상품');
       });
 
-      // Assert
       expect(mockKakaoPayReturn.initiateKakaoPay).toHaveBeenCalledWith(
         'order-1',
         'ORD-001',
@@ -643,7 +427,6 @@ describe('usePayment', () => {
     });
 
     it('결제 금액이 매우 큰 경우에도 처리할 수 있어야 함', async () => {
-      // Execute
       const { result } = renderHook(() => usePayment(), { wrapper });
 
       const largeAmount = 999999999;
@@ -652,7 +435,6 @@ describe('usePayment', () => {
         await result.current.initiateTossPay('order-1', 'ORD-001', largeAmount, '고액 상품');
       });
 
-      // Assert
       expect(mockTossPayReturn.initiateTossPay).toHaveBeenCalledWith(
         'order-1',
         'ORD-001',
@@ -662,7 +444,6 @@ describe('usePayment', () => {
     });
 
     it('주문 번호에 특수문자가 포함되어도 처리해야 함', async () => {
-      // Execute
       const { result } = renderHook(() => usePayment(), { wrapper });
 
       const specialOrderNumber = 'ORD-2024-01-01-#123@456';
@@ -676,7 +457,6 @@ describe('usePayment', () => {
         );
       });
 
-      // Assert
       expect(mockKakaoPayReturn.initiateKakaoPay).toHaveBeenCalledWith(
         'order-1',
         specialOrderNumber,
@@ -686,7 +466,6 @@ describe('usePayment', () => {
     });
 
     it('상품명에 이모지가 포함되어도 처리해야 함', async () => {
-      // Execute
       const { result } = renderHook(() => usePayment(), { wrapper });
 
       const itemNameWithEmoji = '🎁 선물 상품 🎉';
@@ -695,7 +474,6 @@ describe('usePayment', () => {
         await result.current.initiateKakaoPay('order-1', 'ORD-001', 10000, itemNameWithEmoji);
       });
 
-      // Assert
       expect(mockKakaoPayReturn.initiateKakaoPay).toHaveBeenCalledWith(
         'order-1',
         'ORD-001',
@@ -704,62 +482,27 @@ describe('usePayment', () => {
       );
     });
 
-    it('부분 환불 시나리오를 처리할 수 있어야 함', async () => {
-      // Setup
-      const partialRefundPayment = {
-        ...mockPaymentData,
-        amount: 10000,
-      };
-
-      const singleMock = vi.fn().mockResolvedValue({
-        data: partialRefundPayment,
+    it('Toss 부분 환불 시나리오를 처리할 수 있어야 함', async () => {
+      vi.mocked(paymentsApi.cancel).mockResolvedValue({
+        data: { success: true },
         error: null,
+        status: 200,
       });
 
-      const eqMock = vi.fn().mockReturnValue({
-        single: singleMock,
-      });
-
-      const selectMock = vi.fn().mockReturnValue({
-        eq: eqMock,
-      });
-
-      const updateMock = vi.fn().mockReturnValue({
-        eq: vi.fn().mockResolvedValue({ data: null, error: null }),
-      });
-
-      vi.mocked(supabase.from).mockImplementation((table: string) => {
-        if (table === 'payments') {
-          return {
-            select: selectMock,
-            update: updateMock,
-          } as any;
-        }
-        if (table === 'orders') {
-          return {
-            update: updateMock,
-          } as any;
-        }
-        return {} as any;
-      });
-
-      // Execute
       const { result } = renderHook(() => usePayment(), { wrapper });
 
       await act(async () => {
-        await result.current.cancelPayment('payment-1', 'toss', '부분 환불 요청');
+        await result.current.cancelPayment('payment-key-1', 'toss', '부분 환불 요청');
       });
 
-      // Assert - Toss Pay 취소가 호출되어야 함
-      expect(mockTossPayReturn.cancelTossPay).toHaveBeenCalledWith(
-        partialRefundPayment.provider_transaction_id,
-        '부분 환불 요청',
-        partialRefundPayment.amount
-      );
+      // Workers API로 취소 요청
+      expect(paymentsApi.cancel).toHaveBeenCalledWith(mockAccessToken, {
+        paymentKey: 'payment-key-1',
+        cancelReason: '부분 환불 요청',
+      });
     });
 
     it('여러 결제를 순차적으로 처리할 수 있어야 함', async () => {
-      // Execute
       const { result } = renderHook(() => usePayment(), { wrapper });
 
       // 첫 번째 결제
@@ -772,7 +515,6 @@ describe('usePayment', () => {
         await result.current.initiateTossPay('order-2', 'ORD-002', 20000, '상품 2');
       });
 
-      // Assert
       expect(mockKakaoPayReturn.initiateKakaoPay).toHaveBeenCalledTimes(1);
       expect(mockTossPayReturn.initiateTossPay).toHaveBeenCalledTimes(1);
     });

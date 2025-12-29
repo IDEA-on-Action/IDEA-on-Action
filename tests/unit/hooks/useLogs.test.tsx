@@ -10,15 +10,20 @@ import {
   useUpdateLog,
   useDeleteLog,
 } from '@/hooks/useLogs';
-import { supabase } from '@/integrations/supabase/client';
+import { callWorkersApi } from '@/integrations/cloudflare/client';
 import React, { type ReactNode } from 'react';
 import type { Log } from '@/types/v2';
 
-// Mock supabase client
-vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
-    from: vi.fn(),
-  },
+// Mock Workers API
+vi.mock('@/integrations/cloudflare/client', () => ({
+  callWorkersApi: vi.fn(),
+}));
+
+// Mock useAuth
+vi.mock('@/hooks/useAuth', () => ({
+  useAuth: vi.fn(() => ({
+    workersTokens: { accessToken: 'mock-token' },
+  })),
 }));
 
 describe('useLogs', () => {
@@ -78,86 +83,54 @@ describe('useLogs', () => {
 
   describe('useLogs', () => {
     it('전체 로그 목록을 성공적으로 조회해야 함', async () => {
-      // Setup
-      const orderMock = vi.fn().mockResolvedValue({
+      vi.mocked(callWorkersApi).mockResolvedValue({
         data: mockLogs,
         error: null,
       });
 
-      const selectMock = vi.fn().mockReturnValue({
-        order: orderMock,
-      });
-
-      vi.mocked(supabase.from).mockReturnValue({
-        select: selectMock,
-      } as any);
-
-      // Execute
       const { result } = renderHook(() => useLogs(), { wrapper });
 
-      // Assert
       await waitFor(() => {
         expect(result.current.isSuccess || result.current.isError).toBe(true);
       });
 
       if (result.current.isSuccess) {
         expect(result.current.data).toEqual(mockLogs);
-        expect(supabase.from).toHaveBeenCalledWith('logs');
-        expect(orderMock).toHaveBeenCalledWith('created_at', { ascending: false });
+        expect(callWorkersApi).toHaveBeenCalledWith(
+          expect.stringContaining('/api/v1/logs'),
+          expect.objectContaining({ token: 'mock-token' })
+        );
       }
     });
 
     it('limit 옵션이 적용되어야 함', async () => {
-      // Setup
-      const limitMock = vi.fn().mockResolvedValue({
+      vi.mocked(callWorkersApi).mockResolvedValue({
         data: mockLogs.slice(0, 2),
         error: null,
       });
 
-      const orderMock = vi.fn().mockReturnValue({
-        limit: limitMock,
-      });
-
-      const selectMock = vi.fn().mockReturnValue({
-        order: orderMock,
-      });
-
-      vi.mocked(supabase.from).mockReturnValue({
-        select: selectMock,
-      } as any);
-
-      // Execute
       const { result } = renderHook(() => useLogs(2), { wrapper });
 
-      // Assert
       await waitFor(() => {
         expect(result.current.isSuccess || result.current.isError).toBe(true);
       });
 
       if (result.current.isSuccess) {
-        expect(limitMock).toHaveBeenCalledWith(2);
+        expect(callWorkersApi).toHaveBeenCalledWith(
+          expect.stringContaining('limit=2'),
+          expect.any(Object)
+        );
       }
     });
 
-    it('에러 발생 시 fallback 값을 반환해야 함', async () => {
-      // Setup
-      const orderMock = vi.fn().mockResolvedValue({
+    it('에러 발생 시 빈 배열을 반환해야 함', async () => {
+      vi.mocked(callWorkersApi).mockResolvedValue({
         data: null,
-        error: { message: 'Database error', code: 'PGRST116' },
+        error: 'Database error',
       });
 
-      const selectMock = vi.fn().mockReturnValue({
-        order: orderMock,
-      });
-
-      vi.mocked(supabase.from).mockReturnValue({
-        select: selectMock,
-      } as any);
-
-      // Execute
       const { result } = renderHook(() => useLogs(), { wrapper });
 
-      // Assert - supabaseQuery는 에러 시 fallbackValue([])를 반환
       await waitFor(() => {
         expect(result.current.isSuccess).toBe(true);
       });
@@ -168,134 +141,74 @@ describe('useLogs', () => {
 
   describe('useLogsByType', () => {
     it('타입별로 로그를 필터링해야 함', async () => {
-      // Setup
       const filteredLogs = mockLogs.filter((log) => log.type === 'release');
-      const limitMock = vi.fn().mockResolvedValue({
+      vi.mocked(callWorkersApi).mockResolvedValue({
         data: filteredLogs,
         error: null,
       });
 
-      const eqMock = vi.fn().mockReturnValue({
-        limit: limitMock,
-        order: vi.fn().mockReturnValue({
-          limit: limitMock,
-        }),
-      });
-
-      const orderMock = vi.fn().mockReturnValue({
-        eq: eqMock,
-        limit: limitMock,
-      });
-
-      const selectMock = vi.fn().mockReturnValue({
-        order: orderMock,
-        eq: eqMock,
-      });
-
-      vi.mocked(supabase.from).mockReturnValue({
-        select: selectMock,
-      } as any);
-
-      // Execute
       const { result } = renderHook(() => useLogsByType('release'), { wrapper });
 
-      // Assert
       await waitFor(() => {
         expect(result.current.isSuccess || result.current.isError).toBe(true);
       });
 
       if (result.current.isSuccess) {
         expect(result.current.data).toEqual(filteredLogs);
-        expect(eqMock).toHaveBeenCalledWith('type', 'release');
+        expect(callWorkersApi).toHaveBeenCalledWith(
+          expect.stringContaining('type=release'),
+          expect.any(Object)
+        );
       }
     });
 
     it('limit 옵션이 적용되어야 함', async () => {
-      // Setup
-      const limitMock = vi.fn().mockResolvedValue({
+      vi.mocked(callWorkersApi).mockResolvedValue({
         data: mockLogs.slice(0, 1),
         error: null,
       });
 
-      const eqMock = vi.fn().mockReturnValue({
-        limit: limitMock,
-        order: vi.fn().mockReturnValue({
-          limit: limitMock,
-        }),
-      });
-
-      const orderMock = vi.fn().mockReturnValue({
-        eq: eqMock,
-        limit: limitMock,
-      });
-
-      const selectMock = vi.fn().mockReturnValue({
-        order: orderMock,
-        eq: eqMock,
-      });
-
-      vi.mocked(supabase.from).mockReturnValue({
-        select: selectMock,
-      } as any);
-
-      // Execute
       const { result } = renderHook(() => useLogsByType('release', 1), { wrapper });
 
-      // Assert
       await waitFor(() => {
         expect(result.current.isSuccess || result.current.isError).toBe(true);
       });
 
       if (result.current.isSuccess) {
-        expect(limitMock).toHaveBeenCalledWith(1);
+        expect(callWorkersApi).toHaveBeenCalledWith(
+          expect.stringContaining('limit=1'),
+          expect.any(Object)
+        );
       }
     });
   });
 
   describe('useLogsByProject', () => {
     it('프로젝트별로 로그를 필터링해야 함', async () => {
-      // Setup
       const filteredLogs = mockLogs.filter((log) => log.project_id === 'project-1');
-      const limitMock = vi.fn().mockResolvedValue({
+      vi.mocked(callWorkersApi).mockResolvedValue({
         data: filteredLogs,
         error: null,
       });
 
-      const orderMock = vi.fn().mockReturnValue({
-        limit: limitMock,
-      });
-
-      const eqMock = vi.fn().mockReturnValue({
-        order: orderMock,
-      });
-
-      const selectMock = vi.fn().mockReturnValue({
-        eq: eqMock,
-      });
-
-      vi.mocked(supabase.from).mockReturnValue({
-        select: selectMock,
-      } as any);
-
-      // Execute
       const { result } = renderHook(() => useLogsByProject('project-1'), { wrapper });
 
-      // Assert
       await waitFor(() => {
         expect(result.current.isSuccess || result.current.isError).toBe(true);
       });
 
       if (result.current.isSuccess) {
         expect(result.current.data).toEqual(filteredLogs);
-        expect(eqMock).toHaveBeenCalledWith('project_id', 'project-1');
+        expect(callWorkersApi).toHaveBeenCalledWith(
+          expect.stringContaining('project_id=project-1'),
+          expect.any(Object)
+        );
       }
     });
 
     it('projectId가 없으면 쿼리가 비활성화되어야 함', () => {
-      // Execute
       const { result } = renderHook(() => useLogsByProject(''), { wrapper });
 
-      // Assert
       expect(result.current.isFetching).toBe(false);
       expect(result.current.data).toBeUndefined();
     });
@@ -303,7 +216,6 @@ describe('useLogs', () => {
 
   describe('useCreateLog', () => {
     it('새 로그를 생성해야 함', async () => {
-      // Setup
       const newLog = {
         type: 'release' as const,
         title: '새 릴리스 로그',
@@ -313,24 +225,11 @@ describe('useLogs', () => {
         tags: ['release'],
       };
 
-      const singleMock = vi.fn().mockResolvedValue({
+      vi.mocked(callWorkersApi).mockResolvedValue({
         data: { ...newLog, id: 4, created_at: '2024-01-04T00:00:00Z', updated_at: '2024-01-04T00:00:00Z' },
         error: null,
       });
 
-      const selectMock = vi.fn().mockReturnValue({
-        single: singleMock,
-      });
-
-      const insertMock = vi.fn().mockReturnValue({
-        select: selectMock,
-      });
-
-      vi.mocked(supabase.from).mockReturnValue({
-        insert: insertMock,
-      } as any);
-
-      // Execute
       const { result } = renderHook(() => useCreateLog(), { wrapper });
 
       await waitFor(() => {
@@ -339,13 +238,18 @@ describe('useLogs', () => {
 
       result.current.mutate(newLog);
 
-      // Assert
       await waitFor(() => {
         expect(result.current.isSuccess || result.current.isError).toBe(true);
       });
 
       if (result.current.isSuccess) {
-        expect(insertMock).toHaveBeenCalledWith([newLog]);
+        expect(callWorkersApi).toHaveBeenCalledWith(
+          '/api/v1/logs',
+          expect.objectContaining({
+            method: 'POST',
+            body: newLog,
+          })
+        );
         expect(result.current.data).toBeDefined();
       }
     });
@@ -353,32 +257,14 @@ describe('useLogs', () => {
 
   describe('useUpdateLog', () => {
     it('로그를 업데이트해야 함', async () => {
-      // Setup
       const updates = { title: '업데이트된 로그', content: '업데이트된 내용' };
       const updatedLog = { ...mockLogs[0], ...updates };
 
-      const singleMock = vi.fn().mockResolvedValue({
+      vi.mocked(callWorkersApi).mockResolvedValue({
         data: updatedLog,
         error: null,
       });
 
-      const selectMock = vi.fn().mockReturnValue({
-        single: singleMock,
-      });
-
-      const eqMock = vi.fn().mockReturnValue({
-        select: selectMock,
-      });
-
-      const updateMock = vi.fn().mockReturnValue({
-        eq: eqMock,
-      });
-
-      vi.mocked(supabase.from).mockReturnValue({
-        update: updateMock,
-      } as any);
-
-      // Execute
       const { result } = renderHook(() => useUpdateLog(), { wrapper });
 
       await waitFor(() => {
@@ -387,32 +273,29 @@ describe('useLogs', () => {
 
       result.current.mutate({ id: 1, updates });
 
-      // Assert
       await waitFor(() => {
         expect(result.current.isSuccess || result.current.isError).toBe(true);
       });
 
       if (result.current.isSuccess) {
-        expect(updateMock).toHaveBeenCalledWith(updates);
-        expect(eqMock).toHaveBeenCalledWith('id', 1);
+        expect(callWorkersApi).toHaveBeenCalledWith(
+          '/api/v1/logs/1',
+          expect.objectContaining({
+            method: 'PATCH',
+            body: updates,
+          })
+        );
       }
     });
   });
 
   describe('useDeleteLog', () => {
     it('로그를 삭제해야 함', async () => {
-      // Setup
-      const eqMock = vi.fn().mockReturnValue({
-        delete: vi.fn().mockResolvedValue({ data: null, error: null }),
+      vi.mocked(callWorkersApi).mockResolvedValue({
+        data: null,
+        error: null,
       });
 
-      vi.mocked(supabase.from).mockReturnValue({
-        delete: vi.fn().mockReturnValue({
-          eq: eqMock,
-        }),
-      } as any);
-
-      // Execute
       const { result } = renderHook(() => useDeleteLog(), { wrapper });
 
       await waitFor(() => {
@@ -421,15 +304,18 @@ describe('useLogs', () => {
 
       result.current.mutate(1);
 
-      // Assert
       await waitFor(() => {
         expect(result.current.isSuccess || result.current.isError).toBe(true);
       });
 
       if (result.current.isSuccess) {
-        expect(eqMock).toHaveBeenCalledWith('id', 1);
+        expect(callWorkersApi).toHaveBeenCalledWith(
+          '/api/v1/logs/1',
+          expect.objectContaining({
+            method: 'DELETE',
+          })
+        );
       }
     });
   });
 });
-

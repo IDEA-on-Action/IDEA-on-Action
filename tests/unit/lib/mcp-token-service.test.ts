@@ -1,9 +1,10 @@
 /**
  * MCP 토큰 서비스 테스트
  *
- * Supabase 통합 MCP JWT 토큰 관리 테스트
+ * Workers API 통합 MCP JWT 토큰 관리 테스트
  *
  * @module tests/unit/lib/mcp-token-service
+ * @migration Supabase -> Workers API 모킹으로 마이그레이션
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -125,16 +126,36 @@ import { generateAccessToken, generateRefreshToken, decodeToken } from '@/lib/au
 import type { JWTGeneratePayload } from '@/lib/auth/jwt';
 
 // ============================================================================
-// Mock Supabase
+// Mock Workers API
 // ============================================================================
 
-vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
-    rpc: vi.fn(),
-  },
+vi.mock('@/integrations/cloudflare/client', () => ({
+  callWorkersApi: vi.fn(),
 }));
 
-import { supabase } from '@/integrations/supabase/client';
+import { callWorkersApi } from '@/integrations/cloudflare/client';
+
+// Mock localStorage for getWorkersToken
+const localStorageMock = (() => {
+  let store: Record<string, string> = {};
+
+  return {
+    getItem: (key: string) => store[key] || null,
+    setItem: (key: string, value: string) => {
+      store[key] = value;
+    },
+    removeItem: (key: string) => {
+      delete store[key];
+    },
+    clear: () => {
+      store = {};
+    },
+  };
+})();
+
+Object.defineProperty(window, 'localStorage', {
+  value: localStorageMock,
+});
 
 // ============================================================================
 // 테스트 데이터
@@ -154,10 +175,7 @@ const MOCK_ISSUE_RESPONSE = {
   user_id: TEST_USER_ID,
   client_id: TEST_CLIENT_ID,
   scope: 'openid profile email',
-  access_token_exp: Math.floor(Date.now() / 1000) + 3600,
-  refresh_token_exp: Math.floor(Date.now() / 1000) + 7 * 24 * 60 * 60,
   expires_in: 3600,
-  token_type: 'Bearer',
 };
 
 const MOCK_VERIFY_VALID_RESPONSE = {
@@ -183,13 +201,15 @@ const MOCK_REVOKE_RESPONSE = {
 describe('MCP Token Service - Issue Token', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    localStorageMock.clear();
   });
 
   it('should issue token successfully', async () => {
-    vi.mocked(supabase.rpc).mockResolvedValue({
+    vi.mocked(callWorkersApi).mockResolvedValue({
       data: MOCK_ISSUE_RESPONSE,
       error: null,
-    } as never);
+      status: 200,
+    });
 
     const result = await issueToken(TEST_CLIENT_ID, TEST_USER_ID, TEST_SCOPES);
 
@@ -200,33 +220,43 @@ describe('MCP Token Service - Issue Token', () => {
     expect(result.tokenType).toBe('Bearer');
     expect(result.scope).toBe('openid profile email');
 
-    expect(supabase.rpc).toHaveBeenCalledWith('issue_mcp_token', {
-      p_client_id: TEST_CLIENT_ID,
-      p_user_id: TEST_USER_ID,
-      p_scopes: TEST_SCOPES,
+    expect(callWorkersApi).toHaveBeenCalledWith('/api/v1/mcp/token/issue', {
+      method: 'POST',
+      token: undefined,
+      body: {
+        client_id: TEST_CLIENT_ID,
+        user_id: TEST_USER_ID,
+        scopes: TEST_SCOPES,
+      },
     });
   });
 
   it('should use default scopes if not provided', async () => {
-    vi.mocked(supabase.rpc).mockResolvedValue({
+    vi.mocked(callWorkersApi).mockResolvedValue({
       data: MOCK_ISSUE_RESPONSE,
       error: null,
-    } as never);
+      status: 200,
+    });
 
     await issueToken(TEST_CLIENT_ID, TEST_USER_ID);
 
-    expect(supabase.rpc).toHaveBeenCalledWith('issue_mcp_token', {
-      p_client_id: TEST_CLIENT_ID,
-      p_user_id: TEST_USER_ID,
-      p_scopes: ['openid'],
+    expect(callWorkersApi).toHaveBeenCalledWith('/api/v1/mcp/token/issue', {
+      method: 'POST',
+      token: undefined,
+      body: {
+        client_id: TEST_CLIENT_ID,
+        user_id: TEST_USER_ID,
+        scopes: ['openid'],
+      },
     });
   });
 
-  it('should throw error on Supabase RPC failure', async () => {
-    vi.mocked(supabase.rpc).mockResolvedValue({
+  it('should throw error on Workers API failure', async () => {
+    vi.mocked(callWorkersApi).mockResolvedValue({
       data: null,
-      error: { message: 'Invalid client_id' },
-    } as never);
+      error: 'Invalid client_id',
+      status: 400,
+    });
 
     await expect(issueToken(TEST_CLIENT_ID, TEST_USER_ID)).rejects.toThrow(
       'Failed to issue token: Invalid client_id'
@@ -234,26 +264,54 @@ describe('MCP Token Service - Issue Token', () => {
   });
 
   it('should throw error when no data returned', async () => {
-    vi.mocked(supabase.rpc).mockResolvedValue({
+    vi.mocked(callWorkersApi).mockResolvedValue({
       data: null,
       error: null,
-    } as never);
+      status: 200,
+    });
 
     await expect(issueToken(TEST_CLIENT_ID, TEST_USER_ID)).rejects.toThrow(
-      'No data returned from issue_mcp_token'
+      'No data returned from issue token API'
     );
   });
 
   it('should include session_id in token payload', async () => {
-    vi.mocked(supabase.rpc).mockResolvedValue({
+    vi.mocked(callWorkersApi).mockResolvedValue({
       data: MOCK_ISSUE_RESPONSE,
       error: null,
-    } as never);
+      status: 200,
+    });
 
     const result = await issueToken(TEST_CLIENT_ID, TEST_USER_ID);
     const payload = decodeToken(result.accessToken);
 
     expect(payload?.sid).toBe(TEST_SESSION_ID);
+  });
+
+  it('should use stored Workers token if available', async () => {
+    // localStorage에 Workers 토큰 저장
+    localStorageMock.setItem(
+      'workers_auth_tokens',
+      JSON.stringify({ accessToken: 'stored-workers-token' })
+    );
+
+    vi.mocked(callWorkersApi).mockResolvedValue({
+      data: MOCK_ISSUE_RESPONSE,
+      error: null,
+      status: 200,
+    });
+
+    await issueToken(TEST_CLIENT_ID, TEST_USER_ID);
+
+    expect(callWorkersApi).toHaveBeenCalledWith('/api/v1/mcp/token/issue', {
+      method: 'POST',
+      token: 'stored-workers-token',
+      body: {
+        client_id: TEST_CLIENT_ID,
+        user_id: TEST_USER_ID,
+        scopes: ['openid'],
+      },
+    });
   });
 });
 
@@ -264,6 +322,7 @@ describe('MCP Token Service - Issue Token', () => {
 describe('MCP Token Service - Verify Token', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    localStorageMock.clear();
   });
 
   it('should verify valid token successfully', async () => {
@@ -275,10 +334,11 @@ describe('MCP Token Service - Verify Token', () => {
     };
     const token = await generateAccessToken(testPayload);
 
-    vi.mocked(supabase.rpc).mockResolvedValue({
+    vi.mocked(callWorkersApi).mockResolvedValue({
       data: MOCK_VERIFY_VALID_RESPONSE,
       error: null,
-    } as never);
+      status: 200,
+    });
 
     const result = await verifyMCPToken(token);
 
@@ -309,7 +369,7 @@ describe('MCP Token Service - Verify Token', () => {
     expect(result.status).toBe('expired');
   });
 
-  it('should handle DB verification failure gracefully', async () => {
+  it('should handle API verification failure gracefully', async () => {
     const testPayload: JWTGeneratePayload = {
       sub: TEST_USER_ID,
       aud: TEST_CLIENT_ID,
@@ -317,10 +377,11 @@ describe('MCP Token Service - Verify Token', () => {
     };
     const token = await generateAccessToken(testPayload);
 
-    vi.mocked(supabase.rpc).mockResolvedValue({
+    vi.mocked(callWorkersApi).mockResolvedValue({
       data: null,
-      error: { message: 'Database error' },
-    } as never);
+      error: 'Database error',
+      status: 500,
+    });
 
     const result = await verifyMCPToken(token);
 
@@ -329,7 +390,7 @@ describe('MCP Token Service - Verify Token', () => {
     expect(result.status).toBe('valid');
   });
 
-  it('should return revoked status from DB', async () => {
+  it('should return revoked status from API', async () => {
     const testPayload: JWTGeneratePayload = {
       sub: TEST_USER_ID,
       aud: TEST_CLIENT_ID,
@@ -337,13 +398,14 @@ describe('MCP Token Service - Verify Token', () => {
     };
     const token = await generateAccessToken(testPayload);
 
-    vi.mocked(supabase.rpc).mockResolvedValue({
+    vi.mocked(callWorkersApi).mockResolvedValue({
       data: {
         valid: false,
         status: 'revoked',
       },
       error: null,
-    } as never);
+      status: 200,
+    });
 
     const result = await verifyMCPToken(token);
 
@@ -359,38 +421,46 @@ describe('MCP Token Service - Verify Token', () => {
 describe('MCP Token Service - Revoke Token', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    localStorageMock.clear();
   });
 
   it('should revoke token successfully', async () => {
-    vi.mocked(supabase.rpc).mockResolvedValue({
+    vi.mocked(callWorkersApi).mockResolvedValue({
       data: MOCK_REVOKE_RESPONSE,
       error: null,
-    } as never);
+      status: 200,
+    });
 
     const result = await revokeToken(TEST_ACCESS_JTI);
 
     expect(result).toBe(true);
-    expect(supabase.rpc).toHaveBeenCalledWith('revoke_mcp_token', {
-      p_token_jti: TEST_ACCESS_JTI,
+    expect(callWorkersApi).toHaveBeenCalledWith('/api/v1/mcp/token/revoke', {
+      method: 'POST',
+      token: undefined,
+      body: {
+        token_jti: TEST_ACCESS_JTI,
+      },
     });
   });
 
   it('should return false when token not found', async () => {
-    vi.mocked(supabase.rpc).mockResolvedValue({
+    vi.mocked(callWorkersApi).mockResolvedValue({
       data: { revoked: false, message: 'Token not found' },
       error: null,
-    } as never);
+      status: 200,
+    });
 
     const result = await revokeToken('non-existent-jti');
 
     expect(result).toBe(false);
   });
 
-  it('should handle RPC error gracefully', async () => {
-    vi.mocked(supabase.rpc).mockResolvedValue({
+  it('should handle API error gracefully', async () => {
+    vi.mocked(callWorkersApi).mockResolvedValue({
       data: null,
-      error: { message: 'Database error' },
-    } as never);
+      error: 'Database error',
+      status: 500,
+    });
 
     const result = await revokeToken(TEST_ACCESS_JTI);
 
@@ -398,7 +468,7 @@ describe('MCP Token Service - Revoke Token', () => {
   });
 
   it('should handle exception gracefully', async () => {
-    vi.mocked(supabase.rpc).mockRejectedValue(new Error('Network error'));
+    vi.mocked(callWorkersApi).mockRejectedValue(new Error('Network error'));
 
     const result = await revokeToken(TEST_ACCESS_JTI);
 
@@ -413,6 +483,7 @@ describe('MCP Token Service - Revoke Token', () => {
 describe('MCP Token Service - Refresh Token', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    localStorageMock.clear();
   });
 
   it('should refresh token successfully', async () => {
@@ -424,10 +495,11 @@ describe('MCP Token Service - Refresh Token', () => {
     };
     const refreshToken = await generateRefreshToken(testPayload);
 
-    vi.mocked(supabase.rpc).mockResolvedValue({
+    vi.mocked(callWorkersApi).mockResolvedValue({
       data: MOCK_ISSUE_RESPONSE,
       error: null,
-    } as never);
+      status: 200,
+    });
 
     const result = await refreshMCPToken(refreshToken);
 
@@ -436,8 +508,11 @@ describe('MCP Token Service - Refresh Token', () => {
     expect(result.refreshToken).toBeDefined();
     expect(result.expiresIn).toBe(3600);
 
-    expect(supabase.rpc).toHaveBeenCalledWith('refresh_mcp_token', {
-      p_refresh_jti: TEST_REFRESH_JTI,
+    expect(callWorkersApi).toHaveBeenCalledWith('/api/v1/mcp/token/refresh', {
+      method: 'POST',
+      body: {
+        refresh_jti: TEST_REFRESH_JTI,
+      },
     });
   });
 
@@ -447,7 +522,7 @@ describe('MCP Token Service - Refresh Token', () => {
     );
   });
 
-  it('should throw error on RPC failure', async () => {
+  it('should throw error on API failure', async () => {
     const testPayload: JWTGeneratePayload = {
       sub: TEST_USER_ID,
       aud: TEST_CLIENT_ID,
@@ -455,10 +530,11 @@ describe('MCP Token Service - Refresh Token', () => {
     };
     const refreshToken = await generateRefreshToken(testPayload);
 
-    vi.mocked(supabase.rpc).mockResolvedValue({
+    vi.mocked(callWorkersApi).mockResolvedValue({
       data: null,
-      error: { message: 'Refresh token expired' },
-    } as never);
+      error: 'Refresh token expired',
+      status: 401,
+    });
 
     await expect(refreshMCPToken(refreshToken)).rejects.toThrow(
       'Failed to refresh token: Refresh token expired'
@@ -473,13 +549,14 @@ describe('MCP Token Service - Refresh Token', () => {
     };
     const refreshToken = await generateRefreshToken(testPayload);
 
-    vi.mocked(supabase.rpc).mockResolvedValue({
+    vi.mocked(callWorkersApi).mockResolvedValue({
       data: null,
       error: null,
-    } as never);
+      status: 200,
+    });
 
     await expect(refreshMCPToken(refreshToken)).rejects.toThrow(
-      'No data returned from refresh_mcp_token'
+      'No data returned from refresh token API'
     );
   });
 
@@ -491,14 +568,15 @@ describe('MCP Token Service - Refresh Token', () => {
     };
     const oldRefreshToken = await generateRefreshToken(testPayload);
 
-    vi.mocked(supabase.rpc).mockResolvedValue({
+    vi.mocked(callWorkersApi).mockResolvedValue({
       data: {
         ...MOCK_ISSUE_RESPONSE,
         access_token_jti: 'new-access-jti',
         refresh_token_jti: 'new-refresh-jti',
       },
       error: null,
-    } as never);
+      status: 200,
+    });
 
     const result = await refreshMCPToken(oldRefreshToken);
     const newAccessPayload = decodeToken(result.accessToken);
@@ -580,24 +658,26 @@ describe('MCP Token Service - Get Token Info', () => {
 describe('MCP Token Service - Edge Cases', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    localStorageMock.clear();
   });
 
   it('should handle network timeout', async () => {
-    vi.mocked(supabase.rpc).mockImplementation(
+    vi.mocked(callWorkersApi).mockImplementation(
       () =>
         new Promise((_, reject) =>
           setTimeout(() => reject(new Error('Network timeout')), 100)
-        ) as never
+        )
     );
 
     await expect(issueToken(TEST_CLIENT_ID, TEST_USER_ID)).rejects.toThrow();
   });
 
   it('should handle concurrent token issuance', async () => {
-    vi.mocked(supabase.rpc).mockResolvedValue({
+    vi.mocked(callWorkersApi).mockResolvedValue({
       data: MOCK_ISSUE_RESPONSE,
       error: null,
-    } as never);
+      status: 200,
+    });
 
     const promises = Array(5)
       .fill(null)
@@ -613,17 +693,22 @@ describe('MCP Token Service - Edge Cases', () => {
   });
 
   it('should handle empty scopes array', async () => {
-    vi.mocked(supabase.rpc).mockResolvedValue({
+    vi.mocked(callWorkersApi).mockResolvedValue({
       data: MOCK_ISSUE_RESPONSE,
       error: null,
-    } as never);
+      status: 200,
+    });
 
     await issueToken(TEST_CLIENT_ID, TEST_USER_ID, []);
 
-    expect(supabase.rpc).toHaveBeenCalledWith('issue_mcp_token', {
-      p_client_id: TEST_CLIENT_ID,
-      p_user_id: TEST_USER_ID,
-      p_scopes: [],
+    expect(callWorkersApi).toHaveBeenCalledWith('/api/v1/mcp/token/issue', {
+      method: 'POST',
+      token: undefined,
+      body: {
+        client_id: TEST_CLIENT_ID,
+        user_id: TEST_USER_ID,
+        scopes: [],
+      },
     });
   });
 });

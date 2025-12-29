@@ -3,9 +3,11 @@
  * useSubscriptionUsage (root) 확장 테스트
  *
  * 기존 useSubscriptionUsage.test.tsx에 추가로 더 많은 엣지 케이스와 시나리오를 테스트합니다.
+ *
+ * @migration Supabase -> Workers API 모킹 마이그레이션 완료
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
@@ -15,22 +17,16 @@ import {
   useFeatureUsage,
   usageKeys,
 } from '@/hooks/useSubscriptionUsage';
-import { supabase } from '@/integrations/supabase/client';
+import { subscriptionsApi, callWorkersApi } from '@/integrations/cloudflare/client';
 import React, { type ReactNode } from 'react';
 import { toast } from 'sonner';
 
-// Mock supabase client
-vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
-    from: vi.fn(),
-    auth: {
-      getUser: vi.fn().mockResolvedValue({
-        data: { user: { id: 'user-123', email: 'test@example.com' } },
-        error: null,
-      }),
-    },
-    rpc: vi.fn().mockResolvedValue({ data: true, error: null }),
+// Mock Workers API client
+vi.mock('@/integrations/cloudflare/client', () => ({
+  subscriptionsApi: {
+    getCurrent: vi.fn(),
   },
+  callWorkersApi: vi.fn(),
 }));
 
 // Mock useAuth
@@ -54,6 +50,11 @@ describe('useSubscriptionUsage - 확장 테스트', () => {
   const mockUser = {
     id: 'user-123',
     email: 'test@example.com',
+  };
+
+  const mockWorkersTokens = {
+    accessToken: 'mock-access-token',
+    refreshToken: 'mock-refresh-token',
   };
 
   const mockSubscription = {
@@ -80,7 +81,14 @@ describe('useSubscriptionUsage - 확장 테스트', () => {
       },
     });
     vi.clearAllMocks();
-    vi.mocked(useAuth).mockReturnValue({ user: mockUser } as any);
+    vi.mocked(useAuth).mockReturnValue({
+      user: mockUser,
+      workersTokens: mockWorkersTokens,
+    } as any);
+  });
+
+  afterEach(() => {
+    queryClient.clear();
   });
 
   const wrapper = ({ children }: { children: ReactNode }) => (
@@ -104,22 +112,18 @@ describe('useSubscriptionUsage - 확장 테스트', () => {
         },
       };
 
-      vi.mocked(supabase.from).mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            eq: vi.fn().mockReturnValue({
-              order: vi.fn().mockReturnValue({
-                limit: vi.fn().mockReturnValue({
-                  single: vi.fn().mockResolvedValue({
-                    data: mixedFeaturesSubscription,
-                    error: null,
-                  }),
-                }),
-              }),
-            }),
-          }),
-        }),
-      } as any);
+      // Workers API 모킹
+      vi.mocked(subscriptionsApi.getCurrent).mockResolvedValue({
+        data: mixedFeaturesSubscription,
+        error: null,
+        status: 200,
+      });
+
+      vi.mocked(callWorkersApi).mockResolvedValue({
+        data: [],
+        error: null,
+        status: 200,
+      });
 
       const { result } = renderHook(() => useSubscriptionUsage(), { wrapper });
 
@@ -142,22 +146,18 @@ describe('useSubscriptionUsage - 확장 테스트', () => {
         },
       };
 
-      vi.mocked(supabase.from).mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            eq: vi.fn().mockReturnValue({
-              order: vi.fn().mockReturnValue({
-                limit: vi.fn().mockReturnValue({
-                  single: vi.fn().mockResolvedValue({
-                    data: subscriptionWithUsage,
-                    error: null,
-                  }),
-                }),
-              }),
-            }),
-          }),
-        }),
-      } as any);
+      // Workers API 모킹
+      vi.mocked(subscriptionsApi.getCurrent).mockResolvedValue({
+        data: subscriptionWithUsage,
+        error: null,
+        status: 200,
+      });
+
+      vi.mocked(callWorkersApi).mockResolvedValue({
+        data: [{ feature_key: 'api_calls', used_count: 50 }],
+        error: null,
+        status: 200,
+      });
 
       const { result } = renderHook(() => useSubscriptionUsage(), { wrapper });
 
@@ -182,22 +182,18 @@ describe('useSubscriptionUsage - 확장 테스트', () => {
         },
       };
 
-      vi.mocked(supabase.from).mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            eq: vi.fn().mockReturnValue({
-              order: vi.fn().mockReturnValue({
-                limit: vi.fn().mockReturnValue({
-                  single: vi.fn().mockResolvedValue({
-                    data: emptyFeaturesSubscription,
-                    error: null,
-                  }),
-                }),
-              }),
-            }),
-          }),
-        }),
-      } as any);
+      // Workers API 모킹
+      vi.mocked(subscriptionsApi.getCurrent).mockResolvedValue({
+        data: emptyFeaturesSubscription,
+        error: null,
+        status: 200,
+      });
+
+      vi.mocked(callWorkersApi).mockResolvedValue({
+        data: [],
+        error: null,
+        status: 200,
+      });
 
       const { result } = renderHook(() => useSubscriptionUsage(), { wrapper });
 
@@ -210,22 +206,18 @@ describe('useSubscriptionUsage - 확장 테스트', () => {
     });
 
     it('여러 번 refetch해도 안전해야 함', async () => {
-      vi.mocked(supabase.from).mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            eq: vi.fn().mockReturnValue({
-              order: vi.fn().mockReturnValue({
-                limit: vi.fn().mockReturnValue({
-                  single: vi.fn().mockResolvedValue({
-                    data: mockSubscription,
-                    error: null,
-                  }),
-                }),
-              }),
-            }),
-          }),
-        }),
-      } as any);
+      // Workers API 모킹
+      vi.mocked(subscriptionsApi.getCurrent).mockResolvedValue({
+        data: mockSubscription,
+        error: null,
+        status: 200,
+      });
+
+      vi.mocked(callWorkersApi).mockResolvedValue({
+        data: [],
+        error: null,
+        status: 200,
+      });
 
       const { result } = renderHook(() => useSubscriptionUsage(), { wrapper });
 
@@ -245,12 +237,18 @@ describe('useSubscriptionUsage - 확장 테스트', () => {
 
   describe('useIncrementUsage - 엣지 케이스', () => {
     it('increment_by를 0으로 설정하면 처리되어야 함', async () => {
-      vi.mocked(supabase.from).mockReturnValue({
-        insert: vi.fn().mockResolvedValue({
-          data: null,
-          error: null,
-        }),
-      } as any);
+      // Workers API 모킹
+      vi.mocked(subscriptionsApi.getCurrent).mockResolvedValue({
+        data: mockSubscription,
+        error: null,
+        status: 200,
+      });
+
+      vi.mocked(callWorkersApi).mockResolvedValue({
+        data: { success: true },
+        error: null,
+        status: 200,
+      });
 
       const { result } = renderHook(() => useIncrementUsage(), { wrapper });
 
@@ -269,12 +267,18 @@ describe('useSubscriptionUsage - 확장 테스트', () => {
     });
 
     it('increment_by를 음수로 설정하면 처리되어야 함', async () => {
-      vi.mocked(supabase.from).mockReturnValue({
-        insert: vi.fn().mockResolvedValue({
-          data: null,
-          error: null,
-        }),
-      } as any);
+      // Workers API 모킹
+      vi.mocked(subscriptionsApi.getCurrent).mockResolvedValue({
+        data: mockSubscription,
+        error: null,
+        status: 200,
+      });
+
+      vi.mocked(callWorkersApi).mockResolvedValue({
+        data: { success: true },
+        error: null,
+        status: 200,
+      });
 
       const { result } = renderHook(() => useIncrementUsage(), { wrapper });
 
@@ -292,13 +296,19 @@ describe('useSubscriptionUsage - 확장 테스트', () => {
       expect(result.current.incrementUsage).toBeDefined();
     });
 
-    it('DB 삽입 에러 발생 시 에러 토스트를 표시해야 함', async () => {
-      vi.mocked(supabase.from).mockReturnValue({
-        insert: vi.fn().mockResolvedValue({
-          data: null,
-          error: { message: 'Insert failed' },
-        }),
-      } as any);
+    it('API 에러 발생 시 에러 토스트를 표시해야 함', async () => {
+      // Workers API 에러 모킹
+      vi.mocked(subscriptionsApi.getCurrent).mockResolvedValue({
+        data: mockSubscription,
+        error: null,
+        status: 200,
+      });
+
+      vi.mocked(callWorkersApi).mockResolvedValue({
+        data: null,
+        error: 'Insert failed',
+        status: 500,
+      });
 
       const { result } = renderHook(() => useIncrementUsage(), { wrapper });
 
@@ -322,29 +332,18 @@ describe('useSubscriptionUsage - 확장 테스트', () => {
     });
 
     it('성공 시 쿼리를 무효화해야 함', async () => {
-      // 실제 구현이 RPC 함수를 호출하므로 모킹 업데이트
-      vi.mocked(supabase.from).mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            eq: vi.fn().mockReturnValue({
-              order: vi.fn().mockReturnValue({
-                limit: vi.fn().mockReturnValue({
-                  single: vi.fn().mockResolvedValue({
-                    data: { id: 'sub-1' },
-                    error: null,
-                  }),
-                }),
-              }),
-            }),
-          }),
-        }),
-      } as any);
+      // Workers API 성공 모킹
+      vi.mocked(subscriptionsApi.getCurrent).mockResolvedValue({
+        data: mockSubscription,
+        error: null,
+        status: 200,
+      });
 
-      // RPC 함수 모킹 (increment_subscription_usage)
-      vi.mocked(supabase.rpc).mockResolvedValue({
+      vi.mocked(callWorkersApi).mockResolvedValue({
         data: { success: true, new_count: 1 },
         error: null,
-      } as any);
+        status: 200,
+      });
 
       const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
 
@@ -368,12 +367,18 @@ describe('useSubscriptionUsage - 확장 테스트', () => {
     });
 
     it('feature_key가 빈 문자열일 때 처리되어야 함', async () => {
-      vi.mocked(supabase.from).mockReturnValue({
-        insert: vi.fn().mockResolvedValue({
-          data: null,
-          error: null,
-        }),
-      } as any);
+      // Workers API 모킹
+      vi.mocked(subscriptionsApi.getCurrent).mockResolvedValue({
+        data: mockSubscription,
+        error: null,
+        status: 200,
+      });
+
+      vi.mocked(callWorkersApi).mockResolvedValue({
+        data: { success: true },
+        error: null,
+        status: 200,
+      });
 
       const { result } = renderHook(() => useIncrementUsage(), { wrapper });
 
@@ -393,6 +398,13 @@ describe('useSubscriptionUsage - 확장 테스트', () => {
 
   describe('useResetUsage - 엣지 케이스', () => {
     it('user_id와 feature_key 모두 제공되면 특정 기능만 초기화해야 함', async () => {
+      // Workers API 모킹
+      vi.mocked(callWorkersApi).mockResolvedValue({
+        data: { success: true, message: '사용량이 초기화되었습니다.' },
+        error: null,
+        status: 200,
+      });
+
       const { result } = renderHook(() => useResetUsage(), { wrapper });
 
       await waitFor(() => {
@@ -410,23 +422,12 @@ describe('useSubscriptionUsage - 확장 테스트', () => {
     });
 
     it('쿼리 무효화가 정확한 user_id로 호출되어야 함', async () => {
-      // 관리자 권한 확인 및 구독 조회를 위한 모킹
-      vi.mocked(supabase.rpc).mockResolvedValue({ data: true, error: null } as any);
-      vi.mocked(supabase.from).mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            eq: vi.fn().mockResolvedValue({
-              data: [{ id: 'sub-1' }],
-              error: null,
-            }),
-          }),
-        }),
-        update: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            match: vi.fn().mockResolvedValue({ data: null, error: null }),
-          }),
-        }),
-      } as any);
+      // Workers API 성공 모킹
+      vi.mocked(callWorkersApi).mockResolvedValue({
+        data: { success: true, message: '사용량이 초기화되었습니다.' },
+        error: null,
+        status: 200,
+      });
 
       const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
 
@@ -450,23 +451,12 @@ describe('useSubscriptionUsage - 확장 테스트', () => {
     });
 
     it('성공 시 성공 토스트를 표시해야 함', async () => {
-      // 관리자 권한 확인 및 구독 조회를 위한 모킹
-      vi.mocked(supabase.rpc).mockResolvedValue({ data: true, error: null } as any);
-      vi.mocked(supabase.from).mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            eq: vi.fn().mockResolvedValue({
-              data: [{ id: 'sub-1' }],
-              error: null,
-            }),
-          }),
-        }),
-        update: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            match: vi.fn().mockResolvedValue({ data: null, error: null }),
-          }),
-        }),
-      } as any);
+      // Workers API 성공 모킹
+      vi.mocked(callWorkersApi).mockResolvedValue({
+        data: { success: true, message: '사용량이 초기화되었습니다.' },
+        error: null,
+        status: 200,
+      });
 
       const { result } = renderHook(() => useResetUsage(), { wrapper });
 
@@ -488,22 +478,18 @@ describe('useSubscriptionUsage - 확장 테스트', () => {
 
   describe('useFeatureUsage - 엣지 케이스', () => {
     it('빈 문자열 feature_key로 조회하면 undefined를 반환해야 함', async () => {
-      vi.mocked(supabase.from).mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            eq: vi.fn().mockReturnValue({
-              order: vi.fn().mockReturnValue({
-                limit: vi.fn().mockReturnValue({
-                  single: vi.fn().mockResolvedValue({
-                    data: mockSubscription,
-                    error: null,
-                  }),
-                }),
-              }),
-            }),
-          }),
-        }),
-      } as any);
+      // Workers API 모킹
+      vi.mocked(subscriptionsApi.getCurrent).mockResolvedValue({
+        data: mockSubscription,
+        error: null,
+        status: 200,
+      });
+
+      vi.mocked(callWorkersApi).mockResolvedValue({
+        data: [],
+        error: null,
+        status: 200,
+      });
 
       const { result } = renderHook(() => useFeatureUsage(''), { wrapper });
 
@@ -515,29 +501,25 @@ describe('useSubscriptionUsage - 확장 테스트', () => {
     });
 
     it('useSubscriptionUsage가 로딩 중이면 useFeatureUsage도 로딩 중이어야 함', async () => {
-      vi.mocked(supabase.from).mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            eq: vi.fn().mockReturnValue({
-              order: vi.fn().mockReturnValue({
-                limit: vi.fn().mockReturnValue({
-                  single: vi.fn().mockImplementation(
-                    () =>
-                      new Promise((resolve) => {
-                        setTimeout(() => {
-                          resolve({
-                            data: mockSubscription,
-                            error: null,
-                          });
-                        }, 100);
-                      })
-                  ),
-                }),
-              }),
-            }),
-          }),
-        }),
-      } as any);
+      // Workers API 지연된 응답 모킹
+      vi.mocked(subscriptionsApi.getCurrent).mockImplementation(
+        () =>
+          new Promise((resolve) => {
+            setTimeout(() => {
+              resolve({
+                data: mockSubscription,
+                error: null,
+                status: 200,
+              });
+            }, 100);
+          })
+      );
+
+      vi.mocked(callWorkersApi).mockResolvedValue({
+        data: [],
+        error: null,
+        status: 200,
+      });
 
       const { result } = renderHook(() => useFeatureUsage('ai_chat_messages'), {
         wrapper,
@@ -561,22 +543,18 @@ describe('useSubscriptionUsage - 확장 테스트', () => {
         },
       };
 
-      vi.mocked(supabase.from).mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            eq: vi.fn().mockReturnValue({
-              order: vi.fn().mockReturnValue({
-                limit: vi.fn().mockReturnValue({
-                  single: vi.fn().mockResolvedValue({
-                    data: unlimitedSubscription,
-                    error: null,
-                  }),
-                }),
-              }),
-            }),
-          }),
-        }),
-      } as any);
+      // Workers API 모킹
+      vi.mocked(subscriptionsApi.getCurrent).mockResolvedValue({
+        data: unlimitedSubscription,
+        error: null,
+        status: 200,
+      });
+
+      vi.mocked(callWorkersApi).mockResolvedValue({
+        data: [],
+        error: null,
+        status: 200,
+      });
 
       const { result } = renderHook(() => useFeatureUsage('storage_mb'), {
         wrapper,

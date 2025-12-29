@@ -2,18 +2,24 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { useTossPay } from '@/hooks/payments/useTossPay';
-import { supabase } from '@/integrations/supabase/client';
+import { paymentsApi, ordersApi } from '@/integrations/cloudflare/client';
 import * as tossPaymentsLib from '@/lib/payments/toss-payments';
 import React, { type ReactNode } from 'react';
 
-// Mock supabase client
-vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
-    auth: {
-      getUser: vi.fn(),
-    },
-    from: vi.fn(),
+// Mock Workers API client
+vi.mock('@/integrations/cloudflare/client', () => ({
+  paymentsApi: {
+    confirm: vi.fn(),
+    cancel: vi.fn(),
   },
+  ordersApi: {
+    updateStatus: vi.fn(),
+  },
+}));
+
+// Mock useAuth
+vi.mock('@/hooks/useAuth', () => ({
+  useAuth: vi.fn(),
 }));
 
 // Mock toss-payments library
@@ -29,16 +35,18 @@ vi.mock('@/lib/errors', () => ({
   devError: vi.fn(),
 }));
 
+import { useAuth } from '@/hooks/useAuth';
+
 describe('useTossPay', () => {
-  const mockUser = {
+  const mockWorkersUser = {
     id: 'user-123',
     email: 'test@example.com',
+    name: 'Test User',
   };
 
-  const mockOrder = {
-    id: 'order-1',
-    order_number: 'ORD-001',
-    amount: 10000,
+  const mockWorkersTokens = {
+    accessToken: 'mock-access-token',
+    refreshToken: 'mock-refresh-token',
   };
 
   const mockTossConfirmResponse = {
@@ -58,6 +66,10 @@ describe('useTossPay', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(useAuth).mockReturnValue({
+      workersUser: mockWorkersUser,
+      workersTokens: mockWorkersTokens,
+    } as ReturnType<typeof useAuth>);
   });
 
   const wrapper = ({ children }: { children: ReactNode }) => <>{children}</>;
@@ -78,11 +90,6 @@ describe('useTossPay', () => {
   describe('initiateTossPay - 결제 시작', () => {
     it('결제 시작 시 Toss Payments 요청 API를 호출해야 함', async () => {
       // Setup
-      vi.mocked(supabase.auth.getUser).mockResolvedValue({
-        data: { user: mockUser as any },
-        error: null,
-      });
-
       vi.mocked(tossPaymentsLib.getTossPaymentRedirectUrls).mockReturnValue({
         successUrl: 'http://localhost/success',
         failUrl: 'http://localhost/fail',
@@ -102,7 +109,7 @@ describe('useTossPay', () => {
         orderId: 'ORD-001',
         orderName: '테스트 주문',
         amount: 10000,
-        customerEmail: mockUser.email,
+        customerEmail: mockWorkersUser.email,
         successUrl: 'http://localhost/success',
         failUrl: 'http://localhost/fail',
       });
@@ -110,10 +117,10 @@ describe('useTossPay', () => {
 
     it('로그인하지 않은 경우 에러를 발생시켜야 함', async () => {
       // Setup
-      vi.mocked(supabase.auth.getUser).mockResolvedValue({
-        data: { user: null },
-        error: null,
-      });
+      vi.mocked(useAuth).mockReturnValue({
+        workersUser: null,
+        workersTokens: null,
+      } as ReturnType<typeof useAuth>);
 
       // Execute
       const { result } = renderHook(() => useTossPay(), { wrapper });
@@ -134,11 +141,6 @@ describe('useTossPay', () => {
 
     it('Toss Payments API 실패 시 에러를 처리해야 함', async () => {
       // Setup
-      vi.mocked(supabase.auth.getUser).mockResolvedValue({
-        data: { user: mockUser as any },
-        error: null,
-      });
-
       vi.mocked(tossPaymentsLib.getTossPaymentRedirectUrls).mockReturnValue({
         successUrl: 'http://localhost/success',
         failUrl: 'http://localhost/fail',
@@ -167,53 +169,20 @@ describe('useTossPay', () => {
   });
 
   describe('confirmTossPay - 결제 승인', () => {
-    it('결제 승인 시 Toss Payments 승인 API를 호출하고 DB에 저장해야 함', async () => {
-      // Setup
-      const singleMock = vi.fn().mockResolvedValue({
-        data: mockOrder,
+    it('결제 승인 시 Workers API를 호출하고 결과를 반환해야 함', async () => {
+      // Setup - Workers API confirm 응답
+      vi.mocked(paymentsApi.confirm).mockResolvedValue({
+        data: {
+          success: true,
+          payment: {
+            paymentKey: 'payment-key-123',
+            totalAmount: 10000,
+            approvedAt: '2024-01-01T01:00:00Z',
+          },
+        },
         error: null,
+        status: 200,
       });
-
-      const eqMock = vi.fn().mockReturnValue({
-        single: singleMock,
-      });
-
-      const selectMock = vi.fn().mockReturnValue({
-        eq: eqMock,
-      });
-
-      const insertMock = vi.fn().mockResolvedValue({
-        data: null,
-        error: null,
-      });
-
-      const orderUpdateEqMock = vi.fn().mockResolvedValue({
-        data: null,
-        error: null,
-      });
-
-      const updateMock = vi.fn().mockReturnValue({
-        eq: orderUpdateEqMock,
-      });
-
-      vi.mocked(supabase.from).mockImplementation((table: string) => {
-        if (table === 'orders') {
-          return {
-            select: selectMock,
-            update: updateMock,
-          } as any;
-        }
-        if (table === 'payments') {
-          return {
-            insert: insertMock,
-          } as any;
-        }
-        return {} as any;
-      });
-
-      vi.mocked(tossPaymentsLib.confirmTossPayment).mockResolvedValue(
-        mockTossConfirmResponse as any
-      );
 
       // Execute
       const { result } = renderHook(() => useTossPay(), { wrapper });
@@ -223,37 +192,12 @@ describe('useTossPay', () => {
         paymentResult = await result.current.confirmTossPay('order-1', 'payment-key-123', 10000);
       });
 
-      // Assert - Toss Payments 승인 호출
-      expect(tossPaymentsLib.confirmTossPayment).toHaveBeenCalledWith({
+      // Assert - Workers API 호출 확인
+      expect(paymentsApi.confirm).toHaveBeenCalledWith(mockWorkersTokens.accessToken, {
         paymentKey: 'payment-key-123',
-        orderId: 'ORD-001',
+        orderId: 'order-1',
         amount: 10000,
       });
-
-      // Assert - payments 테이블 삽입
-      expect(insertMock).toHaveBeenCalledWith({
-        order_id: 'order-1',
-        amount: 10000,
-        status: 'completed',
-        provider: 'toss',
-        provider_transaction_id: 'payment-key-123',
-        payment_method: 'card',
-        card_info: {
-          cardType: 'CREDIT',
-          cardNumber: '1234****',
-          issuer: '신한카드',
-          approveNo: 'APPROVE-123',
-        },
-        metadata: mockTossConfirmResponse,
-        paid_at: '2024-01-01T01:00:00Z',
-      });
-
-      // Assert - orders 테이블 업데이트
-      expect(updateMock).toHaveBeenCalledWith(
-        expect.objectContaining({
-          status: 'confirmed',
-        })
-      );
 
       // Assert - 반환값 확인
       expect(paymentResult).toEqual({
@@ -266,23 +210,12 @@ describe('useTossPay', () => {
       });
     });
 
-    it('주문 정보를 찾을 수 없으면 에러를 발생시켜야 함', async () => {
+    it('로그인하지 않은 경우 에러를 발생시켜야 함', async () => {
       // Setup
-      const singleMock = vi.fn().mockResolvedValue({
-        data: null,
-        error: { message: 'Not found' },
-      });
-
-      vi.mocked(supabase.from).mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            single: singleMock,
-          }),
-        }),
-        update: vi.fn().mockReturnValue({
-          eq: vi.fn().mockResolvedValue({ data: null, error: null }),
-        }),
-      } as any);
+      vi.mocked(useAuth).mockReturnValue({
+        workersUser: mockWorkersUser,
+        workersTokens: null,
+      } as ReturnType<typeof useAuth>);
 
       // Execute
       const { result } = renderHook(() => useTossPay(), { wrapper });
@@ -297,37 +230,22 @@ describe('useTossPay', () => {
       });
 
       expect(error).toBeDefined();
-      expect(error?.message).toBe('주문 정보를 찾을 수 없습니다.');
+      expect(error?.message).toBe('로그인이 필요합니다.');
     });
 
     it('결제 승인 실패 시 주문 상태를 cancelled로 업데이트해야 함', async () => {
       // Setup
-      const singleMock = vi.fn().mockResolvedValue({
-        data: mockOrder,
-        error: null,
-      });
-
-      const orderUpdateEqMock = vi.fn().mockResolvedValue({
+      vi.mocked(paymentsApi.confirm).mockResolvedValue({
         data: null,
+        error: '승인 실패',
+        status: 400,
+      });
+
+      vi.mocked(ordersApi.updateStatus).mockResolvedValue({
+        data: { success: true },
         error: null,
+        status: 200,
       });
-
-      const updateMock = vi.fn().mockReturnValue({
-        eq: orderUpdateEqMock,
-      });
-
-      vi.mocked(supabase.from).mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            single: singleMock,
-          }),
-        }),
-        update: updateMock,
-      } as any);
-
-      vi.mocked(tossPaymentsLib.confirmTossPayment).mockRejectedValue(
-        new Error('승인 실패')
-      );
 
       // Execute
       const { result } = renderHook(() => useTossPay(), { wrapper });
@@ -344,73 +262,56 @@ describe('useTossPay', () => {
       expect(error).toBeDefined();
       expect(error?.message).toBe('승인 실패');
 
-      // Assert - 주문 상태 업데이트
+      // Assert - 주문 상태 업데이트 확인
       await waitFor(() => {
-        expect(updateMock).toHaveBeenCalledWith({ status: 'cancelled' });
+        expect(ordersApi.updateStatus).toHaveBeenCalledWith(
+          mockWorkersTokens.accessToken,
+          'order-1',
+          'cancelled'
+        );
       });
     });
 
-    it('카드 정보가 없는 경우에도 정상 처리되어야 함', async () => {
+    it('Workers API 에러 응답을 처리해야 함', async () => {
       // Setup
-      const responseWithoutCard = {
-        ...mockTossConfirmResponse,
-        card: null,
-      };
+      vi.mocked(paymentsApi.confirm).mockResolvedValue({
+        data: null,
+        error: '결제 승인 중 오류 발생',
+        status: 500,
+      });
 
-      const singleMock = vi.fn().mockResolvedValue({
-        data: mockOrder,
+      vi.mocked(ordersApi.updateStatus).mockResolvedValue({
+        data: { success: true },
         error: null,
+        status: 200,
       });
-
-      vi.mocked(supabase.from).mockImplementation((table: string) => {
-        if (table === 'orders') {
-          return {
-            select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                single: singleMock,
-              }),
-            }),
-            update: vi.fn().mockReturnValue({
-              eq: vi.fn().mockResolvedValue({ data: null, error: null }),
-            }),
-          } as any;
-        }
-        if (table === 'payments') {
-          return {
-            insert: vi.fn().mockResolvedValue({ data: null, error: null }),
-          } as any;
-        }
-        return {} as any;
-      });
-
-      vi.mocked(tossPaymentsLib.confirmTossPayment).mockResolvedValue(
-        responseWithoutCard as any
-      );
 
       // Execute
       const { result } = renderHook(() => useTossPay(), { wrapper });
 
-      let paymentResult;
+      let error: Error | undefined;
       await act(async () => {
-        paymentResult = await result.current.confirmTossPay('order-1', 'payment-key-123', 10000);
+        try {
+          await result.current.confirmTossPay('order-1', 'payment-key-123', 10000);
+        } catch (e) {
+          error = e as Error;
+        }
       });
 
       // Assert
-      expect(paymentResult).toEqual({
-        success: true,
-        provider: 'toss',
-        transactionId: 'payment-key-123',
-        orderId: 'order-1',
-        amount: 10000,
-        paidAt: '2024-01-01T01:00:00Z',
-      });
+      expect(error).toBeDefined();
+      expect(error?.message).toBe('결제 승인 중 오류 발생');
     });
   });
 
   describe('cancelTossPay - 결제 취소', () => {
     it('결제 전액 취소를 성공적으로 처리해야 함', async () => {
       // Setup
-      vi.mocked(tossPaymentsLib.cancelTossPayment).mockResolvedValue(undefined as any);
+      vi.mocked(paymentsApi.cancel).mockResolvedValue({
+        data: { success: true },
+        error: null,
+        status: 200,
+      });
 
       // Execute
       const { result } = renderHook(() => useTossPay(), { wrapper });
@@ -420,7 +321,7 @@ describe('useTossPay', () => {
       });
 
       // Assert
-      expect(tossPaymentsLib.cancelTossPayment).toHaveBeenCalledWith({
+      expect(paymentsApi.cancel).toHaveBeenCalledWith(mockWorkersTokens.accessToken, {
         paymentKey: 'payment-key-123',
         cancelReason: '고객 요청',
         cancelAmount: undefined,
@@ -430,7 +331,11 @@ describe('useTossPay', () => {
 
     it('결제 부분 취소를 성공적으로 처리해야 함', async () => {
       // Setup
-      vi.mocked(tossPaymentsLib.cancelTossPayment).mockResolvedValue(undefined as any);
+      vi.mocked(paymentsApi.cancel).mockResolvedValue({
+        data: { success: true },
+        error: null,
+        status: 200,
+      });
 
       // Execute
       const { result } = renderHook(() => useTossPay(), { wrapper });
@@ -440,7 +345,7 @@ describe('useTossPay', () => {
       });
 
       // Assert
-      expect(tossPaymentsLib.cancelTossPayment).toHaveBeenCalledWith({
+      expect(paymentsApi.cancel).toHaveBeenCalledWith(mockWorkersTokens.accessToken, {
         paymentKey: 'payment-key-123',
         cancelReason: '부분 환불',
         cancelAmount: 5000,
@@ -448,11 +353,37 @@ describe('useTossPay', () => {
       expect(result.current.error).toBeNull();
     });
 
+    it('로그인하지 않은 경우 에러를 발생시켜야 함', async () => {
+      // Setup
+      vi.mocked(useAuth).mockReturnValue({
+        workersUser: null,
+        workersTokens: null,
+      } as ReturnType<typeof useAuth>);
+
+      // Execute
+      const { result } = renderHook(() => useTossPay(), { wrapper });
+
+      let error: Error | undefined;
+      await act(async () => {
+        try {
+          await result.current.cancelTossPay('payment-key-123', '고객 요청');
+        } catch (e) {
+          error = e as Error;
+        }
+      });
+
+      // Assert
+      expect(error).toBeDefined();
+      expect(error?.message).toBe('로그인이 필요합니다.');
+    });
+
     it('결제 취소 실패 시 에러를 처리해야 함', async () => {
       // Setup
-      vi.mocked(tossPaymentsLib.cancelTossPayment).mockRejectedValue(
-        new Error('취소 실패')
-      );
+      vi.mocked(paymentsApi.cancel).mockResolvedValue({
+        data: null,
+        error: '취소 실패',
+        status: 400,
+      });
 
       // Execute
       const { result } = renderHook(() => useTossPay(), { wrapper });
@@ -498,11 +429,6 @@ describe('useTossPay', () => {
   describe('로딩 상태', () => {
     it('결제 시작 완료 후 isProcessing이 false여야 함', async () => {
       // Setup
-      vi.mocked(supabase.auth.getUser).mockResolvedValue({
-        data: { user: mockUser as any },
-        error: null,
-      });
-
       vi.mocked(tossPaymentsLib.getTossPaymentRedirectUrls).mockReturnValue({
         successUrl: 'http://localhost/success',
         failUrl: 'http://localhost/fail',
@@ -527,7 +453,11 @@ describe('useTossPay', () => {
 
     it('결제 취소 완료 후 isProcessing이 false여야 함', async () => {
       // Setup
-      vi.mocked(tossPaymentsLib.cancelTossPayment).mockResolvedValue(undefined as any);
+      vi.mocked(paymentsApi.cancel).mockResolvedValue({
+        data: { success: true },
+        error: null,
+        status: 200,
+      });
 
       // Execute
       const { result } = renderHook(() => useTossPay(), { wrapper });

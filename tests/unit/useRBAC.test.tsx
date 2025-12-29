@@ -1,22 +1,28 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { renderHook, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useRoles, useUserPermissions, useHasPermission, useAssignRole, useRevokeRole } from '@/hooks/useRBAC'
-import { supabase } from '@/integrations/supabase/client'
+import { permissionsApi } from '@/integrations/cloudflare/client'
+import React, { type ReactNode } from 'react'
 
-// Mock Supabase
-vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
-    from: vi.fn(),
-    rpc: vi.fn()
+// Mock Workers API client
+vi.mock('@/integrations/cloudflare/client', () => ({
+  permissionsApi: {
+    getRoles: vi.fn(),
+    getUserRoles: vi.fn(),
+    assignRole: vi.fn(),
+    revokeRole: vi.fn(),
   }
 }))
 
 // Mock useAuth
 vi.mock('@/hooks/useAuth', () => ({
   useAuth: () => ({
-    user: { id: 'user1', email: 'test@example.com' }
+    user: { id: 'user1', email: 'test@example.com' },
+    workersUser: { id: 'user1', email: 'test@example.com' },
+    isAuthenticated: true,
+    getAccessToken: () => 'mock-token'
   })
 }))
 
@@ -33,52 +39,60 @@ describe('useRoles', () => {
     vi.clearAllMocks()
   })
 
-  const wrapper = ({ children }: { children: React.ReactNode }) => (
+  afterEach(() => {
+    queryClient.clear()
+  })
+
+  const wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   )
 
   it('should fetch roles successfully', async () => {
-    const mockRoles = [
-      {
-        id: 'role1',
-        name: 'Super Admin',
-        description: 'Full system access',
-        permissions: []
-      },
-      {
-        id: 'role2',
-        name: 'Admin',
-        description: 'Admin access',
-        permissions: []
-      }
-    ]
+    const mockRolesResponse = {
+      roles: [
+        {
+          id: 'role1',
+          name: 'Super Admin',
+          description: 'Full system access',
+          permissions: ['*'],
+          is_system: true
+        },
+        {
+          id: 'role2',
+          name: 'Admin',
+          description: 'Admin access',
+          permissions: ['admin:*'],
+          is_system: false
+        }
+      ]
+    }
 
-    const selectMock = vi.fn().mockReturnThis()
-    const orderMock = vi.fn().mockResolvedValue({ data: mockRoles, error: null })
-
-    vi.mocked(supabase.from).mockReturnValue({
-      select: selectMock,
-      order: orderMock
-    } as any)
+    // Setup - Workers API 모킹
+    vi.mocked(permissionsApi.getRoles).mockResolvedValue({
+      data: mockRolesResponse,
+      error: null,
+      status: 200
+    })
 
     const { result } = renderHook(() => useRoles(), { wrapper })
 
     await waitFor(() => expect(result.current.isSuccess || result.current.isError).toBe(true), { timeout: 3000 })
 
     if (result.current.isSuccess) {
-      expect(result.current.data).toEqual(mockRoles)
+      expect(result.current.data).toHaveLength(2)
+      expect(result.current.data?.[0].name).toBe('Super Admin')
+      expect(result.current.data?.[1].name).toBe('Admin')
     }
-    expect(supabase.from).toHaveBeenCalledWith('roles')
+    expect(permissionsApi.getRoles).toHaveBeenCalledWith('mock-token')
   })
 
   it('should handle fetch error', async () => {
-    const selectMock = vi.fn().mockReturnThis()
-    const orderMock = vi.fn().mockResolvedValue({ data: null, error: new Error('Fetch failed') })
-
-    vi.mocked(supabase.from).mockReturnValue({
-      select: selectMock,
-      order: orderMock
-    } as any)
+    // Setup - Workers API 에러 모킹
+    vi.mocked(permissionsApi.getRoles).mockResolvedValue({
+      data: null,
+      error: 'Fetch failed',
+      status: 500
+    })
 
     const { result } = renderHook(() => useRoles(), { wrapper })
 
@@ -101,27 +115,47 @@ describe('useUserPermissions', () => {
     vi.clearAllMocks()
   })
 
-  const wrapper = ({ children }: { children: React.ReactNode }) => (
+  afterEach(() => {
+    queryClient.clear()
+  })
+
+  const wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   )
 
   it('should fetch user permissions successfully', async () => {
-    const mockPermissions = [
-      { permission_name: 'service:create' },
-      { permission_name: 'service:read' },
-      { permission_name: 'blog:create' }
-    ]
+    const mockUserRolesResponse = {
+      roles: [
+        {
+          id: 'role1',
+          name: 'Editor',
+          permissions: ['service:create', 'service:read', 'blog:create'],
+          granted_at: '2024-01-01',
+          granted_by: 'admin1',
+          granted_by_name: 'Admin User'
+        }
+      ]
+    }
 
-    vi.mocked(supabase.rpc).mockResolvedValue({ data: mockPermissions, error: null })
+    // Setup - Workers API 모킹
+    vi.mocked(permissionsApi.getUserRoles).mockResolvedValue({
+      data: mockUserRolesResponse,
+      error: null,
+      status: 200
+    })
 
     const { result } = renderHook(() => useUserPermissions('user1'), { wrapper })
 
     await waitFor(() => expect(result.current.isSuccess || result.current.isError).toBe(true), { timeout: 3000 })
 
     if (result.current.isSuccess) {
-      expect(result.current.data).toEqual(mockPermissions)
+      expect(result.current.data).toBeDefined()
+      // 권한이 permission_name 형식으로 변환되어야 함
+      expect(result.current.data?.some(p => p.permission_name === 'service:create')).toBe(true)
+      expect(result.current.data?.some(p => p.permission_name === 'service:read')).toBe(true)
+      expect(result.current.data?.some(p => p.permission_name === 'blog:create')).toBe(true)
     }
-    expect(supabase.rpc).toHaveBeenCalledWith('get_user_permissions', { p_user_id: 'user1' })
+    expect(permissionsApi.getUserRoles).toHaveBeenCalledWith('mock-token', 'user1')
   })
 
   it('should return empty array when no user ID', async () => {
@@ -137,7 +171,12 @@ describe('useUserPermissions', () => {
   })
 
   it('should handle fetch error', async () => {
-    vi.mocked(supabase.rpc).mockResolvedValue({ data: null, error: new Error('Fetch failed') })
+    // Setup - Workers API 에러 모킹
+    vi.mocked(permissionsApi.getUserRoles).mockResolvedValue({
+      data: null,
+      error: 'Fetch failed',
+      status: 500
+    })
 
     const { result } = renderHook(() => useUserPermissions('user1'), { wrapper })
 
@@ -160,17 +199,34 @@ describe('useHasPermission', () => {
     vi.clearAllMocks()
   })
 
-  const wrapper = ({ children }: { children: React.ReactNode }) => (
+  afterEach(() => {
+    queryClient.clear()
+  })
+
+  const wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   )
 
   it('should return true when user has permission', async () => {
-    const mockPermissions = [
-      { permission_name: 'service:create' },
-      { permission_name: 'service:read' }
-    ]
+    const mockUserRolesResponse = {
+      roles: [
+        {
+          id: 'role1',
+          name: 'Editor',
+          permissions: ['service:create', 'service:read'],
+          granted_at: '2024-01-01',
+          granted_by: 'admin1',
+          granted_by_name: 'Admin User'
+        }
+      ]
+    }
 
-    vi.mocked(supabase.rpc).mockResolvedValue({ data: mockPermissions, error: null })
+    // Setup - Workers API 모킹
+    vi.mocked(permissionsApi.getUserRoles).mockResolvedValue({
+      data: mockUserRolesResponse,
+      error: null,
+      status: 200
+    })
 
     const { result } = renderHook(() => useHasPermission('service:create'), { wrapper })
 
@@ -180,11 +236,25 @@ describe('useHasPermission', () => {
   })
 
   it('should return false when user does not have permission', async () => {
-    const mockPermissions = [
-      { permission_name: 'service:read' }
-    ]
+    const mockUserRolesResponse = {
+      roles: [
+        {
+          id: 'role1',
+          name: 'Viewer',
+          permissions: ['service:read'],
+          granted_at: '2024-01-01',
+          granted_by: 'admin1',
+          granted_by_name: 'Admin User'
+        }
+      ]
+    }
 
-    vi.mocked(supabase.rpc).mockResolvedValue({ data: mockPermissions, error: null })
+    // Setup - Workers API 모킹
+    vi.mocked(permissionsApi.getUserRoles).mockResolvedValue({
+      data: mockUserRolesResponse,
+      error: null,
+      status: 200
+    })
 
     const { result } = renderHook(() => useHasPermission('service:delete'), { wrapper })
 
@@ -194,7 +264,16 @@ describe('useHasPermission', () => {
   })
 
   it('should return false when no permissions', async () => {
-    vi.mocked(supabase.rpc).mockResolvedValue({ data: [], error: null })
+    const mockUserRolesResponse = {
+      roles: []
+    }
+
+    // Setup - Workers API 모킹 (빈 역할 목록)
+    vi.mocked(permissionsApi.getUserRoles).mockResolvedValue({
+      data: mockUserRolesResponse,
+      error: null,
+      status: 200
+    })
 
     const { result } = renderHook(() => useHasPermission('service:create'), { wrapper })
 
@@ -217,16 +296,21 @@ describe('useAssignRole', () => {
     vi.clearAllMocks()
   })
 
-  const wrapper = ({ children }: { children: React.ReactNode }) => (
+  afterEach(() => {
+    queryClient.clear()
+  })
+
+  const wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   )
 
   it('should assign role successfully', async () => {
-    const insertMock = vi.fn().mockResolvedValue({ data: null, error: null })
-
-    vi.mocked(supabase.from).mockReturnValue({
-      insert: insertMock
-    } as any)
+    // Setup - Workers API 모킹
+    vi.mocked(permissionsApi.assignRole).mockResolvedValue({
+      data: { success: true },
+      error: null,
+      status: 200
+    })
 
     const { result } = renderHook(() => useAssignRole(), { wrapper })
 
@@ -237,20 +321,17 @@ describe('useAssignRole', () => {
 
     await waitFor(() => expect(result.current.isSuccess || result.current.isError).toBe(true), { timeout: 3000 })
 
-    expect(insertMock).toHaveBeenCalledWith({
-      user_id: 'user1',
-      role_id: 'role1',
-      assigned_by: 'user1'
-    })
-    expect(result.current.data).toBeUndefined()
+    expect(permissionsApi.assignRole).toHaveBeenCalledWith('mock-token', 'user1', 'role1')
+    expect(result.current.isSuccess).toBe(true)
   })
 
   it('should handle assign error', async () => {
-    const insertMock = vi.fn().mockResolvedValue({ data: null, error: new Error('Assign failed') })
-
-    vi.mocked(supabase.from).mockReturnValue({
-      insert: insertMock
-    } as any)
+    // Setup - Workers API 에러 모킹
+    vi.mocked(permissionsApi.assignRole).mockResolvedValue({
+      data: null,
+      error: 'Assign failed',
+      status: 500
+    })
 
     const { result } = renderHook(() => useAssignRole(), { wrapper })
 
@@ -278,21 +359,21 @@ describe('useRevokeRole', () => {
     vi.clearAllMocks()
   })
 
-  const wrapper = ({ children }: { children: React.ReactNode }) => (
+  afterEach(() => {
+    queryClient.clear()
+  })
+
+  const wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   )
 
   it('should revoke role successfully', async () => {
-    const deleteMock = vi.fn().mockReturnThis()
-    const eq1Mock = vi.fn().mockReturnThis()
-    const eq2Mock = vi.fn().mockResolvedValue({ error: null })
-
-    vi.mocked(supabase.from).mockReturnValue({
-      delete: deleteMock,
-      eq: vi.fn()
-        .mockReturnValueOnce(eq1Mock) // First eq call returns chainable
-        .mockReturnValueOnce(eq2Mock) // Second eq call resolves
-    } as any)
+    // Setup - Workers API 모킹
+    vi.mocked(permissionsApi.revokeRole).mockResolvedValue({
+      data: { success: true },
+      error: null,
+      status: 200
+    })
 
     const { result } = renderHook(() => useRevokeRole(), { wrapper })
 
@@ -303,21 +384,17 @@ describe('useRevokeRole', () => {
 
     await waitFor(() => expect(result.current.isSuccess || result.current.isError).toBe(true), { timeout: 3000 })
 
-    expect(deleteMock).toHaveBeenCalled()
-    expect(supabase.from).toHaveBeenCalledWith('user_roles')
+    expect(permissionsApi.revokeRole).toHaveBeenCalledWith('mock-token', 'user1', 'role1')
+    expect(result.current.isSuccess).toBe(true)
   })
 
   it('should handle revoke error', async () => {
-    const deleteMock = vi.fn().mockReturnThis()
-    const eq1Mock = vi.fn().mockReturnThis()
-    const eq2Mock = vi.fn().mockResolvedValue({ error: new Error('Revoke failed') })
-
-    vi.mocked(supabase.from).mockReturnValue({
-      delete: deleteMock,
-      eq: vi.fn()
-        .mockReturnValueOnce(eq1Mock) // First eq call returns chainable
-        .mockReturnValueOnce(eq2Mock) // Second eq call resolves with error
-    } as any)
+    // Setup - Workers API 에러 모킹
+    vi.mocked(permissionsApi.revokeRole).mockResolvedValue({
+      data: null,
+      error: 'Revoke failed',
+      status: 500
+    })
 
     const { result } = renderHook(() => useRevokeRole(), { wrapper })
 

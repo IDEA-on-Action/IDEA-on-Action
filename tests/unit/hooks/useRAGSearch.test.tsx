@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
@@ -9,16 +9,24 @@ import {
   useMinuBuildRAGSearch,
   useMinuKeepRAGSearch,
 } from '@/hooks/useRAGSearch';
-import { supabase } from '@/integrations/supabase/client';
+import { ragApi } from '@/integrations/cloudflare/client';
 import React, { type ReactNode } from 'react';
 
-// Mock supabase client
-vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
-    functions: {
-      invoke: vi.fn(),
-    },
+// Mock Workers API client
+vi.mock('@/integrations/cloudflare/client', () => ({
+  ragApi: {
+    search: vi.fn(),
   },
+}));
+
+// Mock useAuth - setupTests.ts에서 전역 모킹됨, 여기서 오버라이드
+vi.mock('@/hooks/useAuth', () => ({
+  useAuth: vi.fn(() => ({
+    workersTokens: { accessToken: 'test-token', refreshToken: 'test-refresh' },
+    workersUser: { id: 'user-123', email: 'test@example.com' },
+    isAuthenticated: true,
+    loading: false,
+  })),
 }));
 
 describe('useRAGSearch', () => {
@@ -67,6 +75,10 @@ describe('useRAGSearch', () => {
     vi.clearAllMocks();
   });
 
+  afterEach(() => {
+    queryClient.clear();
+  });
+
   const wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   );
@@ -90,9 +102,11 @@ describe('useRAGSearch', () => {
 
   describe('검색 실행', () => {
     it('검색을 실행하고 결과를 반환해야 함', async () => {
-      vi.mocked(supabase.functions.invoke).mockResolvedValue({
+      // Setup - Workers API 모킹
+      vi.mocked(ragApi.search).mockResolvedValue({
         data: mockSearchResults,
         error: null,
+        status: 200,
       });
 
       const { result } = renderHook(() => useRAGSearch(), { wrapper });
@@ -109,12 +123,10 @@ describe('useRAGSearch', () => {
       expect(searchResults).toHaveLength(2);
       expect(result.current.results[0].documentTitle).toBe('테스트 문서');
       expect(result.current.results[0].similarity).toBe(0.95);
-      expect(supabase.functions.invoke).toHaveBeenCalledWith(
-        'rag-search/query',
+      expect(ragApi.search).toHaveBeenCalledWith(
+        'test-token',
         expect.objectContaining({
-          body: expect.objectContaining({
-            query: '테스트 검색',
-          }),
+          query: '테스트 검색',
         })
       );
     });
@@ -127,13 +139,15 @@ describe('useRAGSearch', () => {
       });
 
       expect(result.current.results).toEqual([]);
-      expect(supabase.functions.invoke).not.toHaveBeenCalled();
+      expect(ragApi.search).not.toHaveBeenCalled();
     });
 
     it('검색 옵션을 적용해야 함', async () => {
-      vi.mocked(supabase.functions.invoke).mockResolvedValue({
+      // Setup - Workers API 모킹
+      vi.mocked(ragApi.search).mockResolvedValue({
         data: mockSearchResults,
         error: null,
+        status: 200,
       });
 
       const { result } = renderHook(
@@ -150,24 +164,23 @@ describe('useRAGSearch', () => {
         await result.current.search('검색');
       });
 
-      expect(supabase.functions.invoke).toHaveBeenCalledWith(
-        'rag-search/query',
+      expect(ragApi.search).toHaveBeenCalledWith(
+        'test-token',
         expect.objectContaining({
-          body: expect.objectContaining({
-            query: '검색',
-            service_id: 'minu-find',
-            limit: 10,
-            threshold: 0.8,
-          }),
+          query: '검색',
+          limit: 10,
+          threshold: 0.8,
+          filters: { service_id: 'minu-find' },
         })
       );
     });
 
     it('검색 중 isSearching이 true여야 함', async () => {
-      vi.mocked(supabase.functions.invoke).mockImplementation(
+      // Setup - 지연된 응답 모킹
+      vi.mocked(ragApi.search).mockImplementation(
         () =>
           new Promise((resolve) =>
-            setTimeout(() => resolve({ data: mockSearchResults, error: null }), 50)
+            setTimeout(() => resolve({ data: mockSearchResults, error: null, status: 200 }), 50)
           )
       );
 
@@ -197,7 +210,8 @@ describe('useRAGSearch', () => {
 
   describe('검색 결과 처리', () => {
     it('빈 검색 결과를 올바르게 처리해야 함', async () => {
-      vi.mocked(supabase.functions.invoke).mockResolvedValue({
+      // Setup - Workers API 모킹
+      vi.mocked(ragApi.search).mockResolvedValue({
         data: {
           success: true,
           data: {
@@ -207,6 +221,7 @@ describe('useRAGSearch', () => {
           },
         },
         error: null,
+        status: 200,
       });
 
       const { result } = renderHook(() => useRAGSearch(), { wrapper });
@@ -223,9 +238,11 @@ describe('useRAGSearch', () => {
     });
 
     it('DB 타입을 클라이언트 타입으로 올바르게 변환해야 함', async () => {
-      vi.mocked(supabase.functions.invoke).mockResolvedValue({
+      // Setup - Workers API 모킹
+      vi.mocked(ragApi.search).mockResolvedValue({
         data: mockSearchResults,
         error: null,
+        status: 200,
       });
 
       const { result } = renderHook(() => useRAGSearch(), { wrapper });
@@ -252,9 +269,11 @@ describe('useRAGSearch', () => {
     });
 
     it('clearResults로 검색 결과를 초기화할 수 있어야 함', async () => {
-      vi.mocked(supabase.functions.invoke).mockResolvedValue({
+      // Setup - Workers API 모킹
+      vi.mocked(ragApi.search).mockResolvedValue({
         data: mockSearchResults,
         error: null,
+        status: 200,
       });
 
       const { result } = renderHook(() => useRAGSearch(), { wrapper });
@@ -278,9 +297,11 @@ describe('useRAGSearch', () => {
 
   describe('에러 처리', () => {
     it('API 에러 발생 시 에러 상태가 업데이트되어야 함', async () => {
-      vi.mocked(supabase.functions.invoke).mockResolvedValue({
+      // Setup - Workers API 에러 모킹
+      vi.mocked(ragApi.search).mockResolvedValue({
         data: null,
-        error: { message: 'API 에러' },
+        error: 'API 에러',
+        status: 500,
       });
 
       const { result } = renderHook(() => useRAGSearch(), { wrapper });
@@ -302,7 +323,8 @@ describe('useRAGSearch', () => {
     });
 
     it('success가 false인 응답을 에러로 처리해야 함', async () => {
-      vi.mocked(supabase.functions.invoke).mockResolvedValue({
+      // Setup - Workers API 실패 응답 모킹
+      vi.mocked(ragApi.search).mockResolvedValue({
         data: {
           success: false,
           error: {
@@ -311,6 +333,7 @@ describe('useRAGSearch', () => {
           },
         },
         error: null,
+        status: 200,
       });
 
       const { result } = renderHook(() => useRAGSearch(), { wrapper });
@@ -331,7 +354,8 @@ describe('useRAGSearch', () => {
     });
 
     it('네트워크 에러를 올바르게 처리해야 함', async () => {
-      vi.mocked(supabase.functions.invoke).mockRejectedValue(new Error('Network error'));
+      // Setup - 네트워크 에러 모킹
+      vi.mocked(ragApi.search).mockRejectedValue(new Error('Network error'));
 
       const { result } = renderHook(() => useRAGSearch(), { wrapper });
 
@@ -361,9 +385,11 @@ describe('useRAGSearch', () => {
 
   describe('서비스별 편의 훅', () => {
     it('useMinuFindRAGSearch가 serviceId를 자동 설정해야 함', async () => {
-      vi.mocked(supabase.functions.invoke).mockResolvedValue({
+      // Setup - Workers API 모킹
+      vi.mocked(ragApi.search).mockResolvedValue({
         data: mockSearchResults,
         error: null,
+        status: 200,
       });
 
       const { result } = renderHook(() => useMinuFindRAGSearch(), { wrapper });
@@ -372,20 +398,20 @@ describe('useRAGSearch', () => {
         await result.current.search('검색');
       });
 
-      expect(supabase.functions.invoke).toHaveBeenCalledWith(
-        'rag-search/query',
+      expect(ragApi.search).toHaveBeenCalledWith(
+        'test-token',
         expect.objectContaining({
-          body: expect.objectContaining({
-            service_id: 'minu-find',
-          }),
+          filters: { service_id: 'minu-find' },
         })
       );
     });
 
     it('useMinuFrameRAGSearch가 serviceId를 자동 설정해야 함', async () => {
-      vi.mocked(supabase.functions.invoke).mockResolvedValue({
+      // Setup - Workers API 모킹
+      vi.mocked(ragApi.search).mockResolvedValue({
         data: mockSearchResults,
         error: null,
+        status: 200,
       });
 
       const { result } = renderHook(() => useMinuFrameRAGSearch(), { wrapper });
@@ -394,20 +420,20 @@ describe('useRAGSearch', () => {
         await result.current.search('검색');
       });
 
-      expect(supabase.functions.invoke).toHaveBeenCalledWith(
-        'rag-search/query',
+      expect(ragApi.search).toHaveBeenCalledWith(
+        'test-token',
         expect.objectContaining({
-          body: expect.objectContaining({
-            service_id: 'minu-frame',
-          }),
+          filters: { service_id: 'minu-frame' },
         })
       );
     });
 
     it('useMinuBuildRAGSearch가 serviceId를 자동 설정해야 함', async () => {
-      vi.mocked(supabase.functions.invoke).mockResolvedValue({
+      // Setup - Workers API 모킹
+      vi.mocked(ragApi.search).mockResolvedValue({
         data: mockSearchResults,
         error: null,
+        status: 200,
       });
 
       const { result } = renderHook(() => useMinuBuildRAGSearch(), { wrapper });
@@ -416,20 +442,20 @@ describe('useRAGSearch', () => {
         await result.current.search('검색');
       });
 
-      expect(supabase.functions.invoke).toHaveBeenCalledWith(
-        'rag-search/query',
+      expect(ragApi.search).toHaveBeenCalledWith(
+        'test-token',
         expect.objectContaining({
-          body: expect.objectContaining({
-            service_id: 'minu-build',
-          }),
+          filters: { service_id: 'minu-build' },
         })
       );
     });
 
     it('useMinuKeepRAGSearch가 serviceId를 자동 설정해야 함', async () => {
-      vi.mocked(supabase.functions.invoke).mockResolvedValue({
+      // Setup - Workers API 모킹
+      vi.mocked(ragApi.search).mockResolvedValue({
         data: mockSearchResults,
         error: null,
+        status: 200,
       });
 
       const { result } = renderHook(() => useMinuKeepRAGSearch(), { wrapper });
@@ -438,12 +464,10 @@ describe('useRAGSearch', () => {
         await result.current.search('검색');
       });
 
-      expect(supabase.functions.invoke).toHaveBeenCalledWith(
-        'rag-search/query',
+      expect(ragApi.search).toHaveBeenCalledWith(
+        'test-token',
         expect.objectContaining({
-          body: expect.objectContaining({
-            service_id: 'minu-keep',
-          }),
+          filters: { service_id: 'minu-keep' },
         })
       );
     });
