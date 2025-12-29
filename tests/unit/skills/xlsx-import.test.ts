@@ -21,18 +21,22 @@ import type {
   ImportProgress,
 } from '@/types/xlsx-import.types';
 
-// Supabase 클라이언트 모킹
-vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
-    from: vi.fn(() => ({
-      insert: vi.fn(() => ({
-        select: vi.fn(() => ({
-          data: [{ id: '1' }, { id: '2' }],
-          error: null,
-        })),
-      })),
-    })),
+// Workers API 클라이언트 모킹 (Cloudflare Workers로 마이그레이션됨)
+vi.mock('@/integrations/cloudflare/client', () => ({
+  dataImportApi: {
+    batchInsert: vi.fn().mockResolvedValue({
+      data: [{ id: '1' }, { id: '2' }],
+      error: null,
+      status: 200,
+    }),
   },
+}));
+
+// useAuth 모킹 (토큰 제공)
+vi.mock('@/hooks/useAuth', () => ({
+  useAuth: vi.fn(() => ({
+    getAccessToken: vi.fn(() => 'test-token'),
+  })),
 }));
 
 // ============================================================================
@@ -141,7 +145,8 @@ describe('parseExcelFile', () => {
   it('빈 시트는 에러를 발생시켜야 한다', async () => {
     const file = createTestExcelFile([]);
 
-    await expect(parseExcelFile(file)).rejects.toThrow('빈 시트입니다');
+    // ExcelJS로 마이그레이션 후 빈 시트는 '헤더를 찾을 수 없습니다' 에러 발생
+    await expect(parseExcelFile(file)).rejects.toThrow('헤더를 찾을 수 없습니다');
   });
 });
 

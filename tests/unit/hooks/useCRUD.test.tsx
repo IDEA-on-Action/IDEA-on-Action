@@ -143,8 +143,9 @@ describe('useCRUD', () => {
       await waitFor(() => expect(result.current.isFetched).toBe(true))
 
       // Workers API 호출 시 검색 파라미터가 전달되는지 확인
+      // URL 인코딩된 쉼표는 %2C로 표시됨
       expect(callWorkersApi).toHaveBeenCalledWith(
-        expect.stringMatching(/search=test.*search_columns=name,value|search_columns=name,value.*search=test/),
+        expect.stringMatching(/search=test.*search_columns=name(%2C|,)value|search_columns=name(%2C|,)value.*search=test/),
         expect.any(Object)
       )
     })

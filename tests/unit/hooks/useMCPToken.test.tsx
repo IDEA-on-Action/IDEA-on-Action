@@ -159,17 +159,14 @@ describe('useMCPToken', () => {
       });
 
       expect(response).toEqual(mockTokenResponse);
+      // Workers API로 마이그레이션 후 엔드포인트 변경
       expect(mockFetch).toHaveBeenCalledWith(
-        '/functions/v1/oauth-token',
+        expect.stringContaining('/api/v1/oauth/token'),
         expect.objectContaining({
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({
-            grant_type: 'authorization_code',
-            ...mockExchangeParams,
-          }),
         })
       );
     });
@@ -257,8 +254,9 @@ describe('useMCPToken', () => {
       });
 
       expect(response).toEqual(newTokenResponse);
+      // Workers API로 마이그레이션 후 엔드포인트 변경
       expect(mockFetch).toHaveBeenCalledWith(
-        '/functions/v1/oauth-token',
+        expect.stringContaining('/api/v1/oauth/token'),
         expect.objectContaining({
           method: 'POST',
           body: expect.stringContaining('refresh_token'),

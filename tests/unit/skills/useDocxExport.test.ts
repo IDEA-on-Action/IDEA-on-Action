@@ -246,8 +246,9 @@ describe('useDocxExport', () => {
       expect(result.current.isExporting).toBe(false);
     });
 
-    expect(vi.mocked(fetchEvents)).toHaveBeenCalledWith(expect.anything(), dateRange);
-    expect(vi.mocked(fetchIssues)).toHaveBeenCalledWith(expect.anything(), dateRange);
+    // 날짜 범위 인자가 전달되었는지 확인 (첫 번째 인자는 선택적)
+    expect(vi.mocked(fetchEvents)).toHaveBeenCalledWith(dateRange);
+    expect(vi.mocked(fetchIssues)).toHaveBeenCalledWith(dateRange);
   });
 
   it('커스텀 설정이 올바르게 적용됨', async () => {

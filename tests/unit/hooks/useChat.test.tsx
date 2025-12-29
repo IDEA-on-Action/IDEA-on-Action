@@ -17,9 +17,9 @@ vi.mock('@/lib/errors', () => ({
   devError: vi.fn(),
 }));
 
-// Mock localStorage
+// Mock localStorage - vi.stubGlobal 사용 (JSDOM 읽기 전용 속성 우회)
 const localStorageMock: Record<string, string> = {};
-global.localStorage = {
+const localStorageImpl = {
   getItem: vi.fn((key: string) => localStorageMock[key] || null),
   setItem: vi.fn((key: string, value: string) => {
     localStorageMock[key] = value;
@@ -33,6 +33,8 @@ global.localStorage = {
   length: 0,
   key: vi.fn(),
 } as Storage;
+
+vi.stubGlobal('localStorage', localStorageImpl);
 
 describe('useChat', () => {
   let queryClient: QueryClient;
