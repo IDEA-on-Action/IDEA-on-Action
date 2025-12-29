@@ -437,9 +437,8 @@ export function useAddPaymentMethod() {
       //   failUrl: `${window.location.origin}/billing/payment-method/fail`,
       // });
       //
-      // // 빌링키를 billing_keys 테이블에 저장
-      // await supabase.from('billing_keys').insert({
-      //   user_id: user.id,
+      // // 빌링키를 Workers API로 저장
+      // await paymentsApi.saveBillingKey(token, {
       //   billing_key: result.billingKey,
       //   card_number: result.card?.number,
       //   card_type: result.card?.issuerCode,

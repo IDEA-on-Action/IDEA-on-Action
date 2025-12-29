@@ -4,7 +4,7 @@
  * 일관된 React Query 패턴 적용
  * - Query key 팩토리 함수
  * - 공통 query options
- * - Supabase 쿼리 래퍼
+ * - Workers API 쿼리 래퍼
  * - 에러 핸들링 통합
  */
 
@@ -129,7 +129,7 @@ export interface WorkersQueryResult<T> {
 }
 
 /**
- * Supabase 쿼리 옵션
+ * API 쿼리 옵션
  */
 export interface SupabaseQueryOptions<T> {
   table: string
@@ -139,11 +139,11 @@ export interface SupabaseQueryOptions<T> {
 }
 
 /**
- * Supabase 쿼리 래퍼
- * 
+ * API 쿼리 래퍼
+ *
  * @example
  * const { data, error } = await supabaseQuery(
- *   () => supabase.from('carts').select('*').eq('user_id', userId).maybeSingle(),
+ *   () => cartApi.get(token),
  *   { table: 'carts', operation: '장바구니 조회', fallbackValue: null }
  * )
  */
@@ -184,15 +184,14 @@ export async function supabaseQuery<T>(
 // ===================================================================
 
 /**
- * Supabase 쿼리를 위한 useQuery 래퍼
- * 
+ * API 쿼리를 위한 useQuery 래퍼
+ *
  * @example
  * const { data, isLoading } = useSupabaseQuery({
  *   queryKey: ['cart', userId],
- *   queryFn: () => supabaseQuery(
- *     () => supabase.from('carts').select('*').eq('user_id', userId).maybeSingle(),
- *     { table: 'carts', operation: '장바구니 조회', fallbackValue: null }
- *   ),
+ *   queryFn: () => cartApi.get(token),
+ *   table: 'carts',
+ *   operation: '장바구니 조회',
  *   enabled: !!userId,
  * })
  */
@@ -224,13 +223,14 @@ export function useSupabaseQuery<TData = unknown, TError = Error>(
 }
 
 /**
- * Supabase 뮤테이션을 위한 useMutation 래퍼
- * 
+ * API 뮤테이션을 위한 useMutation 래퍼
+ *
  * @example
  * const mutation = useSupabaseMutation({
  *   mutationFn: async (params) => {
- *     const { error } = await supabase.from('carts').insert(params)
- *     if (error) throw error
+ *     const { data, error } = await cartApi.add(token, params)
+ *     if (error) throw new Error(error)
+ *     return data
  *   },
  *   table: 'carts',
  *   operation: '장바구니 추가',
