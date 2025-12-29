@@ -98,8 +98,8 @@ jobs:
     needs: setup
     timeout-minutes: 15
     env:
-      # Node.js 힙 메모리 8GB로 증가 (OOM 방지)
-      NODE_OPTIONS: --max-old-space-size=8192
+      # Node.js 힙 메모리 6GB로 설정 (GitHub Actions runner 7GB 제한 고려)
+      NODE_OPTIONS: --max-old-space-size=6144
 
     steps:
       - name: Checkout code
@@ -119,11 +119,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-node-modules-
 
-      - name: Run unit tests
-        run: npm run test:unit
-        env:
-          VITE_WORKERS_API_URL: ${{ secrets.VITE_WORKERS_API_URL }}
-
+      # test:coverage가 모든 테스트 + 커버리지를 포함하므로 한 번만 실행
       - name: Run unit tests with coverage
         run: npm run test:coverage
         env:
