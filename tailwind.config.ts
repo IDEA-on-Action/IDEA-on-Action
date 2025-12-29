@@ -57,21 +57,11 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
-        // Brand colors for VIBE WORKING
-        brand: {
-          primary: "#3b82f6",
-          accent: "#f59e0b",
-          secondary: "#8b5cf6",
-        },
-        // Dark mode colors
-        dark: {
-          bg: "#111827",
-          surface: "#1f2937",
-          border: "#374151",
-        },
+        // Note: 브랜드 색상은 CSS 변수 (--primary, --accent)를 사용
+        // tailwind.config에서 하드코딩된 색상 제거됨 (v3.0.0)
       },
       fontFamily: {
-        sans: ["Inter", "system-ui", "sans-serif"],
+        sans: ["Pretendard", "-apple-system", "BlinkMacSystemFont", "system-ui", "sans-serif"],
         mono: ["JetBrains Mono", "monospace"],
       },
       spacing: {

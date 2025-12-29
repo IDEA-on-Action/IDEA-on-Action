@@ -1,62 +1,25 @@
+/**
+ * useTheme Hook
+ * next-themes 래퍼 - 테마 시스템 통일
+ * @see https://github.com/pacocoursey/next-themes
+ */
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useTheme as useNextTheme } from 'next-themes'
 
-type Theme = 'light' | 'dark' | 'system'
+export type Theme = 'light' | 'dark' | 'system'
 
 export function useTheme() {
-  const [theme, setTheme] = useState<Theme>('system')
-  const [resolvedTheme, setResolvedTheme] = useState<'light' | 'dark'>('light')
-
-  useEffect(() => {
-    // Load saved theme from localStorage
-    const savedTheme = localStorage.getItem('vibe-working-theme') as Theme
-    if (savedTheme) {
-      setTheme(savedTheme)
-    }
-
-    // Listen for system theme changes
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
-    const handleChange = () => {
-      if (theme === 'system') {
-        setResolvedTheme(mediaQuery.matches ? 'dark' : 'light')
-      }
-    }
-
-    mediaQuery.addEventListener('change', handleChange)
-    handleChange()
-
-    return () => mediaQuery.removeEventListener('change', handleChange)
-  }, [theme])
-
-  useEffect(() => {
-    // Apply theme to document
-    const root = document.documentElement
-
-    if (theme === 'system') {
-      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
-      setResolvedTheme(systemTheme)
-      root.classList.toggle('dark', systemTheme === 'dark')
-      root.setAttribute('data-theme', systemTheme)
-    } else {
-      setResolvedTheme(theme)
-      root.classList.toggle('dark', theme === 'dark')
-      root.setAttribute('data-theme', theme)
-    }
-  }, [theme])
-
-  const setAndSaveTheme = (newTheme: Theme) => {
-    setTheme(newTheme)
-    localStorage.setItem('vibe-working-theme', newTheme)
-  }
+  const { theme, setTheme, resolvedTheme, systemTheme } = useNextTheme()
 
   return {
-    theme,
-    resolvedTheme,
-    setTheme: setAndSaveTheme,
+    theme: (theme || 'system') as Theme,
+    resolvedTheme: (resolvedTheme || 'light') as 'light' | 'dark',
+    systemTheme: systemTheme as 'light' | 'dark' | undefined,
+    setTheme: (newTheme: Theme) => setTheme(newTheme),
     toggleTheme: () => {
-      const newTheme = resolvedTheme === 'light' ? 'dark' : 'light'
-      setAndSaveTheme(newTheme)
+      const current = resolvedTheme || 'light'
+      setTheme(current === 'light' ? 'dark' : 'light')
     },
   }
 }

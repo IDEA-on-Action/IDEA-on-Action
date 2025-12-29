@@ -17,23 +17,30 @@
     <meta name="robots" content="index, follow" />
     <link rel="canonical" href="https://www.ideaonaction.ai/" />
 
-    <!-- Font Optimization: Preconnect to Google Fonts -->
+    <!-- Font Optimization: Preconnect to CDN -->
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 
-    <!-- Google Fonts: Inter & JetBrains Mono (optimized weights) -->
+    <!-- Pretendard (한글 최적화 폰트) -->
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+      href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css"
+      rel="stylesheet"
+    />
+
+    <!-- JetBrains Mono (코드 폰트) -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap"
       rel="stylesheet"
     />
 
     <!-- CLS 방지: 폰트 로딩 전 시스템 폰트 사용 -->
     <style>
       body {
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       }
       @font-face {
-        font-family: 'Inter';
+        font-family: 'Pretendard';
         font-display: swap;
       }
     </style>

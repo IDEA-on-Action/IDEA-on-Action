@@ -287,11 +287,12 @@ describe('useCreateNotice', () => {
     // Execute
     const { result } = renderHook(() => useCreateNotice(), { wrapper });
 
+    // @ts-expect-error 테스트용 부분 데이터
     result.current.mutate({
       type: 'info',
       title: 'New Notice',
       content: 'Content',
-    } as any);
+    });
 
     // Assert
     await waitFor(
@@ -322,11 +323,12 @@ describe('useCreateNotice', () => {
     // Execute
     const { result } = renderHook(() => useCreateNotice(), { wrapper });
 
+    // @ts-expect-error 테스트용 부분 데이터
     result.current.mutate({
       type: 'info',
       title: 'New Notice',
       content: 'Content',
-    } as any);
+    });
 
     // Assert
     await waitFor(() => {
@@ -375,13 +377,14 @@ describe('useUpdateNotice', () => {
     // Execute
     const { result } = renderHook(() => useUpdateNotice(), { wrapper });
 
+    // @ts-expect-error 테스트용 부분 데이터
     result.current.mutate({
       id: '1',
       data: {
         title: 'Updated Notice',
         content: 'Updated content',
       },
-    } as any);
+    });
 
     // Assert
     await waitFor(
@@ -415,13 +418,14 @@ describe('useUpdateNotice', () => {
     // Execute
     const { result } = renderHook(() => useUpdateNotice(), { wrapper });
 
+    // @ts-expect-error 테스트용 부분 데이터
     result.current.mutate({
       id: '1',
       data: {
         is_pinned: true,
         updated_at: new Date().toISOString(),
       },
-    } as any);
+    });
 
     // Assert
     await waitFor(

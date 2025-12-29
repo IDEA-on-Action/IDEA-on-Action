@@ -1,3 +1,8 @@
+/**
+ * Button Variants
+ * shadcn/ui CSS 변수 기반 스타일링
+ * !important 제거, 테마 반응형 적용
+ */
 import { cva } from "class-variance-authority";
 
 export const buttonVariants = cva(
@@ -5,11 +10,11 @@ export const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "!bg-blue-600 !text-white hover:!bg-blue-700 !shadow-md",
-        destructive: "!bg-red-600 !text-white hover:!bg-red-700 !shadow-md",
-        outline: "!border-2 !border-slate-700 !bg-slate-700 !text-white hover:!bg-slate-800 !shadow-md",
-        secondary: "!bg-slate-700 !text-white hover:!bg-slate-800 !shadow-md",
-        ghost: "!bg-slate-600 !text-white hover:!bg-slate-700 !shadow-sm",
+        default: "bg-primary text-primary-foreground hover:bg-primary/90 shadow-md",
+        destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-md",
+        outline: "border-2 border-input bg-background hover:bg-accent hover:text-accent-foreground shadow-sm",
+        secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80 shadow-md",
+        ghost: "hover:bg-accent hover:text-accent-foreground",
         link: "text-primary underline-offset-4 hover:underline",
       },
       size: {

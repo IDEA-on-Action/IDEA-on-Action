@@ -1,5 +1,6 @@
 import { Suspense, lazy, useEffect } from "react";
 import { useLocation } from "react-router-dom";
+import { ThemeProvider } from "next-themes";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -187,18 +188,19 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <Sentry.ErrorBoundary fallback={<ErrorFallback />} showDialog>
-    <QueryClientProvider client={queryClient}>
-      <HelmetProvider>
-        <TooltipProvider>
-          <AnnouncerProvider>
-            <Toaster />
-            <Sonner />
-            <BrowserRouter
-              future={{
-                v7_startTransition: true,
-                v7_relativeSplatPath: true,
-              }}
-            >
+    <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+      <QueryClientProvider client={queryClient}>
+        <HelmetProvider>
+          <TooltipProvider>
+            <AnnouncerProvider>
+              <Toaster />
+              <Sonner />
+              <BrowserRouter
+                future={{
+                  v7_startTransition: true,
+                  v7_relativeSplatPath: true,
+                }}
+              >
               {/* Accessibility: Skip to main content link (WCAG 2.1 - Bypass Blocks) */}
               <SkipToContent targetId="main-content" />
 
@@ -351,12 +353,13 @@ const App = () => (
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
                 </Routes>
-              </Suspense>
-            </BrowserRouter>
-          </AnnouncerProvider>
-        </TooltipProvider>
-      </HelmetProvider>
-    </QueryClientProvider>
+                </Suspense>
+              </BrowserRouter>
+            </AnnouncerProvider>
+          </TooltipProvider>
+        </HelmetProvider>
+      </QueryClientProvider>
+    </ThemeProvider>
   </Sentry.ErrorBoundary>
 );
 

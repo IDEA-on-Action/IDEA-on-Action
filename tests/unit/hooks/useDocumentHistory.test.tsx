@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+ 
 /**
  * useDocumentHistory Hook Tests
  * @migration Supabase -> Cloudflare Workers (완전 마이그레이션 완료)

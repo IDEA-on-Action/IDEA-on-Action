@@ -272,13 +272,16 @@ export function useFileUpload(options: UseFileUploadOptions) {
   /**
    * Generate storage path for file
    */
-  const generateStoragePath = (file: File): string => {
-    const ext = file.name.split('.').pop();
-    const filename = `${Date.now()}-${generateUUID()}.${ext}`;
-    const year = new Date().getFullYear();
-    const month = new Date().getMonth() + 1;
-    return `${bucket}/${year}/${month}/${filename}`;
-  };
+  const generateStoragePath = useCallback(
+    (file: File): string => {
+      const ext = file.name.split('.').pop();
+      const filename = `${Date.now()}-${generateUUID()}.${ext}`;
+      const year = new Date().getFullYear();
+      const month = new Date().getMonth() + 1;
+      return `${bucket}/${year}/${month}/${filename}`;
+    },
+    [bucket]
+  );
 
   /**
    * Upload a single file
@@ -344,7 +347,7 @@ export function useFileUpload(options: UseFileUploadOptions) {
 
       return uploadResult;
     },
-    [workersTokens, bucket, validateFile, optimizeImages, generateThumbnails, optimizeImage, generateThumbnail, onComplete]
+    [workersTokens, validateFile, optimizeImages, generateThumbnails, optimizeImage, generateThumbnail, onComplete, generateStoragePath]
   );
 
   /**
@@ -422,7 +425,7 @@ export function useFileUpload(options: UseFileUploadOptions) {
         // Extract path from URL
         const urlObj = new URL(url);
         const pathSegments = urlObj.pathname.split('/');
-        const fileId = pathSegments[pathSegments.length - 1]; // Extract file ID
+        const fileId = pathSegments.at(-1); // Extract file ID
 
         // Delete main file
         const result = await storageApi.delete(token, fileId);

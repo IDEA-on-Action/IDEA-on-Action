@@ -1,7 +1,11 @@
+/**
+ * ThemeToggle Component
+ * next-themes 기반 테마 전환 UI
+ */
 'use client'
 
 import { Sun, Moon, Monitor } from 'lucide-react'
-import { useTheme } from '@/hooks/useTheme'
+import { useTheme } from 'next-themes'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,7 +20,7 @@ export function ThemeToggle() {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <button
-          className="relative p-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+          className="relative p-2 rounded-lg bg-muted text-muted-foreground hover:bg-muted/80 transition-colors"
           aria-label="테마 변경"
         >
           <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
