@@ -1,5 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
@@ -10,17 +9,22 @@ import {
   useAdminOrders,
   useUpdateOrderStatus,
 } from '@/hooks/useOrders';
-import { supabase } from '@/integrations/supabase/client';
+import { ordersApi, cartApi } from '@/integrations/cloudflare/client';
 import React, { type ReactNode } from 'react';
 
-// Mock supabase client
-vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
-    from: vi.fn(),
-    auth: {
-      getUser: vi.fn(),
-    },
-    rpc: vi.fn(),
+// Mock Workers API client
+vi.mock('@/integrations/cloudflare/client', () => ({
+  ordersApi: {
+    list: vi.fn(),
+    getById: vi.fn(),
+    create: vi.fn(),
+    cancel: vi.fn(),
+    update: vi.fn(),
+  },
+  cartApi: {
+    get: vi.fn(),
+    clear: vi.fn(),
+    checkout: vi.fn(),
   },
 }));
 
@@ -39,12 +43,6 @@ vi.mock('sonner', () => ({
 
 // Mock errors
 vi.mock('@/lib/errors', () => ({
-  handleSupabaseError: vi.fn((error, config) => {
-    if (config.fallbackValue !== undefined) {
-      return config.fallbackValue;
-    }
-    throw error;
-  }),
   devError: vi.fn(),
 }));
 
@@ -57,6 +55,8 @@ describe('useOrders', () => {
     id: 'user-123',
     email: 'test@example.com',
   };
+
+  const mockAccessToken = 'mock-access-token';
 
   const mockOrders = [
     {
@@ -99,19 +99,6 @@ describe('useOrders', () => {
     },
   ];
 
-  const mockCartItems = [
-    {
-      service_id: 'service-1',
-      price: 100000,
-      quantity: 1,
-      package_name: '베이직',
-      service: {
-        title: 'AI 컨설팅',
-        description: 'AI 컨설팅 서비스',
-      },
-    },
-  ];
-
   beforeEach(() => {
     queryClient = new QueryClient({
       defaultOptions: {
@@ -121,7 +108,14 @@ describe('useOrders', () => {
       },
     });
     vi.clearAllMocks();
-    vi.mocked(useAuth).mockReturnValue({ user: mockUser } as any);
+    vi.mocked(useAuth).mockReturnValue({
+      user: mockUser,
+      accessToken: mockAccessToken,
+    } as ReturnType<typeof useAuth>);
+  });
+
+  afterEach(() => {
+    queryClient.clear();
   });
 
   const wrapper = ({ children }: { children: ReactNode }) => (
@@ -130,47 +124,28 @@ describe('useOrders', () => {
 
   describe('useOrders', () => {
     it('주문 목록을 성공적으로 조회해야 함', async () => {
-      // Setup
-      const orderMock = vi.fn().mockResolvedValue({
-        data: mockOrders,
+      vi.mocked(ordersApi.list).mockResolvedValue({
+        data: { data: mockOrders },
         error: null,
       });
 
-      const eqMock = vi.fn().mockReturnValue({
-        order: orderMock,
-      });
-
-      const selectMock = vi.fn().mockReturnValue({
-        eq: eqMock,
-      });
-
-      vi.mocked(supabase.from).mockReturnValue({
-        select: selectMock,
-      } as any);
-
-      // Execute
       const { result } = renderHook(() => useOrders(), { wrapper });
 
-      // Assert
       await waitFor(() => {
         expect(result.current.isSuccess || result.current.isError).toBe(true);
       });
 
       if (result.current.isSuccess) {
         expect(result.current.data).toEqual(mockOrders);
-        expect(supabase.from).toHaveBeenCalledWith('orders');
-        expect(eqMock).toHaveBeenCalledWith('user_id', mockUser.id);
+        expect(ordersApi.list).toHaveBeenCalledWith(mockAccessToken);
       }
     });
 
     it('로그인하지 않은 경우 빈 배열을 반환해야 함', async () => {
-      // Setup
-      vi.mocked(useAuth).mockReturnValue({ user: null } as any);
+      vi.mocked(useAuth).mockReturnValue({ user: null, accessToken: null } as ReturnType<typeof useAuth>);
 
-      // Execute
       const { result } = renderHook(() => useOrders(), { wrapper });
 
-      // Assert
       await waitFor(() => {
         expect(result.current.isFetching).toBe(false);
       });
@@ -181,123 +156,43 @@ describe('useOrders', () => {
 
   describe('useOrderDetail', () => {
     it('주문 상세를 성공적으로 조회해야 함', async () => {
-      // Setup
-      const maybeSingleMock = vi.fn().mockResolvedValue({
+      vi.mocked(ordersApi.getDetail).mockResolvedValue({
         data: mockOrders[0],
         error: null,
       });
 
-      const eqMock2 = vi.fn().mockReturnValue({
-        maybeSingle: maybeSingleMock,
-      });
-
-      const eqMock1 = vi.fn().mockReturnValue({
-        eq: eqMock2,
-      });
-
-      const selectMock = vi.fn().mockReturnValue({
-        eq: eqMock1,
-      });
-
-      vi.mocked(supabase.from).mockReturnValue({
-        select: selectMock,
-      } as any);
-
-      // Execute
       const { result } = renderHook(() => useOrderDetail('order-1'), { wrapper });
 
-      // Assert
       await waitFor(() => {
         expect(result.current.isSuccess || result.current.isError).toBe(true);
       });
 
       if (result.current.isSuccess) {
         expect(result.current.data).toEqual(mockOrders[0]);
-        expect(eqMock1).toHaveBeenCalledWith('id', 'order-1');
-        expect(eqMock2).toHaveBeenCalledWith('user_id', mockUser.id);
+        expect(ordersApi.getDetail).toHaveBeenCalledWith(mockAccessToken, 'order-1');
       }
     });
 
-    it('주문 ID가 없으면 null을 반환해야 함', async () => {
-      // Execute
+    it('주문 ID가 없으면 조회하지 않아야 함', async () => {
       const { result } = renderHook(() => useOrderDetail(undefined), { wrapper });
 
-      // Assert
       await waitFor(() => {
         expect(result.current.isFetching).toBe(false);
       });
 
       expect(result.current.data).toBeUndefined();
+      expect(ordersApi.getDetail).not.toHaveBeenCalled();
     });
   });
 
   describe('useCreateOrder', () => {
     it('주문을 성공적으로 생성해야 함', async () => {
-      // Setup
-      const orderNumber = 'ORD-12345';
-
-      vi.mocked(supabase.rpc).mockResolvedValue({
-        data: orderNumber,
+      vi.mocked(ordersApi.create).mockResolvedValue({
+        data: { order: { id: 'order-new', order_number: 'ORD-NEW' } },
         error: null,
       });
 
-      const orderSingleMock = vi.fn().mockResolvedValue({
-        data: {
-          id: 'order-1',
-          order_number: orderNumber,
-        },
-        error: null,
-      });
-
-      const orderInsertMock = vi.fn().mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          single: orderSingleMock,
-        }),
-      });
-
-      const itemsInsertMock = vi.fn().mockResolvedValue({
-        data: null,
-        error: null,
-      });
-
-      const cartDeleteMock = vi.fn().mockResolvedValue({
-        data: null,
-        error: null,
-      });
-
-      vi.mocked(supabase.from).mockImplementation((table: string) => {
-        if (table === 'cart_items') {
-          return {
-            select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockResolvedValue({
-                data: mockCartItems,
-                error: null,
-              }),
-            }),
-            delete: vi.fn().mockReturnValue({
-              eq: cartDeleteMock,
-            }),
-          } as any;
-        }
-        if (table === 'orders') {
-          return {
-            insert: orderInsertMock,
-          } as any;
-        }
-        if (table === 'order_items') {
-          return {
-            insert: itemsInsertMock,
-          } as any;
-        }
-        return {} as any;
-      });
-
-      // Execute
       const { result } = renderHook(() => useCreateOrder(), { wrapper });
-
-      await waitFor(() => {
-        expect(result.current.isIdle || result.current.isSuccess || result.current.isError).toBe(true);
-      });
 
       await act(async () => {
         await result.current.mutateAsync({
@@ -314,29 +209,14 @@ describe('useOrders', () => {
         });
       });
 
-      // Assert
-      await waitFor(() => {
-        expect(result.current.isSuccess || result.current.isError).toBe(true);
-      });
-
-      if (result.current.isSuccess) {
-        expect(orderInsertMock).toHaveBeenCalled();
-        expect(itemsInsertMock).toHaveBeenCalled();
-      }
+      expect(ordersApi.create).toHaveBeenCalled();
     });
 
     it('로그인하지 않은 경우 에러를 발생시켜야 함', async () => {
-      // Setup
-      vi.mocked(useAuth).mockReturnValue({ user: null } as any);
+      vi.mocked(useAuth).mockReturnValue({ user: null, accessToken: null } as ReturnType<typeof useAuth>);
 
-      // Execute
       const { result } = renderHook(() => useCreateOrder(), { wrapper });
 
-      await waitFor(() => {
-        expect(result.current.isIdle || result.current.isSuccess || result.current.isError).toBe(true);
-      });
-
-      // Assert
       await act(async () => {
         try {
           await result.current.mutateAsync({
@@ -356,132 +236,53 @@ describe('useOrders', () => {
         }
       });
     });
-
-    it('장바구니가 비어있으면 에러를 발생시켜야 함', async () => {
-      // Setup
-      vi.mocked(supabase.from).mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockResolvedValue({
-            data: [],
-            error: null,
-          }),
-        }),
-      } as any);
-
-      // Execute
-      const { result } = renderHook(() => useCreateOrder(), { wrapper });
-
-      await waitFor(() => {
-        expect(result.current.isIdle || result.current.isSuccess || result.current.isError).toBe(true);
-      });
-
-      // Assert
-      await act(async () => {
-        try {
-          await result.current.mutateAsync({
-            cartId: 'cart-1',
-            shippingAddress: {
-              postal_code: '12345',
-              address: '서울시 강남구',
-              detail_address: '101호',
-            },
-            shippingName: '홍길동',
-            shippingPhone: '010-1234-5678',
-            contactEmail: 'test@example.com',
-            contactPhone: '010-1234-5678',
-          });
-        } catch (error) {
-          expect((error as Error).message).toBe('장바구니가 비어있습니다');
-        }
-      });
-    });
   });
 
   describe('useCancelOrder', () => {
     it('주문을 성공적으로 취소해야 함', async () => {
-      // Setup
-      const updateMock = vi.fn().mockResolvedValue({
-        data: null,
+      vi.mocked(ordersApi.cancel).mockResolvedValue({
+        data: { success: true },
         error: null,
       });
 
-      vi.mocked(supabase.from).mockReturnValue({
-        update: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            in: updateMock,
-          }),
-        }),
-      } as any);
-
-      // Execute
       const { result } = renderHook(() => useCancelOrder(), { wrapper });
-
-      await waitFor(() => {
-        expect(result.current.isIdle || result.current.isSuccess || result.current.isError).toBe(true);
-      });
 
       await act(async () => {
         await result.current.mutateAsync('order-1');
       });
 
-      // Assert
-      await waitFor(() => {
-        expect(result.current.isSuccess || result.current.isError).toBe(true);
-      });
+      expect(ordersApi.cancel).toHaveBeenCalledWith(mockAccessToken, 'order-1');
     });
   });
 
   describe('useAdminOrders', () => {
     it('모든 주문을 성공적으로 조회해야 함', async () => {
-      // Setup
-      const orderMock = vi.fn().mockResolvedValue({
-        data: mockOrders,
+      vi.mocked(ordersApi.listAdmin).mockResolvedValue({
+        data: { data: mockOrders },
         error: null,
       });
 
-      const selectMock = vi.fn().mockReturnValue({
-        order: orderMock,
-      });
-
-      vi.mocked(supabase.from).mockReturnValue({
-        select: selectMock,
-      } as any);
-
-      // Execute
       const { result } = renderHook(() => useAdminOrders(), { wrapper });
 
-      // Assert
       await waitFor(() => {
         expect(result.current.isSuccess || result.current.isError).toBe(true);
       });
 
       if (result.current.isSuccess) {
         expect(result.current.data).toEqual(mockOrders);
-        expect(supabase.from).toHaveBeenCalledWith('orders');
+        expect(ordersApi.listAdmin).toHaveBeenCalledWith(mockAccessToken);
       }
     });
   });
 
   describe('useUpdateOrderStatus', () => {
     it('주문 상태를 성공적으로 변경해야 함', async () => {
-      // Setup
-      const updateMock = vi.fn().mockResolvedValue({
-        data: null,
+      vi.mocked(ordersApi.updateStatus).mockResolvedValue({
+        data: { success: true },
         error: null,
       });
 
-      vi.mocked(supabase.from).mockReturnValue({
-        update: vi.fn().mockReturnValue({
-          eq: updateMock,
-        }),
-      } as any);
-
-      // Execute
       const { result } = renderHook(() => useUpdateOrderStatus(), { wrapper });
-
-      await waitFor(() => {
-        expect(result.current.isIdle || result.current.isSuccess || result.current.isError).toBe(true);
-      });
 
       await act(async () => {
         await result.current.mutateAsync({
@@ -490,52 +291,11 @@ describe('useOrders', () => {
         });
       });
 
-      // Assert
-      await waitFor(() => {
-        expect(result.current.isSuccess || result.current.isError).toBe(true);
-      });
-    });
-
-    it('confirmed 상태로 변경 시 confirmed_at을 설정해야 함', async () => {
-      // Setup
-      let capturedUpdate: any = null;
-      const updateMock = vi.fn().mockResolvedValue({
-        data: null,
-        error: null,
-      });
-
-      vi.mocked(supabase.from).mockReturnValue({
-        update: vi.fn().mockImplementation((updates) => {
-          capturedUpdate = updates;
-          return {
-            eq: updateMock,
-          };
-        }),
-      } as any);
-
-      // Execute
-      const { result } = renderHook(() => useUpdateOrderStatus(), { wrapper });
-
-      await waitFor(() => {
-        expect(result.current.isIdle || result.current.isSuccess || result.current.isError).toBe(true);
-      });
-
-      await act(async () => {
-        await result.current.mutateAsync({
-          orderId: 'order-1',
-          status: 'confirmed',
-        });
-      });
-
-      // Assert
-      await waitFor(() => {
-        expect(result.current.isSuccess || result.current.isError).toBe(true);
-      });
-
-      if (result.current.isSuccess) {
-        expect(capturedUpdate).toHaveProperty('confirmed_at');
-        expect(capturedUpdate.status).toBe('confirmed');
-      }
+      expect(ordersApi.updateStatus).toHaveBeenCalledWith(
+        mockAccessToken,
+        'order-1',
+        'shipped'
+      );
     });
   });
 });

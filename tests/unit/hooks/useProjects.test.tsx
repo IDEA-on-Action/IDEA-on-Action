@@ -1,5 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
@@ -11,18 +10,26 @@ import {
   useUpdateProject,
   useDeleteProject,
 } from '@/hooks/useProjects';
-import { supabase } from '@/integrations/supabase/client';
+import { projectsApi } from '@/integrations/cloudflare/client';
 import React, { type ReactNode } from 'react';
 import type { Project } from '@/types/v2';
 
-// Mock supabase client
-vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
-    from: vi.fn(),
-    auth: {
-      getUser: vi.fn(),
-    },
+// Mock Workers API client
+vi.mock('@/integrations/cloudflare/client', () => ({
+  projectsApi: {
+    list: vi.fn(),
+    getBySlug: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
+    delete: vi.fn(),
   },
+}));
+
+// Mock useAuth
+vi.mock('@/hooks/useAuth', () => ({
+  useAuth: vi.fn(() => ({
+    accessToken: 'mock-token',
+  })),
 }));
 
 describe('useProjects', () => {
@@ -112,60 +119,41 @@ describe('useProjects', () => {
     vi.clearAllMocks();
   });
 
+  afterEach(() => {
+    queryClient.clear();
+  });
+
   const wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   );
 
   describe('useProjects', () => {
     it('전체 프로젝트 목록을 성공적으로 조회해야 함', async () => {
-      // Setup
-      const orderMock = vi.fn().mockResolvedValue({
+      vi.mocked(projectsApi.list).mockResolvedValue({
         data: mockProjects,
         error: null,
       });
 
-      const selectMock = vi.fn().mockReturnValue({
-        order: orderMock,
-      });
-
-      vi.mocked(supabase.from).mockReturnValue({
-        select: selectMock,
-      } as any);
-
-      // Execute
       const { result } = renderHook(() => useProjects(), { wrapper });
 
-      // Assert
       await waitFor(() => {
         expect(result.current.isSuccess || result.current.isError).toBe(true);
       });
 
       if (result.current.isSuccess) {
         expect(result.current.data).toEqual(mockProjects);
-        expect(supabase.from).toHaveBeenCalledWith('projects');
-        expect(orderMock).toHaveBeenCalledWith('created_at', { ascending: false });
+        expect(projectsApi.list).toHaveBeenCalled();
       }
     });
 
-    it('에러 발생 시 fallback 값을 반환해야 함', async () => {
-      // Setup
-      const orderMock = vi.fn().mockResolvedValue({
+    it('에러 발생 시 빈 배열을 반환해야 함', async () => {
+      vi.mocked(projectsApi.list).mockResolvedValue({
         data: null,
-        error: { message: 'Database error', code: 'PGRST116' },
+        error: 'Database error',
       });
 
-      const selectMock = vi.fn().mockReturnValue({
-        order: orderMock,
-      });
-
-      vi.mocked(supabase.from).mockReturnValue({
-        select: selectMock,
-      } as any);
-
-      // Execute
       const { result } = renderHook(() => useProjects(), { wrapper });
 
-      // Assert - supabaseQuery는 에러 시 fallbackValue([])를 반환
       await waitFor(() => {
         expect(result.current.isSuccess).toBe(true);
       });
@@ -176,43 +164,26 @@ describe('useProjects', () => {
 
   describe('useProject', () => {
     it('slug로 단일 프로젝트를 조회해야 함', async () => {
-      // Setup
-      const singleMock = vi.fn().mockResolvedValue({
+      vi.mocked(projectsApi.getBySlug).mockResolvedValue({
         data: mockProjects[0],
         error: null,
       });
 
-      const eqMock = vi.fn().mockReturnValue({
-        single: singleMock,
-      });
-
-      const selectMock = vi.fn().mockReturnValue({
-        eq: eqMock,
-      });
-
-      vi.mocked(supabase.from).mockReturnValue({
-        select: selectMock,
-      } as any);
-
-      // Execute
       const { result } = renderHook(() => useProject('project-1'), { wrapper });
 
-      // Assert
       await waitFor(() => {
         expect(result.current.isSuccess || result.current.isError).toBe(true);
       });
 
       if (result.current.isSuccess) {
         expect(result.current.data).toEqual(mockProjects[0]);
-        expect(eqMock).toHaveBeenCalledWith('slug', 'project-1');
+        expect(projectsApi.getBySlug).toHaveBeenCalledWith('project-1');
       }
     });
 
     it('slug가 없으면 쿼리가 비활성화되어야 함', () => {
-      // Execute
       const { result } = renderHook(() => useProject(''), { wrapper });
 
-      // Assert
       expect(result.current.isFetching).toBe(false);
       expect(result.current.data).toBeUndefined();
     });
@@ -220,47 +191,32 @@ describe('useProjects', () => {
 
   describe('useProjectsByStatus', () => {
     it('상태별로 프로젝트를 필터링해야 함', async () => {
-      // Setup
       const filteredProjects = mockProjects.filter((p) => p.status === 'in-progress');
+      vi.mocked(projectsApi.list).mockResolvedValue({
+        data: filteredProjects,
+        error: null,
+      });
 
-      vi.mocked(supabase.from).mockReturnValue({
-        select: vi.fn().mockReturnThis(),
-        order: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockResolvedValue({ data: filteredProjects, error: null })
-      } as any);
-
-      // Execute
       const { result } = renderHook(() => useProjectsByStatus('in-progress'), { wrapper });
 
-      // Assert
       await waitFor(() => {
         expect(result.current.isSuccess || result.current.isError).toBe(true);
       });
 
       if (result.current.isSuccess) {
         expect(result.current.data).toEqual(filteredProjects);
+        expect(projectsApi.list).toHaveBeenCalledWith({ status: 'in-progress' });
       }
     });
 
     it('상태가 없으면 전체 프로젝트를 반환해야 함', async () => {
-      // Setup
-      const orderMock = vi.fn().mockResolvedValue({
+      vi.mocked(projectsApi.list).mockResolvedValue({
         data: mockProjects,
         error: null,
       });
 
-      const selectMock = vi.fn().mockReturnValue({
-        order: orderMock,
-      });
-
-      vi.mocked(supabase.from).mockReturnValue({
-        select: selectMock,
-      } as any);
-
-      // Execute
       const { result } = renderHook(() => useProjectsByStatus(), { wrapper });
 
-      // Assert
       await waitFor(() => {
         expect(result.current.isSuccess || result.current.isError).toBe(true);
       });
@@ -273,32 +229,27 @@ describe('useProjects', () => {
 
   describe('useProjectsByCategory', () => {
     it('카테고리별로 프로젝트를 필터링해야 함', async () => {
-      // Setup
       const filteredProjects = mockProjects.filter((p) => p.category === 'web');
+      vi.mocked(projectsApi.list).mockResolvedValue({
+        data: filteredProjects,
+        error: null,
+      });
 
-      vi.mocked(supabase.from).mockReturnValue({
-        select: vi.fn().mockReturnThis(),
-        order: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockResolvedValue({ data: filteredProjects, error: null })
-      } as any);
-
-      // Execute
       const { result } = renderHook(() => useProjectsByCategory('web'), { wrapper });
 
-      // Assert
       await waitFor(() => {
         expect(result.current.isSuccess || result.current.isError).toBe(true);
       });
 
       if (result.current.isSuccess) {
         expect(result.current.data).toEqual(filteredProjects);
+        expect(projectsApi.list).toHaveBeenCalledWith({ category: 'web' });
       }
     });
   });
 
   describe('useCreateProject', () => {
     it('새 프로젝트를 생성해야 함', async () => {
-      // Setup
       const newProject = {
         slug: 'project-3',
         title: '프로젝트 3',
@@ -330,24 +281,11 @@ describe('useProjects', () => {
         },
       };
 
-      const singleMock = vi.fn().mockResolvedValue({
+      vi.mocked(projectsApi.create).mockResolvedValue({
         data: { ...newProject, id: '3', created_at: '2024-02-01T00:00:00Z', updated_at: '2024-02-01T00:00:00Z' },
         error: null,
       });
 
-      const selectMock = vi.fn().mockReturnValue({
-        single: singleMock,
-      });
-
-      const insertMock = vi.fn().mockReturnValue({
-        select: selectMock,
-      });
-
-      vi.mocked(supabase.from).mockReturnValue({
-        insert: insertMock,
-      } as any);
-
-      // Execute
       const { result } = renderHook(() => useCreateProject(), { wrapper });
 
       await waitFor(() => {
@@ -356,13 +294,12 @@ describe('useProjects', () => {
 
       result.current.mutate(newProject);
 
-      // Assert
       await waitFor(() => {
         expect(result.current.isSuccess || result.current.isError).toBe(true);
       });
 
       if (result.current.isSuccess) {
-        expect(insertMock).toHaveBeenCalledWith([newProject]);
+        expect(projectsApi.create).toHaveBeenCalled();
         expect(result.current.data).toBeDefined();
       }
     });
@@ -370,32 +307,14 @@ describe('useProjects', () => {
 
   describe('useUpdateProject', () => {
     it('프로젝트를 업데이트해야 함', async () => {
-      // Setup
       const updates = { title: '업데이트된 프로젝트 1' };
       const updatedProject = { ...mockProjects[0], ...updates };
 
-      const singleMock = vi.fn().mockResolvedValue({
+      vi.mocked(projectsApi.update).mockResolvedValue({
         data: updatedProject,
         error: null,
       });
 
-      const selectMock = vi.fn().mockReturnValue({
-        single: singleMock,
-      });
-
-      const eqMock = vi.fn().mockReturnValue({
-        select: selectMock,
-      });
-
-      const updateMock = vi.fn().mockReturnValue({
-        eq: eqMock,
-      });
-
-      vi.mocked(supabase.from).mockReturnValue({
-        update: updateMock,
-      } as any);
-
-      // Execute
       const { result } = renderHook(() => useUpdateProject(), { wrapper });
 
       await waitFor(() => {
@@ -404,32 +323,23 @@ describe('useProjects', () => {
 
       result.current.mutate({ id: '1', updates });
 
-      // Assert
       await waitFor(() => {
         expect(result.current.isSuccess || result.current.isError).toBe(true);
       });
 
       if (result.current.isSuccess) {
-        expect(updateMock).toHaveBeenCalledWith(updates);
-        expect(eqMock).toHaveBeenCalledWith('id', '1');
+        expect(projectsApi.update).toHaveBeenCalledWith('mock-token', '1', updates);
       }
     });
   });
 
   describe('useDeleteProject', () => {
     it('프로젝트를 삭제해야 함', async () => {
-      // Setup
-      const eqMock = vi.fn().mockReturnValue({
-        delete: vi.fn().mockResolvedValue({ data: null, error: null }),
+      vi.mocked(projectsApi.delete).mockResolvedValue({
+        data: { success: true },
+        error: null,
       });
 
-      vi.mocked(supabase.from).mockReturnValue({
-        delete: vi.fn().mockReturnValue({
-          eq: eqMock,
-        }),
-      } as any);
-
-      // Execute
       const { result } = renderHook(() => useDeleteProject(), { wrapper });
 
       await waitFor(() => {
@@ -438,15 +348,13 @@ describe('useProjects', () => {
 
       result.current.mutate('1');
 
-      // Assert
       await waitFor(() => {
         expect(result.current.isSuccess || result.current.isError).toBe(true);
       });
 
       if (result.current.isSuccess) {
-        expect(eqMock).toHaveBeenCalledWith('id', '1');
+        expect(projectsApi.delete).toHaveBeenCalledWith('mock-token', '1');
       }
     });
   });
 });
-
