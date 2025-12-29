@@ -9,6 +9,36 @@
 
 ---
 
+## [2.40.5] - 2025-12-29 (Supabase Edge Function 완전 제거)
+
+### 🔥 Phase 5: Supabase API 직접 호출 완전 제거
+
+프로덕션 코드에서 모든 Supabase Edge Function 및 직접 API 호출 제거.
+
+#### 수정된 파일
+
+| 파일 | 변경 내용 |
+|------|----------|
+| `src/contexts/PermissionContext.tsx` | `supabase.rpc()` → `permissionsApi.getMyPermissions()` |
+| `src/contexts/PermissionContext.tsx` | `supabase.from()` → `adminsApi.checkIsAdmin()` |
+| `src/hooks/useMCPToken.ts` | `/functions/v1/oauth-token` → Workers API |
+| `src/components/ai/ImageAnalyzer.tsx` | `/functions/v1/claude-vision` → Workers API |
+| `src/lib/claude.ts` | `/functions/v1/claude-usage` → Workers API |
+
+### ✅ Supabase 프로젝트 삭제 준비 완료
+
+| 검증 항목 | 결과 |
+|-----------|------|
+| `/functions/v1/` 참조 | 0개 ✅ |
+| `supabase.rpc()` 직접 호출 | 0개 ✅ |
+| `supabase.from()` 직접 호출 | 0개 (주석 제외) ✅ |
+| 빌드 | 성공 ✅ |
+| 린트 | 0 에러 ✅ |
+
+**Supabase 프로젝트를 안전하게 삭제할 수 있습니다.**
+
+---
+
 ## [2.40.4] - 2025-12-29 (Supabase 환경변수 완전 제거)
 
 ### 🧹 Phase 4: 환경변수 및 CI/CD 정리
