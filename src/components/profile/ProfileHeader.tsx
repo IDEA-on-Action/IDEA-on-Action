@@ -14,10 +14,18 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import type { UserProfile } from '@/types/database'
-import type { User } from '@supabase/supabase-js'
+
+/**
+ * 인증된 사용자 타입 (Workers API 호환)
+ */
+interface AuthUser {
+    id: string
+    email?: string | null
+    created_at: string
+}
 
 interface ProfileHeaderProps {
-    user: User
+    user: AuthUser
     profile: UserProfile | null | undefined
     onUploadAvatar: (file: File, options?: { onSuccess?: () => void }) => void
     isUploading: boolean

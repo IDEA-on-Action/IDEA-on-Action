@@ -1,13 +1,31 @@
 /**
  * xlsx 데이터 조회 함수
  *
- * Supabase에서 데이터를 조회하고 Excel 내보내기 형식으로 변환
+ * @deprecated Workers API로 마이그레이션됨 - 이 모듈은 레거시 호환성을 위해 유지됩니다.
+ * 새 코드에서는 Workers API를 직접 사용하세요.
  *
  * @module skills/xlsx/queries
  */
 
-import type { SupabaseClient } from '@supabase/supabase-js';
 import type { DateRange } from '@/types/skills.types';
+
+/**
+ * @deprecated Supabase 클라이언트 타입 (레거시 호환성)
+ * Workers API로 마이그레이션 완료됨
+ */
+interface LegacySupabaseClient {
+  from: (table: string) => {
+    select: (columns: string, options?: { count?: string; head?: boolean }) => {
+      order: (column: string, options?: { ascending: boolean }) => unknown;
+      gte: (column: string, value: string) => unknown;
+      lte: (column: string, value: string) => unknown;
+      eq: (column: string, value: string) => unknown;
+      in: (column: string, values: string[]) => unknown;
+      range: (start: number, end: number) => unknown;
+      limit: (count: number) => unknown;
+    };
+  };
+}
 
 // ============================================================================
 // 타입 정의
@@ -58,7 +76,7 @@ export interface QueryResult<T> {
  * ```
  */
 export async function queryEvents(
-  supabase: SupabaseClient,
+  supabase: LegacySupabaseClient,
   dateRange?: DateRange,
   pagination?: PaginationOptions
 ): Promise<QueryResult<Record<string, unknown>>> {
@@ -124,7 +142,7 @@ export async function queryEvents(
  * ```
  */
 export async function queryIssues(
-  supabase: SupabaseClient,
+  supabase: LegacySupabaseClient,
   dateRange?: DateRange,
   filters?: {
     severity?: string;
@@ -202,7 +220,7 @@ export async function queryIssues(
  * ```
  */
 export async function queryServiceHealth(
-  supabase: SupabaseClient,
+  supabase: LegacySupabaseClient,
   serviceId?: string,
   dateRange?: DateRange
 ): Promise<QueryResult<Record<string, unknown>>> {
@@ -262,7 +280,7 @@ export async function queryServiceHealth(
  * ```
  */
 export async function calculateKPIMetrics(
-  supabase: SupabaseClient,
+  supabase: LegacySupabaseClient,
   dateRange?: DateRange
 ): Promise<{
   totalEvents: number;
@@ -365,7 +383,7 @@ export async function calculateKPIMetrics(
  * ```
  */
 export async function queryInBatches(
-  supabase: SupabaseClient,
+  supabase: LegacySupabaseClient,
   table: string,
   batchSize: number,
   onBatch: (batch: Record<string, unknown>[]) => void | Promise<void>

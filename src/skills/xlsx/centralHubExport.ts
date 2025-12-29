@@ -4,11 +4,18 @@
  * 이벤트 로그, 이슈 현황, 서비스 헬스, KPI 요약 등
  * Central Hub 데이터를 Excel로 내보내기
  *
+ * @deprecated Workers API로 마이그레이션됨 - 이 모듈은 레거시 호환성을 위해 유지됩니다.
+ *
  * @module skills/xlsx/centralHubExport
  */
 
-import type { SupabaseClient } from '@supabase/supabase-js';
 import type { DateRange } from '@/types/skills.types';
+
+/**
+ * @deprecated Supabase 클라이언트 타입 (레거시 호환성)
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type LegacyLegacySupabaseClient = any;
 import { fetchEvents } from './generators/eventsSheet';
 import { fetchIssues } from './generators/issuesSheet';
 import { fetchHealth } from './generators/healthSheet';
@@ -70,7 +77,7 @@ export interface KPISummary {
  * ```
  */
 export async function exportEventLogs(
-  supabase: SupabaseClient,
+  supabase: LegacySupabaseClient,
   dateRange?: DateRange
 ): Promise<Blob> {
   const XLSX = await import('xlsx');
@@ -117,7 +124,7 @@ export async function exportEventLogs(
  * ```
  */
 export async function exportIssues(
-  supabase: SupabaseClient,
+  supabase: LegacySupabaseClient,
   filters?: IssueFilters
 ): Promise<Blob> {
   const XLSX = await import('xlsx');
@@ -174,7 +181,7 @@ export async function exportIssues(
  * ```
  */
 export async function exportHealthHistory(
-  supabase: SupabaseClient,
+  supabase: LegacySupabaseClient,
   serviceId?: string
 ): Promise<Blob> {
   const XLSX = await import('xlsx');
@@ -227,7 +234,7 @@ export async function exportHealthHistory(
  * ```
  */
 export async function exportKPISummary(
-  supabase: SupabaseClient,
+  supabase: LegacySupabaseClient,
   dateRange?: DateRange
 ): Promise<Blob> {
   const XLSX = await import('xlsx');
@@ -279,7 +286,7 @@ export async function exportKPISummary(
  * ```
  */
 export async function exportCentralHubReport(
-  supabase: SupabaseClient,
+  supabase: LegacySupabaseClient,
   dateRange?: DateRange
 ): Promise<Blob> {
   const XLSX = await import('xlsx');

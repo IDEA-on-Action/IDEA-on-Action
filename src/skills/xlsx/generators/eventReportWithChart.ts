@@ -4,11 +4,29 @@
  * 이벤트 데이터 + 트렌드 차트 + 유형별 분포 차트
  * ExcelJS 기반으로 마이그레이션됨 (보안 취약점 해결)
  *
+ * @deprecated Workers API로 마이그레이션됨 - 이 모듈은 레거시 호환성을 위해 유지됩니다.
+ *
  * @module skills/xlsx/generators/eventReportWithChart
  */
 
 import ExcelJS from 'exceljs';
-import type { SupabaseClient } from '@supabase/supabase-js';
+
+/**
+ * @deprecated Supabase 클라이언트 타입 (레거시 호환성)
+ */
+interface LegacySupabaseClient {
+  from: (table: string) => {
+    select: (columns: string) => {
+      order: (column: string, options?: { ascending: boolean }) => {
+        limit: (count: number) => {
+          gte: (column: string, value: string) => {
+            lte: (column: string, value: string) => Promise<{ data: unknown[] | null; error: Error | null }>;
+          };
+        };
+      };
+    };
+  };
+}
 import type { ServiceEvent } from '@/types/central-hub.types';
 import { SERVICE_INFO } from '@/types/central-hub.types';
 import type { DateRange, EventSheetRow } from '@/types/skills.types';
@@ -43,7 +61,7 @@ import { eventColumns } from './eventsSheet';
  * ```
  */
 export async function generateEventReportWithChart(
-  supabase: SupabaseClient,
+  supabase: LegacySupabaseClient,
   dateRange?: DateRange
 ): Promise<ExcelJS.Workbook> {
   // 1. 이벤트 데이터 조회
@@ -102,7 +120,7 @@ export async function generateEventReportWithChart(
  * 차트용 이벤트 데이터 조회
  */
 async function fetchEventsForChart(
-  supabase: SupabaseClient,
+  supabase: LegacySupabaseClient,
   dateRange?: DateRange
 ): Promise<EventSheetRow[]> {
   let query = supabase
