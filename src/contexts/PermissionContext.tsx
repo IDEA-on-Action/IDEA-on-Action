@@ -28,9 +28,9 @@ interface PermissionProviderProps {
  * 권한 프로바이더 컴포넌트
  */
 export const PermissionProvider: FC<PermissionProviderProps> = ({ children }) => {
-  const { user } = useAuth()
+  const { user, getAccessToken } = useAuth()
 
-  // 사용자 권한 조회
+  // 사용자 권한 조회 (Workers API)
   const {
     data: permissions = [],
     isLoading: isLoadingPermissions,
@@ -38,23 +38,28 @@ export const PermissionProvider: FC<PermissionProviderProps> = ({ children }) =>
   } = useQuery({
     queryKey: ['user_permissions', user?.id],
     queryFn: async () => {
-      if (!user?.id) return []
+      const token = getAccessToken()
+      if (!user?.id || !token) return []
 
-      const { data, error } = await supabase
-        .rpc('get_user_permissions', { p_user_id: user.id })
+      const { data, error } = await permissionsApi.getMyPermissions(token)
 
       if (error) {
         console.error('권한 조회 실패:', error)
         return []
       }
 
-      return (data || []) as Array<{ permission_name: string; resource: string; action: string }>
+      // Workers API 응답을 기존 형식으로 변환
+      return (data?.permissions || []).map((p: string) => ({
+        permission_name: p,
+        resource: '*',
+        action: '*',
+      }))
     },
     enabled: !!user?.id,
     staleTime: 5 * 60 * 1000, // 5분 캐싱
   })
 
-  // 사용자 역할 조회 (admins 테이블)
+  // 사용자 역할 조회 (Workers API)
   const {
     data: adminData,
     isLoading: isLoadingAdmin,
@@ -62,20 +67,18 @@ export const PermissionProvider: FC<PermissionProviderProps> = ({ children }) =>
   } = useQuery({
     queryKey: ['admin_role', user?.id],
     queryFn: async () => {
-      if (!user?.id) return null
+      const token = getAccessToken()
+      if (!user?.id || !token) return null
 
-      const { data, error } = await supabase
-        .from('admins')
-        .select('user_id, role')
-        .eq('user_id', user.id)
-        .maybeSingle()
+      const { data, error } = await adminsApi.checkIsAdmin(token)
 
       if (error) {
         console.error('관리자 역할 조회 실패:', error)
         return null
       }
 
-      return data as { user_id: string; role: AdminRole } | null
+      if (!data?.isAdmin) return null
+      return { user_id: user.id, role: (data.role || 'admin') as AdminRole }
     },
     enabled: !!user?.id,
     staleTime: 5 * 60 * 1000, // 5분 캐싱

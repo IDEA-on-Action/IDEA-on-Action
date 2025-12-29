@@ -623,7 +623,7 @@ export class ClaudeClient {
     }
 
     try {
-      const response = await fetch(`${this.baseUrl}/functions/v1/claude-usage`, {
+      const response = await fetch(`${this.baseUrl}/api/v1/ai/usage`, {
         method: 'GET',
         headers: {
           Authorization: `Bearer ${authToken}`,

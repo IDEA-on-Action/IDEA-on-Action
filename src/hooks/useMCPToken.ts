@@ -27,7 +27,8 @@ import type {
 // ============================================================================
 
 const TOKEN_STORAGE_KEY = 'mcp_oauth_tokens';
-const TOKEN_ENDPOINT = '/functions/v1/oauth-token';
+const WORKERS_API_URL = import.meta.env.VITE_WORKERS_API_URL || 'https://api.ideaonaction.ai';
+const TOKEN_ENDPOINT = `${WORKERS_API_URL}/api/v1/oauth/token`;
 
 // ============================================================================
 // 유틸리티 함수

@@ -312,8 +312,9 @@ export const ImageAnalyzer: React.FC<ImageAnalyzerProps> = ({
         ? `${systemPrompt}\n\n추가 지시사항: ${additionalPrompt}`
         : systemPrompt;
 
-      // Vision API 호출 (실제 구현에서는 Edge Function 호출)
-      const response = await fetch('/functions/v1/claude-vision', {
+      // Vision API 호출 (Workers API)
+      const WORKERS_API_URL = import.meta.env.VITE_WORKERS_API_URL || 'https://api.ideaonaction.ai';
+      const response = await fetch(`${WORKERS_API_URL}/api/v1/ai/vision`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
