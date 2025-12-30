@@ -1,17 +1,17 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { render, cleanup } from '@testing-library/react';
+import { describe, it, expect, afterEach } from 'vitest';
+import { render, cleanup, screen } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import { ServiceCard } from '@/components/services/ServiceCard';
 import type { ServiceWithCategory } from '@/types/database';
 
 describe('ServiceCard', () => {
-  // 테스트마다 고유한 mock 데이터 생성 (랜덤 ID 사용으로 샤드 간 충돌 방지)
+  // 테스트마다 고유한 mock 데이터 생성 (crypto.randomUUID 사용으로 완전한 격리)
   const createMockService = (): ServiceWithCategory => {
-    const uniqueId = `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+    const uniqueId = crypto.randomUUID();
     return {
-      id: `test-${uniqueId}`,
-      title: `테스트 서비스 ${uniqueId}`,
-      description: `이것은 테스트 서비스 ${uniqueId}입니다.`,
+      id: uniqueId,
+      title: `테스트 서비스 ${uniqueId.slice(0, 8)}`,
+      description: `서비스 설명 ${uniqueId.slice(0, 8)}`,
       price: 100000 + Math.floor(Math.random() * 1000),
       image_url: 'https://example.com/image.jpg',
       category_id: `cat-${uniqueId}`,
@@ -20,28 +20,25 @@ describe('ServiceCard', () => {
       updated_at: '2024-01-01',
       category: {
         id: `cat-${uniqueId}`,
-        name: `AI 솔루션 ${uniqueId}`,
-        slug: `ai-solution-${uniqueId}`,
+        name: `AI 솔루션 ${uniqueId.slice(0, 8)}`,
+        slug: `ai-solution-${uniqueId.slice(0, 8)}`,
         description: 'AI 기반 솔루션',
         created_at: '2024-01-01',
       },
       metrics: {
         users: 1000 + Math.floor(Math.random() * 1000),
-        satisfaction: 4.5 + Math.random() * 0.5, // 4.5 ~ 5.0 사이
+        satisfaction: 4.5 + Math.random() * 0.5,
       },
     };
   };
 
-  // 테스트 전후 cleanup
-  beforeEach(() => {
-    cleanup();
-  });
-
+  // 테스트 후 cleanup
   afterEach(() => {
     cleanup();
   });
 
   const renderWithRouter = (component: React.ReactElement) => {
+    cleanup(); // 렌더링 전 cleanup
     return render(<BrowserRouter>{component}</BrowserRouter>);
   };
 
@@ -54,7 +51,8 @@ describe('ServiceCard', () => {
   it('서비스 설명이 표시되어야 함', () => {
     const mockService = createMockService();
     const { getByText } = renderWithRouter(<ServiceCard service={mockService} />);
-    expect(getByText(new RegExp(mockService.description.slice(0, 20)))).toBeInTheDocument();
+    // 정확한 문자열로 검색 (regex 대신)
+    expect(getByText(mockService.description)).toBeInTheDocument();
   });
 
   it('가격이 한국 통화 형식으로 표시되어야 함', () => {
@@ -97,10 +95,13 @@ describe('ServiceCard', () => {
     expect(link).toHaveAttribute('href', `/services/${mockService.id}`);
   });
 
-  it('메트릭이 없으면 표시되지 않아야 함', () => {
+  it('메트릭이 없으면 사용자 수가 표시되지 않아야 함', () => {
     const mockService = createMockService();
     const serviceWithoutMetrics = { ...mockService, metrics: null };
-    const { queryByText } = renderWithRouter(<ServiceCard service={serviceWithoutMetrics} />);
-    expect(queryByText(/명/)).not.toBeInTheDocument();
+    const { container } = renderWithRouter(<ServiceCard service={serviceWithoutMetrics} />);
+    // metrics가 null이면 userCount는 0이 되고, 조건부 렌더링으로 표시되지 않음
+    // Users 아이콘(svg)이 없어야 함
+    const usersIcon = container.querySelector('.lucide-users');
+    expect(usersIcon).toBeNull();
   });
 });

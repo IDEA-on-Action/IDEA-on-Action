@@ -160,8 +160,9 @@ describe('Footer Component', () => {
 
   it('supports keyboard navigation', () => {
     render(<Footer />);
-    
-    const socialLinks = screen.getAllByLabelText(/프로필|이메일/);
+
+    // 소셜 링크만 선택 (뉴스레터 입력 제외)
+    const socialLinks = screen.getAllByLabelText(/프로필 방문하기|이메일 보내기/);
     socialLinks.forEach(link => {
       expect(link).toHaveClass('focus:outline-none', 'focus:ring-2');
     });
@@ -170,7 +171,8 @@ describe('Footer Component', () => {
   it('has proper hover states', () => {
     render(<Footer />);
 
-    const socialLinks = screen.getAllByLabelText(/프로필|이메일/);
+    // 소셜 링크만 선택 (뉴스레터 입력 제외)
+    const socialLinks = screen.getAllByLabelText(/프로필 방문하기|이메일 보내기/);
     socialLinks.forEach(link => {
       expect(link).toHaveClass('hover:border-primary');
     });
@@ -222,8 +224,9 @@ describe('Footer Component', () => {
 
   it('has proper focus management', () => {
     render(<Footer />);
-    
-    const socialLinks = screen.getAllByLabelText(/프로필|이메일/);
+
+    // 소셜 링크만 선택 (뉴스레터 입력 제외)
+    const socialLinks = screen.getAllByLabelText(/프로필 방문하기|이메일 보내기/);
     socialLinks.forEach(link => {
       expect(link).toHaveClass('focus:outline-none', 'focus:ring-2');
     });
