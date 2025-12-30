@@ -26,6 +26,8 @@ export const renderUiToolDefinition = {
   description: `채팅창에 동적 UI를 렌더링합니다.
 
 사용 가능한 컴포넌트:
+
+기본 컴포넌트:
 - Text: 마크다운 텍스트 (props: text, variant)
 - Button: 클릭 버튼 (props: text, variant, size, disabled, onClick)
 - Card: 정보 카드 (props: title, description, children)
@@ -34,6 +36,13 @@ export const renderUiToolDefinition = {
 - Row: 가로 레이아웃 (props: gap, align, justify, children)
 - Column: 세로 레이아웃 (props: gap, align, children)
 - Separator: 구분선 (props: orientation)
+
+폼 컴포넌트:
+- TextField: 텍스트 입력 (props: label, placeholder, value, type, disabled, required, bind, onChange)
+- Select: 드롭다운 선택 (props: label, placeholder, value, options, disabled, required, bind, onChange)
+- Checkbox: 체크박스 (props: label, checked, disabled, bind, onChange)
+- DatePicker: 날짜 선택 (props: label, value, placeholder, disabled, required, bind, onChange)
+- Textarea: 여러 줄 입력 (props: label, placeholder, value, rows, disabled, required, bind, onChange)
 
 각 컴포넌트는 id(필수), component(필수), 그리고 컴포넌트별 속성을 가집니다.
 children 배열에 다른 컴포넌트의 id를 넣어 중첩 구조를 만들 수 있습니다.
@@ -119,6 +128,37 @@ surfaceType 옵션:
             justify: { type: 'string' },
             // Separator props
             orientation: { type: 'string' },
+            // Form props
+            label: { type: 'string' },
+            placeholder: { type: 'string' },
+            value: { type: 'string' },
+            required: { type: 'boolean' },
+            bind: { type: 'string' },
+            onChange: {
+              type: 'object',
+              properties: {
+                action: { type: 'string' },
+                data: { type: 'object' },
+              },
+            },
+            // TextField props
+            type: { type: 'string', enum: ['text', 'email', 'password', 'number', 'tel', 'url'] },
+            // Select props
+            options: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  value: { type: 'string' },
+                  label: { type: 'string' },
+                  disabled: { type: 'boolean' },
+                },
+              },
+            },
+            // Checkbox props
+            checked: { type: 'boolean' },
+            // Textarea props
+            rows: { type: 'number' },
           },
           required: ['id', 'component'],
         },

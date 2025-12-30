@@ -3,6 +3,7 @@ import { AIChatMessages } from './AIChatMessages';
 import { AIChatInput } from './AIChatInput';
 import { AIChatToolStatus } from './AIChatToolStatus';
 import type { AIChatMessage } from '@/types/ai-chat-widget.types';
+import type { A2UIUserAction } from '@/lib/a2ui/types';
 import { cn } from '@/lib/utils';
 
 interface AIChatWindowProps {
@@ -14,6 +15,8 @@ interface AIChatWindowProps {
   position?: 'bottom-right' | 'bottom-left';
   /** 현재 실행 중인 도구 이름 (Tool Use 상태 표시) */
   executingTool?: string | null;
+  /** A2UI 액션 핸들러 */
+  onA2UIAction?: (action: A2UIUserAction) => void;
 }
 
 /**
@@ -30,6 +33,7 @@ export function AIChatWindow({
   onSendMessage,
   position = 'bottom-right',
   executingTool,
+  onA2UIAction,
 }: AIChatWindowProps) {
   return (
     <div
@@ -45,7 +49,7 @@ export function AIChatWindow({
       <AIChatHeader onClose={onClose} onNewChat={onNewChat} />
 
       {/* 메시지 목록 */}
-      <AIChatMessages messages={messages} isLoading={isLoading} />
+      <AIChatMessages messages={messages} isLoading={isLoading} onA2UIAction={onA2UIAction} />
 
       {/* 도구 실행 상태 */}
       <AIChatToolStatus toolName={executingTool ?? null} />

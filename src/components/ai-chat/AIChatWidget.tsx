@@ -11,9 +11,10 @@ import { useA2UI } from '@/hooks/useA2UI';
 // import { useConversationManager } from '@/hooks/useConversationManager';
 import { useAuth } from '@/hooks/useAuth';
 import { usePageContext } from '@/hooks/usePageContext';
-import type { AIChatMessage, AIChatConfig } from '@/types/ai-chat-widget.types';
+import type { AIChatMessage, AIChatConfig, AIChatA2UIBlock } from '@/types/ai-chat-widget.types';
 import type { ClaudeToolUseBlock, ClaudeToolResultBlock } from '@/types/claude.types';
 import type { A2UIUserAction } from '@/lib/a2ui/types';
+import type { RenderUIToolResult } from '@/lib/claude/tools/render-ui.tool';
 
 interface AIChatWidgetProps {
   config?: Partial<AIChatConfig>;
@@ -72,6 +73,46 @@ export function AIChatWidget({ config }: AIChatWidgetProps) {
         try {
           const result = await executeTool({ toolUse });
           results.push(result);
+
+          // render_ui 결과 처리: A2UI 블록을 메시지에 추가하거나 사이드 패널 열기
+          if (toolUse.name === 'render_ui' && result.content) {
+            try {
+              const a2uiResult = JSON.parse(result.content as string) as RenderUIToolResult;
+
+              if (a2uiResult.type === 'a2ui' && a2uiResult.success) {
+                if (a2uiResult.surfaceType === 'sidePanel') {
+                  // 사이드 패널 열기
+                  openSidePanel(
+                    a2uiResult.message,
+                    (a2uiResult.message.data?.title as string) || '상세 정보',
+                    (a2uiResult.message.data?.size as 'sm' | 'md' | 'lg' | 'xl') || 'md'
+                  );
+                } else {
+                  // 인라인: 마지막 assistant 메시지에 a2uiBlocks 추가
+                  const a2uiBlock: AIChatA2UIBlock = {
+                    id: a2uiResult.message.surfaceId,
+                    message: a2uiResult.message,
+                  };
+
+                  setMessages((prev) => {
+                    const lastMessage = prev[prev.length - 1];
+                    if (lastMessage?.role === 'assistant') {
+                      return [
+                        ...prev.slice(0, -1),
+                        {
+                          ...lastMessage,
+                          a2uiBlocks: [...(lastMessage.a2uiBlocks || []), a2uiBlock],
+                        },
+                      ];
+                    }
+                    return prev;
+                  });
+                }
+              }
+            } catch (parseError) {
+              console.warn('[AIChatWidget] A2UI 결과 파싱 실패:', parseError);
+            }
+          }
         } catch (error) {
           console.error(`[AIChatWidget] 도구 실행 실패: ${toolUse.name}`, error);
           // 에러 발생 시 에러 결과 반환
@@ -87,7 +128,7 @@ export function AIChatWidget({ config }: AIChatWidgetProps) {
       setExecutingTool(null);
       return results;
     },
-    [executeTool]
+    [executeTool, openSidePanel]
   );
 
   // Claude Streaming 훅
@@ -236,6 +277,7 @@ export function AIChatWidget({ config }: AIChatWidgetProps) {
           onSendMessage={handleSendMessage}
           position={config?.position ?? 'bottom-right'}
           executingTool={executingTool}
+          onA2UIAction={handleA2UIAction}
         />
       )}
 

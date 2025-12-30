@@ -3,10 +3,13 @@ import { Loader2 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { AIChatMessage } from './AIChatMessage';
 import type { AIChatMessage as MessageType } from '@/types/ai-chat-widget.types';
+import type { A2UIUserAction } from '@/lib/a2ui/types';
 
 interface AIChatMessagesProps {
   messages: MessageType[];
   isLoading?: boolean;
+  /** A2UI 액션 핸들러 */
+  onA2UIAction?: (action: A2UIUserAction) => void;
 }
 
 /**
@@ -16,7 +19,7 @@ interface AIChatMessagesProps {
  * 메시지 목록을 렌더링하고, 새 메시지가 추가되면 자동으로 스크롤합니다.
  * 로딩 중일 때는 타이핑 인디케이터를 표시합니다.
  */
-export function AIChatMessages({ messages, isLoading = false }: AIChatMessagesProps) {
+export function AIChatMessages({ messages, isLoading = false, onA2UIAction }: AIChatMessagesProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -45,7 +48,7 @@ export function AIChatMessages({ messages, isLoading = false }: AIChatMessagesPr
     <ScrollArea className="flex-1 h-full" ref={scrollRef}>
       <div className="space-y-0">
         {messages.map((message) => (
-          <AIChatMessage key={message.id} message={message} />
+          <AIChatMessage key={message.id} message={message} onA2UIAction={onA2UIAction} />
         ))}
 
         {/* 타이핑 인디케이터 */}
