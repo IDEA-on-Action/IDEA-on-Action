@@ -73,8 +73,8 @@ describe('ServiceCard', () => {
     // Execute
     const { container } = renderWithRouter(<ServiceCard service={mockService} />);
 
-    // Assert - container 범위 내에서만 검색 (정규식 대신 정확한 텍스트)
-    expect(within(container).getByText('1,000')).toBeInTheDocument();
+    // Assert - container 범위 내에서만 검색 (실제 출력: "1,000명")
+    expect(within(container).getByText('1,000명')).toBeInTheDocument();
   });
 
   it('만족도가 표시되어야 함', () => {

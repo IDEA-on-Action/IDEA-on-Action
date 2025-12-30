@@ -57,13 +57,10 @@ delete (window as any).location;
 window.location = { href: '' } as any;
 
 describe('useAuth', () => {
-  // setupTests.ts의 글로벌 모킹과 일치하도록 수정
+  // mockStoredTokens.user와 동일하게 설정 (반환되는 객체와 일치)
   const mockUser = {
     id: 'user-123',
     email: 'test@example.com',
-    name: 'Test User',
-    avatarUrl: null,
-    isAdmin: false,
   };
 
   const mockTokens = {

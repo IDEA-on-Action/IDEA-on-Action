@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import {
   parseExcelFile,
   validateData,
@@ -39,30 +39,57 @@ vi.mock('@/hooks/useAuth', () => ({
   })),
 }));
 
+// localStorage 모킹 (importToDatabase에서 직접 접근)
+// vi.stubGlobal을 사용하여 테스트 격리 보장
+vi.stubGlobal('localStorage', {
+  getItem: vi.fn((key: string) => {
+    if (key === 'workers_auth_tokens') {
+      return JSON.stringify({
+        accessToken: 'test-access-token',
+        refreshToken: 'test-refresh-token',
+        expiresAt: Date.now() + 3600000,
+        user: { id: 'test-user', email: 'test@example.com' },
+      });
+    }
+    return null;
+  }),
+  setItem: vi.fn(),
+  removeItem: vi.fn(),
+  clear: vi.fn(),
+});
+
 // ============================================================================
 // 테스트 헬퍼 함수
 // ============================================================================
 
 /**
- * Excel 파일 생성 헬퍼 (File.arrayBuffer 모킹 포함)
+ * Excel 파일 생성 헬퍼 (ExcelJS 기반 - File.arrayBuffer 모킹 포함)
  */
-function createTestExcelFile(
+async function createTestExcelFile(
   data: unknown[][],
   sheetName = 'Sheet1',
   filename = 'test.xlsx'
-): File {
-  const ws = XLSX.utils.aoa_to_sheet(data);
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, sheetName);
-  const buffer = XLSX.write(wb, { type: 'array', bookType: 'xlsx' });
-  const file = new File([buffer], filename, {
+): Promise<File> {
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet(sheetName);
+
+  // 데이터 추가
+  data.forEach((row) => {
+    worksheet.addRow(row);
+  });
+
+  // 버퍼로 변환
+  const buffer = await workbook.xlsx.writeBuffer();
+  const arrayBuffer = buffer instanceof ArrayBuffer ? buffer : buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
+
+  const file = new File([arrayBuffer], filename, {
     type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
   });
 
   // File.arrayBuffer 모킹 (Node.js 환경용)
   if (!file.arrayBuffer) {
     Object.defineProperty(file, 'arrayBuffer', {
-      value: async () => buffer,
+      value: async () => arrayBuffer,
     });
   }
 
@@ -75,7 +102,7 @@ function createTestExcelFile(
 
 describe('parseExcelFile', () => {
   it('Excel 파일을 올바르게 파싱해야 한다', async () => {
-    const file = createTestExcelFile([
+    const file = await createTestExcelFile([
       ['이름', '나이', '이메일'],
       ['홍길동', '30', 'hong@example.com'],
       ['김철수', '25', 'kim@example.com'],
@@ -96,7 +123,7 @@ describe('parseExcelFile', () => {
   });
 
   it('빈 행을 자동으로 제거해야 한다', async () => {
-    const file = createTestExcelFile([
+    const file = await createTestExcelFile([
       ['이름', '나이'],
       ['홍길동', '30'],
       ['', ''],
@@ -112,19 +139,23 @@ describe('parseExcelFile', () => {
   });
 
   it('지정된 시트를 파싱해야 한다', async () => {
-    // 여러 시트가 있는 워크북 생성
-    const ws1 = XLSX.utils.aoa_to_sheet([['A', 'B'], ['1', '2']]);
-    const ws2 = XLSX.utils.aoa_to_sheet([['X', 'Y'], ['3', '4']]);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws1, 'Sheet1');
-    XLSX.utils.book_append_sheet(wb, ws2, 'Sheet2');
-    const buffer = XLSX.write(wb, { type: 'array', bookType: 'xlsx' });
-    const file = new File([buffer], 'test.xlsx');
+    // 여러 시트가 있는 워크북 생성 (ExcelJS 사용)
+    const workbook = new ExcelJS.Workbook();
+    const ws1 = workbook.addWorksheet('Sheet1');
+    ws1.addRow(['A', 'B']);
+    ws1.addRow(['1', '2']);
+    const ws2 = workbook.addWorksheet('Sheet2');
+    ws2.addRow(['X', 'Y']);
+    ws2.addRow(['3', '4']);
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    const arrayBuffer = buffer instanceof ArrayBuffer ? buffer : buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
+    const file = new File([arrayBuffer], 'test.xlsx');
 
     // File.arrayBuffer 모킹
     if (!file.arrayBuffer) {
       Object.defineProperty(file, 'arrayBuffer', {
-        value: async () => buffer,
+        value: async () => arrayBuffer,
       });
     }
 
@@ -135,7 +166,7 @@ describe('parseExcelFile', () => {
   });
 
   it('존재하지 않는 시트명을 지정하면 에러를 발생시켜야 한다', async () => {
-    const file = createTestExcelFile([['A'], ['1']]);
+    const file = await createTestExcelFile([['A'], ['1']]);
 
     await expect(parseExcelFile(file, 'NonExistent')).rejects.toThrow(
       '시트를 찾을 수 없습니다'
@@ -143,7 +174,7 @@ describe('parseExcelFile', () => {
   });
 
   it('빈 시트는 에러를 발생시켜야 한다', async () => {
-    const file = createTestExcelFile([]);
+    const file = await createTestExcelFile([]);
 
     // ExcelJS로 마이그레이션 후 빈 시트는 '헤더를 찾을 수 없습니다' 에러 발생
     await expect(parseExcelFile(file)).rejects.toThrow('헤더를 찾을 수 없습니다');
@@ -496,7 +527,7 @@ describe('batchImport', () => {
 
 describe('importExcelToDatabase', () => {
   it('전체 가져오기 프로세스를 실행해야 한다', async () => {
-    const file = createTestExcelFile([
+    const file = await createTestExcelFile([
       ['이름', '나이', '이메일'],
       ['홍길동', '30', 'hong@example.com'],
       ['김철수', '25', 'kim@example.com'],
@@ -533,7 +564,7 @@ describe('importExcelToDatabase', () => {
   });
 
   it('검증 실패 시 가져오기를 중단해야 한다', async () => {
-    const file = createTestExcelFile([
+    const file = await createTestExcelFile([
       ['이름', '나이'],
       ['홍길동', '30'],
       ['', '25'], // 필수 필드 누락
