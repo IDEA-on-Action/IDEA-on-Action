@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { renderHook, waitFor } from '@testing-library/react';
+import { renderHook, waitFor, act } from '@testing-library/react';
 import { useXlsxImport } from '@/hooks/useXlsxImport';
 import type { ParsedExcelData, ImportResult } from '@/types/xlsx-import.types';
 
@@ -113,7 +113,7 @@ describe('useXlsxImport', () => {
   });
 
   describe('컬럼 매핑', () => {
-    it('컬럼 매핑을 설정할 수 있어야 함', () => {
+    it('컬럼 매핑을 설정할 수 있어야 함', async () => {
       const { result } = renderHook(() => useXlsxImport());
 
       const mapping = [
@@ -121,21 +121,29 @@ describe('useXlsxImport', () => {
         { excelColumn: '나이', dbField: 'age', type: 'number' as const, required: false },
       ];
 
-      result.current.setColumnMapping(mapping);
+      act(() => {
+        result.current.setColumnMapping(mapping);
+      });
 
-      expect(result.current.columnMapping).toEqual(mapping);
+      await waitFor(() => {
+        expect(result.current.columnMapping).toEqual(mapping);
+      });
     });
 
-    it('필수 필드를 표시할 수 있어야 함', () => {
+    it('필수 필드를 표시할 수 있어야 함', async () => {
       const { result } = renderHook(() => useXlsxImport());
 
       const mapping = [
         { excelColumn: '이메일', dbField: 'email', type: 'string' as const, required: true },
       ];
 
-      result.current.setColumnMapping(mapping);
+      act(() => {
+        result.current.setColumnMapping(mapping);
+      });
 
-      expect(result.current.columnMapping[0].required).toBe(true);
+      await waitFor(() => {
+        expect(result.current.columnMapping[0]?.required).toBe(true);
+      });
     });
   });
 
