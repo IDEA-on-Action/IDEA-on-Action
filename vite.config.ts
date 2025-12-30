@@ -528,6 +528,16 @@ export default defineConfig(({ mode }) => ({
             return 'pages-admin-content';
           }
 
+          // Central Hub Dashboard (heavy due to central-hub components ~300 kB)
+          if (id.includes('/pages/admin/CentralHubDashboard')) {
+            return 'pages-admin-central-hub';
+          }
+
+          // Prompt Templates (DataTable + PromptTemplateForm ~100 kB)
+          if (id.includes('/pages/admin/AdminPromptTemplates')) {
+            return 'pages-admin-prompt-templates';
+          }
+
           // User management pages (Users, Roles, AuditLogs, Orders)
           if (
             id.includes('/pages/admin/AdminUsers') ||
