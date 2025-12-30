@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { renderHook, waitFor } from '@testing-library/react';
+import { renderHook, waitFor, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useDocxGenerate, useRFPGenerate, useReportGenerate } from '@/hooks/useDocxGenerate';
 import type { DocxGenerateOptions } from '@/types/docx.types';
@@ -328,13 +328,9 @@ describe('useDocxGenerate', () => {
 
   describe('에러 처리', () => {
     it('생성 중 에러를 처리해야 함', async () => {
-      const { TemplateEngine } = await import('@/lib/skills/template-engine');
-      vi.mocked(TemplateEngine).mockImplementation(
-        () =>
-          ({
-            generateDocument: vi.fn().mockRejectedValue(new Error('생성 실패')),
-          }) as never
-      );
+      // Packer.toBlob을 에러 발생하도록 모킹
+      const docx = await import('docx');
+      vi.mocked(docx.Packer.toBlob).mockRejectedValueOnce(new Error('생성 실패'));
 
       const { result } = renderHook(() => useDocxGenerate(), {
         wrapper: createWrapper(),
@@ -349,7 +345,7 @@ describe('useDocxGenerate', () => {
             startDate: new Date(),
           },
         })
-      ).rejects.toThrow();
+      ).rejects.toThrow('생성 실패');
     });
   });
 
@@ -368,10 +364,21 @@ describe('useDocxGenerate', () => {
         },
       });
 
-      result.current.reset();
+      // 생성 완료 확인
+      await waitFor(() => {
+        expect(result.current.progress).toBe(100);
+      });
 
-      expect(result.current.progress).toBe(0);
-      expect(result.current.error).toBeNull();
+      // reset 호출
+      act(() => {
+        result.current.reset();
+      });
+
+      // 상태 초기화 확인
+      await waitFor(() => {
+        expect(result.current.progress).toBe(0);
+        expect(result.current.error).toBeNull();
+      });
     });
   });
 });
