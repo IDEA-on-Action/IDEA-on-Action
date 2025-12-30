@@ -1,6 +1,6 @@
 import { Github, Linkedin, Mail, LucideIcon } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
-import logoSymbol from "@/assets/logo-symbol.png";
+import logoSymbol from "@/assets/logo-symbol.webp";
 import { NewsletterForm } from "@/components/forms/NewsletterForm";
 
 // Types

@@ -16,7 +16,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Separator } from '@/components/ui/separator'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Loader2, AlertCircle, Home } from 'lucide-react'
-import logoSymbol from '@/assets/logo-symbol.png'
+import logoSymbol from '@/assets/logo-symbol.webp'
 
 // 에러 코드 → 사용자 친화적 메시지 매핑
 const ERROR_MESSAGES: Record<string, string> = {

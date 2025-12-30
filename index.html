@@ -22,17 +22,33 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 
-    <!-- Pretendard (한글 최적화 폰트) -->
+    <!-- Pretendard (한글 최적화 폰트) - 비동기 로드 -->
     <link
+      rel="preload"
+      as="style"
       href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css"
-      rel="stylesheet"
+      onload="this.onload=null;this.rel='stylesheet'"
     />
+    <noscript>
+      <link
+        href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css"
+        rel="stylesheet"
+      />
+    </noscript>
 
-    <!-- JetBrains Mono (코드 폰트) -->
+    <!-- JetBrains Mono (코드 폰트) - 비동기 로드 -->
     <link
+      rel="preload"
+      as="style"
       href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap"
-      rel="stylesheet"
+      onload="this.onload=null;this.rel='stylesheet'"
     />
+    <noscript>
+      <link
+        href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet"
+      />
+    </noscript>
 
     <!-- CLS 방지: 폰트 로딩 전 시스템 폰트 사용 -->
     <style>

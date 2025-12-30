@@ -29,7 +29,7 @@ import {
   Map,
 } from 'lucide-react'
 import { useState } from 'react'
-import logoSymbol from '@/assets/logo-symbol.png'
+import logoSymbol from '@/assets/logo-symbol.webp'
 
 const navItems = [
   {

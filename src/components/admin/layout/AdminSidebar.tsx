@@ -49,7 +49,7 @@ import {
   MessageSquare,
   Database,
 } from 'lucide-react';
-import logoSymbol from '@/assets/logo-symbol.png';
+import logoSymbol from '@/assets/logo-symbol.webp';
 import { cn } from '@/lib/utils';
 import type { LucideIcon } from 'lucide-react';
 

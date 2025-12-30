@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Sparkles } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import logoFull from "@/assets/logo-full.png";
+import logoFull from "@/assets/logo-full.webp";
 
 // Constants
 const ANIMATION_DELAYS = {

@@ -16,7 +16,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { CartButton } from "@/components/cart";
 import { NotificationBell } from "@/components/notifications";
-import logoSymbol from "@/assets/logo-symbol.png";
+import logoSymbol from "@/assets/logo-symbol.webp";
 
 // Types
 interface HeaderProps {
