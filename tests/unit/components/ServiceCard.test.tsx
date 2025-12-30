@@ -4,10 +4,19 @@ import { BrowserRouter } from 'react-router-dom';
 import { ServiceCard } from '@/components/services/ServiceCard';
 import type { ServiceWithCategory } from '@/types/database';
 
+// 고유 ID 생성 헬퍼 (crypto.randomUUID 폴백)
+const generateUniqueId = (): string => {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  // 폴백: 타임스탬프 + 랜덤 문자열
+  return `${Date.now()}-${Math.random().toString(36).slice(2, 11)}-${Math.random().toString(36).slice(2, 11)}`;
+};
+
 describe('ServiceCard', () => {
-  // 테스트마다 고유한 mock 데이터 생성 (crypto.randomUUID 사용으로 완전한 격리)
+  // 테스트마다 고유한 mock 데이터 생성
   const createMockService = (): ServiceWithCategory => {
-    const uniqueId = crypto.randomUUID();
+    const uniqueId = generateUniqueId();
     return {
       id: uniqueId,
       title: `테스트 서비스 ${uniqueId.slice(0, 8)}`,
