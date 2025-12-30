@@ -5,6 +5,18 @@
  * AI 채팅 위젯의 메시지, 상태, 페이지 컨텍스트 타입을 정의합니다.
  */
 
+import type { A2UIMessage } from '@/lib/a2ui/types';
+
+/**
+ * AI 채팅 A2UI 블록
+ */
+export interface AIChatA2UIBlock {
+  /** 블록 ID */
+  id: string;
+  /** A2UI 메시지 */
+  message: A2UIMessage;
+}
+
 /**
  * AI 채팅 메시지
  */
@@ -19,6 +31,8 @@ export interface AIChatMessage {
   timestamp: Date;
   /** 스트리밍 중인지 여부 */
   isStreaming?: boolean;
+  /** A2UI 블록 (동적 UI) */
+  a2uiBlocks?: AIChatA2UIBlock[];
 }
 
 /**

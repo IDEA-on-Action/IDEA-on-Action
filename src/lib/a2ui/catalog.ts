@@ -1,0 +1,211 @@
+/**
+ * A2UI 컴포넌트 카탈로그
+ * 허용된 컴포넌트와 속성 스키마 정의
+ */
+
+// ============================================================================
+// 카탈로그 타입
+// ============================================================================
+
+/** 컴포넌트 정의 */
+export interface ComponentDefinition {
+  /** 컴포넌트 이름 */
+  name: string;
+  /** 설명 */
+  description: string;
+  /** 허용된 속성 */
+  allowedProps: string[];
+  /** children 허용 여부 */
+  allowChildren: boolean;
+  /** 허용된 자식 컴포넌트 타입 (null = 모든 타입) */
+  allowedChildTypes?: string[] | null;
+  /** 데이터 바인딩 지원 속성 */
+  bindableProps?: string[];
+  /** userAction 트리거 속성 */
+  actionProps?: string[];
+}
+
+/** 카탈로그 정의 */
+export interface ComponentCatalog {
+  /** 카탈로그 ID */
+  catalogId: string;
+  /** 버전 */
+  version: string;
+  /** 컴포넌트 맵 */
+  components: Record<string, ComponentDefinition>;
+}
+
+// ============================================================================
+// 기본 카탈로그 정의
+// ============================================================================
+
+export const DEFAULT_CATALOG: ComponentCatalog = {
+  catalogId: 'ideaonaction-chat-v1',
+  version: '1.0.0',
+  components: {
+    // ========================================================================
+    // 텍스트 컴포넌트
+    // ========================================================================
+    Text: {
+      name: 'Text',
+      description: '텍스트 표시 (마크다운 지원)',
+      allowedProps: ['text', 'variant'],
+      allowChildren: false,
+      bindableProps: ['text'],
+    },
+
+    // ========================================================================
+    // 버튼 컴포넌트
+    // ========================================================================
+    Button: {
+      name: 'Button',
+      description: '클릭 가능한 버튼',
+      allowedProps: ['text', 'variant', 'size', 'disabled', 'onClick'],
+      allowChildren: false,
+      actionProps: ['onClick'],
+    },
+
+    // ========================================================================
+    // 카드 컴포넌트
+    // ========================================================================
+    Card: {
+      name: 'Card',
+      description: '정보 카드 컨테이너',
+      allowedProps: ['title', 'description'],
+      allowChildren: true,
+      allowedChildTypes: null, // 모든 타입 허용
+    },
+
+    // ========================================================================
+    // 뱃지 컴포넌트
+    // ========================================================================
+    Badge: {
+      name: 'Badge',
+      description: '상태/라벨 뱃지',
+      allowedProps: ['text', 'variant'],
+      allowChildren: false,
+      bindableProps: ['text', 'variant'],
+    },
+
+    // ========================================================================
+    // 알림 컴포넌트
+    // ========================================================================
+    Alert: {
+      name: 'Alert',
+      description: '알림 메시지',
+      allowedProps: ['title', 'description', 'variant'],
+      allowChildren: false,
+    },
+
+    // ========================================================================
+    // 레이아웃 컴포넌트
+    // ========================================================================
+    Row: {
+      name: 'Row',
+      description: '가로 레이아웃',
+      allowedProps: ['gap', 'align', 'justify'],
+      allowChildren: true,
+      allowedChildTypes: null,
+    },
+
+    Column: {
+      name: 'Column',
+      description: '세로 레이아웃',
+      allowedProps: ['gap', 'align'],
+      allowChildren: true,
+      allowedChildTypes: null,
+    },
+
+    // ========================================================================
+    // 구분선 컴포넌트
+    // ========================================================================
+    Separator: {
+      name: 'Separator',
+      description: '구분선',
+      allowedProps: ['orientation'],
+      allowChildren: false,
+    },
+  },
+};
+
+// ============================================================================
+// 카탈로그 유틸리티
+// ============================================================================
+
+/** 허용된 컴포넌트 목록 */
+export const ALLOWED_COMPONENTS = new Set(Object.keys(DEFAULT_CATALOG.components));
+
+/** 컴포넌트가 허용되었는지 확인 */
+export function isAllowedComponent(name: string): boolean {
+  return ALLOWED_COMPONENTS.has(name);
+}
+
+/** 컴포넌트 정의 가져오기 */
+export function getComponentDefinition(name: string): ComponentDefinition | undefined {
+  return DEFAULT_CATALOG.components[name];
+}
+
+/** 속성이 허용되었는지 확인 */
+export function isAllowedProp(componentName: string, propName: string): boolean {
+  const definition = getComponentDefinition(componentName);
+  if (!definition) return false;
+
+  // children은 항상 허용 (allowChildren이 true인 경우)
+  if (propName === 'children') return definition.allowChildren;
+
+  // id, component는 기본 속성
+  if (propName === 'id' || propName === 'component') return true;
+
+  return definition.allowedProps.includes(propName);
+}
+
+/** 속성 필터링 (허용된 속성만 반환) */
+export function filterAllowedProps(
+  componentName: string,
+  props: Record<string, unknown>
+): Record<string, unknown> {
+  const definition = getComponentDefinition(componentName);
+  if (!definition) return {};
+
+  return Object.fromEntries(
+    Object.entries(props).filter(([key]) => isAllowedProp(componentName, key))
+  );
+}
+
+// ============================================================================
+// 액션 검증
+// ============================================================================
+
+/** 허용된 액션 목록 */
+export const ALLOWED_ACTIONS = new Set([
+  // 조회 액션
+  'view_issue',
+  'view_event',
+  'view_project',
+  'view_service',
+
+  // 생성 액션
+  'create_issue',
+  'create_event',
+
+  // 수정 액션
+  'update_issue',
+  'update_event',
+
+  // UI 액션
+  'navigate',
+  'refresh',
+  'dismiss',
+  'expand',
+  'collapse',
+
+  // 폼 액션
+  'submit',
+  'cancel',
+  'reset',
+]);
+
+/** 액션이 허용되었는지 확인 */
+export function isAllowedAction(action: string): boolean {
+  return ALLOWED_ACTIONS.has(action);
+}

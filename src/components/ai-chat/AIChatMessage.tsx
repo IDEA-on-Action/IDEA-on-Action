@@ -3,10 +3,14 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Bot, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { AIChatMessage as MessageType } from '@/types/ai-chat-widget.types';
+import type { AIChatMessage as MessageType, AIChatA2UIBlock } from '@/types/ai-chat-widget.types';
+import type { A2UIUserAction } from '@/lib/a2ui/types';
+import { AIChatA2UIBlock as A2UIBlockComponent } from './AIChatA2UIBlock';
 
 interface AIChatMessageProps {
   message: MessageType;
+  /** A2UI 액션 핸들러 */
+  onA2UIAction?: (action: A2UIUserAction) => void;
 }
 
 /**
@@ -16,9 +20,10 @@ interface AIChatMessageProps {
  * 개별 메시지를 렌더링합니다. 사용자/AI를 구분하여 표시하며,
  * 마크다운 포맷을 지원합니다.
  */
-export function AIChatMessage({ message }: AIChatMessageProps) {
+export function AIChatMessage({ message, onA2UIAction }: AIChatMessageProps) {
   const isUser = message.role === 'user';
   const isAssistant = message.role === 'assistant';
+  const hasA2UIBlocks = message.a2uiBlocks && message.a2uiBlocks.length > 0;
 
   const timestamp = useMemo(() => {
     const date = new Date(message.timestamp);
@@ -93,6 +98,19 @@ export function AIChatMessage({ message }: AIChatMessageProps) {
 
         {/* 타임스탬프 */}
         <span className="text-xs text-muted-foreground px-1">{timestamp}</span>
+
+        {/* A2UI 블록 렌더링 */}
+        {hasA2UIBlocks && (
+          <div className="mt-2 space-y-2">
+            {message.a2uiBlocks!.map((block) => (
+              <A2UIBlockComponent
+                key={block.id}
+                message={block.message}
+                onAction={onA2UIAction}
+              />
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
