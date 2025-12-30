@@ -119,7 +119,7 @@ const Footer = ({ className = "" }: FooterProps) => {
             <Link
               to="/"
               className="flex items-center gap-3 mb-4 hover:opacity-80 transition-opacity"
-              aria-label="홈페이지로 이동"
+              aria-label="IDEA on Action 홈페이지로 이동"
             >
               <img
                 src={BRAND_INFO.logo}
@@ -163,12 +163,12 @@ const Footer = ({ className = "" }: FooterProps) => {
               key={sectionIndex}
               aria-labelledby={`footer-section-${sectionIndex}`}
             >
-              <h4
+              <h3
                 id={`footer-section-${sectionIndex}`}
                 className="font-semibold mb-4 text-sm"
               >
                 {section.title}
-              </h4>
+              </h3>
               <ul className="space-y-2 text-sm text-muted-foreground" role="list">
                 {section.links.map((link, linkIndex) => {
                   const isActive = !link.isExternal && location.pathname === link.href;
@@ -204,7 +204,7 @@ const Footer = ({ className = "" }: FooterProps) => {
         {/* Newsletter Section */}
         <div className="pt-8 pb-8 border-t border-border">
           <div className="max-w-md mx-auto text-center">
-            <h4 className="font-semibold mb-2">뉴스레터 구독</h4>
+            <h3 className="font-semibold mb-2">뉴스레터 구독</h3>
             <p className="text-sm text-muted-foreground mb-4">
               최신 소식과 인사이트를 받아보세요
             </p>

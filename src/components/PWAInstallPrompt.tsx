@@ -89,8 +89,9 @@ export function PWAInstallPrompt() {
           <button
             onClick={handleDismiss}
             className="flex-shrink-0 text-muted-foreground hover:text-foreground transition-colors"
+            aria-label="설치 안내 닫기"
           >
-            <X className="h-4 w-4" />
+            <X className="h-4 w-4" aria-hidden="true" />
           </button>
         </div>
       </div>

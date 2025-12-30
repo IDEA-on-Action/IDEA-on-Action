@@ -4,10 +4,10 @@
 
 아이디어 실험실이자 커뮤니티형 프로덕트 스튜디오
 
-[![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)](https://github.com/IDEA-on-Action/idea-on-action/releases/tag/v2.0.0)
+[![Version](https://img.shields.io/badge/version-3.0.0-blue.svg)](https://github.com/IDEA-on-Action/IDEA-on-Action/releases/tag/v3.0.0)
 [![Production](https://img.shields.io/badge/production-live-brightgreen.svg)](https://www.ideaonaction.ai)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)](https://github.com/IDEA-on-Action/idea-on-action/actions)
+[![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)](https://github.com/IDEA-on-Action/IDEA-on-Action/actions)
 
 ## 📖 소개
 
@@ -15,17 +15,26 @@ IDEA on Action은 단순한 소개 웹사이트를 넘어, **실시간으로 상
 
 **핵심 루프**: 아이디어 → 실험 → 결과공유 → 참여 → 다음 아이디어
 
-### ✨ Version 2.0 주요 변화
+### ✨ Version 3.0 주요 변화
 
-| 구분 | v1.x | v2.0 |
+| 구분 | v2.x | v3.0 |
 |------|------|------|
-| **정체성** | 소개용 정적 웹사이트 | 커뮤니티형 프로덕트 스튜디오 |
-| **콘텐츠** | Services 중심 | Roadmap + Portfolio + Now + Lab |
-| **데이터** | 정적 JSON | Supabase 실시간 DB |
-| **참여** | 일방향 정보 제공 | Bounty + Discussion + Newsletter |
-| **투명성** | 비공개 | Open Metrics (Status 페이지) |
+| **Backend** | Supabase Edge Functions | Cloudflare Workers (Hono) |
+| **Database** | Supabase PostgreSQL | Cloudflare D1 (SQLite) |
+| **Storage** | Supabase Storage | Cloudflare R2 |
+| **Realtime** | Supabase Realtime | Durable Objects |
+| **Hosting** | Vercel | Cloudflare Pages |
 
-#### 🆕 새 페이지 (8개)
+#### 🆕 v3.0 마이그레이션 성과
+
+| 항목 | 수치 |
+|------|------|
+| Workers API 핸들러 | 31개 |
+| D1 테이블 | 80개 |
+| 삭제된 레거시 코드 | 480+ 파일, 120,000+ 줄 |
+| Worker 크기 | 672.71 KiB (gzip 115.68 KiB) |
+
+#### 🌐 주요 페이지
 
 1. **[About](https://www.ideaonaction.ai/about)** - 우리는 어떤 회사인가
 2. **[Roadmap](https://www.ideaonaction.ai/roadmap)** - Quarterly 목표 + 진행률
@@ -36,31 +45,25 @@ IDEA on Action은 단순한 소개 웹사이트를 넘어, **실시간으로 상
 7. **[Work-with-Us](https://www.ideaonaction.ai/work-with-us)** - 협업 제안
 8. **[Status](https://www.ideaonaction.ai/status)** - 오픈 메트릭스
 
-#### 🚀 Sprint 요약
-
-- **Sprint 1**: Structure & Static Data (Home 강화, SEO, Weekly Recap)
-- **Sprint 2**: Supabase Integration & Community (CRUD 훅, 동적 페이지, Giscus, Work with Us, Newsletter)
-- **Sprint 3**: Automation & Open Metrics (GA4, 테스트, SEO 최적화)
-
 ## 🚀 빠른 시작
 
 ```bash
 # 1. 저장소 클론
-git clone https://github.com/IDEA-on-Action/idea-on-action.git
-cd idea-on-action
+git clone https://github.com/IDEA-on-Action/IDEA-on-Action.git
+cd IDEA-on-Action
 
 # 2. 의존성 설치
 npm install
 
 # 3. 환경 변수 설정 (.env.local)
 cp .env.example .env.local
-# VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY 설정
+# VITE_WORKERS_API_URL 설정
 
 # 4. 개발 서버 실행
 npm run dev  # http://localhost:8080
 ```
 
-## 📋 주요 기능 (v2.0.0)
+## 📋 주요 기능 (v3.0.0)
 
 ### 🎨 현대적인 UI/UX
 - **반응형 디자인**: 모바일, 태블릿, 데스크톱 최적화
@@ -68,21 +71,21 @@ npm run dev  # http://localhost:8080
 - **PWA 지원**: 오프라인 지원, 설치 프롬프트
 - **i18n**: 한국어/영어 지원 (375+ 번역 키)
 
-### 📊 고급 분석 대시보드 (Phase 14)
+### 📊 고급 분석 대시보드
 - **사용자 행동 분석**: GA4 이벤트 15개, 퍼널, 이탈률
 - **매출 차트 & KPI**: 일/주/월 매출, 서비스별, 6개 KPI, CSV 내보내기
-- **실시간 대시보드**: Supabase Realtime, 자동 새로고침, Presence API
+- **실시간 대시보드**: Durable Objects, 자동 새로고침
 
-### 🤖 AI & 실시간 기능 (Phase 13)
+### 🤖 AI & 실시간 기능
 - **통합 검색**: 서비스, 블로그, 공지사항 통합 검색
-- **AI 챗봇**: OpenAI GPT-3.5, 스트리밍 응답
-- **알림 시스템**: Supabase Realtime, Resend 이메일
+- **AI 챗봇**: Claude AI 스트리밍 응답
+- **알림 시스템**: Cloudflare Workers, Resend 이메일
 
-### 🛒 전자상거래 (Phase 9-11)
+### 🛒 전자상거래
 - **장바구니**: Zustand 상태 관리
 - **주문 관리**: 결제 프로세스, 상태 추적
-- **결제 게이트웨이**: Kakao Pay, Toss Payments
-- **CMS**: 블로그, 공지사항, SEO 최적화
+- **결제 게이트웨이**: Toss Payments (빌링키, 단건결제)
+- **구독 관리**: 정기결제, 플랜 변경
 
 ### 🔒 인증 & 보안
 - **OAuth**: Google, GitHub, Kakao, Microsoft, Apple
@@ -90,7 +93,7 @@ npm run dev  # http://localhost:8080
 - **RBAC**: 역할 기반 접근 제어, 감사 로그
 
 ### 📈 성능 & 모니터링
-- **Code Splitting**: 62.5% 번들 감소
+- **Code Splitting**: 최적화된 번들 분리
 - **Sentry**: 에러 추적, Replay
 - **Google Analytics 4**: 페이지뷰, 이벤트 추적
 - **Lighthouse**: 90+ 점 유지
@@ -102,7 +105,7 @@ src/
 ├── components/           # React 컴포넌트
 │   ├── admin/           # 관리자 컴포넌트
 │   ├── analytics/       # 분석 컴포넌트
-│   ├── chat/            # AI 챗봇
+│   ├── ai-chat/         # AI 챗봇
 │   ├── ecommerce/       # 전자상거래
 │   ├── notifications/   # 알림 시스템
 │   ├── ui/              # shadcn/ui 컴포넌트
@@ -112,9 +115,16 @@ src/
 ├── lib/                 # 유틸리티 함수
 └── i18n/                # 국제화 (한국어/영어)
 
-tests/                   # 292+ 테스트 케이스
-├── e2e/                 # E2E 테스트 (172개)
-├── unit/                # 유닛 테스트 (92개)
+cloudflare-workers/      # Cloudflare Workers API
+├── src/
+│   ├── handlers/        # API 핸들러 (31개)
+│   ├── durable-objects/ # Durable Objects
+│   └── lib/             # 공용 유틸리티
+└── migrations/          # D1 마이그레이션
+
+tests/                   # 7300+ 테스트 케이스
+├── e2e/                 # E2E 테스트 (5429개)
+├── unit/                # 유닛 테스트 (1880개)
 └── fixtures/            # 테스트 픽스처
 
 docs/
@@ -125,12 +135,18 @@ docs/
 
 ## 🛠️ 기술 스택
 
-### Core
-- **Vite** 5.4.19 - 빌드 도구
-- **React** 18.x - UI 라이브러리
-- **TypeScript** 5.x - 타입 안정성
-- **Tailwind CSS** 3.4.x - 유틸리티 CSS
-- **Supabase** 2.x - Backend as a Service
+### Frontend
+- **Vite** 5.4 - 빌드 도구
+- **React** 18 - UI 라이브러리
+- **TypeScript** 5 - 타입 안정성
+- **Tailwind CSS** 3.4 - 유틸리티 CSS
+
+### Backend (Cloudflare)
+- **Cloudflare Workers** - 서버리스 API
+- **Hono** - 경량 웹 프레임워크
+- **Cloudflare D1** - SQLite 데이터베이스
+- **Cloudflare R2** - 오브젝트 스토리지
+- **Durable Objects** - 실시간/상태 관리
 
 ### State Management
 - **React Query** - 서버 상태 관리
@@ -153,10 +169,10 @@ docs/
 ## 🧪 테스트
 
 ```bash
-# 단위 테스트 (92개)
+# 단위 테스트 (1880개)
 npm run test:unit
 
-# E2E 테스트 (172개)
+# E2E 테스트 (5429개)
 npm run test:e2e
 
 # 테스트 커버리지
@@ -182,71 +198,33 @@ npm run lint
 ## 📚 문서
 
 ### 📍 전체 문서 인덱스
-- **[전체 문서 인덱스](docs/INDEX.md)** - 41+ 문서, ~400 KB
+- **[전체 문서 인덱스](docs/INDEX.md)** - 문서 목록
+
+### 핵심 문서
+- **[CLAUDE.md](CLAUDE.md)** - Claude 협업 문서
+- **[project-todo.md](project-todo.md)** - 할 일 목록
+- [로드맵](docs/project/roadmap.md)
+- [변경 로그](docs/project/changelog.md)
 
 ### 개발 가이드
 - [프로젝트 구조](docs/guides/project-structure.md)
 - [디자인 시스템](docs/guides/design-system/README.md)
 - [배포 가이드](docs/guides/deployment/)
-- [테스트 전략](docs/testing/testing-strategy.md)
 - [API 문서](docs/api/hooks/) - React 훅 55개
-- [CMS 가이드](docs/guides/cms/) - Admin 가이드 6개
 
-### 프로젝트 관리
-- **[CLAUDE.md](CLAUDE.md)** - Claude 협업 문서
-- **[project-todo.md](project-todo.md)** - 할 일 목록
-- **[version2.0 계획.md](version2.0%20계획.md)** - Version 2.0 로드맵
-- [로드맵](docs/project/roadmap.md)
-- [변경 로그](docs/project/changelog.md)
-
-## 🌱 Version 2.0 계획
-
-> **💡 From:** 소개용 정적 웹사이트
-> **🚀 To:** 실시간 커뮤니티형 프로덕트 스튜디오
-
-### 3 Sprint Plan (3주)
-
-**🏁 Sprint 1 — Structure & Static Data (Week 1)**
-- React Router 라우팅 확장
-- 정적 데이터(JSON) 생성
-- 기존 컴포넌트 재활용
-
-**⚙️ Sprint 2 — Supabase Integration & Community (Week 2)**
-- Supabase 스키마 생성
-- Giscus 댓글 임베드
-- Work with Us 폼 + Webhook
-
-**🔄 Sprint 3 — Automation & Open Metrics (Week 3)**
-- 주간 리캡 자동 생성
-- /status 페이지 (오픈 메트릭스)
-- 이벤트 트래킹
-
-### 새로운 페이지
-- `/about` - 회사 소개
-- `/roadmap` - Quarterly 목표 + 진행률
-- `/portfolio` - Case Study 목록
-- `/now` - 최근 활동 로그
-- `/lab` - 실험 / Bounty / Prototype
-- `/community` - Giscus 기반 토론
-- `/work-with-us` - 의뢰 / 협업
-- `/status` - Open Metrics
-
-자세한 내용은 **[version2.0 계획.md](version2.0%20계획.md)**를 참조하세요.
-
-## 📊 현재 상태 (v1.8.0)
+## 📊 현재 상태 (v3.0.0)
 
 ### 빌드 통계
 ```
-Total (gzip): ~602 kB (30개 chunk)
-Build Time: 31.62s
-PWA: 43 entries (2917.64 KiB) cached
+Bundle Size: ~1,636 kB (PWA 11 entries)
+Build Time: ~3분 30초
+Lint Warnings: 0
 ```
 
 ### 테스트 통계
-- **E2E**: 172개
-- **Unit**: 92개
-- **Visual**: 28개
-- **Total**: 292+ 테스트 케이스
+- **Unit**: 1,880개
+- **E2E**: 5,429개
+- **Total**: 7,300+ 테스트 케이스
 
 ### 성능 지표
 - **Lighthouse 성능**: 90+
@@ -256,9 +234,10 @@ PWA: 43 entries (2917.64 KiB) cached
 
 ## 🚀 배포
 
-프로젝트는 **Vercel**에서 자동 배포됩니다.
+프로젝트는 **Cloudflare Pages**에서 자동 배포됩니다.
 
 - **Production**: https://www.ideaonaction.ai/
+- **API**: https://api.ideaonaction.ai/
 - **Branch**: main → production
 - **CI/CD**: GitHub Actions
 
@@ -280,7 +259,7 @@ MIT License - 자세한 내용은 [LICENSE](LICENSE) 파일을 참조하세요.
 
 - [React](https://react.dev/) - UI 라이브러리
 - [Vite](https://vitejs.dev/) - 빌드 도구
-- [Supabase](https://supabase.com/) - Backend as a Service
+- [Cloudflare](https://cloudflare.com/) - Edge Computing Platform
 - [Tailwind CSS](https://tailwindcss.com/) - CSS 프레임워크
 - [shadcn/ui](https://ui.shadcn.com/) - UI 컴포넌트
 - [Sentry](https://sentry.io/) - 에러 추적
