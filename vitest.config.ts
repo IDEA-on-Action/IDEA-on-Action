@@ -72,6 +72,8 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+      // xlsx 모듈 mock (deprecated, exceljs로 마이그레이션됨)
+      xlsx: path.resolve(__dirname, './tests/mocks/xlsx.ts'),
     },
   },
 });

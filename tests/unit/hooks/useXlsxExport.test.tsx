@@ -1,39 +1,59 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 import { useXlsxExport } from '@/hooks/useXlsxExport';
 
-// Mock dependencies
-vi.mock('xlsx', () => ({
+// DOM API Mock - beforeEach/afterEach로 관리
+const mockCreateObjectURL = vi.fn().mockReturnValue('blob:mock-url');
+const mockRevokeObjectURL = vi.fn();
+const mockClick = vi.fn();
+let originalCreateObjectURL: typeof URL.createObjectURL;
+let originalRevokeObjectURL: typeof URL.revokeObjectURL;
+
+// ExcelJS Mock 설정 - vi.hoisted 사용으로 호이스팅 문제 해결
+const { mockWriteBuffer, MockWorkbook } = vi.hoisted(() => {
+  const mockWriteBuffer = vi.fn().mockResolvedValue(new ArrayBuffer(8));
+  const mockAddImage = vi.fn().mockReturnValue(1);
+
+  // Mock Workbook 클래스 - addWorksheet를 메서드로 정의
+  class MockWorkbook {
+    creator = '';
+    created: Date | null = null;
+
+    addWorksheet() {
+      return {
+        columns: [] as unknown[],
+        addRow: vi.fn(),
+        addImage: vi.fn(),
+        getCell: vi.fn().mockReturnValue({ value: null }),
+      };
+    }
+
+    addImage = mockAddImage;
+    xlsx = {
+      writeBuffer: mockWriteBuffer,
+    };
+  }
+
+  return { mockWriteBuffer, MockWorkbook };
+});
+
+vi.mock('exceljs', () => ({
   default: {
-    utils: {
-      book_new: vi.fn(() => ({})),
-      json_to_sheet: vi.fn(() => ({})),
-      aoa_to_sheet: vi.fn(() => ({})),
-      sheet_add_aoa: vi.fn(),
-      book_append_sheet: vi.fn(),
-    },
-    writeFile: vi.fn(),
+    Workbook: MockWorkbook,
   },
-  utils: {
-    book_new: vi.fn(() => ({})),
-    json_to_sheet: vi.fn(() => ({})),
-    aoa_to_sheet: vi.fn(() => ({})),
-    sheet_add_aoa: vi.fn(),
-    book_append_sheet: vi.fn(),
-  },
-  writeFile: vi.fn(),
+}));
+
+// 차트 생성 Mock - vi.hoisted 사용
+const { mockGenerateBarChartImage, mockGenerateLineChartImage, mockGeneratePieChartImage } = vi.hoisted(() => ({
+  mockGenerateBarChartImage: vi.fn().mockResolvedValue({ imageBase64: 'base64string' }),
+  mockGenerateLineChartImage: vi.fn().mockResolvedValue({ imageBase64: 'base64string' }),
+  mockGeneratePieChartImage: vi.fn().mockResolvedValue({ imageBase64: 'base64string' }),
 }));
 
 vi.mock('@/lib/skills/xlsx/chartGenerate', () => ({
-  generateBarChartImage: vi.fn().mockResolvedValue({
-    imageBase64: 'base64string',
-  }),
-  generateLineChartImage: vi.fn().mockResolvedValue({
-    imageBase64: 'base64string',
-  }),
-  generatePieChartImage: vi.fn().mockResolvedValue({
-    imageBase64: 'base64string',
-  }),
+  generateBarChartImage: mockGenerateBarChartImage,
+  generateLineChartImage: mockGenerateLineChartImage,
+  generatePieChartImage: mockGeneratePieChartImage,
 }));
 
 vi.mock('@/lib/skills/xlsx/chartInsert', () => ({
@@ -41,8 +61,51 @@ vi.mock('@/lib/skills/xlsx/chartInsert', () => ({
 }));
 
 describe('useXlsxExport', () => {
+  let mockAnchorElement: Partial<HTMLAnchorElement>;
+
   beforeEach(() => {
     vi.clearAllMocks();
+
+    // 차트 생성 Mock 재설정
+    mockGenerateBarChartImage.mockResolvedValue({ imageBase64: 'base64string' });
+    mockGenerateLineChartImage.mockResolvedValue({ imageBase64: 'base64string' });
+    mockGeneratePieChartImage.mockResolvedValue({ imageBase64: 'base64string' });
+
+    // writeBuffer Mock 재설정
+    mockWriteBuffer.mockResolvedValue(new ArrayBuffer(8));
+
+    // DOM API Mock 설정
+    originalCreateObjectURL = globalThis.URL.createObjectURL;
+    originalRevokeObjectURL = globalThis.URL.revokeObjectURL;
+    globalThis.URL.createObjectURL = mockCreateObjectURL;
+    globalThis.URL.revokeObjectURL = mockRevokeObjectURL;
+
+    // Mock anchor element
+    mockAnchorElement = {
+      href: '',
+      download: '',
+      click: mockClick,
+      style: {} as CSSStyleDeclaration,
+    };
+
+    // createElement spy - 'a' 태그만 가로채기
+    vi.spyOn(document, 'createElement').mockImplementation((tagName: string) => {
+      if (tagName === 'a') {
+        return mockAnchorElement as HTMLAnchorElement;
+      }
+      // 다른 태그는 원래 구현 사용
+      return document.createElementNS('http://www.w3.org/1999/xhtml', tagName) as HTMLElement;
+    });
+
+    vi.spyOn(document.body, 'appendChild').mockImplementation((node) => node);
+    vi.spyOn(document.body, 'removeChild').mockImplementation((node) => node);
+  });
+
+  afterEach(() => {
+    // DOM API 복원
+    globalThis.URL.createObjectURL = originalCreateObjectURL;
+    globalThis.URL.revokeObjectURL = originalRevokeObjectURL;
+    vi.restoreAllMocks();
   });
 
   describe('초기 상태', () => {
@@ -280,10 +343,8 @@ describe('useXlsxExport', () => {
 
   describe('에러 처리', () => {
     it('내보내기 실패 시 에러를 처리해야 함', async () => {
-      const XLSX = await import('xlsx');
-      vi.mocked(XLSX.writeFile).mockImplementationOnce(() => {
-        throw new Error('Write failed');
-      });
+      // ExcelJS writeBuffer 에러 발생 모킹
+      mockWriteBuffer.mockRejectedValueOnce(new Error('Write failed'));
 
       const { result } = renderHook(() => useXlsxExport());
 

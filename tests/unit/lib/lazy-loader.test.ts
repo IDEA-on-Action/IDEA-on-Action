@@ -6,12 +6,14 @@
  * @module tests/unit/lib/lazy-loader
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import {
   loadXlsx,
+  loadExcelJS,
   loadDocx,
   loadPptx,
   getXlsxLoadingState,
+  getExcelJSLoadingState,
   getDocxLoadingState,
   getPptxLoadingState,
   clearAllCache,
@@ -20,6 +22,8 @@ import {
   getLoadedCount,
   preloadModules,
 } from '@/lib/skills/lazy-loader';
+
+// xlsx 모듈은 vitest.config.ts의 alias로 mock 처리됨
 
 // ============================================================================
 // 테스트 설정
@@ -185,8 +189,8 @@ describe('Lazy Loader', () => {
 
   describe('캐시 관리', () => {
     it('clearAllCache는 모든 모듈 캐시를 초기화해야 함', async () => {
-      // 모든 모듈 로드
-      await loadXlsx();
+      // 모든 모듈 로드 (exceljs, docx, pptx - isAllLoaded가 체크하는 모듈들)
+      await loadExcelJS();
       await loadDocx();
       await loadPptx();
 
@@ -201,27 +205,27 @@ describe('Lazy Loader', () => {
       expect(getLoadedCount()).toBe(0);
       expect(isAllLoaded()).toBe(false);
 
-      const xlsxState = getXlsxLoadingState();
+      const excelJSState = getExcelJSLoadingState();
       const docxState = getDocxLoadingState();
       const pptxState = getPptxLoadingState();
 
-      expect(xlsxState.module).toBeNull();
+      expect(excelJSState.module).toBeNull();
       expect(docxState.module).toBeNull();
       expect(pptxState.module).toBeNull();
     });
 
     it('clearCache는 특정 모듈만 초기화해야 함', async () => {
       // 모든 모듈 로드
-      await loadXlsx();
+      await loadExcelJS();
       await loadDocx();
       await loadPptx();
 
-      // xlsx만 캐시 초기화
-      clearCache('xlsx');
+      // exceljs만 캐시 초기화
+      clearCache('exceljs');
 
-      // xlsx만 초기화되고 나머지는 유지되어야 함
+      // exceljs만 초기화되고 나머지는 유지되어야 함
       expect(getLoadedCount()).toBe(2);
-      expect(getXlsxLoadingState().module).toBeNull();
+      expect(getExcelJSLoadingState().module).toBeNull();
       expect(getDocxLoadingState().module).not.toBeNull();
       expect(getPptxLoadingState().module).not.toBeNull();
     });
@@ -235,7 +239,7 @@ describe('Lazy Loader', () => {
     it('isAllLoaded는 모든 모듈이 로드되었을 때 true를 반환해야 함', async () => {
       expect(isAllLoaded()).toBe(false);
 
-      await loadXlsx();
+      await loadExcelJS();
       expect(isAllLoaded()).toBe(false);
 
       await loadDocx();
@@ -248,7 +252,7 @@ describe('Lazy Loader', () => {
     it('getLoadedCount는 로드된 모듈 개수를 정확히 반환해야 함', async () => {
       expect(getLoadedCount()).toBe(0);
 
-      await loadXlsx();
+      await loadExcelJS();
       expect(getLoadedCount()).toBe(1);
 
       await loadDocx();
@@ -265,18 +269,18 @@ describe('Lazy Loader', () => {
 
   describe('preloadModules', () => {
     it('여러 모듈을 한 번에 프리로드할 수 있어야 함', async () => {
-      const loaded = await preloadModules(['xlsx', 'docx']);
+      const loaded = await preloadModules(['exceljs', 'docx']);
 
-      expect(loaded.xlsx).toBeDefined();
+      expect(loaded.exceljs).toBeDefined();
       expect(loaded.docx).toBeDefined();
       expect(loaded.pptx).toBeUndefined();
       expect(getLoadedCount()).toBe(2);
     });
 
     it('모든 모듈을 프리로드할 수 있어야 함', async () => {
-      const loaded = await preloadModules(['xlsx', 'docx', 'pptx']);
+      const loaded = await preloadModules(['exceljs', 'docx', 'pptx']);
 
-      expect(loaded.xlsx).toBeDefined();
+      expect(loaded.exceljs).toBeDefined();
       expect(loaded.docx).toBeDefined();
       expect(loaded.pptx).toBeDefined();
       expect(isAllLoaded()).toBe(true);
@@ -314,10 +318,10 @@ describe('Lazy Loader', () => {
 
   describe('통합 시나리오', () => {
     it('Admin 페이지 진입 시 필요한 모듈만 프리로드', async () => {
-      // Admin 페이지에서는 xlsx, docx만 주로 사용
-      const loaded = await preloadModules(['xlsx', 'docx']);
+      // Admin 페이지에서는 exceljs, docx만 주로 사용
+      const loaded = await preloadModules(['exceljs', 'docx']);
 
-      expect(loaded.xlsx).toBeDefined();
+      expect(loaded.exceljs).toBeDefined();
       expect(loaded.docx).toBeDefined();
       expect(getLoadedCount()).toBe(2);
 
@@ -329,8 +333,8 @@ describe('Lazy Loader', () => {
     it('여러 번 clearCache 호출해도 안전해야 함', () => {
       clearAllCache();
       clearAllCache();
-      clearCache('xlsx');
-      clearCache('xlsx');
+      clearCache('exceljs');
+      clearCache('exceljs');
 
       expect(getLoadedCount()).toBe(0);
     });

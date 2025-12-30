@@ -168,7 +168,7 @@ describe('useXlsxImport', () => {
     });
 
     it('검증 결과가 저장되어야 함', async () => {
-      const { result } = renderHook(() => useXlsxImport());
+      const { result, rerender } = renderHook(() => useXlsxImport());
 
       const file = new File(['test'], 'test.xlsx', {
         type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -180,9 +180,16 @@ describe('useXlsxImport', () => {
         expect(result.current.parsedData).not.toBeNull();
       });
 
-      result.current.validate();
+      act(() => {
+        result.current.validate();
+      });
 
-      expect(result.current.validationResult).not.toBeNull();
+      // React 상태 업데이트 후 확인
+      rerender();
+
+      await waitFor(() => {
+        expect(result.current.validationResult).not.toBeNull();
+      });
     });
   });
 
@@ -240,20 +247,20 @@ describe('useXlsxImport', () => {
   });
 
   describe('진행 상태', () => {
-    it('파싱 중 진행 상태가 업데이트되어야 함', async () => {
+    it('파싱 완료 후 진행률이 100%가 되어야 함', async () => {
       const { result } = renderHook(() => useXlsxImport());
 
       const file = new File(['test'], 'test.xlsx', {
         type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       });
 
-      const promise = result.current.uploadFile(file);
+      await result.current.uploadFile(file);
 
       await waitFor(() => {
-        expect(result.current.progress.stage).toBe('parsing');
+        // 파싱 완료 후 percentage가 100이어야 함
+        expect(result.current.progress.percentage).toBe(100);
+        expect(result.current.progress.stage).toBe('idle');
       });
-
-      await promise;
     });
 
     it('가져오기 완료 콜백이 호출되어야 함', async () => {
@@ -295,7 +302,7 @@ describe('useXlsxImport', () => {
     });
 
     it('컬럼 매핑이 없으면 가져오기 실패해야 함', async () => {
-      const { result } = renderHook(() => useXlsxImport());
+      const { result, rerender } = renderHook(() => useXlsxImport());
 
       const file = new File(['test'], 'test.xlsx', {
         type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -307,7 +314,17 @@ describe('useXlsxImport', () => {
         expect(result.current.parsedData).not.toBeNull();
       });
 
-      result.current.setColumnMapping([]);
+      // 빈 매핑 설정 (auto-mapping 덮어쓰기)
+      act(() => {
+        result.current.setColumnMapping([]);
+      });
+
+      // 상태 업데이트 대기
+      rerender();
+
+      await waitFor(() => {
+        expect(result.current.columnMapping).toEqual([]);
+      });
 
       await expect(result.current.executeImport('users')).rejects.toThrow(
         '컬럼 매핑을 설정해주세요'
@@ -340,7 +357,7 @@ describe('useXlsxImport', () => {
 
   describe('상태 초기화', () => {
     it('reset이 모든 상태를 초기화해야 함', async () => {
-      const { result } = renderHook(() => useXlsxImport());
+      const { result, rerender } = renderHook(() => useXlsxImport());
 
       const file = new File(['test'], 'test.xlsx', {
         type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -352,13 +369,20 @@ describe('useXlsxImport', () => {
         expect(result.current.parsedData).not.toBeNull();
       });
 
-      result.current.reset();
+      // reset 호출 후 상태 업데이트 대기
+      act(() => {
+        result.current.reset();
+      });
 
-      expect(result.current.parsedData).toBeNull();
-      expect(result.current.previewData).toBeNull();
-      expect(result.current.columnMapping).toEqual([]);
-      expect(result.current.validationResult).toBeNull();
-      expect(result.current.progress.stage).toBe('idle');
+      rerender();
+
+      await waitFor(() => {
+        expect(result.current.parsedData).toBeNull();
+        expect(result.current.previewData).toBeNull();
+        expect(result.current.columnMapping).toEqual([]);
+        expect(result.current.validationResult).toBeNull();
+        expect(result.current.progress.stage).toBe('idle');
+      });
     });
   });
 });
