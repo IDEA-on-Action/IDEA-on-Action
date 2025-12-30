@@ -22,6 +22,10 @@ import {
   A2UICheckbox,
   A2UIDatePicker,
   A2UITextarea,
+  // 데이터 표시 컴포넌트
+  A2UITable,
+  A2UIList,
+  A2UIListItem,
 } from './components';
 
 // ============================================================================
@@ -162,6 +166,40 @@ const componentRegistry: Record<string, ComponentRenderer> = {
       rows={component.rows as number}
       bind={component.bind as string}
       onChange={component.onChange as Parameters<typeof A2UITextarea>[0]['onChange']}
+      onAction={onAction}
+    />
+  ),
+
+  // 데이터 표시 컴포넌트
+  Table: ({ component, onAction }) => (
+    <A2UITable
+      columns={component.columns as Parameters<typeof A2UITable>[0]['columns']}
+      rows={component.rows as Parameters<typeof A2UITable>[0]['rows']}
+      actions={component.actions as Parameters<typeof A2UITable>[0]['actions']}
+      emptyMessage={component.emptyMessage as string}
+      striped={component.striped as boolean}
+      hoverable={component.hoverable as boolean}
+      onAction={onAction}
+    />
+  ),
+
+  List: ({ component, renderedChildren }) => (
+    <A2UIList
+      variant={component.variant as 'default' | 'bordered' | 'separated'}
+      gap={component.gap as 'none' | 'sm' | 'md' | 'lg'}
+      renderedChildren={renderedChildren}
+    />
+  ),
+
+  ListItem: ({ component, onAction }) => (
+    <A2UIListItem
+      title={component.title as string}
+      description={component.description as string}
+      leading={component.leading as string}
+      trailing={component.trailing as string}
+      clickable={component.clickable as boolean}
+      disabled={component.disabled as boolean}
+      onClick={component.onClick as Parameters<typeof A2UIListItem>[0]['onClick']}
       onAction={onAction}
     />
   ),

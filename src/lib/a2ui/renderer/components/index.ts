@@ -17,3 +17,8 @@ export { A2UISelect } from './A2UISelect';
 export { A2UICheckbox } from './A2UICheckbox';
 export { A2UIDatePicker } from './A2UIDatePicker';
 export { A2UITextarea } from './A2UITextarea';
+
+// 데이터 표시 컴포넌트
+export { A2UITable } from './A2UITable';
+export { A2UIList } from './A2UIList';
+export { A2UIListItem } from './A2UIListItem';

@@ -173,6 +173,33 @@ export const DEFAULT_CATALOG: ComponentCatalog = {
       bindableProps: ['value'],
       actionProps: ['onChange'],
     },
+
+    // ========================================================================
+    // 데이터 표시 컴포넌트
+    // ========================================================================
+    Table: {
+      name: 'Table',
+      description: '데이터 테이블',
+      allowedProps: ['columns', 'rows', 'actions', 'emptyMessage', 'striped', 'hoverable'],
+      allowChildren: false,
+      actionProps: ['actions'],
+    },
+
+    List: {
+      name: 'List',
+      description: '리스트 컨테이너',
+      allowedProps: ['variant', 'gap'],
+      allowChildren: true,
+      allowedChildTypes: ['ListItem'],
+    },
+
+    ListItem: {
+      name: 'ListItem',
+      description: '리스트 아이템',
+      allowedProps: ['title', 'description', 'leading', 'trailing', 'clickable', 'disabled', 'onClick'],
+      allowChildren: false,
+      actionProps: ['onClick'],
+    },
   },
 };
 

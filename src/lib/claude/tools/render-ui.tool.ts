@@ -44,6 +44,11 @@ export const renderUiToolDefinition = {
 - DatePicker: 날짜 선택 (props: label, value, placeholder, disabled, required, bind, onChange)
 - Textarea: 여러 줄 입력 (props: label, placeholder, value, rows, disabled, required, bind, onChange)
 
+데이터 표시 컴포넌트:
+- Table: 데이터 테이블 (props: columns, rows, actions, emptyMessage, striped, hoverable)
+- List: 리스트 컨테이너 (props: variant, gap, children) - children은 ListItem만 허용
+- ListItem: 리스트 아이템 (props: title, description, leading, trailing, clickable, disabled, onClick)
+
 각 컴포넌트는 id(필수), component(필수), 그리고 컴포넌트별 속성을 가집니다.
 children 배열에 다른 컴포넌트의 id를 넣어 중첩 구조를 만들 수 있습니다.
 
@@ -159,6 +164,49 @@ surfaceType 옵션:
             checked: { type: 'boolean' },
             // Textarea props
             rows: { type: 'number' },
+            // Table props
+            columns: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  key: { type: 'string' },
+                  header: { type: 'string' },
+                  width: { type: 'string' },
+                  align: { type: 'string', enum: ['left', 'center', 'right'] },
+                },
+              },
+            },
+            // Table rows (데이터 행 배열)
+            rows: {
+              type: 'array',
+              items: { type: 'object' },
+            },
+            actions: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  id: { type: 'string' },
+                  label: { type: 'string' },
+                  variant: { type: 'string' },
+                  onClick: {
+                    type: 'object',
+                    properties: {
+                      action: { type: 'string' },
+                      data: { type: 'object' },
+                    },
+                  },
+                },
+              },
+            },
+            emptyMessage: { type: 'string' },
+            striped: { type: 'boolean' },
+            hoverable: { type: 'boolean' },
+            // ListItem props
+            leading: { type: 'string' },
+            trailing: { type: 'string' },
+            clickable: { type: 'boolean' },
           },
           required: ['id', 'component'],
         },
