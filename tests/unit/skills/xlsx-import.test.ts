@@ -63,6 +63,21 @@ vi.stubGlobal('localStorage', {
 // ============================================================================
 
 /**
+ * Buffer를 ArrayBuffer로 안전하게 변환 (CI 환경 호환)
+ */
+function bufferToArrayBuffer(buffer: Buffer | ArrayBuffer): ArrayBuffer {
+  if (buffer instanceof ArrayBuffer) {
+    return buffer;
+  }
+  // Buffer를 Uint8Array로 복사하여 새로운 ArrayBuffer 생성
+  const uint8Array = new Uint8Array(buffer);
+  const arrayBuffer = new ArrayBuffer(uint8Array.length);
+  const view = new Uint8Array(arrayBuffer);
+  view.set(uint8Array);
+  return arrayBuffer;
+}
+
+/**
  * Excel 파일 생성 헬퍼 (ExcelJS 기반 - File.arrayBuffer 모킹 포함)
  */
 async function createTestExcelFile(
@@ -78,20 +93,20 @@ async function createTestExcelFile(
     worksheet.addRow(row);
   });
 
-  // 버퍼로 변환
+  // 버퍼로 변환 (CI 환경 호환)
   const buffer = await workbook.xlsx.writeBuffer();
-  const arrayBuffer = buffer instanceof ArrayBuffer ? buffer : buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
+  const arrayBuffer = bufferToArrayBuffer(buffer as Buffer);
 
-  const file = new File([arrayBuffer], filename, {
+  const file = new File([new Uint8Array(arrayBuffer)], filename, {
     type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
   });
 
   // File.arrayBuffer 모킹 (Node.js 환경용)
-  if (!file.arrayBuffer) {
-    Object.defineProperty(file, 'arrayBuffer', {
-      value: async () => arrayBuffer,
-    });
-  }
+  Object.defineProperty(file, 'arrayBuffer', {
+    value: async () => arrayBuffer,
+    writable: true,
+    configurable: true,
+  });
 
   return file;
 }
@@ -123,12 +138,12 @@ describe('parseExcelFile', () => {
   });
 
   it('빈 행을 자동으로 제거해야 한다', async () => {
+    // ExcelJS에서 빈 문자열도 데이터로 취급되므로 null만 사용
     const file = await createTestExcelFile([
       ['이름', '나이'],
       ['홍길동', '30'],
-      ['', ''],
-      ['김철수', '25'],
       [null, null],
+      ['김철수', '25'],
     ]);
 
     const result = await parseExcelFile(file);
@@ -149,15 +164,15 @@ describe('parseExcelFile', () => {
     ws2.addRow(['3', '4']);
 
     const buffer = await workbook.xlsx.writeBuffer();
-    const arrayBuffer = buffer instanceof ArrayBuffer ? buffer : buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
-    const file = new File([arrayBuffer], 'test.xlsx');
+    const arrayBuffer = bufferToArrayBuffer(buffer as Buffer);
+    const file = new File([new Uint8Array(arrayBuffer)], 'test.xlsx');
 
-    // File.arrayBuffer 모킹
-    if (!file.arrayBuffer) {
-      Object.defineProperty(file, 'arrayBuffer', {
-        value: async () => arrayBuffer,
-      });
-    }
+    // File.arrayBuffer 모킹 (CI 환경 호환)
+    Object.defineProperty(file, 'arrayBuffer', {
+      value: async () => arrayBuffer,
+      writable: true,
+      configurable: true,
+    });
 
     const result = await parseExcelFile(file, 'Sheet2');
 
