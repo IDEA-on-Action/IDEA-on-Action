@@ -22,6 +22,8 @@ export interface SidePanelState {
   title: string;
   /** 패널 크기 */
   size: 'sm' | 'md' | 'lg' | 'xl';
+  /** 폼 데이터 (바인딩된 값들) */
+  formData: Record<string, unknown>;
 }
 
 export interface UseA2UIOptions {
@@ -50,6 +52,10 @@ export interface UseA2UIReturn {
   openSidePanel: (message: A2UIMessage, title?: string, size?: SidePanelState['size']) => void;
   /** 사이드 패널 닫기 */
   closeSidePanel: () => void;
+  /** 사이드 패널 폼 데이터 업데이트 */
+  updateSidePanelFormData: (path: string, value: unknown) => void;
+  /** Surface 폼 데이터 가져오기 */
+  getFormData: (surfaceId: string) => Record<string, unknown>;
 }
 
 // ============================================================================
@@ -65,6 +71,7 @@ export function useA2UI(options: UseA2UIOptions = {}): UseA2UIReturn {
     message: null,
     title: '상세 정보',
     size: 'md',
+    formData: {},
   });
 
   // Surface 상태
@@ -92,6 +99,7 @@ export function useA2UI(options: UseA2UIOptions = {}): UseA2UIReturn {
         message,
         title: title || '상세 정보',
         size: size || 'md',
+        formData: message.data || {}, // 초기 데이터로 시작
       });
     },
     []
@@ -104,6 +112,29 @@ export function useA2UI(options: UseA2UIOptions = {}): UseA2UIReturn {
       isOpen: false,
     }));
   }, []);
+
+  // 사이드 패널 폼 데이터 업데이트
+  const updateSidePanelFormData = useCallback((path: string, value: unknown) => {
+    setSidePanel((prev) => ({
+      ...prev,
+      formData: {
+        ...prev.formData,
+        [path]: value,
+      },
+    }));
+  }, []);
+
+  // Surface 폼 데이터 가져오기
+  const getFormData = useCallback((surfaceId: string): Record<string, unknown> => {
+    // 사이드 패널의 경우
+    if (sidePanel.message?.surfaceId === surfaceId) {
+      return sidePanel.formData;
+    }
+
+    // 일반 Surface의 경우
+    const surface = surfaces.get(surfaceId);
+    return surface?.data || {};
+  }, [sidePanel, surfaces]);
 
   // 메시지 추가 (Surface 생성/업데이트)
   const addMessage = useCallback(
@@ -217,8 +248,10 @@ export function useA2UI(options: UseA2UIOptions = {}): UseA2UIReturn {
       sidePanel,
       openSidePanel,
       closeSidePanel,
+      updateSidePanelFormData,
+      getFormData,
     }),
-    [surfaces, addMessage, updateData, removeSurface, clearAll, handleAction, sidePanel, openSidePanel, closeSidePanel]
+    [surfaces, addMessage, updateData, removeSurface, clearAll, handleAction, sidePanel, openSidePanel, closeSidePanel, updateSidePanelFormData, getFormData]
   );
 }
 

@@ -1,4 +1,5 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { AIChatButton } from './AIChatButton';
 import { AIChatWindow } from './AIChatWindow';
 import { AIChatToolStatus } from './AIChatToolStatus';
@@ -39,6 +40,7 @@ export function AIChatWidget({ config }: AIChatWidgetProps) {
   const [messages, setMessages] = useState<AIChatMessage[]>([]);
   const [executingTool, setExecutingTool] = useState<string | null>(null);
 
+  const navigate = useNavigate();
   const { user } = useAuth();
   const pageContext = usePageContext();
 
@@ -48,12 +50,88 @@ export function AIChatWidget({ config }: AIChatWidgetProps) {
     openSidePanel,
     closeSidePanel,
     handleAction: handleA2UIAction,
+    getFormData,
+    updateSidePanelFormData,
   } = useA2UI({
     onAction: (action) => {
       console.log('[AIChatWidget] A2UI 액션:', action);
-      // TODO: Claude에게 액션 피드백 전달
+      handleA2UIActionCallback(action);
     },
   });
+
+  // 액션 피드백 처리 (useCallback으로 감싸서 의존성 관리)
+  const handleA2UIActionCallback = useCallback((action: A2UIUserAction) => {
+    // navigate 액션: 페이지 이동
+    if (action.action === 'navigate') {
+      const path = action.data?.path as string;
+      if (path) {
+        navigate(path);
+        return;
+      }
+    }
+
+    // submit 액션: 폼 데이터 수집 후 Claude에게 전달
+    if (action.action === 'submit') {
+      const surfaceId = action.data?.surfaceId as string;
+      const formData = surfaceId ? getFormData(surfaceId) : sidePanel.formData;
+
+      // Claude에게 폼 제출 결과 전달
+      const feedbackMessage = `[A2UI 폼 제출] ${action.data?.formName || '폼'}\n\n제출된 데이터:\n${JSON.stringify(formData, null, 2)}`;
+
+      // 사용자 메시지로 추가하여 Claude에게 전달
+      const userMessage: AIChatMessage = {
+        id: crypto.randomUUID(),
+        role: 'user',
+        content: feedbackMessage,
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, userMessage]);
+
+      // AI 응답 준비
+      const assistantMessage: AIChatMessage = {
+        id: crypto.randomUUID(),
+        role: 'assistant',
+        content: '',
+        timestamp: new Date(),
+        isStreaming: true,
+      };
+      setMessages((prev) => [...prev, assistantMessage]);
+
+      // Claude API 호출
+      claudeSendMessageRef.current?.(feedbackMessage);
+      return;
+    }
+
+    // cancel 액션: 사이드 패널 닫기
+    if (action.action === 'cancel') {
+      closeSidePanel();
+      return;
+    }
+
+    // 기타 액션: Claude에게 알림
+    if (['view_issue', 'view_event', 'view_project', 'view_service', 'create_issue', 'create_event'].includes(action.action)) {
+      const feedbackMessage = `[A2UI 액션] ${action.action}\n\n데이터: ${JSON.stringify(action.data, null, 2)}`;
+
+      const userMessage: AIChatMessage = {
+        id: crypto.randomUUID(),
+        role: 'user',
+        content: feedbackMessage,
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, userMessage]);
+
+      const assistantMessage: AIChatMessage = {
+        id: crypto.randomUUID(),
+        role: 'assistant',
+        content: '',
+        timestamp: new Date(),
+        isStreaming: true,
+      };
+      setMessages((prev) => [...prev, assistantMessage]);
+
+      claudeSendMessageRef.current?.(feedbackMessage);
+    }
+  }, [navigate, getFormData, sidePanel.formData, closeSidePanel]);
 
   // Tool Use 기능 활성화 여부 (Feature Flag)
   const isToolUseEnabled = import.meta.env.VITE_FEATURE_TOOL_USE === 'true';
@@ -171,6 +249,12 @@ export function AIChatWidget({ config }: AIChatWidgetProps) {
       });
     },
   });
+
+  // claudeSendMessage를 ref로 저장 (콜백에서 사용하기 위해)
+  const claudeSendMessageRef = useRef(claudeSendMessage);
+  useEffect(() => {
+    claudeSendMessageRef.current = claudeSendMessage;
+  }, [claudeSendMessage]);
 
   // Conversation Manager 비활성화 - 403 오류 방지 (ai_conversations RLS)
   // TODO: 대화 저장 기능 활성화 시 조건부로 다시 추가
