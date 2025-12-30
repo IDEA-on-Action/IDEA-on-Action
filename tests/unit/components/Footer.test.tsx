@@ -122,8 +122,8 @@ describe('Footer Component', () => {
     const footer = screen.getByRole('contentinfo');
     expect(footer).toBeInTheDocument();
 
-    // Check for headings
-    const headings = screen.getAllByRole('heading', { level: 4 });
+    // Check for headings (h3 for better semantic structure)
+    const headings = screen.getAllByRole('heading', { level: 3 });
     expect(headings).toHaveLength(5); // 서비스, 회사, 리소스, 법적 정보, 뉴스레터 구독
   });
 
@@ -264,7 +264,7 @@ describe('Footer Component', () => {
   it('has proper section headings', () => {
     render(<Footer />);
 
-    const headings = screen.getAllByRole('heading', { level: 4 });
+    const headings = screen.getAllByRole('heading', { level: 3 });
     expect(headings).toHaveLength(5);
 
     const headingTexts = headings.map(heading => heading.textContent);
