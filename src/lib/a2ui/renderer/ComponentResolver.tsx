@@ -16,6 +16,12 @@ import {
   A2UIRow,
   A2UIColumn,
   A2UISeparator,
+  // 폼 컴포넌트
+  A2UITextField,
+  A2UISelect,
+  A2UICheckbox,
+  A2UIDatePicker,
+  A2UITextarea,
 } from './components';
 
 // ============================================================================
@@ -90,6 +96,73 @@ const componentRegistry: Record<string, ComponentRenderer> = {
   Separator: ({ component }) => (
     <A2UISeparator
       orientation={component.orientation as 'horizontal' | 'vertical'}
+    />
+  ),
+
+  // 폼 컴포넌트
+  TextField: ({ component, onAction }) => (
+    <A2UITextField
+      label={component.label as string}
+      placeholder={component.placeholder as string}
+      value={component.value as string}
+      disabled={component.disabled as boolean}
+      required={component.required as boolean}
+      type={component.type as 'text' | 'email' | 'password' | 'number' | 'tel' | 'url'}
+      bind={component.bind as string}
+      onChange={component.onChange as Parameters<typeof A2UITextField>[0]['onChange']}
+      onAction={onAction}
+    />
+  ),
+
+  Select: ({ component, onAction }) => (
+    <A2UISelect
+      label={component.label as string}
+      placeholder={component.placeholder as string}
+      value={component.value as string}
+      options={component.options as Parameters<typeof A2UISelect>[0]['options']}
+      disabled={component.disabled as boolean}
+      required={component.required as boolean}
+      bind={component.bind as string}
+      onChange={component.onChange as Parameters<typeof A2UISelect>[0]['onChange']}
+      onAction={onAction}
+    />
+  ),
+
+  Checkbox: ({ component, onAction }) => (
+    <A2UICheckbox
+      label={component.label as string}
+      checked={component.checked as boolean}
+      disabled={component.disabled as boolean}
+      bind={component.bind as string}
+      onChange={component.onChange as Parameters<typeof A2UICheckbox>[0]['onChange']}
+      onAction={onAction}
+    />
+  ),
+
+  DatePicker: ({ component, onAction }) => (
+    <A2UIDatePicker
+      label={component.label as string}
+      value={component.value as string}
+      disabled={component.disabled as boolean}
+      required={component.required as boolean}
+      placeholder={component.placeholder as string}
+      bind={component.bind as string}
+      onChange={component.onChange as Parameters<typeof A2UIDatePicker>[0]['onChange']}
+      onAction={onAction}
+    />
+  ),
+
+  Textarea: ({ component, onAction }) => (
+    <A2UITextarea
+      label={component.label as string}
+      placeholder={component.placeholder as string}
+      value={component.value as string}
+      disabled={component.disabled as boolean}
+      required={component.required as boolean}
+      rows={component.rows as number}
+      bind={component.bind as string}
+      onChange={component.onChange as Parameters<typeof A2UITextarea>[0]['onChange']}
+      onAction={onAction}
     />
   ),
 };

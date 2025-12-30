@@ -125,6 +125,54 @@ export const DEFAULT_CATALOG: ComponentCatalog = {
       allowedProps: ['orientation'],
       allowChildren: false,
     },
+
+    // ========================================================================
+    // 폼 컴포넌트
+    // ========================================================================
+    TextField: {
+      name: 'TextField',
+      description: '텍스트 입력 필드',
+      allowedProps: ['label', 'placeholder', 'value', 'disabled', 'required', 'type', 'bind', 'onChange'],
+      allowChildren: false,
+      bindableProps: ['value'],
+      actionProps: ['onChange'],
+    },
+
+    Select: {
+      name: 'Select',
+      description: '선택 드롭다운',
+      allowedProps: ['label', 'placeholder', 'value', 'options', 'disabled', 'required', 'bind', 'onChange'],
+      allowChildren: false,
+      bindableProps: ['value'],
+      actionProps: ['onChange'],
+    },
+
+    Checkbox: {
+      name: 'Checkbox',
+      description: '체크박스',
+      allowedProps: ['label', 'checked', 'disabled', 'bind', 'onChange'],
+      allowChildren: false,
+      bindableProps: ['checked'],
+      actionProps: ['onChange'],
+    },
+
+    DatePicker: {
+      name: 'DatePicker',
+      description: '날짜 선택기',
+      allowedProps: ['label', 'value', 'disabled', 'required', 'placeholder', 'bind', 'onChange'],
+      allowChildren: false,
+      bindableProps: ['value'],
+      actionProps: ['onChange'],
+    },
+
+    Textarea: {
+      name: 'Textarea',
+      description: '여러 줄 텍스트 입력',
+      allowedProps: ['label', 'placeholder', 'value', 'disabled', 'required', 'rows', 'bind', 'onChange'],
+      allowChildren: false,
+      bindableProps: ['value'],
+      actionProps: ['onChange'],
+    },
   },
 };
 
