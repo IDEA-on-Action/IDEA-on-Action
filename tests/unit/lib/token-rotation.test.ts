@@ -198,22 +198,34 @@ describe('calculateRetryStrategy', () => {
 describe('scheduleRotation', () => {
   let scheduler: TokenRotationScheduler;
   let mockOnRotate: ReturnType<typeof vi.fn>;
+  let originalLocalStorage: Storage;
+  let mockLocalStorage: Record<string, string>;
 
   beforeEach(() => {
     vi.useFakeTimers();
 
-    // localStorage mock - 로테이션이 필요한 토큰 반환
-    vi.spyOn(Storage.prototype, 'getItem').mockImplementation((key) => {
-      if (key === 'mcp_oauth_tokens') {
-        const now = Date.now();
-        return JSON.stringify(
-          createMockToken({
-            created_at: now - 60 * 60 * 1000, // 1시간 전 생성
-            expires_at: now + 60 * 1000, // 1분 후 만료 (로테이션 필요)
-          })
-        );
-      }
-      return null;
+    // localStorage mock 설정
+    originalLocalStorage = window.localStorage;
+    mockLocalStorage = {};
+    const now = Date.now();
+    mockLocalStorage['mcp_oauth_tokens'] = JSON.stringify(
+      createMockToken({
+        created_at: now - 60 * 60 * 1000, // 1시간 전 생성
+        expires_at: now + 60 * 1000, // 1분 후 만료 (로테이션 필요)
+      })
+    );
+
+    Object.defineProperty(window, 'localStorage', {
+      value: {
+        getItem: vi.fn((key: string) => mockLocalStorage[key] ?? null),
+        setItem: vi.fn((key: string, value: string) => { mockLocalStorage[key] = value; }),
+        removeItem: vi.fn((key: string) => { delete mockLocalStorage[key]; }),
+        clear: vi.fn(() => { mockLocalStorage = {}; }),
+        length: 0,
+        key: vi.fn(),
+      },
+      writable: true,
+      configurable: true,
     });
 
     mockOnRotate = vi.fn().mockResolvedValue(createMockTokenResponse());
@@ -223,6 +235,11 @@ describe('scheduleRotation', () => {
     if (scheduler) {
       cancelRotation(scheduler);
     }
+    Object.defineProperty(window, 'localStorage', {
+      value: originalLocalStorage,
+      writable: true,
+      configurable: true,
+    });
     vi.restoreAllMocks();
     vi.useRealTimers();
   });
