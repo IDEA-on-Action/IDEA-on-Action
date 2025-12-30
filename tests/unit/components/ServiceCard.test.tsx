@@ -5,30 +5,29 @@ import { ServiceCard } from '@/components/services/ServiceCard';
 import type { ServiceWithCategory } from '@/types/database';
 
 describe('ServiceCard', () => {
-  // 테스트마다 고유한 mock 데이터 생성
-  let testId = 0;
+  // 테스트마다 고유한 mock 데이터 생성 (랜덤 ID 사용으로 샤드 간 충돌 방지)
   const createMockService = (): ServiceWithCategory => {
-    testId++;
+    const uniqueId = `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
     return {
-      id: `test-${testId}`,
-      title: `테스트 서비스 ${testId}`,
-      description: `이것은 테스트 서비스 ${testId}입니다.`,
-      price: 100000 + testId,
+      id: `test-${uniqueId}`,
+      title: `테스트 서비스 ${uniqueId}`,
+      description: `이것은 테스트 서비스 ${uniqueId}입니다.`,
+      price: 100000 + Math.floor(Math.random() * 1000),
       image_url: 'https://example.com/image.jpg',
-      category_id: `cat-${testId}`,
+      category_id: `cat-${uniqueId}`,
       status: 'active',
       created_at: '2024-01-01',
       updated_at: '2024-01-01',
       category: {
-        id: `cat-${testId}`,
-        name: `AI 솔루션 ${testId}`,
-        slug: `ai-solution-${testId}`,
+        id: `cat-${uniqueId}`,
+        name: `AI 솔루션 ${uniqueId}`,
+        slug: `ai-solution-${uniqueId}`,
         description: 'AI 기반 솔루션',
         created_at: '2024-01-01',
       },
       metrics: {
-        users: 1000 + testId,
-        satisfaction: 4.8,
+        users: 1000 + Math.floor(Math.random() * 1000),
+        satisfaction: 4.5 + Math.random() * 0.5, // 4.5 ~ 5.0 사이
       },
     };
   };
