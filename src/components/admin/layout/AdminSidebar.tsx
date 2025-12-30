@@ -47,6 +47,7 @@ import {
   DollarSign,
   Plug,
   MessageSquare,
+  Database,
 } from 'lucide-react';
 import logoSymbol from '@/assets/logo-symbol.png';
 import { cn } from '@/lib/utils';
@@ -100,6 +101,7 @@ const MENU_SECTIONS: { title: string; items: AdminMenuItem[] }[] = [
       { label: '분석', path: '/admin/analytics', icon: Activity, permission: 'system:read' },
       { label: '매출', path: '/admin/revenue', icon: DollarSign, permission: 'order:read' },
       { label: '실시간', path: '/admin/realtime', icon: BarChart3, permission: 'system:read' },
+      { label: 'D1 모니터링', path: '/admin/d1', icon: Database, permission: 'system:manage' },
     ],
   },
   {

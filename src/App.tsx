@@ -172,6 +172,7 @@ const AdminMedia = lazy(() => import("./pages/admin/AdminMedia"));
 const AdminIntegrations = lazy(() => import("./pages/admin/AdminIntegrations"));
 const CentralHubDashboard = lazy(() => import("./pages/admin/CentralHubDashboard"));
 const AdminPromptTemplates = lazy(() => import("./pages/admin/AdminPromptTemplates"));
+const D1Dashboard = lazy(() => import("./pages/admin/D1Dashboard"));
 
 // Sentry 초기화 - Phase 3: 프로덕션 환경에서만 동적 로딩
 if (import.meta.env.PROD) {
@@ -345,6 +346,7 @@ const App = () => (
                   <Route path="analytics" element={<Analytics />} />
                   <Route path="revenue" element={<Revenue />} />
                   <Route path="realtime" element={<RealtimeDashboard />} />
+                  <Route path="d1" element={<D1Dashboard />} />
                   <Route path="media" element={<AdminMedia />} />
                   <Route path="integrations" element={<AdminIntegrations />} />
                   <Route path="central-hub" element={<CentralHubDashboard />} />

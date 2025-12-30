@@ -322,4 +322,161 @@ admin.post('/permissions/check', async (c) => {
   }
 });
 
+/**
+ * D1 데이터베이스 통계 조회 (관리자용)
+ * 테이블 수, 행 수, 용량 등 데이터베이스 상태 정보
+ */
+admin.get('/d1/stats', async (c) => {
+  const db = c.env.DB;
+
+  try {
+    // 테이블 목록 조회
+    const tablesResult = await db
+      .prepare(`SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '_cf_%'`)
+      .all<{ name: string }>();
+
+    const tables = tablesResult.results || [];
+
+    // 각 테이블의 행 수 조회
+    const tableStats = await Promise.all(
+      tables.map(async (table) => {
+        try {
+          const countResult = await db
+            .prepare(`SELECT COUNT(*) as count FROM "${table.name}"`)
+            .first<{ count: number }>();
+          return {
+            name: table.name,
+            rows: countResult?.count ?? 0,
+          };
+        } catch {
+          return { name: table.name, rows: 0 };
+        }
+      })
+    );
+
+    // 총 행 수 계산
+    const totalRows = tableStats.reduce((sum, t) => sum + t.rows, 0);
+
+    // 상위 10개 테이블 (행 수 기준)
+    const topTables = [...tableStats]
+      .sort((a, b) => b.rows - a.rows)
+      .slice(0, 10);
+
+    return c.json({
+      database: {
+        name: 'idea-on-action-db',
+        region: 'APAC',
+        version: 'production',
+      },
+      stats: {
+        totalTables: tables.length,
+        totalRows,
+        timestamp: new Date().toISOString(),
+      },
+      topTables,
+      allTables: tableStats.sort((a, b) => a.name.localeCompare(b.name)),
+    });
+  } catch (error) {
+    console.error('[Admin API] D1 통계 조회 오류:', error);
+    return c.json({
+      error: 'Internal Server Error',
+      message: 'D1 통계 조회 중 오류가 발생했습니다.',
+      success: false,
+    }, 500);
+  }
+});
+
+/**
+ * D1 테이블 상세 정보 조회 (관리자용)
+ */
+admin.get('/d1/tables/:tableName', async (c) => {
+  const db = c.env.DB;
+  const tableName = c.req.param('tableName');
+
+  try {
+    // 테이블 스키마 조회
+    const schemaResult = await db
+      .prepare(`PRAGMA table_info("${tableName}")`)
+      .all<{ cid: number; name: string; type: string; notnull: number; dflt_value: string | null; pk: number }>();
+
+    // 행 수 조회
+    const countResult = await db
+      .prepare(`SELECT COUNT(*) as count FROM "${tableName}"`)
+      .first<{ count: number }>();
+
+    // 인덱스 조회
+    const indexResult = await db
+      .prepare(`PRAGMA index_list("${tableName}")`)
+      .all<{ seq: number; name: string; unique: number }>();
+
+    // 최근 5개 행 샘플
+    const sampleResult = await db
+      .prepare(`SELECT * FROM "${tableName}" LIMIT 5`)
+      .all();
+
+    return c.json({
+      table: tableName,
+      rowCount: countResult?.count ?? 0,
+      columns: schemaResult.results || [],
+      indexes: indexResult.results || [],
+      sampleData: sampleResult.results || [],
+    });
+  } catch (error) {
+    console.error(`[Admin API] D1 테이블 ${tableName} 조회 오류:`, error);
+    return c.json({
+      error: 'Internal Server Error',
+      message: `테이블 ${tableName} 조회 중 오류가 발생했습니다.`,
+      success: false,
+    }, 500);
+  }
+});
+
+/**
+ * D1 쿼리 실행 (관리자용, 읽기 전용)
+ */
+admin.post('/d1/query', async (c) => {
+  const db = c.env.DB;
+  const body = await c.req.json<{ query: string }>();
+
+  if (!body.query) {
+    return c.json({
+      error: 'Bad Request',
+      message: 'query가 필요합니다.',
+      success: false,
+    }, 400);
+  }
+
+  // 쓰기 명령어 차단 (안전성)
+  const writeKeywords = ['INSERT', 'UPDATE', 'DELETE', 'DROP', 'ALTER', 'CREATE', 'TRUNCATE'];
+  const upperQuery = body.query.toUpperCase().trim();
+  if (writeKeywords.some(keyword => upperQuery.startsWith(keyword))) {
+    return c.json({
+      error: 'Forbidden',
+      message: '읽기 전용 쿼리만 허용됩니다.',
+      success: false,
+    }, 403);
+  }
+
+  try {
+    const startTime = Date.now();
+    const result = await db.prepare(body.query).all();
+    const duration = Date.now() - startTime;
+
+    return c.json({
+      success: true,
+      rows: result.results || [],
+      rowCount: result.results?.length ?? 0,
+      duration: `${duration}ms`,
+      meta: result.meta,
+    });
+  } catch (error) {
+    console.error('[Admin API] D1 쿼리 실행 오류:', error);
+    return c.json({
+      error: 'Query Error',
+      message: error instanceof Error ? error.message : '쿼리 실행 중 오류가 발생했습니다.',
+      success: false,
+    }, 400);
+  }
+});
+
 export default admin;
