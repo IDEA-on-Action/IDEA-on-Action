@@ -3,49 +3,42 @@
 > 반복 간 진행 상황 전달을 위한 공유 메모
 
 **마지막 업데이트**: 2025-12-30
-**현재 버전**: v3.0.0 (Unit 테스트 수정 진행 중)
+**현재 버전**: v3.0.1 (Unit 테스트 수정 완료)
 
 ---
 
 ## 현재 목표
 
-v3.0.x: CI Unit Tests 통과 (현재 4개 샤드 모두 실패)
+v3.0.x: CI Unit Tests 통과 - 로컬 테스트 모두 통과 ✅
 
 ---
 
-## 진행 중인 작업 (CI 테스트 수정)
+## 완료된 CI 테스트 수정
 
-### 완료된 수정 (로컬 통과, CI 검증 중)
+### 이번 세션에서 수정 완료
+
+- **useTheme.test.tsx** - next-themes 모킹 리팩토링 ✅
+  - `document.documentElement` 직접 모킹 → `next-themes` 모킹으로 변경
+  - `mockState` 객체로 상태 관리
+  - `rerender()` 사용하여 상태 변경 후 확인
+  - 10개 테스트 모두 통과
+
+- **useMCPToken.test.tsx** - 엔드포인트 URL 업데이트 ✅
+  - `/functions/v1/oauth-token` → `/api/v1/oauth/token` (Workers API)
+  - `global` → `globalThis` 린트 수정
+  - 불필요한 `waitFor` import 제거
+  - 19개 테스트 모두 통과
+
+- **token-rotation.test.ts** - 이미 통과 확인 ✅
+  - 25개 테스트 모두 통과
+
+### 이전 세션에서 수정 완료
 
 1. **ServiceCard.test.tsx** - 완전 리팩토링
-   - 고유 데이터로 각 테스트 격리
-   - `MemoryRouter` 사용 (BrowserRouter 대신)
-   - `document.body.innerHTML = ''` 강제 cleanup
-
 2. **Footer.test.tsx** - 쿼리 정확도 개선
-   - `/프로필|이메일/` → `/프로필 방문하기|이메일 보내기/`
-   - 뉴스레터 입력 필드 오탐 방지
-
 3. **useDocxGenerate.test.tsx** - 비동기 처리 수정
-   - `act()` import 추가
-   - reset 테스트 `waitFor()` 래핑
-   - 에러 테스트 `Packer.toBlob` 모킹
-
 4. **useXlsxImport.test.tsx** - 상태 업데이트 래핑
-   - `act()` import 추가
-   - `setColumnMapping` 호출 `act()` 래핑
-
 5. **token-rotation.test.ts** - localStorage 모킹 변경
-   - `vi.spyOn(Storage.prototype)` → `Object.defineProperty(window, 'localStorage')`
-   - 직접 localStorage 객체 모킹
-
-### 남은 CI 테스트 실패 (추가 수정 필요)
-
-| 테스트 파일 | 에러 유형 | 예상 원인 |
-|------------|----------|----------|
-| `useTheme.test.tsx` | `expected 'system' to be 'dark'`, 타임아웃 | 테마 초기화 타이밍, `matchMedia` 모킹 |
-| `useMCPToken.test.tsx` | spy 호출 실패, fetch 모킹 | 동적 import 또는 모듈 캐시 문제 |
-| `token-rotation.test.ts` | "No token available" | CI 환경 localStorage 접근 문제 |
 
 ---
 

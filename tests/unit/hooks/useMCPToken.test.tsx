@@ -9,7 +9,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { renderHook, waitFor, act } from '@testing-library/react';
+import { renderHook, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import useMCPToken from '@/hooks/useMCPToken';
 import type { OAuthTokenResponse, ExchangeCodeParams } from '@/types/mcp-auth.types';
@@ -27,7 +27,7 @@ vi.mock('@/hooks/useAuth', () => ({
 
 // Mock fetch
 const mockFetch = vi.fn();
-global.fetch = mockFetch;
+globalThis.fetch = mockFetch;
 
 // Mock localStorage
 const localStorageMock = (() => {
@@ -47,7 +47,7 @@ const localStorageMock = (() => {
   };
 })();
 
-Object.defineProperty(window, 'localStorage', {
+Object.defineProperty(globalThis, 'localStorage', {
   value: localStorageMock,
 });
 
@@ -439,7 +439,7 @@ describe('useMCPToken', () => {
 
       expect(token).toBe(newTokenResponse.access_token);
       expect(mockFetch).toHaveBeenCalledWith(
-        '/functions/v1/oauth-token',
+        expect.stringContaining('/api/v1/oauth/token'),
         expect.objectContaining({
           method: 'POST',
           body: expect.stringContaining('refresh_token'),

@@ -1,56 +1,41 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { renderHook, act, waitFor } from '@testing-library/react'
+import { renderHook, act } from '@testing-library/react'
+
+// next-themes 모킹 상태
+const mockState = {
+  theme: 'system' as string | undefined,
+  resolvedTheme: 'light' as string | undefined,
+  systemTheme: undefined as 'light' | 'dark' | undefined,
+  setTheme: vi.fn(),
+}
+
+vi.mock('next-themes', () => ({
+  useTheme: () => ({
+    get theme() { return mockState.theme },
+    get resolvedTheme() { return mockState.resolvedTheme },
+    get systemTheme() { return mockState.systemTheme },
+    setTheme: (newTheme: string) => {
+      mockState.setTheme(newTheme)
+      mockState.theme = newTheme
+      if (newTheme === 'system') {
+        mockState.resolvedTheme = mockState.systemTheme || 'light'
+      } else {
+        mockState.resolvedTheme = newTheme
+      }
+    },
+  }),
+}))
+
+// 훅 import는 mock 후에 해야 함
 import { useTheme } from '@/hooks/useTheme'
 
 describe('useTheme', () => {
-  // localStorage 모킹
-  let localStorageMock: { [key: string]: string } = {}
-
   beforeEach(() => {
-    // localStorage 초기화
-    localStorageMock = {}
-
-    // localStorage 메서드 모킹
-    global.localStorage = {
-      getItem: vi.fn((key: string) => localStorageMock[key] || null),
-      setItem: vi.fn((key: string, value: string) => {
-        localStorageMock[key] = value
-      }),
-      removeItem: vi.fn((key: string) => {
-        delete localStorageMock[key]
-      }),
-      clear: vi.fn(() => {
-        localStorageMock = {}
-      }),
-      length: 0,
-      key: vi.fn(),
-    }
-
-    // matchMedia 모킹
-    Object.defineProperty(window, 'matchMedia', {
-      writable: true,
-      value: vi.fn().mockImplementation((query: string) => ({
-        matches: false,
-        media: query,
-        onchange: null,
-        addListener: vi.fn(),
-        removeListener: vi.fn(),
-        addEventListener: vi.fn(),
-        removeEventListener: vi.fn(),
-        dispatchEvent: vi.fn(),
-      })),
-    })
-
-    // document.documentElement 모킹
-    Object.defineProperty(document, 'documentElement', {
-      writable: true,
-      value: {
-        classList: {
-          toggle: vi.fn(),
-        },
-        setAttribute: vi.fn(),
-      },
-    })
+    // 초기 상태 리셋
+    mockState.theme = 'system'
+    mockState.resolvedTheme = 'light'
+    mockState.systemTheme = undefined
+    mockState.setTheme.mockClear()
   })
 
   afterEach(() => {
@@ -64,32 +49,35 @@ describe('useTheme', () => {
     expect(result.current.resolvedTheme).toBe('light')
   })
 
-  it('localStorage에 저장된 테마를 불러와야 함', async () => {
-    // localStorage에 dark 테마 저장
-    localStorageMock['vibe-working-theme'] = 'dark'
+  it('저장된 테마를 불러와야 함', () => {
+    // dark 테마 상태로 설정
+    mockState.theme = 'dark'
+    mockState.resolvedTheme = 'dark'
 
     const { result } = renderHook(() => useTheme())
 
-    await waitFor(() => {
-      expect(result.current.theme).toBe('dark')
-    })
+    expect(result.current.theme).toBe('dark')
+    expect(result.current.resolvedTheme).toBe('dark')
   })
 
-  it('테마를 변경하고 localStorage에 저장해야 함', () => {
-    const { result } = renderHook(() => useTheme())
+  it('테마를 변경해야 함', () => {
+    const { result, rerender } = renderHook(() => useTheme())
 
     act(() => {
       result.current.setTheme('dark')
     })
 
+    expect(mockState.setTheme).toHaveBeenCalledWith('dark')
+
+    // rerender 후 상태 확인
+    rerender()
     expect(result.current.theme).toBe('dark')
-    expect(localStorage.setItem).toHaveBeenCalledWith('vibe-working-theme', 'dark')
   })
 
   it('toggleTheme이 light와 dark를 전환해야 함', () => {
-    const { result } = renderHook(() => useTheme())
+    const { result, rerender } = renderHook(() => useTheme())
 
-    // 초기 상태: light
+    // 초기 상태: light (resolvedTheme 기준)
     expect(result.current.resolvedTheme).toBe('light')
 
     // dark로 전환
@@ -97,6 +85,10 @@ describe('useTheme', () => {
       result.current.toggleTheme()
     })
 
+    expect(mockState.setTheme).toHaveBeenCalledWith('dark')
+
+    // rerender 후 상태 확인
+    rerender()
     expect(result.current.theme).toBe('dark')
 
     // light로 다시 전환
@@ -104,121 +96,82 @@ describe('useTheme', () => {
       result.current.toggleTheme()
     })
 
+    expect(mockState.setTheme).toHaveBeenCalledWith('light')
+
+    rerender()
     expect(result.current.theme).toBe('light')
-  })
-
-  it.skip('시스템 테마 변경을 감지해야 함', async () => {
-    // 이벤트 리스너 동작이 비동기 환경에서 예측하기 어려워 skip
-    const listeners: Array<(e: MediaQueryListEvent) => void> = []
-
-    // matchMedia 이벤트 리스너 모킹
-    Object.defineProperty(window, 'matchMedia', {
-      writable: true,
-      value: vi.fn().mockImplementation(() => ({
-        matches: false,
-        media: '(prefers-color-scheme: dark)',
-        onchange: null,
-        addListener: vi.fn(),
-        removeListener: vi.fn(),
-        addEventListener: vi.fn((event: string, listener: (e: MediaQueryListEvent) => void) => {
-          if (event === 'change') {
-            listeners.push(listener)
-          }
-        }),
-        removeEventListener: vi.fn(),
-        dispatchEvent: vi.fn(),
-      })),
-    })
-
-    const { result } = renderHook(() => useTheme())
-
-    // 초기 상태 확인
-    expect(result.current.theme).toBe('system')
-
-    // 시스템 테마가 dark로 변경되었다고 시뮬레이션
-    await act(async () => {
-      listeners.forEach((listener) => {
-        listener({
-          matches: true,
-          media: '(prefers-color-scheme: dark)',
-        } as MediaQueryListEvent)
-      })
-    })
-
-    // resolvedTheme이 업데이트되는 것을 확인
-    expect(result.current.resolvedTheme).toBe('dark')
-  })
-
-  it('dark 테마 설정 시 document에 dark 클래스를 추가해야 함', () => {
-    const { result } = renderHook(() => useTheme())
-
-    act(() => {
-      result.current.setTheme('dark')
-    })
-
-    expect(document.documentElement.classList.toggle).toHaveBeenCalledWith('dark', true)
-    expect(document.documentElement.setAttribute).toHaveBeenCalledWith('data-theme', 'dark')
-  })
-
-  it('light 테마 설정 시 document에서 dark 클래스를 제거해야 함', () => {
-    const { result } = renderHook(() => useTheme())
-
-    act(() => {
-      result.current.setTheme('light')
-    })
-
-    expect(document.documentElement.classList.toggle).toHaveBeenCalledWith('dark', false)
-    expect(document.documentElement.setAttribute).toHaveBeenCalledWith('data-theme', 'light')
   })
 
   it('system 테마는 시스템 설정을 따라야 함', () => {
     // 시스템이 dark 모드일 때
-    Object.defineProperty(window, 'matchMedia', {
-      writable: true,
-      value: vi.fn().mockImplementation(() => ({
-        matches: true, // dark 모드
-        media: '(prefers-color-scheme: dark)',
-        onchange: null,
-        addListener: vi.fn(),
-        removeListener: vi.fn(),
-        addEventListener: vi.fn(),
-        removeEventListener: vi.fn(),
-        dispatchEvent: vi.fn(),
-      })),
-    })
+    mockState.systemTheme = 'dark'
+    mockState.theme = 'system'
+    mockState.resolvedTheme = 'dark'
 
     const { result } = renderHook(() => useTheme())
+
+    expect(result.current.theme).toBe('system')
+    expect(result.current.resolvedTheme).toBe('dark')
+    expect(result.current.systemTheme).toBe('dark')
+  })
+
+  it('system 테마 설정 시 resolvedTheme이 시스템 테마를 반영해야 함', () => {
+    mockState.systemTheme = 'dark'
+
+    const { result, rerender } = renderHook(() => useTheme())
 
     act(() => {
       result.current.setTheme('system')
     })
 
+    expect(mockState.setTheme).toHaveBeenCalledWith('system')
+
+    rerender()
     expect(result.current.theme).toBe('system')
-    // 시스템이 dark이므로 resolvedTheme도 dark여야 함
     expect(result.current.resolvedTheme).toBe('dark')
   })
 
-  it('언마운트 시 이벤트 리스너를 제거해야 함', () => {
-    const removeEventListenerMock = vi.fn()
+  it('light 테마 설정이 동작해야 함', () => {
+    const { result, rerender } = renderHook(() => useTheme())
 
-    Object.defineProperty(window, 'matchMedia', {
-      writable: true,
-      value: vi.fn().mockImplementation(() => ({
-        matches: false,
-        media: '(prefers-color-scheme: dark)',
-        onchange: null,
-        addListener: vi.fn(),
-        removeListener: vi.fn(),
-        addEventListener: vi.fn(),
-        removeEventListener: removeEventListenerMock,
-        dispatchEvent: vi.fn(),
-      })),
+    act(() => {
+      result.current.setTheme('light')
     })
 
-    const { unmount } = renderHook(() => useTheme())
+    expect(mockState.setTheme).toHaveBeenCalledWith('light')
 
-    unmount()
+    rerender()
+    expect(result.current.theme).toBe('light')
+    expect(result.current.resolvedTheme).toBe('light')
+  })
 
-    expect(removeEventListenerMock).toHaveBeenCalledWith('change', expect.any(Function))
+  it('dark 테마 설정이 동작해야 함', () => {
+    const { result, rerender } = renderHook(() => useTheme())
+
+    act(() => {
+      result.current.setTheme('dark')
+    })
+
+    expect(mockState.setTheme).toHaveBeenCalledWith('dark')
+
+    rerender()
+    expect(result.current.theme).toBe('dark')
+    expect(result.current.resolvedTheme).toBe('dark')
+  })
+
+  it('theme 값이 없으면 기본값 system을 반환해야 함', () => {
+    mockState.theme = undefined
+
+    const { result } = renderHook(() => useTheme())
+
+    expect(result.current.theme).toBe('system')
+  })
+
+  it('resolvedTheme 값이 없으면 기본값 light를 반환해야 함', () => {
+    mockState.resolvedTheme = undefined
+
+    const { result } = renderHook(() => useTheme())
+
+    expect(result.current.resolvedTheme).toBe('light')
   })
 })
