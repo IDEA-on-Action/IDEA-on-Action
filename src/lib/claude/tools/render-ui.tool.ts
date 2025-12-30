@@ -3,9 +3,19 @@
  * AI 에이전트가 동적 UI를 생성할 수 있게 해주는 Claude Tool
  */
 
-import type { A2UIComponent, A2UIMessage, RenderUIToolInput } from '@/lib/a2ui/types';
+import type { A2UIComponent, A2UIMessage, A2UISurfaceType, RenderUIToolInput } from '@/lib/a2ui/types';
 import { validateComponents, sanitizeMessage } from '@/lib/a2ui/validator';
 import { ALLOWED_COMPONENTS } from '@/lib/a2ui/catalog';
+
+/** 확장된 render_ui 입력 (surfaceType 포함) */
+export interface RenderUIToolInputExtended extends RenderUIToolInput {
+  /** Surface 타입 (inline: 채팅 내, sidePanel: 사이드 패널) */
+  surfaceType?: A2UISurfaceType;
+  /** 사이드 패널 제목 (surfaceType이 sidePanel일 때) */
+  title?: string;
+  /** 사이드 패널 크기 (surfaceType이 sidePanel일 때) */
+  size?: 'sm' | 'md' | 'lg' | 'xl';
+}
 
 // ============================================================================
 // Tool 정의
@@ -28,13 +38,25 @@ export const renderUiToolDefinition = {
 각 컴포넌트는 id(필수), component(필수), 그리고 컴포넌트별 속성을 가집니다.
 children 배열에 다른 컴포넌트의 id를 넣어 중첩 구조를 만들 수 있습니다.
 
-예시:
+surfaceType 옵션:
+- inline (기본): 채팅 메시지 내에 UI 표시
+- sidePanel: 사이드 패널에 UI 표시 (상세 정보, 폼 등에 적합)
+
+예시 1 (인라인):
 {
   "components": [
     { "id": "root", "component": "Column", "children": ["title", "content"] },
     { "id": "title", "component": "Text", "text": "### 제목", "variant": "heading" },
     { "id": "content", "component": "Card", "title": "카드 제목", "description": "설명" }
   ]
+}
+
+예시 2 (사이드 패널):
+{
+  "surfaceType": "sidePanel",
+  "title": "이슈 상세",
+  "size": "lg",
+  "components": [...]
 }`,
 
   input_schema: {
@@ -43,6 +65,20 @@ children 배열에 다른 컴포넌트의 id를 넣어 중첩 구조를 만들 �
       surfaceId: {
         type: 'string',
         description: '렌더링할 Surface ID (기본: 자동 생성)',
+      },
+      surfaceType: {
+        type: 'string',
+        enum: ['inline', 'sidePanel'],
+        description: 'Surface 타입: inline(채팅 내), sidePanel(사이드 패널)',
+      },
+      title: {
+        type: 'string',
+        description: '사이드 패널 제목 (surfaceType이 sidePanel일 때)',
+      },
+      size: {
+        type: 'string',
+        enum: ['sm', 'md', 'lg', 'xl'],
+        description: '사이드 패널 크기 (surfaceType이 sidePanel일 때)',
       },
       components: {
         type: 'array',
@@ -103,6 +139,7 @@ children 배열에 다른 컴포넌트의 id를 넣어 중첩 구조를 만들 �
 export interface RenderUIToolResult {
   type: 'a2ui';
   message: A2UIMessage;
+  surfaceType: A2UISurfaceType;
   success: boolean;
   errors?: string[];
 }
@@ -110,7 +147,9 @@ export interface RenderUIToolResult {
 /**
  * render_ui Tool 실행
  */
-export function executeRenderUi(input: RenderUIToolInput): RenderUIToolResult {
+export function executeRenderUi(input: RenderUIToolInputExtended): RenderUIToolResult {
+  const surfaceType: A2UISurfaceType = input.surfaceType || 'inline';
+
   // 컴포넌트 검증
   const validation = validateComponents(input.components as A2UIComponent[]);
 
@@ -121,20 +160,28 @@ export function executeRenderUi(input: RenderUIToolInput): RenderUIToolResult {
         surfaceId: '',
         components: [],
       },
+      surfaceType,
       success: false,
       errors: validation.errors.map(e => e.message),
     };
   }
 
   // Surface ID 생성
-  const surfaceId = input.surfaceId || `inline_${Date.now()}`;
+  const surfaceId = input.surfaceId || `${surfaceType}_${Date.now()}`;
 
   // A2UI 메시지 생성
   const message: A2UIMessage = {
     surfaceId,
     catalogId: 'ideaonaction-chat-v1',
     components: input.components as A2UIComponent[],
-    data: input.data,
+    data: {
+      ...input.data,
+      // 사이드 패널 메타데이터 포함
+      ...(surfaceType === 'sidePanel' && {
+        title: input.title || '상세 정보',
+        size: input.size || 'md',
+      }),
+    },
   };
 
   // 정화
@@ -143,6 +190,7 @@ export function executeRenderUi(input: RenderUIToolInput): RenderUIToolResult {
   return {
     type: 'a2ui',
     message: sanitized,
+    surfaceType,
     success: true,
   };
 }

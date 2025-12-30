@@ -2,8 +2,10 @@ import { useState, useCallback, useEffect } from 'react';
 import { AIChatButton } from './AIChatButton';
 import { AIChatWindow } from './AIChatWindow';
 import { AIChatToolStatus } from './AIChatToolStatus';
+import { AIChatSidePanel } from './AIChatSidePanel';
 import { useClaudeStreaming } from '@/hooks/useClaudeStreaming';
 import { useClaudeTools } from '@/hooks/useClaudeTools';
+import { useA2UI } from '@/hooks/useA2UI';
 // useConversationManager 제거 - 현재 사용하지 않으며 불필요한 API 호출 발생
 // TODO: 대화 저장 기능 활성화 시 조건부로 다시 추가
 // import { useConversationManager } from '@/hooks/useConversationManager';
@@ -11,6 +13,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { usePageContext } from '@/hooks/usePageContext';
 import type { AIChatMessage, AIChatConfig } from '@/types/ai-chat-widget.types';
 import type { ClaudeToolUseBlock, ClaudeToolResultBlock } from '@/types/claude.types';
+import type { A2UIUserAction } from '@/lib/a2ui/types';
 
 interface AIChatWidgetProps {
   config?: Partial<AIChatConfig>;
@@ -37,6 +40,19 @@ export function AIChatWidget({ config }: AIChatWidgetProps) {
 
   const { user } = useAuth();
   const pageContext = usePageContext();
+
+  // A2UI 상태 관리
+  const {
+    sidePanel,
+    openSidePanel,
+    closeSidePanel,
+    handleAction: handleA2UIAction,
+  } = useA2UI({
+    onAction: (action) => {
+      console.log('[AIChatWidget] A2UI 액션:', action);
+      // TODO: Claude에게 액션 피드백 전달
+    },
+  });
 
   // Tool Use 기능 활성화 여부 (Feature Flag)
   const isToolUseEnabled = import.meta.env.VITE_FEATURE_TOOL_USE === 'true';
@@ -222,6 +238,16 @@ export function AIChatWidget({ config }: AIChatWidgetProps) {
           executingTool={executingTool}
         />
       )}
+
+      {/* A2UI 사이드 패널 */}
+      <AIChatSidePanel
+        isOpen={sidePanel.isOpen}
+        onClose={closeSidePanel}
+        message={sidePanel.message}
+        title={sidePanel.title}
+        size={sidePanel.size}
+        onAction={handleA2UIAction}
+      />
     </>
   );
 }

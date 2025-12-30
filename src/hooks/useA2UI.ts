@@ -5,12 +5,24 @@
  */
 
 import { useState, useCallback, useMemo } from 'react';
-import type { A2UIMessage, A2UISurface, A2UIUserAction, A2UIActionHandler } from '@/lib/a2ui/types';
+import type { A2UIMessage, A2UISurface, A2UISurfaceType, A2UIUserAction, A2UIActionHandler } from '@/lib/a2ui/types';
 import { applyUpdate } from '@/lib/a2ui/data-model';
 
 // ============================================================================
 // 타입 정의
 // ============================================================================
+
+/** 사이드 패널 상태 */
+export interface SidePanelState {
+  /** 열림 여부 */
+  isOpen: boolean;
+  /** A2UI 메시지 */
+  message: A2UIMessage | null;
+  /** 패널 제목 */
+  title: string;
+  /** 패널 크기 */
+  size: 'sm' | 'md' | 'lg' | 'xl';
+}
 
 export interface UseA2UIOptions {
   /** 초기 메시지 */
@@ -23,7 +35,7 @@ export interface UseA2UIReturn {
   /** Surface 맵 */
   surfaces: Map<string, A2UISurface>;
   /** 메시지 추가 */
-  addMessage: (message: A2UIMessage) => void;
+  addMessage: (message: A2UIMessage, surfaceType?: A2UISurfaceType) => void;
   /** 데이터 모델 업데이트 */
   updateData: (surfaceId: string, path: string, value: unknown) => void;
   /** Surface 제거 */
@@ -32,6 +44,12 @@ export interface UseA2UIReturn {
   clearAll: () => void;
   /** 액션 핸들러 */
   handleAction: A2UIActionHandler;
+  /** 사이드 패널 상태 */
+  sidePanel: SidePanelState;
+  /** 사이드 패널 열기 */
+  openSidePanel: (message: A2UIMessage, title?: string, size?: SidePanelState['size']) => void;
+  /** 사이드 패널 닫기 */
+  closeSidePanel: () => void;
 }
 
 // ============================================================================
@@ -40,6 +58,14 @@ export interface UseA2UIReturn {
 
 export function useA2UI(options: UseA2UIOptions = {}): UseA2UIReturn {
   const { initialMessages = [], onAction } = options;
+
+  // 사이드 패널 상태
+  const [sidePanel, setSidePanel] = useState<SidePanelState>({
+    isOpen: false,
+    message: null,
+    title: '상세 정보',
+    size: 'md',
+  });
 
   // Surface 상태
   const [surfaces, setSurfaces] = useState<Map<string, A2UISurface>>(() => {
@@ -58,28 +84,61 @@ export function useA2UI(options: UseA2UIOptions = {}): UseA2UIReturn {
     return map;
   });
 
-  // 메시지 추가 (Surface 생성/업데이트)
-  const addMessage = useCallback((message: A2UIMessage) => {
-    setSurfaces((prev) => {
-      const next = new Map(prev);
-
-      // 기존 Surface 업데이트 또는 새로 생성
-      const existing = next.get(message.surfaceId);
-
-      next.set(message.surfaceId, {
-        surfaceId: message.surfaceId,
-        type: existing?.type || 'inline',
-        catalogId: message.catalogId || existing?.catalogId || 'ideaonaction-chat-v1',
-        components: message.components,
-        data: {
-          ...(existing?.data || {}),
-          ...(message.data || {}),
-        },
+  // 사이드 패널 열기
+  const openSidePanel = useCallback(
+    (message: A2UIMessage, title?: string, size?: SidePanelState['size']) => {
+      setSidePanel({
+        isOpen: true,
+        message,
+        title: title || '상세 정보',
+        size: size || 'md',
       });
+    },
+    []
+  );
 
-      return next;
-    });
+  // 사이드 패널 닫기
+  const closeSidePanel = useCallback(() => {
+    setSidePanel((prev) => ({
+      ...prev,
+      isOpen: false,
+    }));
   }, []);
+
+  // 메시지 추가 (Surface 생성/업데이트)
+  const addMessage = useCallback(
+    (message: A2UIMessage, surfaceType: A2UISurfaceType = 'inline') => {
+      // 사이드 패널로 렌더링하는 경우
+      if (surfaceType === 'sidePanel') {
+        const title = (message.data?.title as string) || '상세 정보';
+        const size = (message.data?.size as SidePanelState['size']) || 'md';
+        openSidePanel(message, title, size);
+        return;
+      }
+
+      // 인라인 Surface로 추가
+      setSurfaces((prev) => {
+        const next = new Map(prev);
+
+        // 기존 Surface 업데이트 또는 새로 생성
+        const existing = next.get(message.surfaceId);
+
+        next.set(message.surfaceId, {
+          surfaceId: message.surfaceId,
+          type: surfaceType,
+          catalogId: message.catalogId || existing?.catalogId || 'ideaonaction-chat-v1',
+          components: message.components,
+          data: {
+            ...(existing?.data || {}),
+            ...(message.data || {}),
+          },
+        });
+
+        return next;
+      });
+    },
+    [openSidePanel]
+  );
 
   // 데이터 모델 업데이트
   const updateData = useCallback((surfaceId: string, path: string, value: unknown) => {
@@ -155,8 +214,11 @@ export function useA2UI(options: UseA2UIOptions = {}): UseA2UIReturn {
       removeSurface,
       clearAll,
       handleAction,
+      sidePanel,
+      openSidePanel,
+      closeSidePanel,
     }),
-    [surfaces, addMessage, updateData, removeSurface, clearAll, handleAction]
+    [surfaces, addMessage, updateData, removeSurface, clearAll, handleAction, sidePanel, openSidePanel, closeSidePanel]
   );
 }
 
