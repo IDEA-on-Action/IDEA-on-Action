@@ -185,8 +185,8 @@ const CarouselPrevious = React.forwardRef<HTMLButtonElement, React.ComponentProp
         onClick={scrollPrev}
         {...props}
       >
-        <ArrowLeft className="h-4 w-4" />
-        <span className="sr-only">Previous slide</span>
+        <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+        <span className="sr-only">이전 슬라이드</span>
       </Button>
     );
   },
@@ -213,8 +213,8 @@ const CarouselNext = React.forwardRef<HTMLButtonElement, React.ComponentProps<ty
         onClick={scrollNext}
         {...props}
       >
-        <ArrowRight className="h-4 w-4" />
-        <span className="sr-only">Next slide</span>
+        <ArrowRight className="h-4 w-4" aria-hidden="true" />
+        <span className="sr-only">다음 슬라이드</span>
       </Button>
     );
   },

@@ -3,6 +3,9 @@
   "private": true,
   "version": "3.0.0",
   "type": "module",
+  "overrides": {
+    "esbuild": "^0.25.0"
+  },
   "scripts": {
     "dev": "vite",
     "build": "npm run generate:sitemap && vite build",

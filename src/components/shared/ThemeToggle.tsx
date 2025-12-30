@@ -29,16 +29,16 @@ export function ThemeToggle() {
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="glass-card">
-        <DropdownMenuItem onClick={() => setTheme('light')}>
-          <Sun className="mr-2 h-4 w-4" />
+        <DropdownMenuItem onClick={() => setTheme('light')} aria-label="라이트 테마로 전환">
+          <Sun className="mr-2 h-4 w-4" aria-hidden="true" />
           <span>라이트</span>
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme('dark')}>
-          <Moon className="mr-2 h-4 w-4" />
+        <DropdownMenuItem onClick={() => setTheme('dark')} aria-label="다크 테마로 전환">
+          <Moon className="mr-2 h-4 w-4" aria-hidden="true" />
           <span>다크</span>
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme('system')}>
-          <Monitor className="mr-2 h-4 w-4" />
+        <DropdownMenuItem onClick={() => setTheme('system')} aria-label="시스템 테마로 전환">
+          <Monitor className="mr-2 h-4 w-4" aria-hidden="true" />
           <span>시스템</span>
         </DropdownMenuItem>
       </DropdownMenuContent>

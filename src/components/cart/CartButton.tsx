@@ -27,7 +27,7 @@ export function CartButton() {
       className="relative"
       aria-label="장바구니 열기"
     >
-      <ShoppingCart className="h-5 w-5" />
+      <ShoppingCart className="h-5 w-5" aria-hidden="true" />
       {itemCount > 0 && (
         <Badge
           variant="destructive"

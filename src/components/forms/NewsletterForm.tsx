@@ -54,7 +54,7 @@ export function NewsletterForm({
       <form onSubmit={handleSubmit} className="space-y-3 w-full">
         <div className="relative">
           {showIcon && (
-            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" aria-hidden="true" />
           )}
           <Input
             type="email"
@@ -64,6 +64,7 @@ export function NewsletterForm({
             disabled={subscribe.isPending}
             required
             className={showIcon ? 'pl-10' : ''}
+            aria-label="뉴스레터 구독을 위한 이메일 주소"
           />
         </div>
         <Button
@@ -73,7 +74,7 @@ export function NewsletterForm({
         >
           {subscribe.isPending ? (
             <>
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" aria-hidden="true" />
               구독 중...
             </>
           ) : (
@@ -99,6 +100,7 @@ export function NewsletterForm({
           disabled={subscribe.isPending}
           required
           className={showIcon ? 'pl-10' : ''}
+          aria-label="뉴스레터 구독을 위한 이메일 주소"
         />
       </div>
       <Button
@@ -106,7 +108,7 @@ export function NewsletterForm({
         disabled={subscribe.isPending || !email.trim()}
       >
         {subscribe.isPending ? (
-          <Loader2 className="w-4 h-4 animate-spin" />
+          <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
         ) : (
           buttonText
         )}

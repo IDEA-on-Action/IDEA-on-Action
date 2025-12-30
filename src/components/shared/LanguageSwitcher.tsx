@@ -18,8 +18,8 @@ export function LanguageSwitcher() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon">
-          <Languages className="h-5 w-5" />
+        <Button variant="ghost" size="icon" aria-label="언어 전환 / Change Language">
+          <Languages className="h-5 w-5" aria-hidden="true" />
           <span className="sr-only">언어 전환 / Change Language</span>
         </Button>
       </DropdownMenuTrigger>

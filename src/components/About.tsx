@@ -23,17 +23,17 @@ const About = () => {
 
             <div className="grid sm:grid-cols-3 gap-4">
               <Card className="p-4 bg-card/50 backdrop-blur-sm border-primary/20 text-center">
-                <Award className="w-8 h-8 mx-auto mb-2 text-primary" />
+                <Award className="w-8 h-8 mx-auto mb-2 text-primary" aria-hidden="true" />
                 <div className="text-2xl font-bold mb-1">100+</div>
                 <div className="text-sm text-muted-foreground">프로젝트</div>
               </Card>
               <Card className="p-4 bg-card/50 backdrop-blur-sm border-primary/20 text-center">
-                <Target className="w-8 h-8 mx-auto mb-2 text-primary" />
+                <Target className="w-8 h-8 mx-auto mb-2 text-primary" aria-hidden="true" />
                 <div className="text-2xl font-bold mb-1">98%</div>
                 <div className="text-sm text-muted-foreground">고객 만족도</div>
               </Card>
               <Card className="p-4 bg-card/50 backdrop-blur-sm border-primary/20 text-center">
-                <TrendingUp className="w-8 h-8 mx-auto mb-2 text-primary" />
+                <TrendingUp className="w-8 h-8 mx-auto mb-2 text-primary" aria-hidden="true" />
                 <div className="text-2xl font-bold mb-1">300%</div>
                 <div className="text-sm text-muted-foreground">생산성 향상</div>
               </Card>
