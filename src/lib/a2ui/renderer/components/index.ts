@@ -38,3 +38,9 @@ export { A2UIAccordion } from './A2UIAccordion';
 export { A2UITabs } from './A2UITabs';
 export { A2UIModal } from './A2UIModal';
 export { A2UIDrawer } from './A2UIDrawer';
+
+// 미디어 컴포넌트
+export { A2UIImage } from './A2UIImage';
+export { A2UIAvatar } from './A2UIAvatar';
+export { A2UIVideo } from './A2UIVideo';
+export { A2UIAudio } from './A2UIAudio';

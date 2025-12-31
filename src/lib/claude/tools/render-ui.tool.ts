@@ -65,6 +65,12 @@ export const renderUiToolDefinition = {
 - Modal: 모달 다이얼로그 (props: title, description, triggerText, triggerVariant, content, confirmText, cancelText, onConfirm, onCancel, size)
 - Drawer: 하단 드로어 (props: title, description, triggerText, triggerVariant, content, confirmText, cancelText, onConfirm, onCancel)
 
+미디어 컴포넌트:
+- Image: 이미지 (props: src, alt, width, height, aspectRatio, objectFit, rounded, caption, fallbackText)
+- Avatar: 사용자 아바타 (props: src, alt, fallback, size, status)
+- Video: 비디오 플레이어 (props: src, poster, title, width, height, aspectRatio, controls, autoPlay, loop, muted, rounded, caption)
+- Audio: 오디오 플레이어 (props: src, title, artist, cover, controls, autoPlay, loop, muted, compact)
+
 각 컴포넌트는 id(필수), component(필수), 그리고 컴포넌트별 속성을 가집니다.
 children 배열에 다른 컴포넌트의 id를 넣어 중첩 구조를 만들 수 있습니다.
 
@@ -314,6 +320,26 @@ surfaceType 옵션:
                 data: { type: 'object' },
               },
             },
+            // Media props
+            src: { type: 'string', description: '미디어 URL' },
+            alt: { type: 'string', description: '대체 텍스트' },
+            poster: { type: 'string', description: '비디오 포스터 이미지' },
+            aspectRatio: { type: 'string', description: '가로세로 비율 (예: "16/9")' },
+            objectFit: { type: 'string', enum: ['contain', 'cover', 'fill', 'none', 'scale-down'] },
+            caption: { type: 'string', description: '캡션 텍스트' },
+            fallbackText: { type: 'string', description: '로딩 실패 시 텍스트' },
+            // Avatar props
+            fallback: { type: 'string', description: '폴백 이니셜' },
+            status: { type: 'string', enum: ['online', 'offline', 'away', 'busy'] },
+            // Video/Audio props
+            controls: { type: 'boolean' },
+            autoPlay: { type: 'boolean' },
+            loop: { type: 'boolean' },
+            muted: { type: 'boolean' },
+            // Audio props
+            artist: { type: 'string' },
+            cover: { type: 'string' },
+            compact: { type: 'boolean' },
           },
           required: ['id', 'component'],
         },

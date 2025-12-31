@@ -289,6 +289,41 @@ export const DEFAULT_CATALOG: ComponentCatalog = {
       allowedChildTypes: null,
       actionProps: ['onConfirm', 'onCancel'],
     },
+
+    // ========================================================================
+    // 미디어 컴포넌트
+    // ========================================================================
+    Image: {
+      name: 'Image',
+      description: '이미지',
+      allowedProps: ['src', 'alt', 'width', 'height', 'aspectRatio', 'objectFit', 'rounded', 'caption', 'fallbackText'],
+      allowChildren: false,
+      bindableProps: ['src'],
+    },
+
+    Avatar: {
+      name: 'Avatar',
+      description: '사용자 아바타',
+      allowedProps: ['src', 'alt', 'fallback', 'size', 'status'],
+      allowChildren: false,
+      bindableProps: ['src', 'status'],
+    },
+
+    Video: {
+      name: 'Video',
+      description: '비디오 플레이어',
+      allowedProps: ['src', 'poster', 'title', 'width', 'height', 'aspectRatio', 'controls', 'autoPlay', 'loop', 'muted', 'rounded', 'caption'],
+      allowChildren: false,
+      bindableProps: ['src'],
+    },
+
+    Audio: {
+      name: 'Audio',
+      description: '오디오 플레이어',
+      allowedProps: ['src', 'title', 'artist', 'cover', 'controls', 'autoPlay', 'loop', 'muted', 'compact'],
+      allowChildren: false,
+      bindableProps: ['src'],
+    },
   },
 };
 

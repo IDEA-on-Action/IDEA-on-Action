@@ -39,6 +39,11 @@ import {
   A2UITabs,
   A2UIModal,
   A2UIDrawer,
+  // 미디어 컴포넌트
+  A2UIImage,
+  A2UIAvatar,
+  A2UIVideo,
+  A2UIAudio,
 } from './components';
 
 // ============================================================================
@@ -345,6 +350,62 @@ const componentRegistry: Record<string, ComponentRenderer> = {
       onCancel={component.onCancel as Parameters<typeof A2UIDrawer>[0]['onCancel']}
       renderedChildren={renderedChildren}
       onAction={onAction}
+    />
+  ),
+
+  // 미디어 컴포넌트
+  Image: ({ component }) => (
+    <A2UIImage
+      src={component.src as string}
+      alt={component.alt as string}
+      width={component.width as string | number}
+      height={component.height as string | number}
+      aspectRatio={component.aspectRatio as string}
+      objectFit={component.objectFit as 'contain' | 'cover' | 'fill' | 'none' | 'scale-down'}
+      rounded={component.rounded as 'none' | 'sm' | 'md' | 'lg' | 'xl' | 'full'}
+      caption={component.caption as string}
+      fallbackText={component.fallbackText as string}
+    />
+  ),
+
+  Avatar: ({ component }) => (
+    <A2UIAvatar
+      src={component.src as string}
+      alt={component.alt as string}
+      fallback={component.fallback as string}
+      size={component.size as 'xs' | 'sm' | 'md' | 'lg' | 'xl'}
+      status={component.status as 'online' | 'offline' | 'away' | 'busy'}
+    />
+  ),
+
+  Video: ({ component }) => (
+    <A2UIVideo
+      src={component.src as string}
+      poster={component.poster as string}
+      title={component.title as string}
+      width={component.width as string | number}
+      height={component.height as string | number}
+      aspectRatio={component.aspectRatio as string}
+      controls={component.controls as boolean}
+      autoPlay={component.autoPlay as boolean}
+      loop={component.loop as boolean}
+      muted={component.muted as boolean}
+      rounded={component.rounded as 'none' | 'sm' | 'md' | 'lg' | 'xl'}
+      caption={component.caption as string}
+    />
+  ),
+
+  Audio: ({ component }) => (
+    <A2UIAudio
+      src={component.src as string}
+      title={component.title as string}
+      artist={component.artist as string}
+      cover={component.cover as string}
+      controls={component.controls as boolean}
+      autoPlay={component.autoPlay as boolean}
+      loop={component.loop as boolean}
+      muted={component.muted as boolean}
+      compact={component.compact as boolean}
     />
   ),
 };
