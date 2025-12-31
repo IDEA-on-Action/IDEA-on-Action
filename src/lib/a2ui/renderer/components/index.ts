@@ -22,3 +22,8 @@ export { A2UITextarea } from './A2UITextarea';
 export { A2UITable } from './A2UITable';
 export { A2UIList } from './A2UIList';
 export { A2UIListItem } from './A2UIListItem';
+
+// 로딩/프로그레스 컴포넌트
+export { A2UISpinner } from './A2UISpinner';
+export { A2UIProgress } from './A2UIProgress';
+export { A2UISkeleton } from './A2UISkeleton';

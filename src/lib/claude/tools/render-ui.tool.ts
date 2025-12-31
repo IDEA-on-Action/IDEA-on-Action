@@ -49,6 +49,11 @@ export const renderUiToolDefinition = {
 - List: 리스트 컨테이너 (props: variant, gap, children) - children은 ListItem만 허용
 - ListItem: 리스트 아이템 (props: title, description, leading, trailing, clickable, disabled, onClick)
 
+로딩/프로그레스 컴포넌트:
+- Spinner: 로딩 스피너 (props: size, label, centered)
+- Progress: 진행률 바 (props: value, max, label, showPercent, size, variant)
+- Skeleton: 스켈레톤 로딩 (props: variant, width, height, lines, noAnimation)
+
 각 컴포넌트는 id(필수), component(필수), 그리고 컴포넌트별 속성을 가집니다.
 children 배열에 다른 컴포넌트의 id를 넣어 중첩 구조를 만들 수 있습니다.
 
@@ -207,6 +212,16 @@ surfaceType 옵션:
             leading: { type: 'string' },
             trailing: { type: 'string' },
             clickable: { type: 'boolean' },
+            // Spinner props
+            centered: { type: 'boolean' },
+            // Progress props
+            max: { type: 'number' },
+            showPercent: { type: 'boolean' },
+            // Skeleton props
+            width: { type: 'string' },
+            height: { type: 'string' },
+            lines: { type: 'number' },
+            noAnimation: { type: 'boolean' },
           },
           required: ['id', 'component'],
         },

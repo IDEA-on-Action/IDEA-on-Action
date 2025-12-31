@@ -26,6 +26,10 @@ import {
   A2UITable,
   A2UIList,
   A2UIListItem,
+  // 로딩/프로그레스 컴포넌트
+  A2UISpinner,
+  A2UIProgress,
+  A2UISkeleton,
 } from './components';
 
 // ============================================================================
@@ -201,6 +205,36 @@ const componentRegistry: Record<string, ComponentRenderer> = {
       disabled={component.disabled as boolean}
       onClick={component.onClick as Parameters<typeof A2UIListItem>[0]['onClick']}
       onAction={onAction}
+    />
+  ),
+
+  // 로딩/프로그레스 컴포넌트
+  Spinner: ({ component }) => (
+    <A2UISpinner
+      size={component.size as 'sm' | 'md' | 'lg'}
+      label={component.label as string}
+      centered={component.centered as boolean}
+    />
+  ),
+
+  Progress: ({ component }) => (
+    <A2UIProgress
+      value={component.value as number}
+      max={component.max as number}
+      label={component.label as string}
+      showPercent={component.showPercent as boolean}
+      size={component.size as 'sm' | 'md' | 'lg'}
+      variant={component.variant as 'default' | 'success' | 'warning' | 'destructive'}
+    />
+  ),
+
+  Skeleton: ({ component }) => (
+    <A2UISkeleton
+      variant={component.variant as 'text' | 'circular' | 'rectangular' | 'card'}
+      width={component.width as string}
+      height={component.height as string}
+      lines={component.lines as number}
+      noAnimation={component.noAnimation as boolean}
     />
   ),
 };

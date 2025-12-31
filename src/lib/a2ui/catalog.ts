@@ -200,6 +200,31 @@ export const DEFAULT_CATALOG: ComponentCatalog = {
       allowChildren: false,
       actionProps: ['onClick'],
     },
+
+    // ========================================================================
+    // 로딩/프로그레스 컴포넌트
+    // ========================================================================
+    Spinner: {
+      name: 'Spinner',
+      description: '로딩 스피너',
+      allowedProps: ['size', 'label', 'centered'],
+      allowChildren: false,
+    },
+
+    Progress: {
+      name: 'Progress',
+      description: '진행률 바',
+      allowedProps: ['value', 'max', 'label', 'showPercent', 'size', 'variant'],
+      allowChildren: false,
+      bindableProps: ['value'],
+    },
+
+    Skeleton: {
+      name: 'Skeleton',
+      description: '스켈레톤 로딩',
+      allowedProps: ['variant', 'width', 'height', 'lines', 'noAnimation'],
+      allowChildren: false,
+    },
   },
 };
 
