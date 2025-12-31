@@ -74,29 +74,7 @@ const Header = ({ className = "" }: HeaderProps) => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
   };
 
-  const renderNavigationItem = (item: NavigationItem, index: number) => {
-    const isExternal = item.isExternal || (isHomePage && item.href.startsWith('#'));
-    const isActive = !isExternal && location.pathname === item.href;
-    const Component = isExternal ? 'a' : Link;
-    const props = isExternal
-      ? { href: item.href }
-      : { to: item.href };
 
-    return (
-      <Component
-        key={index}
-        {...props}
-        className={`transition-colors ${isActive
-          ? 'text-foreground font-medium border-b-2 border-primary'
-          : 'text-foreground/80 hover:text-foreground'
-          }`}
-        aria-label={`${item.label} 페이지로 이동`}
-        aria-current={isActive ? 'page' : undefined}
-      >
-        {item.label}
-      </Component>
-    );
-  };
 
   return (
     <header
@@ -130,15 +108,10 @@ const Header = ({ className = "" }: HeaderProps) => {
           {NAVIGATION_ITEMS.map((item, index) => {
             const isExternal = isHomePage && item.href.startsWith('#');
             const isActive = !isExternal && location.pathname === item.href;
-            const Component = isExternal ? 'a' : Link;
-            const props = isExternal
-              ? { href: item.href }
-              : { to: item.href };
-
-            return (
-              <Component
-                key={index}
-                {...props}
+            return isExternal ? (
+              <a
+                key={item.href}
+                href={item.href}
                 className={`transition-colors ${isActive
                   ? 'text-foreground font-medium border-b-2 border-primary pb-1'
                   : 'text-foreground/80 hover:text-foreground'
@@ -147,7 +120,20 @@ const Header = ({ className = "" }: HeaderProps) => {
                 aria-current={isActive ? 'page' : undefined}
               >
                 {item.label}
-              </Component>
+              </a>
+            ) : (
+              <Link
+                key={item.href}
+                to={item.href}
+                className={`transition-colors ${isActive
+                  ? 'text-foreground font-medium border-b-2 border-primary pb-1'
+                  : 'text-foreground/80 hover:text-foreground'
+                  }`}
+                aria-label={`${item.label} 페이지로 이동`}
+                aria-current={isActive ? 'page' : undefined}
+              >
+                {item.label}
+              </Link>
             );
           })}
         </div>
@@ -168,9 +154,7 @@ const Header = ({ className = "" }: HeaderProps) => {
           <ThemeToggle />
           <CartButton />
           {user && (
-            <>
-              <NotificationBell />
-            </>
+            <NotificationBell />
           )}
 
           {user ? (
@@ -286,15 +270,10 @@ const Header = ({ className = "" }: HeaderProps) => {
             {NAVIGATION_ITEMS.map((item, index) => {
               const isExternal = isHomePage && item.href.startsWith('#');
               const isActive = !isExternal && location.pathname === item.href;
-              const Component = isExternal ? 'a' : Link;
-              const props = isExternal
-                ? { href: item.href }
-                : { to: item.href };
-
-              return (
-                <Component
-                  key={index}
-                  {...props}
+              return isExternal ? (
+                <a
+                  key={item.href}
+                  href={item.href}
                   className={`block transition-colors py-2 ${isActive
                     ? 'text-primary font-medium'
                     : 'text-foreground/80 hover:text-foreground'
@@ -304,7 +283,21 @@ const Header = ({ className = "" }: HeaderProps) => {
                   role="menuitem"
                 >
                   {item.label}
-                </Component>
+                </a>
+              ) : (
+                <Link
+                  key={item.href}
+                  to={item.href}
+                  className={`block transition-colors py-2 ${isActive
+                    ? 'text-primary font-medium'
+                    : 'text-foreground/80 hover:text-foreground'
+                    }`}
+                  aria-label={`${item.label} 페이지로 이동`}
+                  aria-current={isActive ? 'page' : undefined}
+                  role="menuitem"
+                >
+                  {item.label}
+                </Link>
               );
             })}
 

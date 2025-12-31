@@ -14,7 +14,6 @@ import React, { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import {
   Card,
   CardContent,
@@ -182,8 +181,8 @@ function formatDateKR(dateStr: string): string {
  */
 function formatBudgetKR(budget: string): string {
   if (!budget) return '-';
-  const num = parseInt(budget, 10);
-  if (isNaN(num)) return '-';
+  const num = Number.parseInt(budget, 10);
+  if (Number.isNaN(num)) return '-';
 
   if (num >= 100000000) {
     return `${(num / 100000000).toFixed(1)}억원`;
@@ -256,7 +255,7 @@ function ArrayInput({
         <div className="flex flex-wrap gap-2 mt-2">
           {items.map((item, index) => (
             <Badge
-              key={index}
+              key={item}
               variant="secondary"
               className="flex items-center gap-1 pr-1"
             >
@@ -410,7 +409,7 @@ export function RFPWizard({
       clientName: formData.clientName,
       startDate: formData.startDate ? new Date(formData.startDate) : new Date(),
       endDate: formData.endDate ? new Date(formData.endDate) : undefined,
-      budget: formData.budget ? parseInt(formData.budget, 10) : undefined,
+      budget: formData.budget ? Number.parseInt(formData.budget, 10) : undefined,
       scope: formData.scope,
       deliverables: formData.deliverables,
       requirements: formData.requirements,
@@ -484,8 +483,8 @@ export function RFPWizard({
                 <Card
                   key={cat}
                   className={`cursor-pointer transition-all ${isSelected
-                      ? 'border-primary ring-2 ring-primary/20'
-                      : 'hover:border-primary/50'
+                    ? 'border-primary ring-2 ring-primary/20'
+                    : 'hover:border-primary/50'
                     }`}
                   onClick={() => updateField('category', cat)}
                 >
@@ -689,8 +688,8 @@ export function RFPWizard({
                 프로젝트 범위:
               </span>
               <div className="flex flex-wrap gap-1 mt-1">
-                {formData.scope.map((item, index) => (
-                  <Badge key={index} variant="outline">
+                {formData.scope.map((item) => (
+                  <Badge key={item} variant="outline">
                     {item}
                   </Badge>
                 ))}
@@ -704,8 +703,8 @@ export function RFPWizard({
                 프로젝트 목표:
               </span>
               <ul className="list-disc list-inside mt-1 text-sm">
-                {formData.objectives.map((item, index) => (
-                  <li key={index}>{item}</li>
+                {formData.objectives.map((item) => (
+                  <li key={item}>{item}</li>
                 ))}
               </ul>
             </div>
@@ -727,8 +726,8 @@ export function RFPWizard({
                 기능 요구사항 ({formData.requirements.length}개):
               </span>
               <ul className="list-disc list-inside mt-1 text-sm">
-                {formData.requirements.slice(0, 5).map((item, index) => (
-                  <li key={index}>{item}</li>
+                {formData.requirements.slice(0, 5).map((item) => (
+                  <li key={item}>{item}</li>
                 ))}
                 {formData.requirements.length > 5 && (
                   <li className="text-muted-foreground">
@@ -743,8 +742,8 @@ export function RFPWizard({
             <div>
               <span className="text-sm text-muted-foreground">산출물:</span>
               <div className="flex flex-wrap gap-1 mt-1">
-                {formData.deliverables.map((item, index) => (
-                  <Badge key={index} variant="secondary">
+                {formData.deliverables.map((item) => (
+                  <Badge key={item} variant="secondary">
                     {item}
                   </Badge>
                 ))}
@@ -768,8 +767,8 @@ export function RFPWizard({
             <div>
               <span className="text-sm text-muted-foreground">기술 스택:</span>
               <div className="flex flex-wrap gap-1 mt-1">
-                {formData.techStack.map((item, index) => (
-                  <Badge key={index} variant="outline">
+                {formData.techStack.map((item) => (
+                  <Badge key={item} variant="outline">
                     {item}
                   </Badge>
                 ))}
@@ -813,16 +812,12 @@ export function RFPWizard({
                 onClick={() => goToStep(step.id)}
                 disabled={step.id > currentStep && !canProceed()}
                 className={`flex items-center gap-2 transition-colors ${currentStep >= step.id
-                    ? 'text-primary cursor-pointer'
-                    : 'text-muted-foreground'
+                  ? 'text-primary cursor-pointer'
+                  : 'text-muted-foreground'
                   } ${step.id > currentStep && !canProceed() ? 'cursor-not-allowed' : ''}`}
               >
                 <div
-                  className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-all ${currentStep > step.id
-                      ? 'bg-primary text-primary-foreground'
-                      : currentStep === step.id
-                        ? 'border-2 border-primary'
-                        : 'border border-muted'
+                  className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-all ${currentStep > step.id ? 'bg-primary text-primary-foreground' : (currentStep === step.id ? 'border-2 border-primary' : 'border border-muted')
                     }`}
                 >
                   {currentStep > step.id ? (

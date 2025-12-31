@@ -16,7 +16,7 @@ import {
   SIDEBAR_COOKIE_MAX_AGE,
   SIDEBAR_KEYBOARD_SHORTCUT,
 } from "./sidebar.constants";
-import { SidebarContext, useSidebar, type SidebarContext as SidebarContextType } from "./sidebar.hooks";
+import { SidebarContext, useSidebar } from "./sidebar.hooks";
 
 const SidebarProvider = React.forwardRef<
   HTMLDivElement,
@@ -62,15 +62,15 @@ const SidebarProvider = React.forwardRef<
       }
     };
 
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    globalThis.addEventListener("keydown", handleKeyDown);
+    return () => globalThis.removeEventListener("keydown", handleKeyDown);
   }, [toggleSidebar]);
 
   // We add a state so that we can do data-state="expanded" or "collapsed".
   // This makes it easier to style the sidebar with Tailwind classes.
   const state = open ? "expanded" : "collapsed";
 
-  const contextValue = React.useMemo<SidebarContextType>(
+  const contextValue = React.useMemo(
     () => ({
       state,
       open,
