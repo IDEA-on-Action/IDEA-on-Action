@@ -4,7 +4,7 @@
  * @module components/central-hub/AlertCenter.example
  */
 
-import { AlertCenter } from './AlertCenter';
+import { AlertCenter } from './alert-center';
 
 /**
  * 기본 사용 예제

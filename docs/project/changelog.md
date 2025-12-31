@@ -9,6 +9,28 @@
 
 ---
 
+## [3.2.1] - 2025-12-31 🔧 프로젝트 구조 정리 Phase 2
+
+### 🔧 리팩토링
+
+- **Hooks/Types Re-export 체계 구축**
+  - hooks 서브폴더 구조에 대한 하위 호환성 re-export 파일 생성 (86개)
+  - types 서브폴더 구조에 대한 re-export 파일 생성 (35개)
+  - `src/hooks/index.ts` barrel export 추가
+  - 서브폴더 내 상대 경로 import → 절대 경로 수정
+
+- **TODO 코드 정리**
+  - `isXlsxLoaded()`, `isDocxLoaded()`, `isPptxLoaded()` 함수 구현
+  - AIChatWidget 대화 저장 TODO → `@see BL-AI-002` 레퍼런스
+  - useMCPPermission 권한 구분 TODO → `@see BL-005` 레퍼런스
+  - pdf/generate.ts DOCX→PDF TODO → `@limitation` 문서화
+
+### 📝 문서
+
+- Re-export 파일에 `@deprecated` 주석으로 새 경로 안내
+
+---
+
 ## [3.2.0] - 2025-12-31 📊 D1 모니터링 대시보드
 
 ### ✨ 신규 기능

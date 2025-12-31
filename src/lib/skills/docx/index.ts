@@ -6,7 +6,7 @@
  * @module lib/skills/docx
  */
 
-import { loadDocx } from '../lazy-loader';
+import { loadDocx, getDocxLoadingState } from '../lazy-loader';
 
 // ============================================================================
 // Re-export 기존 모듈
@@ -57,7 +57,6 @@ export async function loadDocxModule() {
  * ```
  */
 export function isDocxLoaded(): boolean {
-  // lazy-loader의 getDocxLoadingState를 사용
-  // Note: 동적 import를 사용하려면 async여야 하므로, 직접 접근 대신 상태 조회 헬퍼 사용
-  return false; // TODO: 실제 구현 시 lazy-loader 상태 확인 필요
+  const state = getDocxLoadingState();
+  return state.module !== null;
 }

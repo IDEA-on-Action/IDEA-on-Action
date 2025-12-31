@@ -8,7 +8,7 @@ import { useClaudeStreaming } from '@/hooks/useClaudeStreaming';
 import { useClaudeTools } from '@/hooks/useClaudeTools';
 import { useA2UI } from '@/hooks/useA2UI';
 // useConversationManager 제거 - 현재 사용하지 않으며 불필요한 API 호출 발생
-// TODO: 대화 저장 기능 활성화 시 조건부로 다시 추가
+// @see BL-AI-002 대화 컨텍스트 관리 기능은 RLS 정책 수정 후 재활성화 예정
 // import { useConversationManager } from '@/hooks/useConversationManager';
 import { useAuth } from '@/hooks/useAuth';
 import { usePageContext } from '@/hooks/usePageContext';
@@ -257,7 +257,7 @@ export function AIChatWidget({ config }: AIChatWidgetProps) {
   }, [claudeSendMessage]);
 
   // Conversation Manager 비활성화 - 403 오류 방지 (ai_conversations RLS)
-  // TODO: 대화 저장 기능 활성화 시 조건부로 다시 추가
+  // @see BL-AI-002 대화 컨텍스트 관리 기능은 RLS 정책 수정 후 재활성화 예정
   // const conversationManager = useConversationManager();
 
   // 버튼 클릭

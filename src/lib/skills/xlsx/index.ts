@@ -6,7 +6,7 @@
  * @module lib/skills/xlsx
  */
 
-import { loadXlsx } from '../lazy-loader';
+import { loadXlsx, getXlsxLoadingState } from '../lazy-loader';
 
 // ============================================================================
 // Re-export from src/skills/xlsx (주요 Export)
@@ -130,7 +130,6 @@ export async function loadXlsxModule() {
  * ```
  */
 export function isXlsxLoaded(): boolean {
-  // lazy-loader의 getXlsxLoadingState를 사용
-  // Note: 동적 import를 사용하려면 async여야 하므로, 직접 접근 대신 상태 조회 헬퍼 사용
-  return false; // TODO: 실제 구현 시 lazy-loader 상태 확인 필요
+  const state = getXlsxLoadingState();
+  return state.module !== null;
 }

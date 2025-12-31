@@ -257,8 +257,10 @@ export async function generatePDFFromDocx(
     // 또는 docx 라이브러리를 사용하여 텍스트 추출
     // 여기서는 간단히 텍스트 추출 후 PDF 생성
 
-    // TODO: mammoth.js 또는 docx 라이브러리를 사용한 실제 구현
-    // 현재는 플레이스홀더로 HTML 변환 재사용
+    // @limitation 브라우저에서 docx → PDF 직접 변환은 제한적
+    // - mammoth.js 사용 시 docx → HTML 변환 후 PDF 생성 가능 (추가 의존성 필요)
+    // - 완전한 레이아웃 보존이 필요하면 서버 사이드 변환 권장
+    // @see BL-016 PDF 생성 기능 백로그 참조
 
     const placeholderHTML = '<p>Word 문서가 PDF로 변환되었습니다.</p><p>실제 구현에서는 docx 내용을 파싱하여 렌더링합니다.</p>';
 

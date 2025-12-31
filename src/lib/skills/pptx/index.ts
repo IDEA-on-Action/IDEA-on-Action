@@ -7,7 +7,7 @@
  * @module lib/skills/pptx
  */
 
-import { loadPptx } from '../lazy-loader';
+import { loadPptx, getPptxLoadingState } from '../lazy-loader';
 
 // ============================================================================
 // 슬라이드 생성 함수
@@ -172,9 +172,8 @@ export async function loadPptxModule() {
  * ```
  */
 export function isPptxLoaded(): boolean {
-  // lazy-loader의 getPptxLoadingState를 사용
-  // Note: 동적 import를 사용하려면 async여야 하므로, 직접 접근 대신 상태 조회 헬퍼 사용
-  return false; // TODO: 실제 구현 시 lazy-loader 상태 확인 필요
+  const state = getPptxLoadingState();
+  return state.module !== null;
 }
 
 // ============================================================================
