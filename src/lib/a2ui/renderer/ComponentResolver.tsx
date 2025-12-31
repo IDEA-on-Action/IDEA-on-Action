@@ -30,6 +30,10 @@ import {
   A2UISpinner,
   A2UIProgress,
   A2UISkeleton,
+  // 차트 컴포넌트
+  A2UIBarChart,
+  A2UILineChart,
+  A2UIPieChart,
 } from './components';
 
 // ============================================================================
@@ -235,6 +239,54 @@ const componentRegistry: Record<string, ComponentRenderer> = {
       height={component.height as string}
       lines={component.lines as number}
       noAnimation={component.noAnimation as boolean}
+    />
+  ),
+
+  // 차트 컴포넌트
+  BarChart: ({ component }) => (
+    <A2UIBarChart
+      data={component.data as Parameters<typeof A2UIBarChart>[0]['data']}
+      xAxisKey={component.xAxisKey as string}
+      series={component.series as Parameters<typeof A2UIBarChart>[0]['series']}
+      title={component.title as string}
+      xAxisLabel={component.xAxisLabel as string}
+      yAxisLabel={component.yAxisLabel as string}
+      showGrid={component.showGrid as boolean}
+      showLegend={component.showLegend as boolean}
+      showTooltip={component.showTooltip as boolean}
+      height={component.height as number}
+      horizontal={component.horizontal as boolean}
+    />
+  ),
+
+  LineChart: ({ component }) => (
+    <A2UILineChart
+      data={component.data as Parameters<typeof A2UILineChart>[0]['data']}
+      xAxisKey={component.xAxisKey as string}
+      series={component.series as Parameters<typeof A2UILineChart>[0]['series']}
+      title={component.title as string}
+      xAxisLabel={component.xAxisLabel as string}
+      yAxisLabel={component.yAxisLabel as string}
+      showGrid={component.showGrid as boolean}
+      showLegend={component.showLegend as boolean}
+      showTooltip={component.showTooltip as boolean}
+      height={component.height as number}
+      curveType={component.curveType as 'linear' | 'monotone' | 'step'}
+    />
+  ),
+
+  PieChart: ({ component }) => (
+    <A2UIPieChart
+      data={component.data as Parameters<typeof A2UIPieChart>[0]['data']}
+      title={component.title as string}
+      donut={component.donut as boolean}
+      centerLabel={component.centerLabel as string}
+      centerValue={component.centerValue as string | number}
+      showLegend={component.showLegend as boolean}
+      showTooltip={component.showTooltip as boolean}
+      height={component.height as number}
+      width={component.width as number}
+      showLabels={component.showLabels as boolean}
     />
   ),
 };

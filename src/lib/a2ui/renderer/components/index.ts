@@ -27,3 +27,8 @@ export { A2UIListItem } from './A2UIListItem';
 export { A2UISpinner } from './A2UISpinner';
 export { A2UIProgress } from './A2UIProgress';
 export { A2UISkeleton } from './A2UISkeleton';
+
+// 차트 컴포넌트
+export { A2UIBarChart } from './A2UIBarChart';
+export { A2UILineChart } from './A2UILineChart';
+export { A2UIPieChart } from './A2UIPieChart';

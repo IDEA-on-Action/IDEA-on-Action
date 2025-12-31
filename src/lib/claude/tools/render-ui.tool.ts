@@ -54,6 +54,11 @@ export const renderUiToolDefinition = {
 - Progress: 진행률 바 (props: value, max, label, showPercent, size, variant)
 - Skeleton: 스켈레톤 로딩 (props: variant, width, height, lines, noAnimation)
 
+차트 컴포넌트:
+- BarChart: 막대 차트 (props: data, xAxisKey, series, title, showGrid, showLegend, showTooltip, height, horizontal)
+- LineChart: 선 차트 (props: data, xAxisKey, series, title, showGrid, showLegend, showTooltip, height, curveType)
+- PieChart: 파이/도넛 차트 (props: data, title, donut, centerLabel, centerValue, showLegend, showTooltip, height, showLabels)
+
 각 컴포넌트는 id(필수), component(필수), 그리고 컴포넌트별 속성을 가집니다.
 children 배열에 다른 컴포넌트의 id를 넣어 중첩 구조를 만들 수 있습니다.
 
@@ -222,6 +227,39 @@ surfaceType 옵션:
             height: { type: 'string' },
             lines: { type: 'number' },
             noAnimation: { type: 'boolean' },
+            // Chart common props
+            data: {
+              type: 'array',
+              items: { type: 'object' },
+              description: '차트 데이터 배열',
+            },
+            xAxisKey: { type: 'string', description: 'X축 데이터 키' },
+            series: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  dataKey: { type: 'string' },
+                  label: { type: 'string' },
+                  color: { type: 'string' },
+                  stackId: { type: 'string' },
+                  strokeDasharray: { type: 'string' },
+                  showDots: { type: 'boolean' },
+                  strokeWidth: { type: 'number' },
+                },
+              },
+              description: '데이터 시리즈 배열',
+            },
+            showGrid: { type: 'boolean' },
+            showLegend: { type: 'boolean' },
+            showTooltip: { type: 'boolean' },
+            horizontal: { type: 'boolean' },
+            curveType: { type: 'string', enum: ['linear', 'monotone', 'step'] },
+            // PieChart specific props
+            donut: { type: 'boolean' },
+            centerLabel: { type: 'string' },
+            centerValue: { type: ['string', 'number'] },
+            showLabels: { type: 'boolean' },
           },
           required: ['id', 'component'],
         },

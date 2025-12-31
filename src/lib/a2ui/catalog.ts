@@ -225,6 +225,33 @@ export const DEFAULT_CATALOG: ComponentCatalog = {
       allowedProps: ['variant', 'width', 'height', 'lines', 'noAnimation'],
       allowChildren: false,
     },
+
+    // ========================================================================
+    // 차트 컴포넌트
+    // ========================================================================
+    BarChart: {
+      name: 'BarChart',
+      description: '막대 차트',
+      allowedProps: ['data', 'xAxisKey', 'series', 'title', 'xAxisLabel', 'yAxisLabel', 'showGrid', 'showLegend', 'showTooltip', 'height', 'horizontal'],
+      allowChildren: false,
+      bindableProps: ['data'],
+    },
+
+    LineChart: {
+      name: 'LineChart',
+      description: '선 차트',
+      allowedProps: ['data', 'xAxisKey', 'series', 'title', 'xAxisLabel', 'yAxisLabel', 'showGrid', 'showLegend', 'showTooltip', 'height', 'curveType'],
+      allowChildren: false,
+      bindableProps: ['data'],
+    },
+
+    PieChart: {
+      name: 'PieChart',
+      description: '파이/도넛 차트',
+      allowedProps: ['data', 'title', 'donut', 'centerLabel', 'centerValue', 'showLegend', 'showTooltip', 'height', 'width', 'showLabels'],
+      allowChildren: false,
+      bindableProps: ['data'],
+    },
   },
 };
 
