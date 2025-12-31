@@ -174,6 +174,10 @@ export interface A2UIRendererProps {
   onAction?: A2UIActionHandler;
   /** 추가 클래스명 */
   className?: string;
+  /** 폼 데이터 (외부에서 관리되는 경우) */
+  formData?: Record<string, unknown>;
+  /** 폼 값 변경 핸들러 */
+  onFormValueChange?: (path: string, value: unknown) => void;
 }
 
 // ============================================================================

@@ -7,9 +7,16 @@ import { useMemo, useCallback } from 'react';
 import type { A2UIComponent, A2UIMessage, A2UIRendererProps, A2UIUserAction } from '../types';
 import { validateMessage, sanitizeMessage } from '../validator';
 import { resolveComponentById, findRootComponents, type ResolveOptions } from './ComponentResolver';
+import { A2UIFormProvider } from '../context';
 import { cn } from '@/lib/utils';
 
-export function A2UIRenderer({ message, onAction, className }: A2UIRendererProps) {
+export function A2UIRenderer({
+  message,
+  onAction,
+  className,
+  formData,
+  onFormValueChange,
+}: A2UIRendererProps) {
   // 메시지 검증 및 정화
   const { validMessage, errors } = useMemo(() => {
     const validation = validateMessage(message);
@@ -53,6 +60,12 @@ export function A2UIRenderer({ message, onAction, className }: A2UIRendererProps
     }
   }, [onAction]);
 
+  // 초기 폼 데이터: 외부 formData > message.data
+  const initialFormData = useMemo(
+    () => formData ?? validMessage?.data ?? {},
+    [formData, validMessage?.data]
+  );
+
   // 검증 실패 시 에러 표시
   if (errors.length > 0 || !validMessage) {
     return (
@@ -80,16 +93,22 @@ export function A2UIRenderer({ message, onAction, className }: A2UIRendererProps
   };
 
   return (
-    <div
-      className={cn('a2ui-surface', className)}
-      data-surface-id={validMessage.surfaceId}
+    <A2UIFormProvider
+      surfaceId={validMessage.surfaceId}
+      initialData={initialFormData}
+      onValueChange={onFormValueChange}
     >
-      {rootIds.map((rootId) => (
-        <div key={rootId}>
-          {resolveComponentById(rootId, options)}
-        </div>
-      ))}
-    </div>
+      <div
+        className={cn('a2ui-surface', className)}
+        data-surface-id={validMessage.surfaceId}
+      >
+        {rootIds.map((rootId) => (
+          <div key={rootId}>
+            {resolveComponentById(rootId, options)}
+          </div>
+        ))}
+      </div>
+    </A2UIFormProvider>
   );
 }
 

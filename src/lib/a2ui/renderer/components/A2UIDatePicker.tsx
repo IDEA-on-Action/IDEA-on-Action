@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import type { A2UIActionHandler } from '../../types';
+import { useA2UIFormField } from '../../context';
 
 export interface A2UIDatePickerProps {
   /** 레이블 */
@@ -41,10 +42,6 @@ export interface A2UIDatePickerProps {
 interface Props extends A2UIDatePickerProps {
   className?: string;
   onAction?: A2UIActionHandler;
-  /** 외부에서 주입된 바인딩 값 */
-  boundValue?: string;
-  /** 값 변경 핸들러 */
-  onValueChange?: (value: string) => void;
 }
 
 export function A2UIDatePicker({
@@ -57,23 +54,22 @@ export function A2UIDatePicker({
   onChange,
   className,
   onAction,
-  boundValue,
-  onValueChange,
 }: Props) {
   const [open, setOpen] = useState(false);
 
-  // 바인딩된 값 또는 직접 전달된 값 사용
-  const currentValue = boundValue ?? value;
+  // Context에서 바인딩된 값과 setter 가져오기
+  const { value: boundValue, onChange: setBoundValue } = useA2UIFormField(bind);
+
+  // 바인딩된 값 > 직접 전달된 값
+  const currentValue = (boundValue as string) ?? value;
   const date = currentValue ? new Date(currentValue) : undefined;
 
   const handleSelect = useCallback(
     (selectedDate: Date | undefined) => {
       const newValue = selectedDate?.toISOString() || '';
 
-      // 값 변경 핸들러 호출 (데이터 바인딩용)
-      if (onValueChange) {
-        onValueChange(newValue);
-      }
+      // Context에 값 저장 (데이터 바인딩)
+      setBoundValue(newValue);
 
       // 액션 핸들러 호출
       if (onChange && onAction) {
@@ -89,7 +85,7 @@ export function A2UIDatePicker({
 
       setOpen(false);
     },
-    [onChange, onAction, bind, onValueChange]
+    [onChange, onAction, bind, setBoundValue]
   );
 
   return (

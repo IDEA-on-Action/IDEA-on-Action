@@ -373,6 +373,8 @@ export function AIChatWidget({ config }: AIChatWidgetProps) {
         title={sidePanel.title}
         size={sidePanel.size}
         onAction={handleA2UIAction}
+        formData={sidePanel.formData}
+        onFormValueChange={updateSidePanelFormData}
       />
     </>
   );

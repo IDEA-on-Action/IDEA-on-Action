@@ -14,6 +14,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import type { A2UIActionHandler } from '../../types';
+import { useA2UIFormField } from '../../context';
 
 export interface A2UISelectOption {
   value: string;
@@ -46,10 +47,6 @@ export interface A2UISelectProps {
 interface Props extends A2UISelectProps {
   className?: string;
   onAction?: A2UIActionHandler;
-  /** 외부에서 주입된 바인딩 값 */
-  boundValue?: string;
-  /** 값 변경 핸들러 */
-  onValueChange?: (value: string) => void;
 }
 
 export function A2UISelect({
@@ -63,18 +60,17 @@ export function A2UISelect({
   onChange,
   className,
   onAction,
-  boundValue,
-  onValueChange,
 }: Props) {
-  // 바인딩된 값 또는 직접 전달된 값 사용
-  const currentValue = boundValue ?? value ?? '';
+  // Context에서 바인딩된 값과 setter 가져오기
+  const { value: boundValue, onChange: setBoundValue } = useA2UIFormField(bind);
+
+  // 바인딩된 값 > 직접 전달된 값 > 빈 문자열
+  const currentValue = (boundValue as string) ?? value ?? '';
 
   const handleChange = useCallback(
     (newValue: string) => {
-      // 값 변경 핸들러 호출 (데이터 바인딩용)
-      if (onValueChange) {
-        onValueChange(newValue);
-      }
+      // Context에 값 저장 (데이터 바인딩)
+      setBoundValue(newValue);
 
       // 액션 핸들러 호출
       if (onChange && onAction) {
@@ -88,7 +84,7 @@ export function A2UISelect({
         });
       }
     },
-    [onChange, onAction, bind, onValueChange]
+    [onChange, onAction, bind, setBoundValue]
   );
 
   return (

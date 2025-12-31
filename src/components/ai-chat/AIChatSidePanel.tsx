@@ -29,6 +29,10 @@ interface AIChatSidePanelProps {
   size?: SidePanelSize;
   /** A2UI 액션 핸들러 */
   onAction?: (action: A2UIUserAction) => void;
+  /** 폼 데이터 (외부에서 관리) */
+  formData?: Record<string, unknown>;
+  /** 폼 값 변경 핸들러 */
+  onFormValueChange?: (path: string, value: unknown) => void;
 }
 
 const sizeStyles: Record<SidePanelSize, string> = {
@@ -52,6 +56,8 @@ export function AIChatSidePanel({
   title = '상세 정보',
   size = 'md',
   onAction,
+  formData,
+  onFormValueChange,
 }: AIChatSidePanelProps) {
   const handleAction = useCallback(
     (action: A2UIUserAction) => {
@@ -96,7 +102,12 @@ export function AIChatSidePanel({
         <ScrollArea className="flex-1">
           <div className="p-4">
             {message ? (
-              <A2UIRenderer message={message} onAction={handleAction} />
+              <A2UIRenderer
+                message={message}
+                onAction={handleAction}
+                formData={formData}
+                onFormValueChange={onFormValueChange}
+              />
             ) : (
               <div className="flex items-center justify-center h-32 text-muted-foreground">
                 콘텐츠가 없습니다.

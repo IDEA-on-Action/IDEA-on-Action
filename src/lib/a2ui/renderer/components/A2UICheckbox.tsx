@@ -8,6 +8,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import type { A2UIActionHandler } from '../../types';
+import { useA2UIFormField } from '../../context';
 
 export interface A2UICheckboxProps {
   /** 레이블 */
@@ -30,10 +31,6 @@ export interface A2UICheckboxProps {
 interface Props extends A2UICheckboxProps {
   className?: string;
   onAction?: A2UIActionHandler;
-  /** 외부에서 주입된 바인딩 값 */
-  boundValue?: boolean;
-  /** 값 변경 핸들러 */
-  onValueChange?: (value: boolean) => void;
 }
 
 export function A2UICheckbox({
@@ -45,18 +42,17 @@ export function A2UICheckbox({
   onChange,
   className,
   onAction,
-  boundValue,
-  onValueChange,
 }: Props) {
-  // 바인딩된 값 또는 직접 전달된 값 사용
-  const currentValue = boundValue ?? checked ?? false;
+  // Context에서 바인딩된 값과 setter 가져오기
+  const { value: boundValue, onChange: setBoundValue } = useA2UIFormField(bind);
+
+  // 바인딩된 값 > 직접 전달된 값 > false
+  const currentValue = (boundValue as boolean) ?? checked ?? false;
 
   const handleChange = useCallback(
     (newValue: boolean) => {
-      // 값 변경 핸들러 호출 (데이터 바인딩용)
-      if (onValueChange) {
-        onValueChange(newValue);
-      }
+      // Context에 값 저장 (데이터 바인딩)
+      setBoundValue(newValue);
 
       // 액션 핸들러 호출
       if (onChange && onAction) {
@@ -70,7 +66,7 @@ export function A2UICheckbox({
         });
       }
     },
-    [onChange, onAction, bind, onValueChange]
+    [onChange, onAction, bind, setBoundValue]
   );
 
   const checkboxId = `a2ui-checkbox-${bind || Math.random().toString(36).slice(2)}`;
