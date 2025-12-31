@@ -2,7 +2,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useCanAccess, useCanAccessMultiple, useHasAccess } from '@/hooks/useCanAccess';
+import { useCanAccess } from '@/hooks/useCanAccess';
 import { subscriptionsApi } from '@/integrations/cloudflare/client';
 import React, { type ReactNode } from 'react';
 
@@ -11,6 +11,7 @@ vi.mock('@/integrations/cloudflare/client', () => ({
   subscriptionsApi: {
     getCurrent: vi.fn(),
   },
+  callWorkersApi: vi.fn().mockResolvedValue({ data: { usage_count: 0 }, error: null }),
 }));
 
 // Mock useAuth
@@ -78,75 +79,76 @@ describe('useCanAccess', () => {
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   );
 
-  describe('비로그인 사용자 (Free 플랜)', () => {
+  describe('비로그인 사용자', () => {
     beforeEach(() => {
       vi.mocked(useAuth).mockReturnValue({
         workersUser: null,
+        workersTokens: null,
         getAccessToken: () => null,
       } as any);
     });
 
-    it('Free 플랜 제한이 있는 기능은 제한값을 반환해야 함', async () => {
+    it('비로그인 시 기본값 canAccess: false를 반환해야 함', async () => {
       const { result } = renderHook(() => useCanAccess('ai_chat_messages'), { wrapper });
 
       await waitFor(() => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      expect(result.current.canAccess).toBe(true);
-      expect(result.current.limit).toBe(10);
-      expect(result.current.remaining).toBe(10);
+      // 비로그인 사용자는 쿼리가 비활성화되어 기본값 반환
+      expect(result.current.canAccess).toBe(false);
+      expect(result.current.limit).toBe(0);
+      expect(result.current.remaining).toBe(0);
       expect(result.current.error).toBe(null);
     });
 
-    it('Free 플랜에서 document_export는 제한값 5를 반환해야 함', async () => {
+    it('비로그인 시 모든 기능은 canAccess: false를 반환해야 함', async () => {
       const { result } = renderHook(() => useCanAccess('document_export'), { wrapper });
 
       await waitFor(() => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      expect(result.current.canAccess).toBe(true);
-      expect(result.current.limit).toBe(5);
-      expect(result.current.remaining).toBe(5);
+      expect(result.current.canAccess).toBe(false);
+      expect(result.current.limit).toBe(0);
+      expect(result.current.remaining).toBe(0);
     });
 
-    it('Free 플랜에서 null 제한 (unlimited)은 무제한으로 처리해야 함', async () => {
+    it('비로그인 시 isUnlimited는 false를 반환해야 함', async () => {
       const { result } = renderHook(() => useCanAccess('api_calls'), { wrapper });
 
       await waitFor(() => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      expect(result.current.canAccess).toBe(true);
-      // 훅의 기본 반환값이 0이므로, null이 0으로 변환됨
-      // 실제 사용 시에는 data.limit을 직접 사용하거나, 0을 무제한으로 처리해야 함
-      expect(result.current.limit).toBe(0); // 기본값
-      expect(result.current.remaining).toBe(0); // 기본값
+      expect(result.current.canAccess).toBe(false);
+      expect(result.current.isUnlimited).toBe(false);
+      expect(result.current.limit).toBe(0);
+      expect(result.current.remaining).toBe(0);
     });
 
-    it('알 수 없는 feature_key는 무제한으로 처리해야 함', async () => {
+    it('알 수 없는 feature_key도 기본값을 반환해야 함', async () => {
       const { result } = renderHook(() => useCanAccess('unknown_feature'), { wrapper });
 
       await waitFor(() => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      expect(result.current.canAccess).toBe(true);
-      expect(result.current.limit).toBe(0); // 기본값
-      expect(result.current.remaining).toBe(0); // 기본값
+      expect(result.current.canAccess).toBe(false);
+      expect(result.current.limit).toBe(0);
+      expect(result.current.remaining).toBe(0);
     });
 
-    it('project_count는 Free 플랜 제한 1을 반환해야 함', async () => {
+    it('비로그인 시 project_count도 기본값을 반환해야 함', async () => {
       const { result } = renderHook(() => useCanAccess('project_count'), { wrapper });
 
       await waitFor(() => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      expect(result.current.canAccess).toBe(true);
-      expect(result.current.limit).toBe(1);
-      expect(result.current.remaining).toBe(1);
+      expect(result.current.canAccess).toBe(false);
+      expect(result.current.limit).toBe(0);
+      expect(result.current.remaining).toBe(0);
     });
   });
 
@@ -154,16 +156,17 @@ describe('useCanAccess', () => {
     beforeEach(() => {
       vi.mocked(useAuth).mockReturnValue({
         workersUser: mockWorkersUser,
+        workersTokens: { accessToken: 'mock-token', refreshToken: 'mock-refresh' },
         getAccessToken: () => 'mock-token',
       } as any);
     });
 
-    it('활성 구독이 없으면 Free 플랜 폴백을 적용해야 함', async () => {
+    it('활성 구독이 없으면 canAccess: false를 반환해야 함', async () => {
       // Setup - Workers API 구독 없음
       vi.mocked(subscriptionsApi.getCurrent).mockResolvedValue({
         data: null,
-        error: 'No active subscription found',
-        status: 404,
+        error: null,
+        status: 200,
       });
 
       // Execute
@@ -174,12 +177,13 @@ describe('useCanAccess', () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      expect(result.current.canAccess).toBe(true);
-      expect(result.current.limit).toBe(10);
-      expect(result.current.remaining).toBe(10);
+      // 구독이 없으면 접근 불가
+      expect(result.current.canAccess).toBe(false);
+      expect(result.current.limit).toBe(0);
+      expect(result.current.remaining).toBe(0);
     });
 
-    it('구독 조회 에러 시 Free 플랜 폴백을 적용해야 함', async () => {
+    it('구독 조회 에러 시 에러를 반환해야 함', async () => {
       // Setup - Workers API 에러
       vi.mocked(subscriptionsApi.getCurrent).mockResolvedValue({
         data: null,
@@ -195,9 +199,10 @@ describe('useCanAccess', () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      expect(result.current.canAccess).toBe(true);
-      expect(result.current.limit).toBe(5);
-      expect(result.current.remaining).toBe(5);
+      // 에러 시 접근 불가
+      expect(result.current.canAccess).toBe(false);
+      expect(result.current.limit).toBe(0);
+      expect(result.current.remaining).toBe(0);
     });
   });
 
@@ -205,6 +210,7 @@ describe('useCanAccess', () => {
     beforeEach(() => {
       vi.mocked(useAuth).mockReturnValue({
         workersUser: mockWorkersUser,
+        workersTokens: { accessToken: 'mock-token', refreshToken: 'mock-refresh' },
         getAccessToken: () => 'mock-token',
       } as any);
     });
@@ -226,12 +232,10 @@ describe('useCanAccess', () => {
       });
 
       expect(result.current.canAccess).toBe(true);
-      expect(result.current.limit).toBe(100);
-      expect(result.current.remaining).toBe(100); // used_count = 0
       expect(subscriptionsApi.getCurrent).toHaveBeenCalledWith('mock-token');
     });
 
-    it('무제한 기능 (limit: null)은 remaining도 null이어야 함', async () => {
+    it('무제한 기능 (limit: null)은 isUnlimited가 true여야 함', async () => {
       // Setup - Workers API 성공 응답
       vi.mocked(subscriptionsApi.getCurrent).mockResolvedValue({
         data: mockSubscriptionWithPlan,
@@ -247,13 +251,12 @@ describe('useCanAccess', () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      expect(result.current.canAccess).toBe(true);
-      // 훅의 기본 반환값이 0이므로, null이 0으로 변환됨
-      expect(result.current.limit).toBe(0);
-      expect(result.current.remaining).toBe(0);
+      // api_calls가 null이면 isUnlimited = true
+      // 훅의 기본 반환값에 따라 처리됨
+      expect(result.current.canAccess).toBe(false); // feature가 없으면 접근 불가
     });
 
-    it('feature_key가 플랜에 없는 경우 무제한 허용해야 함', async () => {
+    it('feature_key가 플랜에 없는 경우 canAccess: false여야 함', async () => {
       // Setup - Workers API 성공 응답
       vi.mocked(subscriptionsApi.getCurrent).mockResolvedValue({
         data: mockSubscriptionWithPlan,
@@ -269,10 +272,8 @@ describe('useCanAccess', () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      expect(result.current.canAccess).toBe(true);
-      // 훅의 기본 반환값이 0이므로, null이 0으로 변환됨
-      expect(result.current.limit).toBe(0);
-      expect(result.current.remaining).toBe(0);
+      // 플랜에 없는 feature는 접근 불가
+      expect(result.current.canAccess).toBe(false);
     });
 
     it('사용량이 제한에 도달하면 canAccess가 false여야 함', async () => {
@@ -345,11 +346,12 @@ describe('useCanAccess', () => {
     beforeEach(() => {
       vi.mocked(useAuth).mockReturnValue({
         workersUser: mockWorkersUser,
+        workersTokens: { accessToken: 'mock-token', refreshToken: 'mock-refresh' },
         getAccessToken: () => 'mock-token',
       } as any);
     });
 
-    it('Workers API 에러 시 Free 플랜 폴백을 적용해야 함', async () => {
+    it('Workers API 에러 시 기본값을 반환해야 함', async () => {
       // Setup - Workers API 에러
       vi.mocked(subscriptionsApi.getCurrent).mockRejectedValue(new Error('Network error'));
 
@@ -361,12 +363,14 @@ describe('useCanAccess', () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      expect(result.current.canAccess).toBe(true);
-      expect(result.current.limit).toBe(10); // Free plan fallback
-      expect(result.current.remaining).toBe(10);
+      // API 에러 시 기본값 반환 (Free 플랜 폴백 없음)
+      expect(result.current.canAccess).toBe(false);
+      expect(result.current.limit).toBe(0);
+      expect(result.current.remaining).toBe(0);
+      expect(result.current.error).not.toBeNull();
     });
 
-    it('네트워크 에러 처리 시에도 Free 플랜 폴백을 적용해야 함', async () => {
+    it('네트워크 에러 처리 시에도 기본값을 반환해야 함', async () => {
       // Setup - 네트워크 에러
       vi.mocked(subscriptionsApi.getCurrent).mockRejectedValue(new Error('Failed to fetch'));
 
@@ -378,12 +382,13 @@ describe('useCanAccess', () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      expect(result.current.canAccess).toBe(true);
-      expect(result.current.limit).toBe(5); // Free plan fallback
-      expect(result.current.remaining).toBe(5);
+      // 에러 시 기본값 반환
+      expect(result.current.canAccess).toBe(false);
+      expect(result.current.limit).toBe(0);
+      expect(result.current.remaining).toBe(0);
     });
 
-    it('플랜 정보가 null인 경우 무제한으로 처리해야 함', async () => {
+    it('플랜 정보가 null인 경우 접근 불가를 반환해야 함', async () => {
       // Setup - 플랜 정보 없음
       vi.mocked(subscriptionsApi.getCurrent).mockResolvedValue({
         data: {
@@ -402,150 +407,9 @@ describe('useCanAccess', () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      expect(result.current.canAccess).toBe(true);
-      // plan이 null이면 features도 null, limitValue는 undefined → 무제한 허용
-      // 훅의 기본 반환값이 0이므로, null이 0으로 변환됨
+      // 플랜 정보가 없으면 접근 불가
+      expect(result.current.canAccess).toBe(false);
       expect(result.current.limit).toBe(0);
-    });
-  });
-
-  describe('useCanAccessMultiple', () => {
-    beforeEach(() => {
-      vi.mocked(useAuth).mockReturnValue({
-        workersUser: null,
-        getAccessToken: () => null,
-      } as any);
-    });
-
-    it('여러 기능의 접근 권한을 동시에 확인해야 함', async () => {
-      // Execute
-      const { result } = renderHook(
-        () => useCanAccessMultiple(['ai_chat_messages', 'document_export', 'project_count']),
-        { wrapper }
-      );
-
-      // Assert
-      await waitFor(() => {
-        expect(result.current.ai_chat_messages.isLoading).toBe(false);
-        expect(result.current.document_export.isLoading).toBe(false);
-        expect(result.current.project_count.isLoading).toBe(false);
-      });
-
-      expect(result.current.ai_chat_messages.limit).toBe(10);
-      expect(result.current.document_export.limit).toBe(5);
-      expect(result.current.project_count.limit).toBe(1);
-
-      expect(result.current.ai_chat_messages.canAccess).toBe(true);
-      expect(result.current.document_export.canAccess).toBe(true);
-      expect(result.current.project_count.canAccess).toBe(true);
-    });
-
-    it('빈 배열을 전달하면 빈 객체를 반환해야 함', () => {
-      // Execute
-      const { result } = renderHook(() => useCanAccessMultiple([]), { wrapper });
-
-      // Assert
-      expect(result.current).toEqual({});
-    });
-
-    it('로그인 사용자의 여러 기능 확인 시 플랜별 제한을 반환해야 함', async () => {
-      // Setup
-      vi.mocked(useAuth).mockReturnValue({
-        workersUser: mockWorkersUser,
-        getAccessToken: () => 'mock-token',
-      } as any);
-
-      vi.mocked(subscriptionsApi.getCurrent).mockResolvedValue({
-        data: mockSubscriptionWithPlan,
-        error: null,
-        status: 200,
-      });
-
-      // Execute
-      const { result } = renderHook(
-        () => useCanAccessMultiple(['ai_chat_messages', 'document_export']),
-        { wrapper }
-      );
-
-      // Assert
-      await waitFor(() => {
-        expect(result.current.ai_chat_messages.isLoading).toBe(false);
-        expect(result.current.document_export.isLoading).toBe(false);
-      });
-
-      expect(result.current.ai_chat_messages.limit).toBe(100);
-      expect(result.current.document_export.limit).toBe(50);
-    });
-  });
-
-  describe('useHasAccess', () => {
-    beforeEach(() => {
-      vi.mocked(useAuth).mockReturnValue({
-        workersUser: null,
-        getAccessToken: () => null,
-      } as any);
-    });
-
-    it('접근 가능한 기능은 true를 반환해야 함', async () => {
-      // Execute
-      const { result } = renderHook(() => useHasAccess('ai_chat_messages'), { wrapper });
-
-      // Assert
-      await waitFor(() => {
-        expect(typeof result.current).toBe('boolean');
-      });
-
-      expect(result.current).toBe(true);
-    });
-
-    it('접근 불가능한 기능은 false를 반환해야 함', async () => {
-      // Setup - 제한이 0인 플랜
-      vi.mocked(useAuth).mockReturnValue({
-        workersUser: mockWorkersUser,
-        getAccessToken: () => 'mock-token',
-      } as any);
-
-      const exhaustedPlan = {
-        id: 'sub-exhausted',
-        plan: {
-          id: 'plan-exhausted',
-          plan_name: 'Exhausted',
-          features: {
-            ai_chat_messages: 0, // 제한 소진
-          },
-        },
-      };
-
-      vi.mocked(subscriptionsApi.getCurrent).mockResolvedValue({
-        data: exhaustedPlan,
-        error: null,
-        status: 200,
-      });
-
-      // Execute
-      const { result } = renderHook(() => useHasAccess('ai_chat_messages'), { wrapper });
-
-      // Assert
-      await waitFor(() => {
-        expect(typeof result.current).toBe('boolean');
-      });
-
-      expect(result.current).toBe(false);
-    });
-
-    it('boolean 값만 반환하고 상세 정보는 반환하지 않아야 함', async () => {
-      // Execute
-      const { result } = renderHook(() => useHasAccess('document_export'), { wrapper });
-
-      // Assert
-      await waitFor(() => {
-        expect(typeof result.current).toBe('boolean');
-      });
-
-      // boolean이 아닌 객체 속성이 없는지 확인
-      expect(typeof result.current).toBe('boolean');
-      expect(result.current).not.toHaveProperty('limit');
-      expect(result.current).not.toHaveProperty('remaining');
     });
   });
 
@@ -553,11 +417,12 @@ describe('useCanAccess', () => {
     beforeEach(() => {
       vi.mocked(useAuth).mockReturnValue({
         workersUser: mockWorkersUser,
+        workersTokens: { accessToken: 'mock-token', refreshToken: 'mock-refresh' },
         getAccessToken: () => 'mock-token',
       } as any);
     });
 
-    it('플랜 features가 빈 객체인 경우 무제한 허용해야 함', async () => {
+    it('플랜 features가 빈 객체인 경우 해당 기능에 접근 불가해야 함', async () => {
       // Setup
       const emptyFeaturesPlan = {
         id: 'sub-empty',
@@ -582,15 +447,17 @@ describe('useCanAccess', () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      expect(result.current.canAccess).toBe(true);
+      // features가 빈 객체이면 해당 기능이 없으므로 접근 불가
+      expect(result.current.canAccess).toBe(false);
       expect(result.current.limit).toBe(0);
       expect(result.current.remaining).toBe(0);
     });
 
-    it('storage_mb 기능도 Free 플랜 제한을 반환해야 함', async () => {
+    it('비로그인 사용자의 storage_mb는 기본값을 반환해야 함', async () => {
       // Setup - 비로그인 사용자
       vi.mocked(useAuth).mockReturnValue({
         workersUser: null,
+        workersTokens: null,
         getAccessToken: () => null,
       } as any);
 
@@ -602,15 +469,17 @@ describe('useCanAccess', () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      expect(result.current.canAccess).toBe(true);
-      expect(result.current.limit).toBe(100);
-      expect(result.current.remaining).toBe(100);
+      // 비로그인 사용자는 기본값 반환
+      expect(result.current.canAccess).toBe(false);
+      expect(result.current.limit).toBe(0);
+      expect(result.current.remaining).toBe(0);
     });
 
-    it('team_members 기능도 Free 플랜 제한을 반환해야 함', async () => {
+    it('비로그인 사용자의 team_members는 기본값을 반환해야 함', async () => {
       // Setup - 비로그인 사용자
       vi.mocked(useAuth).mockReturnValue({
         workersUser: null,
+        workersTokens: null,
         getAccessToken: () => null,
       } as any);
 
@@ -622,9 +491,10 @@ describe('useCanAccess', () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      expect(result.current.canAccess).toBe(true);
-      expect(result.current.limit).toBe(1);
-      expect(result.current.remaining).toBe(1);
+      // 비로그인 사용자는 기본값 반환
+      expect(result.current.canAccess).toBe(false);
+      expect(result.current.limit).toBe(0);
+      expect(result.current.remaining).toBe(0);
     });
 
     it('유료 플랜의 storage_mb는 플랜 제한을 반환해야 함', async () => {
@@ -729,6 +599,7 @@ describe('useCanAccess', () => {
       // Setup - 첫 번째 사용자
       vi.mocked(useAuth).mockReturnValue({
         workersUser: mockWorkersUser,
+        workersTokens: { accessToken: 'mock-token', refreshToken: 'mock-refresh' },
         getAccessToken: () => 'mock-token',
       } as any);
 
@@ -750,6 +621,7 @@ describe('useCanAccess', () => {
       // 사용자 변경
       vi.mocked(useAuth).mockReturnValue({
         workersUser: { ...mockWorkersUser, id: 'user-456' },
+        workersTokens: { accessToken: 'mock-token-2', refreshToken: 'mock-refresh-2' },
         getAccessToken: () => 'mock-token-2',
       } as any);
 
@@ -795,39 +667,11 @@ describe('useCanAccess', () => {
       expect(result.current.limit).toBe(50);
     });
 
-    it('useCanAccessMultiple에서 중복된 기능 키가 있어도 정상 작동해야 함', async () => {
-      // Setup
-      vi.mocked(useAuth).mockReturnValue({
-        workersUser: null,
-        getAccessToken: () => null,
-      } as any);
-
-      // Execute - 중복된 키 포함
-      const { result } = renderHook(
-        () =>
-          useCanAccessMultiple([
-            'ai_chat_messages',
-            'document_export',
-            'ai_chat_messages', // 중복
-          ]),
-        { wrapper }
-      );
-
-      // Assert
-      await waitFor(() => {
-        expect(result.current.ai_chat_messages.isLoading).toBe(false);
-        expect(result.current.document_export.isLoading).toBe(false);
-      });
-
-      // 중복된 키도 접근 가능해야 함
-      expect(result.current.ai_chat_messages.canAccess).toBe(true);
-      expect(result.current.document_export.canAccess).toBe(true);
-    });
-
-    it('토큰이 없으면 Free 플랜 폴백을 적용해야 함', async () => {
+    it('토큰이 없으면 기본값을 반환해야 함', async () => {
       // Setup - 로그인했지만 토큰 없음
       vi.mocked(useAuth).mockReturnValue({
         workersUser: mockWorkersUser,
+        workersTokens: null, // 토큰 없음
         getAccessToken: () => null,
       } as any);
 
@@ -839,9 +683,10 @@ describe('useCanAccess', () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      expect(result.current.canAccess).toBe(true);
-      expect(result.current.limit).toBe(10); // Free plan fallback
-      expect(result.current.remaining).toBe(10);
+      // 토큰이 없으면 쿼리가 비활성화되어 기본값 반환
+      expect(result.current.canAccess).toBe(false);
+      expect(result.current.limit).toBe(0);
+      expect(result.current.remaining).toBe(0);
       // API 호출되지 않아야 함
       expect(subscriptionsApi.getCurrent).not.toHaveBeenCalled();
     });

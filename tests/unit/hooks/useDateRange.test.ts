@@ -133,9 +133,19 @@ describe("useDateRange", () => {
     expect(from.getDate()).toBe(1); // 월의 첫째 날
     expect(from.getMonth()).toBe(to.getMonth()); // 같은 달
 
+    // 지난 달은 현재 월보다 1 작거나 (1월인 경우) 11이어야 함
     const today = new Date();
-    const expectedMonth = today.getMonth() === 0 ? 11 : today.getMonth() - 1;
-    expect(from.getMonth()).toBe(expectedMonth);
+    const currentMonth = today.getMonth();
+    const fromMonth = from.getMonth();
+
+    // 지난 달이 올해 또는 작년에 있을 수 있음
+    if (currentMonth === 0) {
+      // 1월이면 지난 달은 12월 (11)
+      expect(fromMonth).toBe(11);
+    } else {
+      // 그 외에는 현재 월 - 1
+      expect(fromMonth).toBe(currentMonth - 1);
+    }
   });
 
   it("유효한 날짜 범위를 검증해야 한다", () => {

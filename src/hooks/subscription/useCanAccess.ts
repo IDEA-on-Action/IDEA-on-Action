@@ -47,12 +47,12 @@ export interface CanAccessResult {
  * ```
  */
 export function useCanAccess(feature_key: string): CanAccessResult {
-  const { user, workersTokens } = useAuth();
+  const { workersUser, workersTokens } = useAuth();
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ['feature_access', feature_key, user?.id],
+    queryKey: ['feature_access', feature_key, workersUser?.id],
     queryFn: async () => {
-      if (!user || !workersTokens?.accessToken) throw new Error('로그인이 필요합니다.');
+      if (!workersUser || !workersTokens?.accessToken) throw new Error('로그인이 필요합니다.');
 
       // 1. 사용자의 활성 구독 조회
       const { data: subscription, error: subError } = await subscriptionsApi.getCurrent(
@@ -178,7 +178,7 @@ export function useCanAccess(feature_key: string): CanAccessResult {
         currentPlan: plan.plan_name,
       };
     },
-    enabled: !!user && !!workersTokens?.accessToken && !!feature_key,
+    enabled: !!workersUser && !!workersTokens?.accessToken && !!feature_key,
     staleTime: 1000 * 60, // 1분 캐싱
   });
 
