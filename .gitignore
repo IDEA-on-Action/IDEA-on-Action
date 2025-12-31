@@ -90,3 +90,5 @@ Thumbs.db
 .migration-checkpoint.json
 .migration-url-mapping.json
 .migration-url-mapping.csv
+# Vercel
+.vercel
