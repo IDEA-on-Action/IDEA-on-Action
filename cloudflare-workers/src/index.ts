@@ -93,6 +93,9 @@ import newsletter from './handlers/notifications/newsletter';
 import githubReleases from './handlers/cron/github-releases';
 import weeklyRecap from './handlers/cron/weekly-recap';
 
+// Monitoring Handlers (Phase 13)
+import d1Monitoring from './handlers/monitoring/d1';
+
 // Durable Objects
 export { RealtimeRoom } from './durable-objects/RealtimeRoom';
 
@@ -199,6 +202,9 @@ app.route('/notifications/newsletter', newsletter);
 // Cron Jobs (Phase 12)
 app.route('/cron/github-releases', githubReleases);
 app.route('/cron/weekly-recap', weeklyRecap);
+
+// Monitoring (Phase 13)
+app.route('/monitoring/d1', d1Monitoring);
 
 // 404 핸들러
 app.notFound((c) => {
