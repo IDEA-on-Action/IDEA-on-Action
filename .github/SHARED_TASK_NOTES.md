@@ -3,7 +3,7 @@
 > 반복 간 진행 상황 전달을 위한 공유 메모
 
 **마지막 업데이트**: 2025-12-31
-**현재 버전**: v3.1.0 (A2UI 시스템 완성)
+**현재 버전**: v3.1.0 (Phase 13 D1 모니터링 추가)
 
 ---
 
@@ -64,6 +64,15 @@ v3.1.0 완료 - A2UI 시스템 완성 ✅
   - AIChatA2UIBlock: A2UIRenderer 래퍼
   - AIChatSidePanel: 사이드 패널 UI
   - Feature Flag: VITE_FEATURE_TOOL_USE
+- [x] Phase 13: D1 성능 모니터링 대시보드
+  - cloudflare-workers/src/handlers/monitoring/d1.ts: D1 모니터링 API 핸들러
+  - src/types/d1-monitoring.types.ts: 메트릭 타입 정의
+  - src/hooks/useD1Monitoring.ts: React Query 모니터링 훅
+  - src/pages/admin/D1Dashboard.tsx: 탭 기반 대시보드 UI
+  - 개요/성능/쿼리 3개 탭 구성
+  - 시계열 차트 (Recharts lazy loading)
+  - 슬로우 쿼리 모니터링 (100ms 이상)
+  - KV 기반 24시간 메트릭 저장
 
 ### v3.0.1 (2025-12-30, 완료)
 
@@ -219,7 +228,7 @@ v2.39.0 모든 작업 완료 ✅
 3. ~~환경 변수 설정~~ ✅ 완료 (MINU_FIND_CLIENT_ID, SECRET, WEBHOOK_SECRET)
 4. ~~Minu SSO 통합 테스트~~ ✅ 완료 (2025-12-31)
 5. ~~Lighthouse 접근성 100%~~ ✅ 완료 (2025-12-30)
-6. D1 성능 모니터링 대시보드
+6. ~~D1 성능 모니터링 대시보드~~ ✅ 완료 (2025-12-31)
 7. ~~AI 채팅 위젯 A2UI 적용~~ ✅ 완료 (2025-12-31)
 
 ---
