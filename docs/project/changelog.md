@@ -9,6 +9,55 @@
 
 ---
 
+## [3.2.0] - 2025-12-31 📊 D1 모니터링 대시보드
+
+### ✨ 신규 기능
+
+- **D1 성능 모니터링 대시보드** (Phase 13)
+  - 개요 탭: 테이블 목록, 행 수, 데이터베이스 상태
+  - 성능 탭: 쿼리 통계, 시계열 차트, 슬로우 쿼리 목록
+  - 쿼리 탭: 읽기 전용 SQL 실행 및 결과 표시
+  - Recharts 동적 import로 번들 최적화
+  - KV 기반 24시간 시계열 데이터 저장
+  - 슬로우 쿼리 (100ms+) 자동 추적
+
+### 🔧 리팩토링
+
+- **A2UI Form 훅 분리**: Fast Refresh 경고 해결
+  - `useA2UIForm.ts` 파일 분리
+  - `A2UIFormContext.tsx`는 Provider/Context만 유지
+
+### 🔒 보안
+
+- **npm audit 취약점 수정**: 3 high → 0
+  - qs, body-parser, express 업데이트
+
+### 🧪 테스트
+
+- **useConversationManager 테스트 수정**
+  - URL 인코딩 (`%3A`) 반영
+
+---
+
+## [3.1.0] - 2025-12-31 🤖 A2UI 시스템 완성
+
+### ✨ 신규 기능
+
+- **A2UI (Agent-to-UI) 시스템**
+  - Phase 1: 코어 렌더러 구현
+  - Phase 2: 사이드 패널 구현
+  - 25+ 컴포넌트 카탈로그
+  - 스트리밍 UI: StreamingText, StreamingIndicator
+- **AI 채팅 위젯 A2UI 통합**
+  - Feature Flag: VITE_FEATURE_TOOL_USE
+
+### 🧪 테스트
+
+- A2UI 유닛 테스트 71개
+- useMinuSSO 훅 유닛 테스트 20개
+
+---
+
 ## [3.0.1] - 2025-12-30 🚀 성능 및 접근성 개선
 
 ### ♿ 접근성 (Accessibility)
