@@ -34,6 +34,11 @@ import {
   A2UIBarChart,
   A2UILineChart,
   A2UIPieChart,
+  // 고급 인터랙션 컴포넌트
+  A2UIAccordion,
+  A2UITabs,
+  A2UIModal,
+  A2UIDrawer,
 } from './components';
 
 // ============================================================================
@@ -287,6 +292,59 @@ const componentRegistry: Record<string, ComponentRenderer> = {
       height={component.height as number}
       width={component.width as number}
       showLabels={component.showLabels as boolean}
+    />
+  ),
+
+  // 고급 인터랙션 컴포넌트
+  Accordion: ({ component, renderedChildren }) => (
+    <A2UIAccordion
+      items={component.items as Parameters<typeof A2UIAccordion>[0]['items']}
+      type={component.type as 'single' | 'multiple'}
+      defaultValue={component.defaultValue as string | string[]}
+      collapsible={component.collapsible as boolean}
+      renderedChildren={renderedChildren}
+    />
+  ),
+
+  Tabs: ({ component, renderedChildren }) => (
+    <A2UITabs
+      tabs={component.tabs as Parameters<typeof A2UITabs>[0]['tabs']}
+      defaultValue={component.defaultValue as string}
+      align={component.align as 'start' | 'center' | 'end'}
+      renderedChildren={renderedChildren}
+    />
+  ),
+
+  Modal: ({ component, renderedChildren, onAction }) => (
+    <A2UIModal
+      title={component.title as string}
+      description={component.description as string}
+      triggerText={component.triggerText as string}
+      triggerVariant={component.triggerVariant as 'default' | 'secondary' | 'outline' | 'ghost' | 'destructive'}
+      content={component.content as string}
+      confirmText={component.confirmText as string}
+      cancelText={component.cancelText as string}
+      onConfirm={component.onConfirm as Parameters<typeof A2UIModal>[0]['onConfirm']}
+      onCancel={component.onCancel as Parameters<typeof A2UIModal>[0]['onCancel']}
+      size={component.size as 'sm' | 'md' | 'lg' | 'xl'}
+      renderedChildren={renderedChildren}
+      onAction={onAction}
+    />
+  ),
+
+  Drawer: ({ component, renderedChildren, onAction }) => (
+    <A2UIDrawer
+      title={component.title as string}
+      description={component.description as string}
+      triggerText={component.triggerText as string}
+      triggerVariant={component.triggerVariant as 'default' | 'secondary' | 'outline' | 'ghost' | 'destructive'}
+      content={component.content as string}
+      confirmText={component.confirmText as string}
+      cancelText={component.cancelText as string}
+      onConfirm={component.onConfirm as Parameters<typeof A2UIDrawer>[0]['onConfirm']}
+      onCancel={component.onCancel as Parameters<typeof A2UIDrawer>[0]['onCancel']}
+      renderedChildren={renderedChildren}
+      onAction={onAction}
     />
   ),
 };

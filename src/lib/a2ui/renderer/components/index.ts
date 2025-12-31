@@ -32,3 +32,9 @@ export { A2UISkeleton } from './A2UISkeleton';
 export { A2UIBarChart } from './A2UIBarChart';
 export { A2UILineChart } from './A2UILineChart';
 export { A2UIPieChart } from './A2UIPieChart';
+
+// 고급 인터랙션 컴포넌트
+export { A2UIAccordion } from './A2UIAccordion';
+export { A2UITabs } from './A2UITabs';
+export { A2UIModal } from './A2UIModal';
+export { A2UIDrawer } from './A2UIDrawer';

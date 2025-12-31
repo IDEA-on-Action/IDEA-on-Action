@@ -252,6 +252,43 @@ export const DEFAULT_CATALOG: ComponentCatalog = {
       allowChildren: false,
       bindableProps: ['data'],
     },
+
+    // ========================================================================
+    // 고급 인터랙션 컴포넌트
+    // ========================================================================
+    Accordion: {
+      name: 'Accordion',
+      description: '접이식 패널',
+      allowedProps: ['items', 'type', 'defaultValue', 'collapsible'],
+      allowChildren: true,
+      allowedChildTypes: null,
+    },
+
+    Tabs: {
+      name: 'Tabs',
+      description: '탭 인터페이스',
+      allowedProps: ['tabs', 'defaultValue', 'align'],
+      allowChildren: true,
+      allowedChildTypes: null,
+    },
+
+    Modal: {
+      name: 'Modal',
+      description: '모달 다이얼로그',
+      allowedProps: ['title', 'description', 'triggerText', 'triggerVariant', 'content', 'confirmText', 'cancelText', 'onConfirm', 'onCancel', 'size'],
+      allowChildren: true,
+      allowedChildTypes: null,
+      actionProps: ['onConfirm', 'onCancel'],
+    },
+
+    Drawer: {
+      name: 'Drawer',
+      description: '하단 드로어',
+      allowedProps: ['title', 'description', 'triggerText', 'triggerVariant', 'content', 'confirmText', 'cancelText', 'onConfirm', 'onCancel'],
+      allowChildren: true,
+      allowedChildTypes: null,
+      actionProps: ['onConfirm', 'onCancel'],
+    },
   },
 };
 

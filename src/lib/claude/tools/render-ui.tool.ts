@@ -59,6 +59,12 @@ export const renderUiToolDefinition = {
 - LineChart: 선 차트 (props: data, xAxisKey, series, title, showGrid, showLegend, showTooltip, height, curveType)
 - PieChart: 파이/도넛 차트 (props: data, title, donut, centerLabel, centerValue, showLegend, showTooltip, height, showLabels)
 
+고급 인터랙션 컴포넌트:
+- Accordion: 접이식 패널 (props: items, type, defaultValue, collapsible)
+- Tabs: 탭 인터페이스 (props: tabs, defaultValue, align)
+- Modal: 모달 다이얼로그 (props: title, description, triggerText, triggerVariant, content, confirmText, cancelText, onConfirm, onCancel, size)
+- Drawer: 하단 드로어 (props: title, description, triggerText, triggerVariant, content, confirmText, cancelText, onConfirm, onCancel)
+
 각 컴포넌트는 id(필수), component(필수), 그리고 컴포넌트별 속성을 가집니다.
 children 배열에 다른 컴포넌트의 id를 넣어 중첩 구조를 만들 수 있습니다.
 
@@ -260,6 +266,54 @@ surfaceType 옵션:
             centerLabel: { type: 'string' },
             centerValue: { type: ['string', 'number'] },
             showLabels: { type: 'boolean' },
+            // Accordion props
+            items: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  id: { type: 'string' },
+                  title: { type: 'string' },
+                  content: { type: 'string' },
+                },
+              },
+              description: '아코디언/탭 아이템 배열',
+            },
+            collapsible: { type: 'boolean' },
+            // Tabs props
+            tabs: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  id: { type: 'string' },
+                  label: { type: 'string' },
+                  content: { type: 'string' },
+                  disabled: { type: 'boolean' },
+                },
+              },
+            },
+            align: { type: 'string', enum: ['start', 'center', 'end'] },
+            // Modal/Drawer props
+            triggerText: { type: 'string' },
+            triggerVariant: { type: 'string', enum: ['default', 'secondary', 'outline', 'ghost', 'destructive'] },
+            content: { type: 'string' },
+            confirmText: { type: 'string' },
+            cancelText: { type: 'string' },
+            onConfirm: {
+              type: 'object',
+              properties: {
+                action: { type: 'string' },
+                data: { type: 'object' },
+              },
+            },
+            onCancel: {
+              type: 'object',
+              properties: {
+                action: { type: 'string' },
+                data: { type: 'object' },
+              },
+            },
           },
           required: ['id', 'component'],
         },
