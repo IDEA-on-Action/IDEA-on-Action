@@ -324,6 +324,25 @@ export const DEFAULT_CATALOG: ComponentCatalog = {
       allowChildren: false,
       bindableProps: ['src'],
     },
+
+    // ========================================================================
+    // 스트리밍 컴포넌트
+    // ========================================================================
+    StreamingText: {
+      name: 'StreamingText',
+      description: '스트리밍 텍스트 (타이핑 효과)',
+      allowedProps: ['text', 'streaming', 'speed', 'variant', 'markdown', 'showCursor'],
+      allowChildren: false,
+      bindableProps: ['text'],
+    },
+
+    StreamingIndicator: {
+      name: 'StreamingIndicator',
+      description: '스트리밍 진행 표시기',
+      allowedProps: ['isStreaming', 'progress', 'label', 'variant', 'size'],
+      allowChildren: false,
+      bindableProps: ['isStreaming', 'progress'],
+    },
   },
 };
 

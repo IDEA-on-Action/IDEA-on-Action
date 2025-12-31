@@ -71,6 +71,10 @@ export const renderUiToolDefinition = {
 - Video: 비디오 플레이어 (props: src, poster, title, width, height, aspectRatio, controls, autoPlay, loop, muted, rounded, caption)
 - Audio: 오디오 플레이어 (props: src, title, artist, cover, controls, autoPlay, loop, muted, compact)
 
+스트리밍 컴포넌트:
+- StreamingText: 타이핑 효과 텍스트 (props: text, streaming, speed, variant, markdown, showCursor)
+- StreamingIndicator: 진행 표시기 (props: isStreaming, progress, label, variant, size)
+
 각 컴포넌트는 id(필수), component(필수), 그리고 컴포넌트별 속성을 가집니다.
 children 배열에 다른 컴포넌트의 id를 넣어 중첩 구조를 만들 수 있습니다.
 
@@ -340,6 +344,14 @@ surfaceType 옵션:
             artist: { type: 'string' },
             cover: { type: 'string' },
             compact: { type: 'boolean' },
+            // StreamingText props
+            streaming: { type: 'boolean', description: '스트리밍 활성화' },
+            speed: { type: 'number', description: '타이핑 속도 (ms)' },
+            markdown: { type: 'boolean', description: '마크다운 렌더링' },
+            showCursor: { type: 'boolean', description: '커서 표시' },
+            // StreamingIndicator props
+            isStreaming: { type: 'boolean' },
+            progress: { type: 'number', description: '진행률 (0-100)' },
           },
           required: ['id', 'component'],
         },

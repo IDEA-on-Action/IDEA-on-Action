@@ -44,6 +44,9 @@ import {
   A2UIAvatar,
   A2UIVideo,
   A2UIAudio,
+  // 스트리밍 컴포넌트
+  A2UIStreamingText,
+  A2UIStreamingIndicator,
 } from './components';
 
 // ============================================================================
@@ -406,6 +409,28 @@ const componentRegistry: Record<string, ComponentRenderer> = {
       loop={component.loop as boolean}
       muted={component.muted as boolean}
       compact={component.compact as boolean}
+    />
+  ),
+
+  // 스트리밍 컴포넌트
+  StreamingText: ({ component }) => (
+    <A2UIStreamingText
+      text={component.text as string}
+      streaming={component.streaming as boolean}
+      speed={component.speed as number}
+      variant={component.variant as 'default' | 'heading' | 'muted' | 'code'}
+      markdown={component.markdown as boolean}
+      showCursor={component.showCursor as boolean}
+    />
+  ),
+
+  StreamingIndicator: ({ component }) => (
+    <A2UIStreamingIndicator
+      isStreaming={component.isStreaming as boolean}
+      progress={component.progress as number}
+      label={component.label as string}
+      variant={component.variant as 'spinner' | 'dots' | 'progress' | 'pulse'}
+      size={component.size as 'sm' | 'md' | 'lg'}
     />
   ),
 };

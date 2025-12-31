@@ -44,3 +44,7 @@ export { A2UIImage } from './A2UIImage';
 export { A2UIAvatar } from './A2UIAvatar';
 export { A2UIVideo } from './A2UIVideo';
 export { A2UIAudio } from './A2UIAudio';
+
+// 스트리밍 컴포넌트
+export { A2UIStreamingText } from './A2UIStreamingText';
+export { A2UIStreamingIndicator } from './A2UIStreamingIndicator';
