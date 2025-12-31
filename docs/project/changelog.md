@@ -9,15 +9,25 @@
 
 ---
 
-## [3.2.1] - 2025-12-31 🔧 프로젝트 구조 정리 Phase 2
+## [3.2.1] - 2025-12-31 🔧 프로젝트 구조 정리 Phase 3-4
 
 ### 🔧 리팩토링
 
-- **Hooks/Types Re-export 체계 구축**
-  - hooks 서브폴더 구조에 대한 하위 호환성 re-export 파일 생성 (86개)
-  - types 서브폴더 구조에 대한 re-export 파일 생성 (35개)
-  - `src/hooks/index.ts` barrel export 추가
-  - 서브폴더 내 상대 경로 import → 절대 경로 수정
+- **Types 폴더 도메인별 재구성** (56개 파일)
+  - 8개 하위 폴더: `ai/`, `auth/`, `cms/`, `documents/`, `services/`, `subscription/`, `integrations/`, `shared/`
+  - 하위 호환성 re-export 파일 생성 (35개)
+
+- **Hooks 폴더 도메인별 재구성** (106개 파일)
+  - 15개 하위 폴더: `ai/`, `auth/`, `analytics/`, `cms/`, `content/`, `documents/`, `integrations/`, `media/`, `newsletter/`, `payments/`, `projects/`, `realtime/`, `services/`, `subscription/`, `teams/`
+  - `src/hooks/index.ts` barrel export (178줄)
+  - 하위 호환성 re-export 파일 생성 (86개)
+  - 서브폴더 내 상대 경로 import → 절대 경로 수정 (45개 파일)
+
+- **AlertCenter 컴포넌트 분리** (1,057줄 → 8개 파일)
+  - `src/components/central-hub/alert-center/` 폴더 구조화
+  - `types.ts`, `utils.ts`, `AlertCenterSkeleton.tsx`
+  - `IssueAlertItem.tsx`, `EventAlertItem.tsx`, `AlertItem.tsx`
+  - `AlertGroupComponent.tsx`, `index.tsx`
 
 - **TODO 코드 정리**
   - `isXlsxLoaded()`, `isDocxLoaded()`, `isPptxLoaded()` 함수 구현
