@@ -248,7 +248,7 @@ describe('useConversationManager', () => {
         expect.any(Object)
       );
       expect(callWorkersApi).toHaveBeenCalledWith(
-        expect.stringContaining('order_by=created_at:asc'),
+        expect.stringContaining('order_by=created_at%3Aasc'),
         expect.any(Object)
       );
     });
