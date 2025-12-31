@@ -1,12 +1,12 @@
 import { describe, it, expect, vi, beforeEach, type MockedFunction } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
-import { useCheckout } from '../useCheckout'
+import { useCheckout } from '@/components/checkout/useCheckout'
 import { createWrapper } from '@/test/utils'
 import { useAuth } from '@/hooks/useAuth'
 import { useCart } from '@/hooks/useCart'
 import { useCreateOrder } from '@/hooks/useOrders'
 import { useNavigate } from 'react-router-dom'
-import { useCartStore } from '@/store/cartStore'
+import { useCartStore } from '@/stores/cartStore'
 
 // Mock hooks
 vi.mock('@/hooks/useAuth', () => ({
@@ -25,7 +25,7 @@ vi.mock('react-router-dom', () => ({
     useNavigate: vi.fn()
 }))
 
-vi.mock('@/store/cartStore', () => ({
+vi.mock('@/stores/cartStore', () => ({
     useCartStore: vi.fn()
 }))
 

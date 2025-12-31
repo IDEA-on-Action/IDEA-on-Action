@@ -8,7 +8,7 @@
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { useClearCart } from '@/hooks/useCart'
-import { useCartStore } from '@/store/cartStore'
+import { useCartStore } from '@/stores/cartStore'
 import type { CartWithItems } from '@/types/database'
 import type { ServiceCartItem } from '@/types/services-platform'
 

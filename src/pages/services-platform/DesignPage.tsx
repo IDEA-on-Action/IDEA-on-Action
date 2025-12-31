@@ -11,7 +11,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useAddToCart } from "@/hooks/useCart";
 import { useServiceBySlug } from "@/hooks/useServices";
 import { CheckCircle2, Palette, FileCode, BookOpen } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/hooks/useToast";
 import type { Package } from "@/types/services";
 
 export default function DesignPage() {

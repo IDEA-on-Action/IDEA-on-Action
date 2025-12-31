@@ -36,7 +36,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { useToast } from '@/hooks/use-toast'
+import { useToast } from '@/hooks/useToast'
 import type { BlogPostWithRelations } from '@/types/blog'
 import { formatDistanceToNow } from 'date-fns'
 

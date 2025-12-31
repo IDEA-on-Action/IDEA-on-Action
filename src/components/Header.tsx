@@ -87,8 +87,8 @@ const Header = ({ className = "" }: HeaderProps) => {
         key={index}
         {...props}
         className={`transition-colors ${isActive
-            ? 'text-foreground font-medium border-b-2 border-primary'
-            : 'text-foreground/80 hover:text-foreground'
+          ? 'text-foreground font-medium border-b-2 border-primary'
+          : 'text-foreground/80 hover:text-foreground'
           }`}
         aria-label={`${item.label} 페이지로 이동`}
         aria-current={isActive ? 'page' : undefined}
@@ -140,8 +140,8 @@ const Header = ({ className = "" }: HeaderProps) => {
                 key={index}
                 {...props}
                 className={`transition-colors ${isActive
-                    ? 'text-foreground font-medium border-b-2 border-primary pb-1'
-                    : 'text-foreground/80 hover:text-foreground'
+                  ? 'text-foreground font-medium border-b-2 border-primary pb-1'
+                  : 'text-foreground/80 hover:text-foreground'
                   }`}
                 aria-label={`${item.label} 페이지로 이동`}
                 aria-current={isActive ? 'page' : undefined}
@@ -296,8 +296,8 @@ const Header = ({ className = "" }: HeaderProps) => {
                   key={index}
                   {...props}
                   className={`block transition-colors py-2 ${isActive
-                      ? 'text-primary font-medium'
-                      : 'text-foreground/80 hover:text-foreground'
+                    ? 'text-primary font-medium'
+                    : 'text-foreground/80 hover:text-foreground'
                     }`}
                   aria-label={`${item.label} 페이지로 이동`}
                   aria-current={isActive ? 'page' : undefined}
@@ -316,6 +316,7 @@ const Header = ({ className = "" }: HeaderProps) => {
                   navigate('/login');
                   setIsMobileMenuOpen(false);
                 }}
+                role="menuitem"
               >
                 로그인
               </Button>

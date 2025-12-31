@@ -57,7 +57,7 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Loader2, Plus, Pencil, Trash2 } from 'lucide-react'
-import { useToast } from '@/hooks/use-toast'
+import { useToast } from '@/hooks/useToast'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'

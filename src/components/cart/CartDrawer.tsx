@@ -23,7 +23,7 @@ import {
 } from '@/components/ui/drawer'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
-import { useCartStore } from '@/store/cartStore'
+import { useCartStore } from '@/stores/cartStore'
 import { useCart } from '@/hooks/useCart'
 import { useIsMobile } from '@/hooks/useMediaQuery'
 import { CartItem } from './CartItem'

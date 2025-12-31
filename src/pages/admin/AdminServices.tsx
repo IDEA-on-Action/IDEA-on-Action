@@ -43,7 +43,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { Loader2, Plus, Pencil, Trash2, Search } from 'lucide-react'
-import { useToast } from '@/hooks/use-toast'
+import { useToast } from '@/hooks/useToast'
 
 export default function AdminServices() {
   const { toast } = useToast()

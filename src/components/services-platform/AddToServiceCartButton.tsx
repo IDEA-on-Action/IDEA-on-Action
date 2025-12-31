@@ -8,7 +8,7 @@
 import { useState } from 'react'
 import { ShoppingCart, Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { useCartStore } from '@/store/cartStore'
+import { useCartStore } from '@/stores/cartStore'
 import { toast } from 'sonner'
 import type {
   ServicePackage,

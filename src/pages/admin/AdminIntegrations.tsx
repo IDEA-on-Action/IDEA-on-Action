@@ -68,7 +68,7 @@ import {
   ExternalLink,
   Activity,
 } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { useToast } from '@/hooks/useToast';
 import {
   useIntegrations,
   useDeleteIntegration,

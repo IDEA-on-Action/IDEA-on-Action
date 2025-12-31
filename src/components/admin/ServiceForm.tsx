@@ -34,7 +34,7 @@ import {
 } from '@/components/ui/form'
 import { Card, CardContent } from '@/components/ui/card'
 import { Loader2, Upload, X, Plus } from 'lucide-react'
-import { useToast } from '@/hooks/use-toast'
+import { useToast } from '@/hooks/useToast'
 import type { Service, ServiceCategory } from '@/types/database'
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB

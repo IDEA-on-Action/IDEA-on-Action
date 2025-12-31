@@ -8,7 +8,7 @@
 import { ShoppingCart } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { useCartStore } from '@/store/cartStore'
+import { useCartStore } from '@/stores/cartStore'
 import { useCart } from '@/hooks/useCart'
 
 export function CartButton() {

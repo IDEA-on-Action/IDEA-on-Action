@@ -6,7 +6,7 @@ import { z } from 'zod'
 import { useCart } from '@/hooks/useCart'
 import { useCreateOrder } from '@/hooks/useOrders'
 import { useAuth } from '@/hooks/useAuth'
-import { useCartStore } from '@/store/cartStore'
+import { useCartStore } from '@/stores/cartStore'
 
 // 주문 폼 스키마
 export const checkoutSchema = z.object({

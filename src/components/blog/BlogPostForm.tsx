@@ -42,7 +42,7 @@ import {
 } from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
 import { RichTextEditor } from '@/components/admin/editor/RichTextEditor'
-import { useToast } from '@/hooks/use-toast'
+import { useToast } from '@/hooks/useToast'
 import { storageApi } from '@/integrations/cloudflare/client'
 import { useAuth } from '@/hooks/useAuth'
 import type { BlogPostWithRelations } from '@/types/blog'

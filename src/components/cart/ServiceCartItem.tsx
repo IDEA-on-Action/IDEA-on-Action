@@ -8,7 +8,7 @@
 import { X, Package, Calendar } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { useCartStore } from '@/store/cartStore'
+import { useCartStore } from '@/stores/cartStore'
 import type { ServiceCartItem as ServiceCartItemType, BillingCycle } from '@/types/services-platform'
 
 interface ServiceCartItemProps {

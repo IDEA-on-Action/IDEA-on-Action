@@ -265,6 +265,7 @@ function ArrayInput({
                 type="button"
                 onClick={() => onRemove(index)}
                 className="ml-1 rounded-full hover:bg-muted p-0.5"
+                aria-label="삭제"
               >
                 <X className="h-3 w-3" />
               </button>
@@ -482,11 +483,10 @@ export function RFPWizard({
               return (
                 <Card
                   key={cat}
-                  className={`cursor-pointer transition-all ${
-                    isSelected
+                  className={`cursor-pointer transition-all ${isSelected
                       ? 'border-primary ring-2 ring-primary/20'
                       : 'hover:border-primary/50'
-                  }`}
+                    }`}
                   onClick={() => updateField('category', cat)}
                 >
                   <CardContent className="flex flex-col items-center p-4 text-center">
@@ -812,20 +812,18 @@ export function RFPWizard({
                 type="button"
                 onClick={() => goToStep(step.id)}
                 disabled={step.id > currentStep && !canProceed()}
-                className={`flex items-center gap-2 transition-colors ${
-                  currentStep >= step.id
+                className={`flex items-center gap-2 transition-colors ${currentStep >= step.id
                     ? 'text-primary cursor-pointer'
                     : 'text-muted-foreground'
-                } ${step.id > currentStep && !canProceed() ? 'cursor-not-allowed' : ''}`}
+                  } ${step.id > currentStep && !canProceed() ? 'cursor-not-allowed' : ''}`}
               >
                 <div
-                  className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-all ${
-                    currentStep > step.id
+                  className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-all ${currentStep > step.id
                       ? 'bg-primary text-primary-foreground'
                       : currentStep === step.id
                         ? 'border-2 border-primary'
                         : 'border border-muted'
-                  }`}
+                    }`}
                 >
                   {currentStep > step.id ? (
                     <Check className="h-4 w-4" />
@@ -837,9 +835,8 @@ export function RFPWizard({
               </button>
               {index < STEPS.length - 1 && (
                 <div
-                  className={`flex-1 h-0.5 transition-colors ${
-                    currentStep > step.id ? 'bg-primary' : 'bg-muted'
-                  }`}
+                  className={`flex-1 h-0.5 transition-colors ${currentStep > step.id ? 'bg-primary' : 'bg-muted'
+                    }`}
                 />
               )}
             </React.Fragment>
