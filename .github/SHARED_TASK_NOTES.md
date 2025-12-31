@@ -2,14 +2,14 @@
 
 > 반복 간 진행 상황 전달을 위한 공유 메모
 
-**마지막 업데이트**: 2025-12-30
-**현재 버전**: v3.0.1 (Unit 테스트 수정 완료)
+**마지막 업데이트**: 2025-12-31
+**현재 버전**: v3.1.0 (A2UI 시스템 완성)
 
 ---
 
 ## 현재 목표
 
-v3.0.x: CI Unit Tests 통과 - 로컬 테스트 모두 통과 ✅
+v3.1.0 완료 - A2UI 시스템 완성 ✅
 
 ---
 
@@ -43,6 +43,21 @@ v3.0.x: CI Unit Tests 통과 - 로컬 테스트 모두 통과 ✅
 ---
 
 ## 완료된 작업
+
+### v3.1.0 (2025-12-31, 완료)
+
+- [x] A2UI (Agent-to-UI) 시스템 구현
+  - Phase 1: 코어 렌더러 구현
+  - Phase 2: 사이드 패널 구현
+  - 25+ 컴포넌트 카탈로그 정의
+  - 폼 컴포넌트: TextField, Select, Checkbox, DatePicker, Textarea
+  - 스트리밍 UI: StreamingText, StreamingIndicator
+- [x] A2UI 유닛 테스트 71개 추가
+  - catalog.test.ts: 30개 테스트
+  - validator.test.ts: 23개 테스트
+  - component-resolver.test.tsx: 18개 테스트
+- [x] useMinuSSO 훅 유닛 테스트 20개 추가
+  - 초기화, 콜백 처리, 토큰 교환, 로그아웃 테스트
 
 ### v3.0.1 (2025-12-30, 완료)
 
@@ -196,8 +211,10 @@ v2.39.0 모든 작업 완료 ✅
 1. ~~Minu SSO Edge Functions~~ ✅ 배포 완료 (2025-12-19)
 2. ~~Supabase 마이그레이션 수동 적용~~ ✅ 완료 (2025-12-19)
 3. ~~환경 변수 설정~~ ✅ 완료 (MINU_FIND_CLIENT_ID, SECRET, WEBHOOK_SECRET)
-4. Minu SSO 통합 테스트
-5. Lighthouse 접근성 100%
+4. ~~Minu SSO 통합 테스트~~ ✅ 완료 (2025-12-31)
+5. ~~Lighthouse 접근성 100%~~ ✅ 완료 (2025-12-30)
+6. D1 성능 모니터링 대시보드
+7. AI 채팅 위젯 A2UI 적용
 
 ---
 
