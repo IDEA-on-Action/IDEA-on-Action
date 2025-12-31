@@ -58,6 +58,12 @@ v3.1.0 완료 - A2UI 시스템 완성 ✅
   - component-resolver.test.tsx: 18개 테스트
 - [x] useMinuSSO 훅 유닛 테스트 20개 추가
   - 초기화, 콜백 처리, 토큰 교환, 로그아웃 테스트
+- [x] AI 채팅 위젯 A2UI 통합
+  - AIChatWidget: useA2UI 훅 연동
+  - AIChatMessage: A2UI 블록 렌더링
+  - AIChatA2UIBlock: A2UIRenderer 래퍼
+  - AIChatSidePanel: 사이드 패널 UI
+  - Feature Flag: VITE_FEATURE_TOOL_USE
 
 ### v3.0.1 (2025-12-30, 완료)
 
@@ -214,7 +220,7 @@ v2.39.0 모든 작업 완료 ✅
 4. ~~Minu SSO 통합 테스트~~ ✅ 완료 (2025-12-31)
 5. ~~Lighthouse 접근성 100%~~ ✅ 완료 (2025-12-30)
 6. D1 성능 모니터링 대시보드
-7. AI 채팅 위젯 A2UI 적용
+7. ~~AI 채팅 위젯 A2UI 적용~~ ✅ 완료 (2025-12-31)
 
 ---
 

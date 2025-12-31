@@ -25,6 +25,7 @@
 | A2UI 스트리밍 UI | ✅ | StreamingText, StreamingIndicator |
 | A2UI 유닛 테스트 | ✅ | 71개 테스트 (catalog, validator, resolver) |
 | useMinuSSO 테스트 | ✅ | 20개 유닛 테스트 추가 |
+| AI 채팅 A2UI 통합 | ✅ | AIChatWidget + A2UIRenderer 연동 |
 
 ---
 
@@ -216,7 +217,7 @@
 | P1 | Minu SSO 통합 테스트 | ✅ 완료 |
 | P2 | Lighthouse 접근성 100% | ✅ 완료 |
 | P2 | D1 성능 모니터링 대시보드 | 계획 |
-| P2 | AI 채팅 위젯 A2UI 적용 | 계획 |
+| P2 | AI 채팅 위젯 A2UI 적용 | ✅ 완료 |
 | P3 | Phase 16: AI 챗봇 고도화 | 백로그 |
 
 ---
