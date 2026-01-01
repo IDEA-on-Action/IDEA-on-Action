@@ -3,43 +3,41 @@
 > 반복 간 진행 상황 전달을 위한 공유 메모
 
 **마지막 업데이트**: 2026-01-01
-**현재 버전**: v3.2.1 (@deprecated Re-export 마이그레이션 완료)
+**현재 버전**: v3.2.2 (@deprecated Re-export 마이그레이션 100% 완료)
 
 ---
 
 ## 현재 목표
 
-v3.2.2 진행 중 - @deprecated Re-export 마이그레이션 계속
+v3.2.2 완료 ✅ - @deprecated Re-export 마이그레이션 100% 완료
 
 ### 이번 세션 완료 (2026-01-01)
 
-#### Phase 3: Types 10개 + Hooks domain index 마이그레이션
+#### Phase 4: 최종 마이그레이션 (병렬 처리)
 
-- [x] Types 10개 삭제 (18 → 8개)
-  - editor.types.ts → @/types/cms/editor.types
-  - central-hub.types.ts → @/types/services/central-hub.types
-  - claude.types.ts → @/types/ai/claude.types
-  - cms.types.ts → @/types/cms/cms.types
-  - docx.types.ts → @/types/documents/docx.types
-  - services.ts → @/types/services/services
-  - services-platform.ts → @/types/services/services-platform
-  - skills.types.ts → @/types/ai/skills.types
-  - subscription.types.ts → @/types/subscription/subscription.types
-  - xlsx-chart.types.ts → @/types/documents/xlsx-chart.types
-- [x] 123개+ 파일 import 경로 변경
-- [x] Hooks domain index.ts 상대경로 변환 (services/, ai/, documents/ 등)
+- [x] Types 6개 삭제 (8 → 1개 index.ts만 유지)
+  - notification.types.ts → @/types/shared/notification.types
+  - rate-limit.types.ts → @/types/shared/rate-limit.types
+  - team.types.ts → @/types/shared/team.types
+  - v2.ts → @/types/shared/v2
+  - wordpress.ts (삭제 - 사용처 없음)
+  - ai/prompt-templates.types.ts (삭제 - 사용처 없음)
+- [x] Hooks 53개 삭제 (58 → 10개 유틸리티 훅만 유지)
+  - 도메인별 폴더로 마이그레이션 (services/, ai/, realtime/, teams/ 등)
+- [x] 183개 파일 수정 (159 insertions, 321 deletions)
 - [x] 빌드 검증 완료
 
-#### 현재 상태
+#### 최종 상태
 
-- Types: 51 → 8 (43개 삭제, 84% 완료)
-- Hooks: 108 → 58 (50개 삭제, 54% 완료)
-- 총 93개 re-export 파일 제거
+- Types: 51 → 1 (index.ts만 유지) ✅ 100% 완료
+- Hooks: 108 → 10 (유틸리티 훅만 유지) ✅ 100% 완료
+- 총 152개 @deprecated re-export 파일 제거
 
-#### 남은 작업
+#### 남은 유틸리티 훅 (도메인 무관)
 
-- Types: 8개 남음
-- Hooks: 58개 남음 (루트 re-export 파일들)
+- useA2UI, useCRUD, useDateRange, useDebounce
+- useMediaQuery, usePageContext, useSearch
+- useTheme, useToast, index.ts
 
 ---
 
