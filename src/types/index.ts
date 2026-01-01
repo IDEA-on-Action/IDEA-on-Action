@@ -88,7 +88,7 @@ export * from './shared/d1-monitoring.types';
 export * from './shared/notification.types';
 export * from './shared/project-types';
 export * from './shared/rate-limit.types';
-export * from './shared/supabase';
+export * from './shared/database-schema.types';
 export * from './shared/team.types';
 export * from './shared/v2';
 export * from './shared/version.types';

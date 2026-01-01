@@ -15,7 +15,7 @@ export * from './d1-monitoring.types';
 export * from './notification.types';
 export * from './project-types';
 export * from './rate-limit.types';
-export * from './supabase';
+export * from './database-schema.types';
 export * from './team.types';
 export * from './v2';
 export * from './version.types';

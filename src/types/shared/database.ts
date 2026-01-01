@@ -8,7 +8,7 @@
  * @version 2.0.0 (Refactored based on supabase.ts)
  */
 
-import { Database as SupabaseDatabase, Json } from './supabase';
+import { Database as SupabaseDatabase, Json } from './database-schema.types';
 
 // Supabase 테이블 타입 단축 접근자
 type Tables = SupabaseDatabase['public']['Tables'];
