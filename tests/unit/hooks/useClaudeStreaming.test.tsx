@@ -7,7 +7,7 @@ import { useClaudeStreaming } from '@/hooks/ai/useClaudeStreaming';
 import React, { type ReactNode } from 'react';
 
 // Mock useAuth hook
-vi.mock('@/hooks/useAuth', () => ({
+vi.mock('@/hooks/auth/useAuth', () => ({
   useAuth: vi.fn(() => ({
     workersTokens: { accessToken: 'test-token', refreshToken: 'test-refresh' },
     workersUser: { id: 'user-123', email: 'test@example.com' },
@@ -256,7 +256,7 @@ describe('useClaudeStreaming', () => {
   describe('에러 처리', () => {
     it('인증 토큰이 없으면 에러가 발생해야 함', async () => {
       // useAuth 모킹을 임시로 변경
-      const { useAuth } = await import('@/hooks/useAuth');
+      const { useAuth } = await import('@/hooks/auth/useAuth');
       vi.mocked(useAuth).mockReturnValue({
         workersTokens: null,
         workersUser: null,

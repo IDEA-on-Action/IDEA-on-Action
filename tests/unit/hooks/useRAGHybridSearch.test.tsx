@@ -8,7 +8,7 @@ import {
   useMinuFrameHybridSearch,
   useMinuBuildHybridSearch,
   useMinuKeepHybridSearch,
-} from '@/hooks/useRAGHybridSearch';
+} from '@/hooks/ai/useRAGHybridSearch';
 import { ragApi } from '@/integrations/cloudflare/client';
 import React, { type ReactNode } from 'react';
 
@@ -20,7 +20,7 @@ vi.mock('@/integrations/cloudflare/client', () => ({
 }));
 
 // Mock useAuth 훅
-vi.mock('@/hooks/useAuth', () => ({
+vi.mock('@/hooks/auth/useAuth', () => ({
   useAuth: () => ({
     workersTokens: { accessToken: 'test-token', refreshToken: 'test-refresh' },
   }),

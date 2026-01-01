@@ -9,14 +9,14 @@ import Header from '@/components/Header';
 expect.extend(toHaveNoViolations);
 
 // Mock hooks
-vi.mock('@/hooks/useAuth', () => ({
+vi.mock('@/hooks/auth/useAuth', () => ({
   useAuth: () => ({
     user: null,
     signOut: vi.fn()
   })
 }));
 
-vi.mock('@/hooks/useIsAdmin', () => ({
+vi.mock('@/hooks/auth/useIsAdmin', () => ({
   useIsAdmin: () => ({
     data: false
   })
@@ -34,7 +34,7 @@ vi.mock('react-i18next', () => ({
 }));
 
 // Mock cart hook
-vi.mock('@/hooks/useCart', () => ({
+vi.mock('@/hooks/payments/useCart', () => ({
   useCart: () => ({
     items: [],
     itemCount: 0,

@@ -14,7 +14,7 @@ import useMCPAuth, {
   useMCPAuthState,
   useMCPServiceAuth,
   useMCPAuthHeaders,
-} from '@/hooks/useMCPAuth';
+} from '@/hooks/integrations/useMCPAuth';
 import * as mcpAuthLib from '@/lib/mcp-auth';
 import type { MCPTokenResponse, MCPTokenVerifyResponse } from '@/types/auth/mcp-auth.types';
 import React from 'react';
@@ -32,7 +32,7 @@ vi.mock('@/lib/mcp-auth', () => ({
   isMCPAuthError: vi.fn(),
 }));
 
-vi.mock('@/hooks/useAuth', () => ({
+vi.mock('@/hooks/auth/useAuth', () => ({
   useAuth: vi.fn(() => ({
     user: {
       id: 'user-123',

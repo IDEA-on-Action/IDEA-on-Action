@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useBillingPortal } from '@/hooks/useBillingPortal';
+import { useBillingPortal } from '@/hooks/subscription/useBillingPortal';
 import React, { type ReactNode } from 'react';
 
 // Mock useAuth
-vi.mock('@/hooks/useAuth', () => ({
+vi.mock('@/hooks/auth/useAuth', () => ({
   useAuth: vi.fn(() => ({
     user: { id: 'user-123', email: 'test@example.com' },
     workersTokens: { accessToken: 'test-token' },

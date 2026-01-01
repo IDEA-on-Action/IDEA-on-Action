@@ -2,7 +2,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { renderHook, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { useRoles, useUserPermissions, useHasPermission, useAssignRole, useRevokeRole } from '@/hooks/useRBAC'
+import { useRoles, useUserPermissions, useHasPermission, useAssignRole, useRevokeRole } from '@/hooks/auth/useRBAC'
 import { permissionsApi } from '@/integrations/cloudflare/client'
 import React, { type ReactNode } from 'react'
 
@@ -17,7 +17,7 @@ vi.mock('@/integrations/cloudflare/client', () => ({
 }))
 
 // Mock useAuth
-vi.mock('@/hooks/useAuth', () => ({
+vi.mock('@/hooks/auth/useAuth', () => ({
   useAuth: () => ({
     user: { id: 'user1', email: 'test@example.com' },
     workersUser: { id: 'user1', email: 'test@example.com' },

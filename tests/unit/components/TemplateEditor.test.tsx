@@ -12,9 +12,9 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { TemplateEditor } from '@/components/admin/TemplateEditor';
 
 // Mock dependencies
-vi.mock('@/hooks/useTemplateEditor');
+vi.mock('@/hooks/content/useTemplateEditor');
 
-vi.mock('@/hooks/useAuth', () => ({
+vi.mock('@/hooks/auth/useAuth', () => ({
   useAuth: vi.fn(() => ({
     workersTokens: { accessToken: 'test-token' },
     workersUser: { id: 'user-123', email: 'test@example.com' },
@@ -60,7 +60,7 @@ vi.mock('@dnd-kit/utilities', () => ({
 }));
 
 // Import the mocked hook
-import { useTemplateEditor } from '@/hooks/useTemplateEditor';
+import { useTemplateEditor } from '@/hooks/content/useTemplateEditor';
 
 // Test wrapper with required providers
 const createWrapper = () => {

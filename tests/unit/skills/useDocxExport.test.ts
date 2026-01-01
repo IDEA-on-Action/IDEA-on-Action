@@ -14,7 +14,7 @@ import { fetchIssues } from '@/skills/xlsx/generators/issuesSheet';
 import React from 'react';
 
 // Mock useAuth
-vi.mock('@/hooks/useAuth');
+vi.mock('@/hooks/auth/useAuth');
 
 // Mock supabase client
 vi.mock('@/integrations/supabase/client', () => ({

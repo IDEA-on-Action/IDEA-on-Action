@@ -34,7 +34,7 @@ vi.mock('@/integrations/cloudflare/client', () => ({
   },
 }));
 
-vi.mock('@/hooks/useAuth', () => ({
+vi.mock('@/hooks/auth/useAuth', () => ({
   useAuth: vi.fn(() => ({
     user: {
       id: 'user-123',

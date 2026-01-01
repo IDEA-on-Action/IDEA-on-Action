@@ -12,7 +12,7 @@ vi.mock('@/integrations/cloudflare/client', () => ({
 }));
 
 // Mock useAuth
-vi.mock('@/hooks/useAuth', () => ({
+vi.mock('@/hooks/auth/useAuth', () => ({
   useAuth: vi.fn(() => ({
     workersTokens: { accessToken: 'mock-token' },
     workersUser: { id: 'user-123', email: 'test@example.com' },
@@ -65,7 +65,7 @@ describe('useClaudeVision', () => {
     vi.clearAllMocks();
 
     // useAuth 기본 모킹 복원
-    const useAuthModule = await import('@/hooks/useAuth');
+    const useAuthModule = await import('@/hooks/auth/useAuth');
     vi.mocked(useAuthModule.useAuth).mockReturnValue({
       workersTokens: { accessToken: 'mock-token' },
       workersUser: { id: 'user-123', email: 'test@example.com' },
@@ -337,7 +337,7 @@ describe('useClaudeVision', () => {
   describe('에러 처리', () => {
     it('인증 토큰이 없으면 에러가 발생해야 함', async () => {
       // useAuth 모킹 변경 - 토큰 없음
-      const useAuthModule = await import('@/hooks/useAuth');
+      const useAuthModule = await import('@/hooks/auth/useAuth');
       vi.mocked(useAuthModule.useAuth).mockReturnValue({
         workersTokens: null,
         workersUser: null,
@@ -547,7 +547,7 @@ describe('useUIDesignAnalysis', () => {
     vi.clearAllMocks();
 
     // useAuth 기본 모킹 복원
-    const useAuthModule = await import('@/hooks/useAuth');
+    const useAuthModule = await import('@/hooks/auth/useAuth');
     vi.mocked(useAuthModule.useAuth).mockReturnValue({
       workersTokens: { accessToken: 'mock-token' },
       workersUser: { id: 'user-123', email: 'test@example.com' },

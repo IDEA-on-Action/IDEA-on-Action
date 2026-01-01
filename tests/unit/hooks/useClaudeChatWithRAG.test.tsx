@@ -4,7 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useClaudeChatWithRAG } from '@/hooks/ai/useClaudeChatWithRAG';
 
 // Mock dependencies
-vi.mock('@/hooks/useClaudeChat', () => ({
+vi.mock('@/hooks/ai/useClaudeChat', () => ({
   useClaudeChat: vi.fn(() => ({
     messages: [],
     sendMessage: vi.fn().mockResolvedValue(undefined),
@@ -14,7 +14,7 @@ vi.mock('@/hooks/useClaudeChat', () => ({
   })),
 }));
 
-vi.mock('@/hooks/useRAGSearch', () => ({
+vi.mock('@/hooks/ai/useRAGSearch', () => ({
   useRAGSearch: vi.fn(() => ({
     results: [
       {
@@ -230,7 +230,7 @@ describe('useClaudeChatWithRAG', () => {
 
   describe('에러 처리', () => {
     it('RAG 검색 실패 시 일반 채팅으로 폴백해야 함', async () => {
-      const { useRAGSearch } = await import('@/hooks/useRAGSearch');
+      const { useRAGSearch } = await import('@/hooks/ai/useRAGSearch');
       vi.mocked(useRAGSearch).mockReturnValue({
         results: [],
         isSearching: false,

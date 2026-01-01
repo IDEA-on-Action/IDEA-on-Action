@@ -6,7 +6,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
-import { useTemplateEditor } from '@/hooks/useTemplateEditor';
+import { useTemplateEditor } from '@/hooks/content/useTemplateEditor';
 import type { TemplateEditorState } from '@/types/template-editor.types';
 
 describe('useTemplateEditor', () => {

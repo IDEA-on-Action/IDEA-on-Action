@@ -22,7 +22,7 @@ import { MemoryRouter } from 'react-router-dom';
 import React from 'react';
 
 // useAuth 모킹
-vi.mock('@/hooks/useAuth', () => ({
+vi.mock('@/hooks/auth/useAuth', () => ({
   useAuth: vi.fn(() => ({
     workersTokens: { accessToken: 'test-token' },
     workersUser: { id: 'user-123', email: 'test@example.com' },

@@ -20,7 +20,7 @@ vi.mock('@/hooks/useLogs', () => ({
   useLogs: vi.fn(),
 }));
 
-vi.mock('@/hooks/useNewsletter', () => ({
+vi.mock('@/hooks/newsletter/useNewsletter', () => ({
   useNewsletterStats: vi.fn(),
   useSubscribeNewsletter: vi.fn(),
 }));
@@ -40,7 +40,7 @@ global.ResizeObserver = class ResizeObserver {
 import { useProjects } from '@/hooks/projects/useProjects';
 import { useBounties } from '@/hooks/projects/useBounties';
 import { useLogs } from '@/hooks/analytics/useLogs';
-import { useNewsletterStats, useSubscribeNewsletter } from '@/hooks/useNewsletter';
+import { useNewsletterStats, useSubscribeNewsletter } from '@/hooks/newsletter/useNewsletter';
 
 describe('Status Page', () => {
   let queryClient: QueryClient;

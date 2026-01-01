@@ -8,7 +8,7 @@ import {
   useUploadAvatar,
   useConnectedAccounts,
   useDisconnectAccount,
-} from '@/hooks/useProfile';
+} from '@/hooks/auth/useProfile';
 import { callWorkersApi, storageApi } from '@/integrations/cloudflare/client';
 import React, { type ReactNode } from 'react';
 
@@ -22,7 +22,7 @@ vi.mock('@/integrations/cloudflare/client', () => ({
 }));
 
 // Mock useAuth
-vi.mock('@/hooks/useAuth', () => ({
+vi.mock('@/hooks/auth/useAuth', () => ({
   useAuth: vi.fn(() => ({
     user: { id: 'user-123', email: 'test@example.com', user_metadata: { name: 'Test User' } },
     workersTokens: { accessToken: 'mock-token' },
@@ -207,7 +207,7 @@ describe('useProfile', () => {
     });
 
     it('사용자가 없으면 에러를 throw 해야 함', async () => {
-      const { useAuth } = await import('@/hooks/useAuth');
+      const { useAuth } = await import('@/hooks/auth/useAuth');
       vi.mocked(useAuth).mockReturnValue({
         user: null,
         workersTokens: null,
@@ -230,7 +230,7 @@ describe('useProfile', () => {
   describe('아바타 업로드', () => {
     beforeEach(async () => {
       // Reset useAuth mock for avatar tests
-      const { useAuth } = await import('@/hooks/useAuth');
+      const { useAuth } = await import('@/hooks/auth/useAuth');
       vi.mocked(useAuth).mockReturnValue({
         user: { id: 'user-123', email: 'test@example.com', user_metadata: { name: 'Test User' } },
         workersTokens: { accessToken: 'mock-token' },
@@ -338,7 +338,7 @@ describe('useProfile', () => {
 
     beforeEach(async () => {
       // Reset useAuth mock
-      const { useAuth } = await import('@/hooks/useAuth');
+      const { useAuth } = await import('@/hooks/auth/useAuth');
       vi.mocked(useAuth).mockReturnValue({
         user: { id: 'user-123', email: 'test@example.com', user_metadata: { name: 'Test User' } },
         workersTokens: { accessToken: 'mock-token' },
@@ -372,7 +372,7 @@ describe('useProfile', () => {
   describe('계정 연결 해제', () => {
     beforeEach(async () => {
       // Reset useAuth mock
-      const { useAuth } = await import('@/hooks/useAuth');
+      const { useAuth } = await import('@/hooks/auth/useAuth');
       vi.mocked(useAuth).mockReturnValue({
         user: { id: 'user-123', email: 'test@example.com', user_metadata: { name: 'Test User' } },
         workersTokens: { accessToken: 'mock-token' },

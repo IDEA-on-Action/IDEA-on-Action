@@ -6,7 +6,7 @@ import {
   useRealtimeDashboard,
   useAutoRefresh,
   useRealtimeMetrics
-} from '@/hooks/useRealtimeDashboard'
+} from '@/hooks/realtime/useRealtimeDashboard'
 
 // Mock Cloudflare Workers API
 vi.mock('@/integrations/cloudflare/client', () => ({

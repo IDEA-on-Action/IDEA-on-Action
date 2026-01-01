@@ -18,7 +18,7 @@ import {
   clearSkillCache,
 } from '@/hooks/ai/useClaudeSkill';
 import { useClaudeStreaming } from '@/hooks/ai/useClaudeStreaming';
-import { usePromptTemplates } from '@/hooks/usePromptTemplates';
+import { usePromptTemplates } from '@/hooks/ai/usePromptTemplates';
 import type {
   RFPGeneratorInput,
   RFPGeneratorOutput,
@@ -38,7 +38,7 @@ import type {
 vi.mock('@/hooks/useClaudeStreaming');
 
 // Mock usePromptTemplates
-vi.mock('@/hooks/usePromptTemplates');
+vi.mock('@/hooks/ai/usePromptTemplates');
 
 // Mock Supabase (usePromptTemplates가 사용)
 vi.mock('@/integrations/supabase/client', () => ({

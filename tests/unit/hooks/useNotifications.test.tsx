@@ -5,7 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React, { type ReactNode } from 'react';
 
 // Mock useAuth - must be before imports
-vi.mock('@/hooks/useAuth', () => ({
+vi.mock('@/hooks/auth/useAuth', () => ({
   useAuth: vi.fn(() => ({
     user: { id: 'user-123', email: 'test@example.com' },
     workersTokens: { accessToken: 'test-token', refreshToken: 'test-refresh' },

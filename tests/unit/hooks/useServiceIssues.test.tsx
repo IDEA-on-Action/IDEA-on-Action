@@ -41,7 +41,7 @@ vi.mock('@/integrations/cloudflare/client', () => ({
 }));
 
 // Mock useAuth
-vi.mock('@/hooks/useAuth', () => ({
+vi.mock('@/hooks/auth/useAuth', () => ({
   useAuth: vi.fn(() => ({
     user: { id: 'user-123', email: 'test@example.com' },
     workersTokens: { accessToken: 'mock-token' },
@@ -791,7 +791,7 @@ describe('useUpdateIssueStatus', () => {
 
   it('인증 토큰이 없으면 에러를 throw 해야 함', async () => {
     // Setup - useAuth 모킹을 토큰 없이 변경
-    const { useAuth } = await import('@/hooks/useAuth');
+    const { useAuth } = await import('@/hooks/auth/useAuth');
     vi.mocked(useAuth).mockReturnValue({
       user: { id: 'user-123', email: 'test@example.com' },
       workersTokens: null,
@@ -826,7 +826,7 @@ describe('useAssignIssue', () => {
     vi.clearAllMocks();
 
     // Reset useAuth mock
-    const { useAuth } = await import('@/hooks/useAuth');
+    const { useAuth } = await import('@/hooks/auth/useAuth');
     vi.mocked(useAuth).mockReturnValue({
       user: { id: 'user-123', email: 'test@example.com' },
       workersTokens: { accessToken: 'mock-token' },

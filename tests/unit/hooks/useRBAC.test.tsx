@@ -20,7 +20,7 @@ import {
   useHasPermission,
   useAssignRole,
   useRevokeRole,
-} from '@/hooks/useRBAC';
+} from '@/hooks/auth/useRBAC';
 import { permissionsApi } from '@/integrations/cloudflare/client';
 import type { Role, Permission } from '@/types/rbac';
 import React from 'react';
@@ -36,7 +36,7 @@ vi.mock('@/integrations/cloudflare/client', () => ({
 }));
 
 // Mock useAuth hook
-vi.mock('@/hooks/useAuth', () => ({
+vi.mock('@/hooks/auth/useAuth', () => ({
   useAuth: vi.fn(() => ({
     user: {
       id: 'user-123',

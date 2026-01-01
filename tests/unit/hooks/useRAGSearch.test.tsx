@@ -8,7 +8,7 @@ import {
   useMinuFrameRAGSearch,
   useMinuBuildRAGSearch,
   useMinuKeepRAGSearch,
-} from '@/hooks/useRAGSearch';
+} from '@/hooks/ai/useRAGSearch';
 import { ragApi } from '@/integrations/cloudflare/client';
 import React, { type ReactNode } from 'react';
 
@@ -20,7 +20,7 @@ vi.mock('@/integrations/cloudflare/client', () => ({
 }));
 
 // Mock useAuth - setupTests.ts에서 전역 모킹됨, 여기서 오버라이드
-vi.mock('@/hooks/useAuth', () => ({
+vi.mock('@/hooks/auth/useAuth', () => ({
   useAuth: vi.fn(() => ({
     workersTokens: { accessToken: 'test-token', refreshToken: 'test-refresh' },
     workersUser: { id: 'user-123', email: 'test@example.com' },

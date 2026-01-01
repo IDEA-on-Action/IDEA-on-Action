@@ -13,7 +13,7 @@ vi.mock('@/integrations/cloudflare/client', () => ({
 }))
 
 // Mock useAuth
-vi.mock('@/hooks/useAuth', () => ({
+vi.mock('@/hooks/auth/useAuth', () => ({
     useAuth: () => ({
         workersTokens: { accessToken: 'test-token' },
         user: { id: 'user-123' },

@@ -2,7 +2,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useSubscriptionUsage } from '@/hooks/useSubscriptionUsage';
+import { useSubscriptionUsage } from '@/hooks/subscription/useSubscriptionUsage';
 import { subscriptionsApi, callWorkersApi } from '@/integrations/cloudflare/client';
 import React, { type ReactNode } from 'react';
 
@@ -15,7 +15,7 @@ vi.mock('@/integrations/cloudflare/client', () => ({
 }));
 
 // Mock useAuth with workersTokens
-vi.mock('@/hooks/useAuth', () => ({
+vi.mock('@/hooks/auth/useAuth', () => ({
   useAuth: vi.fn(),
 }));
 

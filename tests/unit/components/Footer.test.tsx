@@ -6,7 +6,7 @@ import Footer from '@/components/Footer';
 import { vi } from 'vitest';
 
 // Mock useNewsletter hook
-vi.mock('@/hooks/useNewsletter', () => ({
+vi.mock('@/hooks/newsletter/useNewsletter', () => ({
   useSubscribeNewsletter: () => ({
     mutate: vi.fn(),
     isPending: false,

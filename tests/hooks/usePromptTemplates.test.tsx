@@ -8,7 +8,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { usePromptTemplates, renderPrompt, renderPromptTemplate } from '@/hooks/usePromptTemplates';
+import { usePromptTemplates, renderPrompt, renderPromptTemplate } from '@/hooks/ai/usePromptTemplates';
 import type { PromptTemplate } from '@/types/prompt-templates.types';
 
 // Mock Supabase

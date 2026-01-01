@@ -10,7 +10,7 @@ import {
   useResourceAuditHistory,
   useLegacyAuditLogs,
   useDeleteAuditLog,
-} from '@/hooks/useAuditLogs'
+} from '@/hooks/analytics/useAuditLogs'
 import { callWorkersApi } from '@/integrations/cloudflare/client'
 import React, { type ReactNode } from 'react'
 
@@ -26,7 +26,7 @@ vi.mock('@/integrations/cloudflare/client', () => ({
 }))
 
 // Mock useAuth
-vi.mock('@/hooks/useAuth', () => ({
+vi.mock('@/hooks/auth/useAuth', () => ({
   useAuth: () => ({
     user: { id: 'user1', email: 'test@example.com' },
     workersTokens: { accessToken: 'test-token' },

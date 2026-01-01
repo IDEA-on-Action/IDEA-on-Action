@@ -21,7 +21,7 @@ import {
   useUpdateTeamMember,
   useDeleteTeamMember,
   useToggleTeamMemberActive,
-} from '@/hooks/useTeamMembers';
+} from '@/hooks/teams/useTeamMembers';
 import { callWorkersApi } from '@/integrations/cloudflare/client';
 import React from 'react';
 
@@ -31,7 +31,7 @@ vi.mock('@/integrations/cloudflare/client', () => ({
 }));
 
 // Mock useAuth
-vi.mock('@/hooks/useAuth', () => ({
+vi.mock('@/hooks/auth/useAuth', () => ({
   useAuth: vi.fn(() => ({
     workersTokens: { accessToken: 'mock-token' },
   })),

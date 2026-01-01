@@ -9,7 +9,7 @@ import {
   useSubmitProposal,
   useUpdateProposalStatus,
   useDeleteProposal,
-} from '@/hooks/useProposals';
+} from '@/hooks/projects/useProposals';
 import { proposalsApi } from '@/integrations/cloudflare/client';
 import React, { type ReactNode } from 'react';
 import type { Proposal, ProposalFormValues } from '@/types/shared/v2';
@@ -26,7 +26,7 @@ vi.mock('@/integrations/cloudflare/client', () => ({
 }));
 
 // Mock useAuth hook
-vi.mock('@/hooks/useAuth', () => ({
+vi.mock('@/hooks/auth/useAuth', () => ({
   useAuth: () => ({
     workersTokens: { accessToken: 'mock-token' },
   }),

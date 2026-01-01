@@ -11,7 +11,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useIsAdmin } from '@/hooks/useIsAdmin';
+import { useIsAdmin } from '@/hooks/auth/useIsAdmin';
 import { adminsApi } from '@/integrations/cloudflare/client';
 import type { ReactNode } from 'react';
 
@@ -23,11 +23,11 @@ vi.mock('@/integrations/cloudflare/client', () => ({
 }));
 
 // Mock useAuth hook
-vi.mock('@/hooks/useAuth', () => ({
+vi.mock('@/hooks/auth/useAuth', () => ({
   useAuth: vi.fn(),
 }));
 
-const { useAuth } = await import('@/hooks/useAuth');
+const { useAuth } = await import('@/hooks/auth/useAuth');
 
 describe('useIsAdmin', () => {
   let queryClient: QueryClient;

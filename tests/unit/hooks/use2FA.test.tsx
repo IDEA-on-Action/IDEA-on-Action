@@ -20,7 +20,7 @@ import {
   useDisable2FA,
   useRegenerateBackupCodes,
   useVerify2FA,
-} from '@/hooks/use2FA';
+} from '@/hooks/auth/use2FA';
 import { twoFactorApi } from '@/integrations/cloudflare/client';
 import * as totpLib from '@/lib/auth/totp';
 import React from 'react';
@@ -43,7 +43,7 @@ vi.mock('@/lib/auth/totp', () => ({
   generateBackupCodes: vi.fn(),
 }));
 
-vi.mock('@/hooks/useAuth', () => ({
+vi.mock('@/hooks/auth/useAuth', () => ({
   useAuth: vi.fn(() => ({
     workersUser: {
       id: 'user-123',

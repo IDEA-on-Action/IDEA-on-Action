@@ -12,7 +12,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
-import { useOAuthClient, useOAuthAccessToken, useOAuthHeaders } from '@/hooks/useOAuthClient';
+import { useOAuthClient, useOAuthAccessToken, useOAuthHeaders } from '@/hooks/auth/useOAuthClient';
 import { callWorkersApi } from '@/integrations/cloudflare/client';
 
 // Mock Workers API client

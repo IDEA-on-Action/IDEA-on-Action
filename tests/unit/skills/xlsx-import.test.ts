@@ -33,7 +33,7 @@ vi.mock('@/integrations/cloudflare/client', () => ({
 }));
 
 // useAuth 모킹 (토큰 제공)
-vi.mock('@/hooks/useAuth', () => ({
+vi.mock('@/hooks/auth/useAuth', () => ({
   useAuth: vi.fn(() => ({
     getAccessToken: vi.fn(() => 'test-token'),
   })),

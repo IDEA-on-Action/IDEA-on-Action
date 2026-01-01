@@ -10,7 +10,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
-import { useMinuSSO, type MinuService } from '@/hooks/useMinuSSO';
+import { useMinuSSO, type MinuService } from '@/hooks/integrations/useMinuSSO';
 import { callWorkersApi } from '@/integrations/cloudflare/client';
 
 // Mock Workers API client
@@ -19,7 +19,7 @@ vi.mock('@/integrations/cloudflare/client', () => ({
 }));
 
 // Mock useAuth
-vi.mock('@/hooks/useAuth', () => ({
+vi.mock('@/hooks/auth/useAuth', () => ({
   useAuth: () => ({
     user: { id: 'test-user-id', email: 'test@example.com' },
     workersTokens: { accessToken: 'test-access-token' },

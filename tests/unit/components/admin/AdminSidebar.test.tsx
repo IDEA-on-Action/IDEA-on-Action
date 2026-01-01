@@ -22,7 +22,7 @@ import { AdminSidebar } from '@/components/admin/layout/AdminSidebar';
 import React from 'react';
 
 // Mock hooks - Workers API는 훅 내부에서 처리됨
-vi.mock('@/hooks/useAuth', () => ({
+vi.mock('@/hooks/auth/useAuth', () => ({
   useAuth: vi.fn(() => ({
     user: {
       id: 'user-123',
@@ -81,7 +81,7 @@ describe('AdminSidebar', () => {
 
     // Reset all mocks to default state
     const useRBAC = await import('@/hooks/auth/useRBAC');
-    const authModule = await import('@/hooks/useAuth');
+    const authModule = await import('@/hooks/auth/useAuth');
     const sidebarStore = await import('@/stores/sidebarStore');
 
     vi.mocked(useRBAC.useUserPermissions).mockReturnValue({
@@ -454,7 +454,7 @@ describe('AdminSidebar', () => {
 
     it('로그아웃 버튼 클릭 시 signOut이 호출되어야 함', async () => {
       // Setup
-      const authModule = await import('@/hooks/useAuth');
+      const authModule = await import('@/hooks/auth/useAuth');
       const mockSignOut = vi.fn();
 
       vi.mocked(authModule.useAuth).mockReturnValue({
@@ -496,7 +496,7 @@ describe('AdminSidebar', () => {
 
     it('full_name이 없으면 이메일의 로컬 부분을 표시해야 함', async () => {
       // Setup
-      const authModule = await import('@/hooks/useAuth');
+      const authModule = await import('@/hooks/auth/useAuth');
 
       vi.mocked(authModule.useAuth).mockReturnValue({
         user: {

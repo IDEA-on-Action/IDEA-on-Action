@@ -21,7 +21,7 @@ expect.extend(toHaveNoViolations)
 // ============================================================================
 
 // useAuth 훅 기본 Mock (모든 테스트에서 자동 적용)
-vi.mock('@/hooks/useAuth', () => ({
+vi.mock('@/hooks/auth/useAuth', () => ({
   useAuth: vi.fn(() => ({
     workersTokens: { accessToken: 'test-token', refreshToken: 'test-refresh' },
     workersUser: { id: 'user-123', email: 'test@example.com' },

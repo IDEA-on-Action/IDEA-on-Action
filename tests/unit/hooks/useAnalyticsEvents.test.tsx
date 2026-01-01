@@ -9,7 +9,7 @@ import {
   useSessionTimeline,
   useRealtimeEvents,
   useUserEventHistory
-} from '@/hooks/useAnalyticsEvents'
+} from '@/hooks/analytics/useAnalyticsEvents'
 import { callWorkersApi } from '@/integrations/cloudflare/client'
 import React, { type ReactNode } from 'react'
 
@@ -19,7 +19,7 @@ vi.mock('@/integrations/cloudflare/client', () => ({
 }))
 
 // Mock useAuth hook
-vi.mock('@/hooks/useAuth', () => ({
+vi.mock('@/hooks/auth/useAuth', () => ({
   useAuth: () => ({
     workersTokens: { accessToken: 'mock-token' },
   }),

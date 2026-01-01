@@ -4,8 +4,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
   useRealtimeServiceStatus,
   useConnectionStatusDisplay,
-} from '@/hooks/useRealtimeServiceStatus';
-import type { ConnectionState } from '@/hooks/useRealtimeServiceStatus';
+} from '@/hooks/realtime/useRealtimeServiceStatus';
+import type { ConnectionState } from '@/hooks/realtime/useRealtimeServiceStatus';
 
 // Mock Cloudflare Workers API
 vi.mock('@/integrations/cloudflare/client', () => ({

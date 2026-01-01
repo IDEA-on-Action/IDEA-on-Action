@@ -2,7 +2,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach, beforeAll, afterAll } from 'vitest';
 import { renderHook, waitFor, act, cleanup } from '@testing-library/react';
 
-vi.unmock('@/hooks/useAuth');
+vi.unmock('@/hooks/auth/useAuth');
 
 const mockNavigate = vi.fn();
 vi.mock('react-router-dom', () => ({ useNavigate: () => mockNavigate }));
@@ -59,7 +59,7 @@ describe('useAuth', () => {
   afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 
   it('init state', async () => {
-    const { useAuth } = await import('@/hooks/useAuth');
+    const { useAuth } = await import('@/hooks/auth/useAuth');
     const { result } = renderHook(() => useAuth());
     await waitFor(() => { expect(result.current.loading).toBe(false); });
     expect(result.current.workersUser).toBe(null);
@@ -68,7 +68,7 @@ describe('useAuth', () => {
   it('valid token sets user', async () => {
     const validTokens = { ...mockStoredTokens, expiresAt: Date.now() + 3600000 };
     localStorageMock._setStore({ workers_auth_tokens: JSON.stringify(validTokens) });
-    const { useAuth } = await import('@/hooks/useAuth');
+    const { useAuth } = await import('@/hooks/auth/useAuth');
     const { result } = renderHook(() => useAuth());
     await waitFor(() => { expect(result.current.loading).toBe(false); });
     expect(result.current.workersUser).toEqual(mockUser);
@@ -76,7 +76,7 @@ describe('useAuth', () => {
   });
 
   it('no token means null user', async () => {
-    const { useAuth } = await import('@/hooks/useAuth');
+    const { useAuth } = await import('@/hooks/auth/useAuth');
     const { result } = renderHook(() => useAuth());
     await waitFor(() => { expect(result.current.loading).toBe(false); });
     expect(result.current.workersUser).toBe(null);
@@ -84,7 +84,7 @@ describe('useAuth', () => {
   });
 
   it('Google OAuth redirect', async () => {
-    const { useAuth } = await import('@/hooks/useAuth');
+    const { useAuth } = await import('@/hooks/auth/useAuth');
     const { result } = renderHook(() => useAuth());
     await waitFor(() => { expect(result.current.loading).toBe(false); });
     expect(typeof result.current.signInWithGoogle).toBe('function');
@@ -95,7 +95,7 @@ describe('useAuth', () => {
   it('email login works', async () => {
     const { authApi } = await import('@/integrations/cloudflare/client');
     vi.mocked(authApi.login).mockResolvedValue({ data: { user: mockUser, ...mockTokens }, error: null, status: 200 });
-    const { useAuth } = await import('@/hooks/useAuth');
+    const { useAuth } = await import('@/hooks/auth/useAuth');
     const { result } = renderHook(() => useAuth());
     await waitFor(() => { expect(result.current.loading).toBe(false); });
     await act(async () => { await result.current.signInWithEmail('test@example.com', 'password123'); });
@@ -108,7 +108,7 @@ describe('useAuth', () => {
     localStorageMock._setStore({ workers_auth_tokens: JSON.stringify(validTokens) });
     const { authApi } = await import('@/integrations/cloudflare/client');
     vi.mocked(authApi.logout).mockResolvedValue({ data: { success: true }, error: null, status: 200 });
-    const { useAuth } = await import('@/hooks/useAuth');
+    const { useAuth } = await import('@/hooks/auth/useAuth');
     const { result } = renderHook(() => useAuth());
     await waitFor(() => { expect(result.current.loading).toBe(false); });
     await act(async () => { await result.current.signOut(); });
@@ -120,7 +120,7 @@ describe('useAuth', () => {
     localStorageMock._setStore({ workers_auth_tokens: JSON.stringify(expiredTokens) });
     const { authApi } = await import('@/integrations/cloudflare/client');
     vi.mocked(authApi.refresh).mockResolvedValue({ data: { accessToken: 'new', refreshToken: 'new', expiresIn: 3600 }, error: null, status: 200 });
-    const { useAuth } = await import('@/hooks/useAuth');
+    const { useAuth } = await import('@/hooks/auth/useAuth');
     const { result } = renderHook(() => useAuth());
     await waitFor(() => { expect(result.current.loading).toBe(false); });
     expect(authApi.refresh).toHaveBeenCalledWith(expiredTokens.refreshToken);
@@ -131,7 +131,7 @@ describe('useAuth', () => {
     localStorageMock._setStore({ workers_auth_tokens: JSON.stringify(expiredTokens) });
     const { authApi } = await import('@/integrations/cloudflare/client');
     vi.mocked(authApi.refresh).mockResolvedValue({ data: null, error: 'expired', status: 401 });
-    const { useAuth } = await import('@/hooks/useAuth');
+    const { useAuth } = await import('@/hooks/auth/useAuth');
     const { result } = renderHook(() => useAuth());
     await waitFor(() => { expect(result.current.loading).toBe(false); });
     expect(result.current.workersUser).toBe(null);
@@ -139,7 +139,7 @@ describe('useAuth', () => {
   });
 
   it('GitHub OAuth redirect', async () => {
-    const { useAuth } = await import('@/hooks/useAuth');
+    const { useAuth } = await import('@/hooks/auth/useAuth');
     const { result } = renderHook(() => useAuth());
     await waitFor(() => { expect(result.current.loading).toBe(false); });
     await act(async () => { await result.current.signInWithGithub(); });
@@ -147,7 +147,7 @@ describe('useAuth', () => {
   });
 
   it('Kakao OAuth redirect', async () => {
-    const { useAuth } = await import('@/hooks/useAuth');
+    const { useAuth } = await import('@/hooks/auth/useAuth');
     const { result } = renderHook(() => useAuth());
     await waitFor(() => { expect(result.current.loading).toBe(false); });
     await act(async () => { await result.current.signInWithKakao(); });
@@ -157,7 +157,7 @@ describe('useAuth', () => {
   it('email login failure throws', async () => {
     const { authApi } = await import('@/integrations/cloudflare/client');
     vi.mocked(authApi.login).mockResolvedValue({ data: null, error: 'Invalid credentials', status: 401 });
-    const { useAuth } = await import('@/hooks/useAuth');
+    const { useAuth } = await import('@/hooks/auth/useAuth');
     const { result } = renderHook(() => useAuth());
     await waitFor(() => { expect(result.current.loading).toBe(false); });
     await expect(act(async () => { await result.current.signInWithEmail('test@example.com', 'wrong'); })).rejects.toThrow('Invalid credentials');
@@ -166,7 +166,7 @@ describe('useAuth', () => {
   it('signup works', async () => {
     const { authApi } = await import('@/integrations/cloudflare/client');
     vi.mocked(authApi.register).mockResolvedValue({ data: { user: { id: '1', email: 'a@b.c', name: 'N' }, ...mockTokens }, error: null, status: 201 });
-    const { useAuth } = await import('@/hooks/useAuth');
+    const { useAuth } = await import('@/hooks/auth/useAuth');
     const { result } = renderHook(() => useAuth());
     await waitFor(() => { expect(result.current.loading).toBe(false); });
     await act(async () => { await result.current.signUpWithEmail('a@b.c', 'pass', 'N'); });
@@ -177,7 +177,7 @@ describe('useAuth', () => {
   it('signup failure throws', async () => {
     const { authApi } = await import('@/integrations/cloudflare/client');
     vi.mocked(authApi.register).mockResolvedValue({ data: null, error: 'Email exists', status: 409 });
-    const { useAuth } = await import('@/hooks/useAuth');
+    const { useAuth } = await import('@/hooks/auth/useAuth');
     const { result } = renderHook(() => useAuth());
     await waitFor(() => { expect(result.current.loading).toBe(false); });
     await expect(act(async () => { await result.current.signUpWithEmail('a@b.c', 'pass'); })).rejects.toThrow('Email exists');
@@ -188,7 +188,7 @@ describe('useAuth', () => {
     localStorageMock._setStore({ workers_auth_tokens: JSON.stringify(validTokens) });
     const { authApi } = await import('@/integrations/cloudflare/client');
     vi.mocked(authApi.logout).mockRejectedValue(new Error('Network'));
-    const { useAuth } = await import('@/hooks/useAuth');
+    const { useAuth } = await import('@/hooks/auth/useAuth');
     const { result } = renderHook(() => useAuth());
     await waitFor(() => { expect(result.current.loading).toBe(false); });
     await act(async () => { await result.current.signOut(); });
@@ -199,14 +199,14 @@ describe('useAuth', () => {
   it('getAccessToken returns token when logged in', async () => {
     const validTokens = { ...mockStoredTokens, expiresAt: Date.now() + 3600000 };
     localStorageMock._setStore({ workers_auth_tokens: JSON.stringify(validTokens) });
-    const { useAuth } = await import('@/hooks/useAuth');
+    const { useAuth } = await import('@/hooks/auth/useAuth');
     const { result } = renderHook(() => useAuth());
     await waitFor(() => { expect(result.current.loading).toBe(false); });
     expect(result.current.getAccessToken()).toBe(validTokens.accessToken);
   });
 
   it('getAccessToken returns null when not logged in', async () => {
-    const { useAuth } = await import('@/hooks/useAuth');
+    const { useAuth } = await import('@/hooks/auth/useAuth');
     const { result } = renderHook(() => useAuth());
     await waitFor(() => { expect(result.current.loading).toBe(false); });
     expect(result.current.getAccessToken()).toBe(null);
@@ -215,7 +215,7 @@ describe('useAuth', () => {
   it('legacy properties work correctly', async () => {
     const validTokens = { ...mockStoredTokens, expiresAt: Date.now() + 3600000 };
     localStorageMock._setStore({ workers_auth_tokens: JSON.stringify(validTokens) });
-    const { useAuth } = await import('@/hooks/useAuth');
+    const { useAuth } = await import('@/hooks/auth/useAuth');
     const { result } = renderHook(() => useAuth());
     await waitFor(() => { expect(result.current.loading).toBe(false); });
     expect(result.current.user).toEqual(mockUser);

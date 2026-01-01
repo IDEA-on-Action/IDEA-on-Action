@@ -24,9 +24,9 @@ import {
   useHasPermission,
   useIsRole,
   useIsAdminOrOwner,
-} from '@/hooks/usePermissions';
+} from '@/hooks/auth/usePermissions';
 import { permissionsApi, subscriptionsApi, servicesApi } from '@/integrations/cloudflare/client';
-import type { CheckPermissionResponse, UserRole } from '@/hooks/usePermissions';
+import type { CheckPermissionResponse, UserRole } from '@/hooks/auth/usePermissions';
 import React from 'react';
 
 // Mock Workers API client
@@ -48,7 +48,7 @@ vi.mock('@/integrations/cloudflare/client', () => ({
 }));
 
 // Mock useAuth
-vi.mock('@/hooks/useAuth', () => ({
+vi.mock('@/hooks/auth/useAuth', () => ({
   useAuth: vi.fn(() => ({
     user: {
       id: 'user-123',

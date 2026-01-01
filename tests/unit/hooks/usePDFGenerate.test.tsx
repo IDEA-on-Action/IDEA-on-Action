@@ -10,7 +10,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, waitFor, act, cleanup } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
-import { usePDFGenerate } from '@/hooks/usePDFGenerate';
+import { usePDFGenerate } from '@/hooks/documents/usePDFGenerate';
 import type { PDFMergeInput } from '@/types/pdf.types';
 import { PageFormat, PageOrientation } from '@/types/pdf.types';
 

@@ -14,7 +14,7 @@ import { MemoryRouter } from 'react-router-dom';
 import React, { type ReactNode } from 'react';
 
 // Mock useAuth hook - must be before imports
-vi.mock('@/hooks/useAuth', () => ({
+vi.mock('@/hooks/auth/useAuth', () => ({
   useAuth: vi.fn(() => ({
     workersTokens: { accessToken: 'test-token', refreshToken: 'test-refresh' },
     workersUser: { id: 'user-123', email: 'test@example.com' },

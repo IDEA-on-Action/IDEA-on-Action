@@ -4,13 +4,13 @@ import userEvent from '@testing-library/user-event';
 import { WorkWithUsForm } from '@/components/forms/WorkWithUsForm';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { UseMutationResult } from '@tanstack/react-query';
-import { useSubmitWorkInquiry } from '@/hooks/useWorkInquiries';
+import { useSubmitWorkInquiry } from '@/hooks/projects/useWorkInquiries';
 import { toast } from 'sonner';
 import type { ReactNode } from 'react';
 import type { Proposal, ProposalFormValues } from '@/types/shared/v2';
 
 // Mock hooks
-vi.mock('@/hooks/useWorkInquiries', () => ({
+vi.mock('@/hooks/projects/useWorkInquiries', () => ({
   useSubmitWorkInquiry: vi.fn(),
 }));
 

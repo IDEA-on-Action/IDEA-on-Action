@@ -19,7 +19,7 @@ import Login from '@/pages/Login'
 expect.extend(toHaveNoViolations)
 
 // Mock dependencies
-vi.mock('@/hooks/useServices', () => ({
+vi.mock('@/hooks/services/useServices', () => ({
   useServices: () => ({
     data: [],
     isLoading: false,
@@ -35,11 +35,11 @@ vi.mock('@/hooks/useServices', () => ({
   }),
 }))
 
-vi.mock('@/hooks/useIsAdmin', () => ({
+vi.mock('@/hooks/auth/useIsAdmin', () => ({
   useIsAdmin: () => ({ data: false }),
 }))
 
-vi.mock('@/hooks/useAuth', () => ({
+vi.mock('@/hooks/auth/useAuth', () => ({
   useAuth: () => ({
     user: null,
     signInWithGoogle: vi.fn(),

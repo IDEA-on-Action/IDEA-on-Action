@@ -17,7 +17,7 @@ import {
   useAuditStatistics,
   useUserAuditHistory,
   useResourceAuditHistory,
-} from '@/hooks/useAuditLogs';
+} from '@/hooks/analytics/useAuditLogs';
 import { callWorkersApi } from '@/integrations/cloudflare/client';
 import React from 'react';
 import type { AuditLogFilters } from '@/types/audit.types';

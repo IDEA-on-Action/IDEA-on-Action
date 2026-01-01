@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
-import { useXlsxImport } from '@/hooks/useXlsxImport';
+import { useXlsxImport } from '@/hooks/documents/useXlsxImport';
 import type { ParsedExcelData, ImportResult } from '@/types/xlsx-import.types';
 
 // Mock dependencies

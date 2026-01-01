@@ -16,7 +16,7 @@ import type {
 } from '@/types/claude-skills.types';
 
 // Mock dependencies
-vi.mock('@/hooks/useClaudeStreaming', () => ({
+vi.mock('@/hooks/ai/useClaudeStreaming', () => ({
   useClaudeStreaming: vi.fn(() => ({
     sendMessage: vi.fn().mockResolvedValue(
       JSON.stringify({
@@ -40,7 +40,7 @@ vi.mock('@/hooks/useClaudeStreaming', () => ({
   })),
 }));
 
-vi.mock('@/hooks/usePromptTemplates', () => ({
+vi.mock('@/hooks/ai/usePromptTemplates', () => ({
   usePromptTemplates: vi.fn(() => ({
     data: { data: [], count: 0 },
   })),
@@ -362,7 +362,7 @@ describe('useClaudeSkill', () => {
 
   describe('에러 처리', () => {
     it('네트워크 에러를 올바르게 처리해야 함', async () => {
-      const { useClaudeStreaming } = await import('@/hooks/useClaudeStreaming');
+      const { useClaudeStreaming } = await import('@/hooks/ai/useClaudeStreaming');
       vi.mocked(useClaudeStreaming).mockReturnValue({
         sendMessage: vi.fn().mockRejectedValue(new Error('Network error')),
         stopStreaming: vi.fn(),
@@ -389,7 +389,7 @@ describe('useClaudeSkill', () => {
     });
 
     it('JSON 파싱 에러를 처리해야 함', async () => {
-      const { useClaudeStreaming } = await import('@/hooks/useClaudeStreaming');
+      const { useClaudeStreaming } = await import('@/hooks/ai/useClaudeStreaming');
       vi.mocked(useClaudeStreaming).mockReturnValue({
         sendMessage: vi.fn().mockResolvedValue('Invalid JSON'),
         stopStreaming: vi.fn(),

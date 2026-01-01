@@ -172,7 +172,7 @@ export function createHookWrapper(options?: TestWrapperOptions) {
  *
  * @example
  * // 테스트 파일 상단에서 사용
- * vi.mock('@/hooks/useAuth', () => ({
+ * vi.mock('@/hooks/auth/useAuth', () => ({
  *   useAuth: vi.fn(() => createMockAuthReturn()),
  * }));
  *
@@ -213,7 +213,7 @@ export function createMockAuthReturn(overrides?: Partial<MockAuthState>) {
  * useAuth 모킹 설정 (vi.mock 호출용)
  *
  * @example
- * vi.mock('@/hooks/useAuth', () => mockUseAuth());
+ * vi.mock('@/hooks/auth/useAuth', () => mockUseAuth());
  */
 export function mockUseAuth(overrides?: Partial<MockAuthState>) {
   return {

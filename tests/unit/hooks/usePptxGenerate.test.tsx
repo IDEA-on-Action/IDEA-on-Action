@@ -9,7 +9,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, waitFor, act, cleanup } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
-import { usePptxGenerate } from '@/hooks/usePptxGenerate';
+import { usePptxGenerate } from '@/hooks/documents/usePptxGenerate';
 import type {
   PptxGenerateOptions,
   TitleSlide,

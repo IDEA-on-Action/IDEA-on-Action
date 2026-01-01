@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-import { usePayment } from '@/hooks/usePayment';
+import { usePayment } from '@/hooks/payments/usePayment';
 import { paymentsApi } from '@/integrations/cloudflare/client';
 import React, { type ReactNode } from 'react';
 
@@ -13,7 +13,7 @@ vi.mock('@/integrations/cloudflare/client', () => ({
 }));
 
 // Mock useAuth
-vi.mock('@/hooks/useAuth', () => ({
+vi.mock('@/hooks/auth/useAuth', () => ({
   useAuth: vi.fn(),
 }));
 

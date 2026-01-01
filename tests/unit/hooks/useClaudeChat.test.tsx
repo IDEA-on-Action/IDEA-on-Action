@@ -59,7 +59,7 @@ describe('useClaudeChat', () => {
     localStorage.clear();
 
     // useAuth 기본 모킹 복원 (각 테스트 전 초기화)
-    const useAuthModule = await import('@/hooks/useAuth');
+    const useAuthModule = await import('@/hooks/auth/useAuth');
     vi.mocked(useAuthModule.useAuth).mockReturnValue({
       workersTokens: { accessToken: 'test-token', refreshToken: 'test-refresh' },
       workersUser: { id: 'user-123', email: 'test@example.com' },
@@ -273,7 +273,7 @@ describe('useClaudeChat', () => {
   describe('에러 처리', () => {
     it('인증 토큰이 없으면 에러가 발생해야 함', async () => {
       // useAuth 훅 오버라이드: 토큰 없음
-      const useAuthModule = await import('@/hooks/useAuth');
+      const useAuthModule = await import('@/hooks/auth/useAuth');
       vi.mocked(useAuthModule.useAuth).mockReturnValue({
         workersTokens: null,
         workersUser: null,

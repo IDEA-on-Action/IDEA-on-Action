@@ -21,7 +21,7 @@ import {
   getChannelLabel,
   isInQuietHours,
   type AlertSubscription,
-} from '@/hooks/useAlertSubscriptions';
+} from '@/hooks/realtime/useAlertSubscriptions';
 import { callWorkersApi } from '@/integrations/cloudflare/client';
 import React from 'react';
 

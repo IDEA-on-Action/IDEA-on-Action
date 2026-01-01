@@ -12,7 +12,7 @@ import {
   useConfirmNewsletter,
   useUnsubscribeNewsletter,
   useNewsletterStats,
-} from '@/hooks/useNewsletter'
+} from '@/hooks/newsletter/useNewsletter'
 import { toast } from 'sonner'
 
 // Mock Workers API

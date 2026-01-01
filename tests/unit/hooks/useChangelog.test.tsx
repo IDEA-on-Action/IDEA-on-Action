@@ -19,7 +19,7 @@ import {
   useChangelogEntry,
   useChangelogByProjectSlug,
   type ChangelogEntry,
-} from '@/hooks/useChangelog';
+} from '@/hooks/cms/useChangelog';
 import * as cloudflareClient from '@/integrations/cloudflare/client';
 import React from 'react';
 
