@@ -7,7 +7,7 @@
  * - 클릭 시 읽음 처리 및 링크 이동
  */
 
-import { useNotifications, type Notification } from '@/hooks/useNotifications'
+import { useNotifications, type Notification } from '@/hooks/realtime/useNotifications'
 import { formatDistanceToNow } from 'date-fns'
 import { ko, enUS } from 'date-fns/locale'
 import { useTranslation } from 'react-i18next'

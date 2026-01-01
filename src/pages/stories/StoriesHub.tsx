@@ -9,7 +9,7 @@
 import { BookOpen, Mail, FileText, Bell } from "lucide-react";
 import { StoriesSection, type StoriesSectionItem } from "@/components/stories/StoriesSection";
 import { PageLayout } from "@/components/layouts";
-import { useWordPressPosts } from "@/hooks/useWordPressPosts";
+import { useWordPressPosts } from "@/hooks/integrations/useWordPressPosts";
 import { useBlogPosts } from "@/hooks/useBlogPosts";
 import { useNotices } from "@/hooks/useNotices";
 import { useNewsletterArchive } from "@/hooks/useNewsletterArchive";

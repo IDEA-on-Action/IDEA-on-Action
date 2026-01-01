@@ -8,7 +8,7 @@
 import { useState } from 'react'
 import { Helmet } from 'react-helmet-async'
 import { Search, Filter, X } from 'lucide-react'
-import { useWordPressPosts, useWordPressCategories, useWordPressTags } from '@/hooks/useWordPressPosts'
+import { useWordPressPosts, useWordPressCategories, useWordPressTags } from '@/hooks/integrations/useWordPressPosts'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'

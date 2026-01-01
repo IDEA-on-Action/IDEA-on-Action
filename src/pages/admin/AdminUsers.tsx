@@ -10,7 +10,7 @@
 
 import { useState, useEffect } from 'react'
 import { Helmet } from 'react-helmet-async'
-import { useAdmins, useCreateAdmin, useUpdateAdmin, useDeleteAdmin, useCurrentAdminRole } from '@/hooks/useAdmins'
+import { useAdmins, useCreateAdmin, useUpdateAdmin, useDeleteAdmin, useCurrentAdminRole } from '@/hooks/auth/useAdmins'
 import { useAuth } from '@/hooks/useAuth'
 import { callWorkersApi } from '@/integrations/cloudflare/client'
 import { Button } from '@/components/ui/button'

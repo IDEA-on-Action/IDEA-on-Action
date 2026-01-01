@@ -7,7 +7,7 @@
  * - 모든 알림 보기 링크
  */
 
-import { useNotifications } from '@/hooks/useNotifications'
+import { useNotifications } from '@/hooks/realtime/useNotifications'
 import { NotificationItem } from './NotificationItem'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'

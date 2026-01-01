@@ -7,8 +7,8 @@
  * @migration Supabase → Cloudflare Workers (완전 마이그레이션 완료)
  */
 
-import { useKakaoPay } from '@/hooks/useKakaoPay'
-import { useTossPay } from '@/hooks/useTossPay'
+import { useKakaoPay } from '@/hooks/payments/useKakaoPay'
+import { useTossPay } from '@/hooks/payments/useTossPay'
 import { paymentsApi } from '@/integrations/cloudflare/client'
 import { useAuth } from '@/hooks/useAuth'
 import type { PaymentProvider, PaymentResult, PaymentError } from '@/lib/payments/types'

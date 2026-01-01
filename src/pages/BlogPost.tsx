@@ -8,7 +8,7 @@
 import { useParams, Link } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import { ArrowLeft, Calendar, User, Tag, Share2, Home, MessageCircle, Heart, ExternalLink } from 'lucide-react'
-import { useWordPressPost } from '@/hooks/useWordPressPosts'
+import { useWordPressPost } from '@/hooks/integrations/useWordPressPosts'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'

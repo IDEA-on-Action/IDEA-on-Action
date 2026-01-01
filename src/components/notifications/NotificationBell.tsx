@@ -10,7 +10,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { Bell } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { useNotifications } from '@/hooks/useNotifications'
+import { useNotifications } from '@/hooks/realtime/useNotifications'
 import { NotificationDropdown } from './NotificationDropdown'
 import { useTranslation } from 'react-i18next'
 

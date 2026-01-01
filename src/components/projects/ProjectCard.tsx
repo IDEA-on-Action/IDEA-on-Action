@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import type { Project } from "@/types/v2";
-import { useGitHubStats, formatGitHubStatsSummary } from "@/hooks/useGitHubStats";
+import { useGitHubStats, formatGitHubStatsSummary } from "@/hooks/integrations/useGitHubStats";
 
 /**
  * 프로젝트 상태별 설정

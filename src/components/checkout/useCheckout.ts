@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useCart } from '@/hooks/useCart'
-import { useCreateOrder } from '@/hooks/useOrders'
+import { useCreateOrder } from '@/hooks/payments/useOrders'
 import { useAuth } from '@/hooks/useAuth'
 import { useCartStore } from '@/stores/cartStore'
 
