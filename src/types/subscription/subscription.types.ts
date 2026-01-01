@@ -4,7 +4,7 @@
  * 구독 관리 시스템 타입 정의
  */
 
-import type { Database } from './supabase'
+import type { Database } from '../shared/database-schema.types'
 
 // =====================================================
 // Database Types

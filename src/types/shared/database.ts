@@ -1,18 +1,18 @@
 /**
- * Supabase Database Types
+ * Database Types
  *
- * 이 파일은 Supabase 자동 생성 타입(supabase.ts)을 래핑하여
+ * 이 파일은 자동 생성된 데이터베이스 스키마 타입(database-schema.types.ts)을 래핑하여
  * 애플리케이션에서 사용하기 편리한 형태로 제공합니다.
  * JSON 컬럼에 대한 구체적인 타입 정의를 포함합니다.
  *
- * @version 2.0.0 (Refactored based on supabase.ts)
+ * @version 2.1.0 (D1 마이그레이션)
  */
 
-import { Database as SupabaseDatabase, Json } from './database-schema.types';
+import { Database as DatabaseSchema, Json } from './database-schema.types';
 
-// Supabase 테이블 타입 단축 접근자
-type Tables = SupabaseDatabase['public']['Tables'];
-type Enums = SupabaseDatabase['public']['Enums'];
+// 데이터베이스 테이블 타입 단축 접근자
+type Tables = DatabaseSchema['public']['Tables'];
+type Enums = DatabaseSchema['public']['Enums'];
 
 // ===================================================================
 // Phase 8: Services & Categories

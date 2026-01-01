@@ -3,7 +3,7 @@
  * Phase 11 Week 1
  */
 
-import type { Database } from './supabase'
+import type { Database } from '../shared/database-schema.types'
 
 // Extract types from Supabase schema
 export type BlogPost = Database['public']['Tables']['blog_posts']['Row']
