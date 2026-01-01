@@ -19,12 +19,14 @@
 
 | 작업 | 상태 | 설명 |
 |------|------|------|
-| Hooks re-export 삭제 | ✅ | 20개 파일 삭제, 88개 남음 |
-| Types re-export 삭제 | ✅ | 20개 파일 삭제, 31개 남음 |
-| import 경로 마이그레이션 | ✅ | 300개+ 파일 직접 경로로 변경 |
+| Hooks re-export 삭제 | ✅ | 46개 파일 삭제 (108 → 62) |
+| Types re-export 삭제 | ✅ | 33개 파일 삭제 (51 → 18) |
+| import 경로 마이그레이션 | ✅ | 350개+ 파일 직접 경로로 변경 |
 | useAuth 마이그레이션 | ✅ | 137개 사용처 → auth/useAuth |
 | useToast 마이그레이션 | ✅ | 23개 사용처 → components/ui |
 | 고사용 Types 마이그레이션 | ✅ | central-hub, cms, skills, v2, services-platform |
+| 저사용 Hooks 마이그레이션 | ✅ | 10개 파일 (1-5 사용처) 정리 |
+| 저사용 Types 마이그레이션 | ✅ | 11개 파일 (1-5 사용처) 정리 |
 | 빌드 검증 | ✅ | 모든 변경 후 빌드 성공 |
 
 ---

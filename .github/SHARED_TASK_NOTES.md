@@ -13,13 +13,27 @@ v3.2.1 완료 - @deprecated Re-export 대규모 마이그레이션 ✅
 
 ### 이번 세션 완료 (2026-01-01)
 
+#### Phase 1: 고사용 파일 마이그레이션
+
 - [x] Hooks re-export 20개 삭제 (108 → 88개)
 - [x] Types re-export 20개 삭제 (51 → 31개)
 - [x] 300개+ 파일 import 경로 직접 경로 변경
 - [x] useAuth (137 사용처) 마이그레이션
 - [x] useToast (23 사용처) 마이그레이션
-- [x] 고사용 Types (central-hub, cms, skills, v2, services-platform) 마이그레이션
+- [x] 고사용 Types 마이그레이션
+
+#### Phase 2: 저사용 파일 마이그레이션
+
+- [x] Hooks re-export 26개 추가 삭제 (88 → 62개)
+- [x] Types re-export 13개 추가 삭제 (31 → 18개)
+- [x] 73개+ 파일 import 경로 변경
 - [x] 빌드 검증 완료
+
+#### 최종 결과
+
+- Hooks: 108 → 62 (46개 삭제, 57% 완료)
+- Types: 51 → 18 (33개 삭제, 65% 완료)
+- 총 79개 re-export 파일 제거
 
 ---
 
