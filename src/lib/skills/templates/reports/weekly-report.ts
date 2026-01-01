@@ -20,7 +20,7 @@ import {
   AlignmentType,
   Packer,
 } from 'docx';
-import type { TemplateData, TimelineItem } from '@/types/docx.types';
+import type { TemplateData, TimelineItem } from '@/types/documents/docx.types';
 
 // ============================================================================
 // 타입 정의

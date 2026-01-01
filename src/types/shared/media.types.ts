@@ -27,7 +27,7 @@
 import type { MediaItem as MediaItemType } from './cms.types';
 
 // Re-export core types for convenience
-// Primary types should be imported from '@/types/cms.types'
+// Primary types should be imported from '@/types/cms/cms.types'
 export type {
   MediaItem,
   MediaItemInsert,

@@ -5,14 +5,14 @@
  */
 
 import { serviceEventsApi } from '@/integrations/cloudflare/client';
-import type { ServiceEvent } from '@/types/central-hub.types';
-import { SERVICE_INFO } from '@/types/central-hub.types';
+import type { ServiceEvent } from '@/types/services/central-hub.types';
+import { SERVICE_INFO } from '@/types/services/central-hub.types';
 import type {
   EventSheetRow,
   DateRange,
   ColumnConfig,
-} from '@/types/skills.types';
-import { EVENT_TYPE_LABELS } from '@/types/skills.types';
+} from '@/types/ai/skills.types';
+import { EVENT_TYPE_LABELS } from '@/types/ai/skills.types';
 
 /**
  * 이벤트 시트 컬럼 설정

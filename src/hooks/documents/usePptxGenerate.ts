@@ -30,7 +30,7 @@ import type {
   PresentationMetadata,
   PPTX_BRAND_COLORS,
 } from '@/types/documents/pptx.types';
-import type { SkillError } from '@/types/skills.types';
+import type { SkillError } from '@/types/ai/skills.types';
 
 // ============================================================================
 // 타입 가드

@@ -29,7 +29,7 @@ import { PackageSelector } from '@/components/services-platform/PackageSelector'
 import { ProcessTimeline } from '@/components/services-platform/ProcessTimeline'
 import { DeliverablesGrid } from '@/components/services-platform/DeliverablesGrid'
 import { FAQSection } from '@/components/services-platform/FAQSection'
-import type { ServicePackage, SubscriptionPlan } from '@/types/services-platform'
+import type { ServicePackage, SubscriptionPlan } from '@/types/services/services-platform'
 
 // Helper: Check if string is UUID format
 const isUUID = (str: string): boolean => {

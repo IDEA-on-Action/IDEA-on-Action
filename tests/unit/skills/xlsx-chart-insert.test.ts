@@ -15,7 +15,7 @@ import {
   canInsertChart,
   getChartCount,
 } from '@/lib/skills/xlsx/chartInsert';
-import type { ChartInsertOptions } from '@/types/xlsx-chart.types';
+import type { ChartInsertOptions } from '@/types/documents/xlsx-chart.types';
 
 // 테스트용 워크시트 타입 (레거시 호환)
 type TestWorksheet = Record<string, unknown> & {

@@ -13,7 +13,7 @@ import { Package, CalendarClock } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
 import { PricingCard } from './PricingCard';
-import type { ServicePackage, SubscriptionPlan } from '@/types/services-platform';
+import type { ServicePackage, SubscriptionPlan } from '@/types/services/services-platform';
 
 export interface PackageSelectorProps {
   /** One-time project packages */

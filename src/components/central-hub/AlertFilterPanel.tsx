@@ -24,8 +24,8 @@ import type {
   ServiceId,
   IssueSeverity,
   EventType,
-} from '@/types/central-hub.types';
-import { SERVICE_INFO } from '@/types/central-hub.types';
+} from '@/types/services/central-hub.types';
+import { SERVICE_INFO } from '@/types/services/central-hub.types';
 import type { StreamFilterOptions } from '@/hooks/useRealtimeEventStream';
 
 // ============================================================================

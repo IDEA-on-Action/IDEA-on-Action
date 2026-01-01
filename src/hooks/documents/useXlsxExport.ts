@@ -14,13 +14,13 @@ import type {
   UseXlsxExportResult,
   SkillError,
   SheetConfig,
-} from '@/types/skills.types';
+} from '@/types/ai/skills.types';
 import type {
   ChartData,
   BarChartOptions,
   LineChartOptions,
   PieChartOptions,
-} from '@/types/xlsx-chart.types';
+} from '@/types/documents/xlsx-chart.types';
 import {
   generateBarChartImage,
   generateLineChartImage,

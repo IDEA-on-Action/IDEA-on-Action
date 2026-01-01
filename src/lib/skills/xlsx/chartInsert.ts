@@ -12,7 +12,7 @@ import type {
   ChartInsertOptions,
   ChartPosition,
   ChartSize,
-} from '@/types/xlsx-chart.types';
+} from '@/types/documents/xlsx-chart.types';
 
 // ============================================================================
 // 타입 정의

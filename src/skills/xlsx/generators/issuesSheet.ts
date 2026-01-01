@@ -5,14 +5,14 @@
  */
 
 import { serviceIssuesApi } from '@/integrations/cloudflare/client';
-import type { ServiceIssue } from '@/types/central-hub.types';
-import { SERVICE_INFO } from '@/types/central-hub.types';
+import type { ServiceIssue } from '@/types/services/central-hub.types';
+import { SERVICE_INFO } from '@/types/services/central-hub.types';
 import type {
   IssueSheetRow,
   DateRange,
   ColumnConfig,
-} from '@/types/skills.types';
-import { SEVERITY_LABELS, STATUS_LABELS } from '@/types/skills.types';
+} from '@/types/ai/skills.types';
+import { SEVERITY_LABELS, STATUS_LABELS } from '@/types/ai/skills.types';
 
 /**
  * 이슈 시트 컬럼 설정

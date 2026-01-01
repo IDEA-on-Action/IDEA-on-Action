@@ -36,7 +36,7 @@ import { mediaApi } from '@/integrations/cloudflare/client';
 import { useAuth } from '@/hooks/auth/useAuth';
 import { toast } from 'sonner';
 import { mediaQueryKeys } from '@/hooks/media/useMediaLibrary';
-import type { MediaItem } from '@/types/cms.types';
+import type { MediaItem } from '@/types/cms/cms.types';
 
 // =====================================================
 // Constants

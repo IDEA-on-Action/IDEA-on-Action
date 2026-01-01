@@ -17,7 +17,7 @@ import type {
   SheetConfig,
   SkillError,
   ChartExportConfig,
-} from '@/types/skills.types';
+} from '@/types/ai/skills.types';
 import { fetchEvents, eventColumns } from './generators/eventsSheet';
 import { fetchIssues, issueColumns } from './generators/issuesSheet';
 import { fetchHealth, healthColumns } from './generators/healthSheet';

@@ -5,10 +5,10 @@
  */
 
 import { serviceHealthApi } from '@/integrations/cloudflare/client';
-import type { ServiceHealth } from '@/types/central-hub.types';
-import { SERVICE_INFO } from '@/types/central-hub.types';
-import type { HealthSheetRow, ColumnConfig } from '@/types/skills.types';
-import { HEALTH_LABELS } from '@/types/skills.types';
+import type { ServiceHealth } from '@/types/services/central-hub.types';
+import { SERVICE_INFO } from '@/types/services/central-hub.types';
+import type { HealthSheetRow, ColumnConfig } from '@/types/ai/skills.types';
+import { HEALTH_LABELS } from '@/types/ai/skills.types';
 
 /**
  * 헬스 시트 컬럼 설정

@@ -28,7 +28,7 @@ import {
 import { Filter, RotateCcw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { RAGSourceType } from '@/types/ai/rag.types';
-import type { MinuServiceId } from '@/types/claude.types';
+import type { MinuServiceId } from '@/types/ai/claude.types';
 
 /**
  * 필터 옵션

@@ -12,7 +12,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { realtimeApi } from '@/integrations/cloudflare/client';
 import { useAuth } from '@/hooks/auth/useAuth';
-import type { ServiceHealth, ServiceId, HealthStatus } from '@/types/central-hub.types';
+import type { ServiceHealth, ServiceId, HealthStatus } from '@/types/services/central-hub.types';
 import { serviceHealthKeys } from '@/hooks/useServiceHealth';
 
 // ============================================================================

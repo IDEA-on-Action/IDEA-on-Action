@@ -23,7 +23,7 @@ import {
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { formatFileSize, formatDate } from '@/lib/cms-utils';
-import type { MediaItem } from '@/types/cms.types';
+import type { MediaItem } from '@/types/cms/cms.types';
 import { toast } from 'sonner';
 import { getMediaPublicUrl } from '@/lib/media-utils';
 

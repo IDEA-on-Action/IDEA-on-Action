@@ -53,8 +53,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import type { EditorMenuBarProps } from '@/types/editor.types'
-import { SUPPORTED_LANGUAGES } from '@/types/editor.types'
+import type { EditorMenuBarProps } from '@/types/cms/editor.types'
+import { SUPPORTED_LANGUAGES } from '@/types/cms/editor.types'
 import { cn } from '@/lib/utils'
 
 /**

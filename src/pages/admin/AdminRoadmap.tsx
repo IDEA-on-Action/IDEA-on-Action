@@ -26,7 +26,7 @@ import {
 } from 'lucide-react';
 import { DataTable } from '@/components/admin/ui/DataTable';
 import { useCRUD } from '@/hooks/useCRUD';
-import type { CMSRoadmapItem } from '@/types/cms.types';
+import type { CMSRoadmapItem } from '@/types/cms/cms.types';
 import { ColumnDef } from '@tanstack/react-table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';

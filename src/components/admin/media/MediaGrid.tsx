@@ -9,7 +9,7 @@ import React from 'react';
 import { ImageOff, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { MediaItem } from './MediaItem';
-import type { MediaItem as MediaItemType } from '@/types/cms.types';
+import type { MediaItem as MediaItemType } from '@/types/cms/cms.types';
 
 // =====================================================
 // Types

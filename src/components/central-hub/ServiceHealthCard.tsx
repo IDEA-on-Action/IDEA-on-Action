@@ -25,8 +25,8 @@ import {
   getHealthStatusLabel,
 } from '@/hooks/useServiceHealth';
 import { cn } from '@/lib/utils';
-import type { ServiceId, HealthStatus, HealthMetrics } from '@/types/central-hub.types';
-import { SERVICE_INFO } from '@/types/central-hub.types';
+import type { ServiceId, HealthStatus, HealthMetrics } from '@/types/services/central-hub.types';
+import { SERVICE_INFO } from '@/types/services/central-hub.types';
 
 // ============================================================================
 // 타입 정의

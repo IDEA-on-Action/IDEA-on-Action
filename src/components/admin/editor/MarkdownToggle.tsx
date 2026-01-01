@@ -13,7 +13,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import type { MarkdownToggleProps } from '@/types/editor.types'
+import type { MarkdownToggleProps } from '@/types/cms/editor.types'
 import { cn } from '@/lib/utils'
 
 /**

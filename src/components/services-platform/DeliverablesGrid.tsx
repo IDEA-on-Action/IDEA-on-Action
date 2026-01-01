@@ -7,7 +7,7 @@
 
 import * as Icons from 'lucide-react'
 import { Card } from '@/components/ui/card'
-import type { Deliverable } from '@/types/services-platform'
+import type { Deliverable } from '@/types/services/services-platform'
 
 interface DeliverablesGridProps {
   deliverables: Deliverable[]

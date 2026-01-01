@@ -30,7 +30,7 @@ import type {
   TimelineItem,
   RiskItem,
   BudgetItem,
-} from '@/types/docx.types';
+} from '@/types/documents/docx.types';
 
 // ============================================================================
 // 내부 스타일 타입 (기존 DocxStyleOptions 확장)

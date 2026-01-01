@@ -20,8 +20,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useServiceEvents } from '@/hooks/useServiceEvents';
 import { useServiceIssues, useServiceIssueStats } from '@/hooks/useServiceIssues';
 import { cn } from '@/lib/utils';
-import type { ServiceId } from '@/types/central-hub.types';
-import { SERVICE_INFO } from '@/types/central-hub.types';
+import type { ServiceId } from '@/types/services/central-hub.types';
+import { SERVICE_INFO } from '@/types/services/central-hub.types';
 
 // ============================================================================
 // 타입 정의

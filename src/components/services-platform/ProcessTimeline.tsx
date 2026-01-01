@@ -17,7 +17,7 @@
 
 import { Check, Clock } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import type { ProcessTimelineProps } from '@/types/services-platform';
+import type { ProcessTimelineProps } from '@/types/services/services-platform';
 
 export function ProcessTimeline({ steps }: ProcessTimelineProps) {
   if (!steps || steps.length === 0) {

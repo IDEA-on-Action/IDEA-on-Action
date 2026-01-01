@@ -39,8 +39,8 @@ import type {
   ServiceIssue,
   IssueSeverity,
   EventType,
-} from '@/types/central-hub.types';
-import { SERVICE_INFO, SEVERITY_COLORS } from '@/types/central-hub.types';
+} from '@/types/services/central-hub.types';
+import { SERVICE_INFO, SEVERITY_COLORS } from '@/types/services/central-hub.types';
 import { AlertFilterPanel } from './AlertFilterPanel';
 import { AlertDetailModal } from './AlertDetailModal';
 import { AlertSettings, type AlertSettingsData } from './AlertSettings';

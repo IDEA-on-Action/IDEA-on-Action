@@ -11,7 +11,7 @@
 
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import type { ServiceCartItem } from '@/types/services-platform'
+import type { ServiceCartItem } from '@/types/services/services-platform'
 
 interface CartStore {
   // 상태

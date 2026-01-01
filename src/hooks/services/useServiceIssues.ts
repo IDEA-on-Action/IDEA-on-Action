@@ -17,7 +17,7 @@ import type {
   ServiceId,
   IssueSeverity,
   IssueStatus,
-} from '@/types/central-hub.types';
+} from '@/types/services/central-hub.types';
 
 // ============================================================================
 // Query Keys

@@ -14,7 +14,7 @@ import type {
   ServiceHealth,
   ServiceId,
   HealthStatus,
-} from '@/types/central-hub.types';
+} from '@/types/services/central-hub.types';
 
 // ============================================================================
 // Query Keys

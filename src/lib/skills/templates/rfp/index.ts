@@ -43,7 +43,7 @@ export {
 // RFP 템플릿 레지스트리
 // ============================================================================
 
-import type { RFPCategory } from '@/types/docx.types';
+import type { RFPCategory } from '@/types/documents/docx.types';
 import { buildGovernmentRFP, governmentRFPDefaults, type GovernmentRFPData } from './government-rfp';
 import { buildStartupRFP, startupRFPDefaults, type StartupRFPData } from './startup-rfp';
 import { buildEnterpriseRFP, enterpriseRFPDefaults, type EnterpriseRFPData } from './enterprise-rfp';

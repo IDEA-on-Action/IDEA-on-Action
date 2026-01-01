@@ -27,14 +27,14 @@ interface LegacySupabaseClient {
     };
   };
 }
-import type { ServiceEvent } from '@/types/central-hub.types';
-import { SERVICE_INFO } from '@/types/central-hub.types';
-import type { DateRange, EventSheetRow } from '@/types/skills.types';
-import { EVENT_TYPE_LABELS } from '@/types/skills.types';
+import type { ServiceEvent } from '@/types/services/central-hub.types';
+import { SERVICE_INFO } from '@/types/services/central-hub.types';
+import type { DateRange, EventSheetRow } from '@/types/ai/skills.types';
+import { EVENT_TYPE_LABELS } from '@/types/ai/skills.types';
 import type {
   TrendChartData,
   DistributionChartData,
-} from '@/types/xlsx-chart.types';
+} from '@/types/documents/xlsx-chart.types';
 import {
   createTrendChart,
   createPieChart,

@@ -7,7 +7,7 @@
  * @module skills/xlsx/queries
  */
 
-import type { DateRange } from '@/types/skills.types';
+import type { DateRange } from '@/types/ai/skills.types';
 
 /**
  * @deprecated Supabase 클라이언트 타입 (레거시 호환성)

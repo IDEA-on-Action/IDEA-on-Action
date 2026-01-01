@@ -25,7 +25,7 @@ import type {
   VisionImage,
 } from '@/types/ai/vision.types'
 import { createVisionError, DEFAULT_VISION_OPTIONS } from '@/types/ai/vision.types'
-import type { ClaudeUsage } from '@/types/claude.types'
+import type { ClaudeUsage } from '@/types/ai/claude.types'
 
 // ============================================================================
 // 상수

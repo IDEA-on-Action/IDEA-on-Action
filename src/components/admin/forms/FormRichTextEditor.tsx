@@ -9,7 +9,7 @@
 import { Controller, type Control, type RegisterOptions, type FieldValues, type Path } from 'react-hook-form'
 import { RichTextEditor } from '@/components/admin/editor/RichTextEditor'
 import { Label } from '@/components/ui/label'
-import type { EditorConfig, EditorMode } from '@/types/editor.types'
+import type { EditorConfig, EditorMode } from '@/types/cms/editor.types'
 import { cn } from '@/lib/utils'
 
 /**

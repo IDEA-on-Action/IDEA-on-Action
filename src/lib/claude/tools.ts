@@ -9,7 +9,7 @@
  * @see https://docs.anthropic.com/claude/docs/tool-use
  */
 
-import type { ClaudeTool, ClaudeToolUseBlock, ClaudeToolResultBlock } from '@/types/claude.types';
+import type { ClaudeTool, ClaudeToolUseBlock, ClaudeToolResultBlock } from '@/types/ai/claude.types';
 
 // ============================================================================
 // Types

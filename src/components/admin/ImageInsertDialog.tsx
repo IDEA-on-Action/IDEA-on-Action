@@ -31,7 +31,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Toggle } from '@/components/ui/toggle'
 import { MediaLibrary } from '@/components/admin/media/MediaLibrary'
-import type { MediaItem } from '@/types/cms.types'
+import type { MediaItem } from '@/types/cms/cms.types'
 import type { ImageAlignment, CustomImageAttributes } from './extensions/ImageExtension'
 import { cn } from '@/lib/utils'
 

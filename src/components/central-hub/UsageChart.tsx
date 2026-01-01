@@ -19,7 +19,7 @@ import {
 } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useServiceEvents } from '@/hooks/useServiceEvents';
-import { SERVICE_INFO, type ServiceId } from '@/types/central-hub.types';
+import { SERVICE_INFO, type ServiceId } from '@/types/services/central-hub.types';
 import { cn } from '@/lib/utils';
 import { format, subDays, subWeeks, subMonths, startOfDay } from 'date-fns';
 import { ko } from 'date-fns/locale';

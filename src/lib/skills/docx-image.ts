@@ -13,7 +13,7 @@ import {
   AlignmentType,
   TextRun,
 } from 'docx';
-import type { AnyChartConfig } from '@/types/xlsx-chart.types';
+import type { AnyChartConfig } from '@/types/documents/xlsx-chart.types';
 import { generateChartImage } from '@/skills/xlsx/chart/chart-utils';
 
 // ============================================================================

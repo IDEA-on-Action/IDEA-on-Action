@@ -18,7 +18,7 @@ import type {
   ServiceId,
   EventType,
   IssueSeverity,
-} from '@/types/central-hub.types';
+} from '@/types/services/central-hub.types';
 import { serviceEventKeys } from '@/hooks/useServiceEvents';
 import { serviceIssueKeys } from '@/hooks/useServiceIssues';
 import type { ConnectionStatus, ConnectionState } from '@/hooks/useRealtimeServiceStatus';

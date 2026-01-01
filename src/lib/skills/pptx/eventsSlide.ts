@@ -7,7 +7,7 @@
  */
 
 import type pptxgen from 'pptxgenjs';
-import type { ServiceEvent, EventType } from '@/types/central-hub.types';
+import type { ServiceEvent, EventType } from '@/types/services/central-hub.types';
 
 // ============================================================================
 // 타입 정의

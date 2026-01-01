@@ -15,7 +15,7 @@ import type {
   SubscriptionPlan,
   ServiceCartItem,
   ServiceWithContent,
-} from '@/types/services-platform'
+} from '@/types/services/services-platform'
 
 interface AddToServiceCartButtonProps {
   /** 서비스 정보 */

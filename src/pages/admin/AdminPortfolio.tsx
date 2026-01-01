@@ -25,7 +25,7 @@ import {
 import { DataTable } from '@/components/admin/ui/DataTable';
 import { useCRUD } from '@/hooks/useCRUD';
 import { useDebounce } from '@/hooks/useDebounce';
-import type { CMSPortfolioItem, PortfolioStatus } from '@/types/cms.types';
+import type { CMSPortfolioItem, PortfolioStatus } from '@/types/cms/cms.types';
 import { formatRelativeTime, truncateText } from '@/lib/cms-utils';
 import { ColumnDef } from '@tanstack/react-table';
 import { toast } from 'sonner';
@@ -80,7 +80,7 @@ import { useToast } from '@/hooks/useToast'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import type { PortfolioItem } from '@/types/cms.types'
+import type { PortfolioItem } from '@/types/cms/cms.types'
 import { FormSection } from '@/components/admin/FormSection'
 import { FormRichTextEditor } from '@/components/admin/forms/FormRichTextEditor'
 

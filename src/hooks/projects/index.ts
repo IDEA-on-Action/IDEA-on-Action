@@ -4,10 +4,10 @@
  * @description 프로젝트, 로드맵, 바운티, 제안 관련 훅
  */
 
-export * from '@/hooks/useBounties';
+export * from './useBounties';
 export * from './useProjects';
-export * from '@/hooks/useProjectTypes';
-export * from '@/hooks/useProposals';
-export * from '@/hooks/useRoadmap';
-export * from '@/hooks/useRoadmapItems';
+export * from './useProjectTypes';
+export * from './useProposals';
+export * from './useRoadmap';
+export * from './useRoadmapItems';
 export * from './useWorkInquiries';

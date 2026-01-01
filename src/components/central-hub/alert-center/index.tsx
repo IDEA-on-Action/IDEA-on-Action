@@ -39,8 +39,8 @@ import { cn } from '@/lib/utils';
 import type {
   IssueSeverity,
   ServiceId,
-} from '@/types/central-hub.types';
-import { SERVICE_INFO } from '@/types/central-hub.types';
+} from '@/types/services/central-hub.types';
+import { SERVICE_INFO } from '@/types/services/central-hub.types';
 import { AlertFilterPanel } from '../AlertFilterPanel';
 import { AlertDetailModal } from '../AlertDetailModal';
 import { AlertSettings, type AlertSettingsData } from '../AlertSettings';

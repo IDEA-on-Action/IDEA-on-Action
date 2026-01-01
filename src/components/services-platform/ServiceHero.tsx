@@ -10,7 +10,7 @@
 
 import { Badge } from '@/components/ui/badge';
 import { MarkdownRenderer } from '@/components/blog/MarkdownRenderer';
-import type { ServiceHeroProps } from '@/types/services-platform';
+import type { ServiceHeroProps } from '@/types/services/services-platform';
 
 /**
  * Hero section for service detail pages

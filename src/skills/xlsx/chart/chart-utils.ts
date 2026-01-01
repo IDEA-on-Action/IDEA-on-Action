@@ -21,13 +21,13 @@ import type {
   TrendChartData,
   DistributionChartData,
   ChartGenerationError,
-} from '@/types/xlsx-chart.types';
+} from '@/types/documents/xlsx-chart.types';
 import {
   CHART_COLORS,
   DEFAULT_CHART_COLORS,
   DEFAULT_FONT_CONFIG,
   DEFAULT_MARGINS,
-} from '@/types/xlsx-chart.types';
+} from '@/types/documents/xlsx-chart.types';
 
 // ============================================================================
 // 차트 이미지 생성

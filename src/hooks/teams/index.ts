@@ -5,5 +5,5 @@
  */
 
 export * from './useTeamMembers';
-export * from '@/hooks/useTeamMembership';
-export * from '@/hooks/useTeams';
+export * from './useTeamMembership';
+export * from './useTeams';

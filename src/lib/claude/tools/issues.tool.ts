@@ -8,7 +8,7 @@
 
 import type { ToolHandler } from '../tools';
 import { serviceIssuesApi } from '@/integrations/cloudflare/client';
-import type { ServiceId, IssueStatus } from '@/types/central-hub.types';
+import type { ServiceId, IssueStatus } from '@/types/services/central-hub.types';
 
 // ============================================================================
 // Types

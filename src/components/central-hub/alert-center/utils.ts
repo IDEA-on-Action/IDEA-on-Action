@@ -18,7 +18,7 @@ import type {
   IssueSeverity,
   EventType,
   ServiceId,
-} from '@/types/central-hub.types';
+} from '@/types/services/central-hub.types';
 import type { StreamItem } from '@/hooks/useRealtimeEventStream';
 import { getEventFromStreamItem, getIssueFromStreamItem } from '@/hooks/useRealtimeEventStream';
 import type { DateGroup } from './types';

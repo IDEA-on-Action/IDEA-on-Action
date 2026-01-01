@@ -45,8 +45,8 @@ import {
   Eye,
 } from 'lucide-react';
 import { useDocxGenerate } from '@/hooks/useDocxGenerate';
-import type { RFPCategory, TemplateData } from '@/types/docx.types';
-import { RFP_CATEGORY_LABELS } from '@/types/docx.types';
+import type { RFPCategory, TemplateData } from '@/types/documents/docx.types';
+import { RFP_CATEGORY_LABELS } from '@/types/documents/docx.types';
 
 // ============================================================================
 // 타입 정의

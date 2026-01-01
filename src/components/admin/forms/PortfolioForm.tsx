@@ -40,7 +40,7 @@ import {
 } from '@/components/ui/accordion';
 
 // Types
-import { PortfolioItem } from '@/types/cms.types';
+import { PortfolioItem } from '@/types/cms/cms.types';
 import { generateSlug } from '@/lib/cms-utils';
 
 // =====================================================

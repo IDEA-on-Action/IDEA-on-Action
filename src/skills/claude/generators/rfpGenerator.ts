@@ -19,7 +19,7 @@ import type {
   BudgetItem,
   RiskItem,
   TeamMember,
-} from '@/types/docx.types';
+} from '@/types/documents/docx.types';
 
 // ============================================================================
 // 타입 정의

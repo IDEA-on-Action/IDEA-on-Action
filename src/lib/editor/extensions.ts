@@ -11,7 +11,7 @@ import Image from '@tiptap/extension-image'
 import Placeholder from '@tiptap/extension-placeholder'
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight'
 import { common, createLowlight } from 'lowlight'
-import type { EditorConfig } from '@/types/editor.types'
+import type { EditorConfig } from '@/types/cms/editor.types'
 
 // Create lowlight instance with common languages
 const lowlight = createLowlight(common)

@@ -21,7 +21,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { mediaApi } from '@/integrations/cloudflare/client';
 import { useAuth } from '@/hooks/auth/useAuth';
 import { toast } from 'sonner';
-import type { MediaItem, MediaItemUpdate, MediaSearchParams } from '@/types/cms.types';
+import type { MediaItem, MediaItemUpdate, MediaSearchParams } from '@/types/cms/cms.types';
 
 // =====================================================
 // Constants

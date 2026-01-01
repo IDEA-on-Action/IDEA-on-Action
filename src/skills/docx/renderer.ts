@@ -13,7 +13,7 @@ import type {
   ValidationError,
 } from './types';
 import { TemplateEngine, generateFileName } from '@/lib/skills/template-engine';
-import type { TemplateData, DocumentMetadata } from '@/types/docx.types';
+import type { TemplateData, DocumentMetadata } from '@/types/documents/docx.types';
 
 // ============================================================================
 // 템플릿 레지스트리

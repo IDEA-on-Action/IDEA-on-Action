@@ -8,7 +8,7 @@
  */
 
 import { Paragraph, Table, HeadingLevel, AlignmentType } from 'docx';
-import type { TemplateData, TimelineItem } from '@/types/docx.types';
+import type { TemplateData, TimelineItem } from '@/types/documents/docx.types';
 import { TemplateEngine } from '../../docx/template-engine';
 
 // ============================================================================

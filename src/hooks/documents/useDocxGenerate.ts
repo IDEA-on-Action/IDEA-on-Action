@@ -22,8 +22,8 @@ import type {
   DocumentMetadata,
   RFPCategory,
   ReportCategory,
-} from '@/types/docx.types';
-import type { SkillError } from '@/types/skills.types';
+} from '@/types/documents/docx.types';
+import type { SkillError } from '@/types/ai/skills.types';
 import {
   TemplateEngine,
   downloadBlob,

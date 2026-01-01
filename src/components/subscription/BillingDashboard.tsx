@@ -52,8 +52,8 @@ import {
   PAYMENT_STATUS_KR,
   PAYMENT_STATUS_VARIANT,
   BILLING_CYCLE_KR,
-} from '@/types/subscription.types';
-import type { SubscriptionWithPlan } from '@/types/subscription.types';
+} from '@/types/subscription/subscription.types';
+import type { SubscriptionWithPlan } from '@/types/subscription/subscription.types';
 
 /**
  * 사용량 카드 컴포넌트

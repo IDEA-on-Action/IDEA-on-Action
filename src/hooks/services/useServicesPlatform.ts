@@ -21,7 +21,7 @@ import type {
   SubscriptionPlanUpdate,
   ServiceWithContent,
   ServiceDetail,
-} from '@/types/services-platform';
+} from '@/types/services/services-platform';
 
 // ============================================================================
 // Query Keys

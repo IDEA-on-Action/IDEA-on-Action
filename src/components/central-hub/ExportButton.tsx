@@ -19,7 +19,7 @@ import {
 import { Download, FileSpreadsheet, Presentation, Loader2, ChevronDown } from 'lucide-react';
 import { useXlsxExport } from '@/skills/xlsx/useXlsxExport';
 import { usePptxGenerate } from '@/hooks/usePptxGenerate';
-import type { UseXlsxExportOptions } from '@/types/skills.types';
+import type { UseXlsxExportOptions } from '@/types/ai/skills.types';
 import type { PptxGenerateOptions } from '@/types/documents/pptx.types';
 
 interface ExportButtonProps {

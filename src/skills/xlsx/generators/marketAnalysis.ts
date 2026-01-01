@@ -6,7 +6,7 @@
  * @module skills/xlsx/generators/marketAnalysis
  */
 
-import type { SheetConfig, ColumnConfig } from '@/types/skills.types';
+import type { SheetConfig, ColumnConfig } from '@/types/ai/skills.types';
 
 // ============================================================================
 // 타입 정의

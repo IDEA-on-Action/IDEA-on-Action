@@ -14,8 +14,8 @@ import type {
   EditorContent,
   UseRichTextEditorOptions,
   UseRichTextEditorReturn,
-} from '@/types/editor.types'
-import { DEFAULT_EDITOR_CONFIG } from '@/types/editor.types'
+} from '@/types/cms/editor.types'
+import { DEFAULT_EDITOR_CONFIG } from '@/types/cms/editor.types'
 
 /**
  * Custom hook for Rich Text Editor

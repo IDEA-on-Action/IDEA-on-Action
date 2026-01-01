@@ -41,7 +41,7 @@ import {
 } from '@/components/ui/accordion';
 
 // Types
-import type { CMSRoadmapItem, RoadmapMilestone, RoadmapKPI } from '@/types/cms.types';
+import type { CMSRoadmapItem, RoadmapMilestone, RoadmapKPI } from '@/types/cms/cms.types';
 
 // =====================================================
 // ZOD SCHEMA

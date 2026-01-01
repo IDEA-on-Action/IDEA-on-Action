@@ -34,7 +34,7 @@ import {
 } from '@/components/ui/accordion';
 
 // Types
-import type { BlogCategory } from '@/types/cms.types';
+import type { BlogCategory } from '@/types/cms/cms.types';
 import { generateSlug } from '@/lib/cms-utils';
 
 // =====================================================

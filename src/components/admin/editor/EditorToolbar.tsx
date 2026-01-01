@@ -51,8 +51,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import type { EditorToolbarProps } from '@/types/editor.types'
-import { SUPPORTED_LANGUAGES } from '@/types/editor.types'
+import type { EditorToolbarProps } from '@/types/cms/editor.types'
+import { SUPPORTED_LANGUAGES } from '@/types/cms/editor.types'
 import { cn } from '@/lib/utils'
 
 interface ToolbarButtonProps {

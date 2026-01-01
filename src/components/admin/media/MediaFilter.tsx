@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { DateRangePicker } from '@/components/admin/ui/DateRangePicker';
-import type { MediaSearchParams } from '@/types/cms.types';
+import type { MediaSearchParams } from '@/types/cms/cms.types';
 
 // =====================================================
 // Types

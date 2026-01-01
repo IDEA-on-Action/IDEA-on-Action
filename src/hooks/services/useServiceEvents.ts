@@ -15,7 +15,7 @@ import type {
   ServiceEventFilter,
   ServiceId,
   EventType,
-} from '@/types/central-hub.types';
+} from '@/types/services/central-hub.types';
 
 // ============================================================================
 // Query Keys

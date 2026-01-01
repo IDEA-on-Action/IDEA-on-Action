@@ -23,7 +23,7 @@ import {
   formatLastPing,
 } from '@/hooks/useServiceHealth';
 import { serviceHealthApi } from '@/integrations/cloudflare/client';
-import type { ServiceHealth } from '@/types/central-hub.types';
+import type { ServiceHealth } from '@/types/services/central-hub.types';
 import React from 'react';
 
 // Mock Workers API

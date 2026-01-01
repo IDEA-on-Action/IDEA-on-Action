@@ -13,7 +13,7 @@ import { toast } from 'sonner';
 import type {
   CancelSubscriptionRequest,
   UpgradeSubscriptionRequest,
-} from '@/types/subscription.types';
+} from '@/types/subscription/subscription.types';
 
 /**
  * 결제 포털 훅 반환 타입

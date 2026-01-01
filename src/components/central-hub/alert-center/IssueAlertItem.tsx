@@ -8,8 +8,8 @@ import { Eye } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
-import type { ServiceIssue } from '@/types/central-hub.types';
-import { SERVICE_INFO } from '@/types/central-hub.types';
+import type { ServiceIssue } from '@/types/services/central-hub.types';
+import { SERVICE_INFO } from '@/types/services/central-hub.types';
 import type { StreamItem } from '@/hooks/useRealtimeEventStream';
 import { getSeverityIcon, getSeverityBadgeClass, getSeverityLabel, formatRelativeTime } from './utils';
 

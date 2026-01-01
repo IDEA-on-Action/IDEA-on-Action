@@ -8,7 +8,7 @@
 
 import { useState, useCallback } from 'react';
 import { useAuth } from '@/hooks/auth/useAuth';
-import type { SkillError } from '@/types/skills.types';
+import type { SkillError } from '@/types/ai/skills.types';
 
 // ============================================================================
 // 타입 정의

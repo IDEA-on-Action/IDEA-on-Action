@@ -18,7 +18,7 @@ import { useState, useMemo } from 'react';
 import { Plus, RefreshCw, Search } from 'lucide-react';
 import { DataTable } from '@/components/admin/ui/DataTable';
 import { useCRUD } from '@/hooks/useCRUD';
-import type { CMSTag, TagCategory } from '@/types/cms.types';
+import type { CMSTag, TagCategory } from '@/types/cms/cms.types';
 import { formatRelativeTime } from '@/lib/cms-utils';
 import { ColumnDef } from '@tanstack/react-table';
 import { toast } from 'sonner';

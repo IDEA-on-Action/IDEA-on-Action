@@ -17,7 +17,7 @@ import {
   SubscriptionWithPlan,
   CancelSubscriptionRequest,
   UpgradeSubscriptionRequest
-} from '@/types/subscription.types'
+} from '@/types/subscription/subscription.types'
 import { toast } from 'sonner'
 
 export const subscriptionKeys = {

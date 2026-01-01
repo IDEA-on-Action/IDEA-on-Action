@@ -25,7 +25,7 @@ import {
     PAYMENT_STATUS_KR,
     PAYMENT_STATUS_VARIANT,
     SubscriptionWithPlan
-} from '@/types/subscription.types'
+} from '@/types/subscription/subscription.types'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'

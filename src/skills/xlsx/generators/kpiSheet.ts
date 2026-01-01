@@ -9,7 +9,7 @@ import type {
   IssueSheetRow,
   KPISheetRow,
   ColumnConfig,
-} from '@/types/skills.types';
+} from '@/types/ai/skills.types';
 
 /**
  * KPI 시트 컬럼 설정

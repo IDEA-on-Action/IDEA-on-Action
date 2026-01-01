@@ -38,8 +38,8 @@ import type {
   PromptTemplate,
   SkillCacheEntry,
 } from '@/types/ai/claude-skills.types';
-import type { ClaudeUsage } from '@/types/claude.types';
-import { DEFAULT_CLAUDE_MODEL, DEFAULT_MAX_TOKENS } from '@/types/claude.types';
+import type { ClaudeUsage } from '@/types/ai/claude.types';
+import { DEFAULT_CLAUDE_MODEL, DEFAULT_MAX_TOKENS } from '@/types/ai/claude.types';
 
 // ============================================================================
 // 상수

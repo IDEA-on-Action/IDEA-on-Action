@@ -44,7 +44,7 @@ import type {
   ServiceIssue,
   IssueStatus,
   IssueSeverity,
-} from '@/types/central-hub.types';
+} from '@/types/services/central-hub.types';
 import { cn } from '@/lib/utils';
 
 // ============================================================================

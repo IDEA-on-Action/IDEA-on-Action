@@ -25,7 +25,7 @@ import {
   serviceIssueKeys,
 } from '@/hooks/useServiceIssues';
 import { serviceIssuesApi } from '@/integrations/cloudflare/client';
-import type { ServiceIssue, ServiceIssueFilter } from '@/types/central-hub.types';
+import type { ServiceIssue, ServiceIssueFilter } from '@/types/services/central-hub.types';
 import React, { type ReactNode } from 'react';
 
 // Mock Workers API client

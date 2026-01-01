@@ -6,5 +6,5 @@
 
 export * from './useAnalyticsEvents';
 export * from './useAuditLogs';
-export * from '@/hooks/useD1Monitoring';
-export * from '@/hooks/useLogs';
+export * from './useD1Monitoring';
+export * from './useLogs';

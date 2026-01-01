@@ -61,7 +61,7 @@ import {
   type ClaudeUsage,
   CLAUDE_MODEL_INFO,
   calculateCost,
-} from "@/types/claude.types";
+} from "@/types/ai/claude.types";
 
 // ============================================================================
 // Types

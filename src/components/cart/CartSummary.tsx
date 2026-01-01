@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button'
 import { useClearCart } from '@/hooks/payments/useCart'
 import { useCartStore } from '@/stores/cartStore'
 import type { CartWithItems } from '@/types/shared/database'
-import type { ServiceCartItem } from '@/types/services-platform'
+import type { ServiceCartItem } from '@/types/services/services-platform'
 
 interface CartSummaryProps {
   cart: CartWithItems | null | undefined

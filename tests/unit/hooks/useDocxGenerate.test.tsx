@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useDocxGenerate, useRFPGenerate, useReportGenerate } from '@/hooks/useDocxGenerate';
-import type { DocxGenerateOptions } from '@/types/docx.types';
+import type { DocxGenerateOptions } from '@/types/documents/docx.types';
 
 // Mock dependencies
 vi.mock('docx', () => ({

@@ -19,7 +19,7 @@ import {
   serviceEventKeys,
 } from '@/hooks/useServiceEvents';
 import { serviceEventsApi } from '@/integrations/cloudflare/client';
-import type { ServiceEvent, ServiceEventFilter } from '@/types/central-hub.types';
+import type { ServiceEvent, ServiceEventFilter } from '@/types/services/central-hub.types';
 import React from 'react';
 
 // Mock Workers API

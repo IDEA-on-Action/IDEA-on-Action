@@ -12,7 +12,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion"
 import { MarkdownRenderer } from "@/components/blog/MarkdownRenderer"
-import type { FAQ } from "@/types/services-platform"
+import type { FAQ } from "@/types/services/services-platform"
 
 interface FAQSectionProps {
   faqs: FAQ[]

@@ -19,7 +19,7 @@ export type {
   EditorToolbarProps,
   EditorMenuBarProps,
   MarkdownToggleProps,
-} from '@/types/editor.types'
+} from '@/types/cms/editor.types'
 
 // Re-export hook
 export { useRichTextEditor } from '@/hooks/useRichTextEditor'

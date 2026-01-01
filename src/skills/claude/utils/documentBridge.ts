@@ -17,8 +17,8 @@ import type {
   BudgetItem,
   RiskItem,
   TeamMember,
-} from '@/types/docx.types';
-import type { SheetConfig, ColumnConfig } from '@/types/skills.types';
+} from '@/types/documents/docx.types';
+import type { SheetConfig, ColumnConfig } from '@/types/ai/skills.types';
 import type {
   MarketAnalysisData,
   CompetitorData,

@@ -7,7 +7,7 @@
  */
 
 import { Paragraph, Table, HeadingLevel, AlignmentType } from 'docx';
-import type { TemplateData, BudgetItem, TimelineItem, RiskItem } from '@/types/docx.types';
+import type { TemplateData, BudgetItem, TimelineItem, RiskItem } from '@/types/documents/docx.types';
 import { TemplateEngine } from '../../docx/template-engine';
 
 // ============================================================================

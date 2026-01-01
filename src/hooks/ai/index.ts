@@ -4,15 +4,15 @@
  * @description Claude AI, RAG, 대화 관리 관련 훅
  */
 
-export * from '@/hooks/useChat';
-export * from '@/hooks/useClaudeChat';
-export * from '@/hooks/useClaudeChatWithRAG';
-export * from '@/hooks/useClaudeSkill';
-export * from '@/hooks/useClaudeStreaming';
-export * from '@/hooks/useClaudeTools';
-export * from '@/hooks/useClaudeVision';
-export * from '@/hooks/useConversationManager';
-export * from '@/hooks/usePromptTemplates';
-export * from '@/hooks/useRAGDocuments';
-export * from '@/hooks/useRAGHybridSearch';
-export * from '@/hooks/useRAGSearch';
+export * from './useChat';
+export * from './useClaudeChat';
+export * from './useClaudeChatWithRAG';
+export * from './useClaudeSkill';
+export * from './useClaudeStreaming';
+export * from './useClaudeTools';
+export * from './useClaudeVision';
+export * from './useConversationManager';
+export * from './usePromptTemplates';
+export * from './useRAGDocuments';
+export * from './useRAGHybridSearch';
+export * from './useRAGSearch';

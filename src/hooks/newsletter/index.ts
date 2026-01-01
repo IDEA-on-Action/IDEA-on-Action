@@ -4,7 +4,7 @@
  * @description 뉴스레터 구독, 관리, 아카이브 관련 훅
  */
 
-export * from '@/hooks/useNewsletter';
-export * from '@/hooks/useNewsletterAdmin';
-export * from '@/hooks/useNewsletterArchive';
-export * from '@/hooks/useNewsletterDrafts';
+export * from './useNewsletter';
+export * from './useNewsletterAdmin';
+export * from './useNewsletterArchive';
+export * from './useNewsletterDrafts';

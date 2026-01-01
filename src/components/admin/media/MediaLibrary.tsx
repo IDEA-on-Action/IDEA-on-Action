@@ -32,7 +32,7 @@ import { MediaGrid } from './MediaGrid';
 import { MediaModal } from './MediaModal';
 import { MediaFilter } from './MediaFilter';
 import { toast } from 'sonner';
-import type { MediaItem, MediaSearchParams } from '@/types/cms.types';
+import type { MediaItem, MediaSearchParams } from '@/types/cms/cms.types';
 
 // =====================================================
 // Types

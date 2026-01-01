@@ -14,7 +14,7 @@ import { permissionsApi, adminsApi } from '@/integrations/cloudflare/client'
 import { useAuth } from '@/hooks/auth/useAuth'
 import { PermissionContext } from '@/contexts/permissionContextValue'
 import type { Permission } from '@/types/auth/rbac'
-import type { AdminRole } from '@/types/cms.types'
+import type { AdminRole } from '@/types/cms/cms.types'
 import type { PermissionContext as PermissionContextType } from '@/types/auth/permission.types'
 
 /**

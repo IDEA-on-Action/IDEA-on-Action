@@ -11,7 +11,7 @@
 
 import { useMutation } from '@tanstack/react-query';
 import { toolRegistry } from '@/lib/claude/tools';
-import type { ClaudeTool, ClaudeToolUseBlock, ClaudeToolResultBlock } from '@/types/claude.types';
+import type { ClaudeTool, ClaudeToolUseBlock, ClaudeToolResultBlock } from '@/types/ai/claude.types';
 import { useAuth } from '@/hooks/auth/useAuth';
 
 // ============================================================================

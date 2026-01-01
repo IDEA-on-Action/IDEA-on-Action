@@ -40,8 +40,8 @@ import type {
   IssueSeverity,
   EventType,
   IssueStatus,
-} from '@/types/central-hub.types';
-import { SERVICE_INFO } from '@/types/central-hub.types';
+} from '@/types/services/central-hub.types';
+import { SERVICE_INFO } from '@/types/services/central-hub.types';
 import type { StreamItem } from '@/hooks/useRealtimeEventStream';
 import {
   getEventFromStreamItem,

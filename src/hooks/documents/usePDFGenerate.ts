@@ -21,7 +21,7 @@ import type {
   PDFMergeInput,
   WatermarkOptions,
 } from '@/types/documents/pdf.types';
-import type { SkillError } from '@/types/skills.types';
+import type { SkillError } from '@/types/ai/skills.types';
 import {
   generatePDFFromHTML,
   generatePDFFromDocx,

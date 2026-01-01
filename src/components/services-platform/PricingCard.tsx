@@ -14,8 +14,8 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/componen
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import type { PricingCardProps } from '@/types/services-platform';
-import { isSubscriptionPlan } from '@/types/services-platform';
+import type { PricingCardProps } from '@/types/services/services-platform';
+import { isSubscriptionPlan } from '@/types/services/services-platform';
 
 /**
  * Format price to Korean Won with thousands separator

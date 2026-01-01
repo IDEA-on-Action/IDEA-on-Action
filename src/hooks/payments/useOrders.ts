@@ -11,7 +11,7 @@ import { ordersApi, cartApi } from '@/integrations/cloudflare/client'
 import { useAuth } from '@/hooks/auth/useAuth'
 import { toast } from 'sonner'
 import type { OrderWithItems, ShippingAddress } from '@/types/shared/database'
-import type { ServiceCartItem } from '@/types/services-platform'
+import type { ServiceCartItem } from '@/types/services/services-platform'
 import { devError } from '@/lib/errors'
 import { createQueryKeys, commonQueryOptions, createUserQueryKey } from '@/lib/react-query'
 

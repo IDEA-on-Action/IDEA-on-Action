@@ -42,7 +42,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton'
 import { toast } from 'sonner'
 import { formatRelativeTime } from '@/lib/cms-utils'
-import type { BlogCategory } from '@/types/cms.types'
+import type { BlogCategory } from '@/types/cms/cms.types'
 
 // =====================================================
 // COMPONENT

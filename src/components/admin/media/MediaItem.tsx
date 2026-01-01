@@ -19,7 +19,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { formatFileSize, formatRelativeTime } from '@/lib/cms-utils';
-import type { MediaItem as MediaItemType } from '@/types/cms.types';
+import type { MediaItem as MediaItemType } from '@/types/cms/cms.types';
 import { getMediaPublicUrl } from '@/lib/media-utils';
 
 // =====================================================

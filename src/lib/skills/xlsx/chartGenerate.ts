@@ -13,8 +13,8 @@ import type {
   BarChartOptions,
   LineChartOptions,
   PieChartOptions,
-} from '@/types/xlsx-chart.types';
-import { DEFAULT_CHART_COLORS } from '@/types/xlsx-chart.types';
+} from '@/types/documents/xlsx-chart.types';
+import { DEFAULT_CHART_COLORS } from '@/types/documents/xlsx-chart.types';
 
 // ============================================================================
 // 차트 생성 헬퍼 함수

@@ -13,7 +13,7 @@ import { useA2UI } from '@/hooks/useA2UI';
 import { useAuth } from '@/hooks/auth/useAuth';
 import { usePageContext } from '@/hooks/usePageContext';
 import type { AIChatMessage, AIChatConfig, AIChatA2UIBlock } from '@/types/ai/ai-chat-widget.types';
-import type { ClaudeToolUseBlock, ClaudeToolResultBlock } from '@/types/claude.types';
+import type { ClaudeToolUseBlock, ClaudeToolResultBlock } from '@/types/ai/claude.types';
 import type { A2UIUserAction } from '@/lib/a2ui/types';
 import type { RenderUIToolResult } from '@/lib/claude/tools/render-ui.tool';
 

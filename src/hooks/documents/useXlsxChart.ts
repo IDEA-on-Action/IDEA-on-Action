@@ -12,7 +12,7 @@ import type {
   ChartGeneratorOptions,
   RenderedChart,
   ChartGenerationError,
-} from '@/types/xlsx-chart.types';
+} from '@/types/documents/xlsx-chart.types';
 import { generateChartImage } from '@/skills/xlsx/chart/chart-utils';
 
 /**

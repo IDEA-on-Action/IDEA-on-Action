@@ -26,7 +26,7 @@ import {
   DEFAULT_TIMEOUT,
   SSE_DATA_PREFIX,
   SSE_DELIMITER,
-} from '@/types/claude.types';
+} from '@/types/ai/claude.types';
 import type {
   ClaudeMessage,
   ClaudeStreamEvent,
@@ -44,7 +44,7 @@ import type {
   ClaudeToolResultBlock,
   ClaudeInputJsonDelta,
   ClaudeStopReason,
-} from '@/types/claude.types';
+} from '@/types/ai/claude.types';
 
 // ============================================================================
 // Constants

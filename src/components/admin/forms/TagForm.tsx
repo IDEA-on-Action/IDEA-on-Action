@@ -42,7 +42,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 
 // Types
-import type { CMSTag, TagCategory } from '@/types/cms.types';
+import type { CMSTag, TagCategory } from '@/types/cms/cms.types';
 import { generateSlug } from '@/lib/cms-utils';
 
 // =====================================================

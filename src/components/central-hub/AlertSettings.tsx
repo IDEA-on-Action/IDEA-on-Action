@@ -28,8 +28,8 @@ import { cn } from '@/lib/utils';
 import type {
   ServiceId,
   IssueSeverity,
-} from '@/types/central-hub.types';
-import { SERVICE_INFO } from '@/types/central-hub.types';
+} from '@/types/services/central-hub.types';
+import { SERVICE_INFO } from '@/types/services/central-hub.types';
 import {
   Card,
   CardContent,

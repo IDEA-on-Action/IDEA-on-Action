@@ -34,7 +34,7 @@ import type {
   ServiceId,
   EventType,
   ServiceEvent,
-} from '@/types/central-hub.types';
+} from '@/types/services/central-hub.types';
 
 // ============================================================================
 // 타입 정의

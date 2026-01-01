@@ -7,7 +7,7 @@
  */
 
 import type pptxgen from 'pptxgenjs';
-import type { HealthStatus } from '@/types/central-hub.types';
+import type { HealthStatus } from '@/types/services/central-hub.types';
 
 // ============================================================================
 // 타입 정의

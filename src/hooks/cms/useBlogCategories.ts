@@ -5,7 +5,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { blogApi, callWorkersApi } from '@/integrations/cloudflare/client';
 import { useAuth } from '@/hooks/auth/useAuth';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import type { BlogCategory, BlogCategoryInsert, BlogCategoryUpdate } from '@/types/cms.types';
+import type { BlogCategory, BlogCategoryInsert, BlogCategoryUpdate } from '@/types/cms/cms.types';
 
 /**
  * Hook to fetch all blog categories (sorted by name)

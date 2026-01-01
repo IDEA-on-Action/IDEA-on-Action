@@ -15,8 +15,8 @@ import type {
   DocxExportConfig,
   DocxSection,
   DocxContent,
-} from '@/types/docx.types';
-import type { SkillError } from '@/types/skills.types';
+} from '@/types/documents/docx.types';
+import type { SkillError } from '@/types/ai/skills.types';
 import { fetchEvents } from '../xlsx/generators/eventsSheet';
 import { fetchIssues } from '../xlsx/generators/issuesSheet';
 import { fetchHealth } from '../xlsx/generators/healthSheet';

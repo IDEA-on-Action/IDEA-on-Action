@@ -19,8 +19,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ServiceHealthCard } from '@/components/admin/ServiceHealthCard';
 import { cn } from '@/lib/utils';
-import type { ServiceId, ServiceHealth, HealthStatus } from '@/types/central-hub.types';
-import { SERVICE_INFO } from '@/types/central-hub.types';
+import type { ServiceId, ServiceHealth, HealthStatus } from '@/types/services/central-hub.types';
+import { SERVICE_INFO } from '@/types/services/central-hub.types';
 
 // ============================================================================
 // 타입 정의
