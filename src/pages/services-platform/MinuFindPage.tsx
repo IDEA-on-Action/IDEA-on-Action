@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { minuFindService } from "@/data/services/minu-find";
 import { CheckCircle2 } from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/hooks/auth/useAuth";
 import { useMCPServicePermission } from "@/hooks/useMCPPermission";
 import { cn } from "@/lib/utils";
 import type { MonthlyPlan } from "@/types/services";

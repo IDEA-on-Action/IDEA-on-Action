@@ -45,7 +45,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/hooks/auth/useAuth';
 import { usePromptTemplates } from '@/hooks/usePromptTemplates';
 
 // 타입이 아직 생성되지 않았으므로 임포트 경로만 설정

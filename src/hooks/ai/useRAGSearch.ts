@@ -10,7 +10,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { ragApi } from '@/integrations/cloudflare/client';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/hooks/auth/useAuth';
 import { hybridSearch } from '@/lib/rag/hybrid-search';
 import { rankResults } from '@/lib/rag/ranking';
 

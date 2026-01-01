@@ -15,7 +15,7 @@
 import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { callWorkersApi } from '@/integrations/cloudflare/client';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/hooks/auth/useAuth';
 import { toast } from 'sonner';
 import { useDebounce } from '@/hooks/useDebounce';
 import type {

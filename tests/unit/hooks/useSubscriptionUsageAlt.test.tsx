@@ -28,7 +28,7 @@ vi.mock('@/hooks/useAuth', () => ({
   useAuth: vi.fn(),
 }));
 
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/hooks/auth/useAuth';
 
 describe('useSubscriptionUsage (subscription/) - 확장 테스트', () => {
   let queryClient: QueryClient;

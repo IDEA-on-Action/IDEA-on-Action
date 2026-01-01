@@ -10,7 +10,7 @@
 
 import { useQuery } from '@tanstack/react-query'
 import { callWorkersApi } from '@/integrations/cloudflare/client'
-import { useAuth } from './useAuth'
+import { useAuth } from './auth/useAuth'
 import { devLog } from '@/lib/errors'
 
 // Types

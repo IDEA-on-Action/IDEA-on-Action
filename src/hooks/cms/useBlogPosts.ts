@@ -9,7 +9,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { blogApi, callWorkersApi } from '@/integrations/cloudflare/client'
-import { useAuth } from '@/hooks/useAuth'
+import { useAuth } from '@/hooks/auth/useAuth'
 import type {
   BlogPost,
   BlogPostWithRelations,

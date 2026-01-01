@@ -3,7 +3,7 @@
  */
 import { useQueryClient } from '@tanstack/react-query';
 import { callWorkersApi } from '@/integrations/cloudflare/client';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/hooks/auth/useAuth';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import type { LabItem, LabItemInsert, LabItemUpdate, LabCategory, LabStatus } from '@/types/cms.types';
 

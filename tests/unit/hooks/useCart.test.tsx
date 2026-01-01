@@ -40,7 +40,7 @@ vi.mock('@/lib/errors', () => ({
   devError: vi.fn(),
 }));
 
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/hooks/auth/useAuth';
 
 describe('useCart', () => {
   let queryClient: QueryClient;

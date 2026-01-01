@@ -45,7 +45,7 @@ vi.mock('@/lib/errors', () => ({
 
 import { useKakaoPay } from '@/hooks/payments/useKakaoPay';
 import { useTossPay } from '@/hooks/payments/useTossPay';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/hooks/auth/useAuth';
 import { devError } from '@/lib/errors';
 
 describe('usePayment - 확장 테스트', () => {

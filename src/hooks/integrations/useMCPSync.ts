@@ -13,7 +13,7 @@
 import { useEffect, useCallback, useMemo, useState, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { realtimeApi, callWorkersApi } from '@/integrations/cloudflare/client';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/hooks/auth/useAuth';
 import type { ServiceId, HealthStatus, ServiceHealth } from '@/types/central-hub.types';
 import type {
   MCPServiceState,

@@ -35,7 +35,7 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { cartApi } from '@/integrations/cloudflare/client'
-import { useAuth } from '@/hooks/useAuth'
+import { useAuth } from '@/hooks/auth/useAuth'
 import { toast } from 'sonner'
 import type { CartWithItems } from '@/types/shared/database'
 import { devError } from '@/lib/errors'

@@ -8,7 +8,7 @@
  */
 
 import { Helmet } from 'react-helmet-async'
-import { useAuth } from '@/hooks/useAuth'
+import { useAuth } from '@/hooks/auth/useAuth'
 import { useProfile, useUpdateProfile, useUploadAvatar, useConnectedAccounts, useDisconnectAccount } from '@/hooks/useProfile'
 import { use2FASettings, useDisable2FA, useRegenerateBackupCodes } from '@/hooks/auth/use2FA'
 

@@ -31,7 +31,7 @@ import {
   Map,
   Info,
 } from 'lucide-react'
-import { useAuth } from '@/hooks/useAuth'
+import { useAuth } from '@/hooks/auth/useAuth'
 import { useTheme } from 'next-themes'
 
 export function CommandPalette() {

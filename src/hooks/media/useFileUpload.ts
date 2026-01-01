@@ -25,7 +25,7 @@
 
 import { useState, useCallback } from 'react';
 import { storageApi } from '@/integrations/cloudflare/client';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/hooks/auth/useAuth';
 import { toast } from 'sonner';
 
 /** Generate a simple UUID v4 */

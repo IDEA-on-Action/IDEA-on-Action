@@ -4,7 +4,7 @@ import { renderHook, act, waitFor } from '@testing-library/react';
 import { useKakaoPay } from '@/hooks/payments/useKakaoPay';
 import { callWorkersApi } from '@/integrations/cloudflare/client';
 import * as kakaoPayLib from '@/lib/payments/kakao-pay';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/hooks/auth/useAuth';
 import React, { type ReactNode } from 'react';
 
 // Mock Workers API client

@@ -12,7 +12,7 @@ import Footer from '@/components/Footer'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { CheckCircle2, ArrowRight, Calendar, Loader2, AlertCircle } from 'lucide-react'
-import { useAuth } from '@/hooks/useAuth'
+import { useAuth } from '@/hooks/auth/useAuth'
 import { subscriptionsApi, paymentsApi, servicesApi } from '@/integrations/cloudflare/client'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 

@@ -12,7 +12,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/hooks/auth/useAuth";
 import { useIsAdmin } from "@/hooks/auth/useIsAdmin";
 import { CartButton } from "@/components/cart";
 import { NotificationBell } from "@/components/notifications";

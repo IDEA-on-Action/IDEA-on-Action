@@ -12,7 +12,7 @@
  */
 
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/hooks/auth/useAuth';
 import { useUserPermissions } from '@/hooks/auth/useRBAC';
 import { useSidebarStore } from '@/stores/sidebarStore';
 import { Button } from '@/components/ui/button';

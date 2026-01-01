@@ -8,7 +8,7 @@
 
 import { useState } from 'react'
 import { paymentsApi, ordersApi } from '@/integrations/cloudflare/client'
-import { useAuth } from '@/hooks/useAuth'
+import { useAuth } from '@/hooks/auth/useAuth'
 import {
   requestTossPayment,
   getTossPaymentRedirectUrls,

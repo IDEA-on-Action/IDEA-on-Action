@@ -49,8 +49,8 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Separator } from '@/components/ui/separator';
-import { useToast } from '@/hooks/useToast';
-import { useAuth } from '@/hooks/useAuth';
+import { useToast } from '@/components/ui/use-toast';
+import { useAuth } from '@/hooks/auth/useAuth';
 import {
   useAlertSubscriptions,
   getTopicTypeLabel,

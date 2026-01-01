@@ -8,7 +8,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { realtimeApi, callWorkersApi } from '@/integrations/cloudflare/client'
-import { useAuth } from '@/hooks/useAuth'
+import { useAuth } from '@/hooks/auth/useAuth'
 import { devLog, devError } from '@/lib/errors'
 
 // ============================================

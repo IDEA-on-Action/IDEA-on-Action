@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useCart } from '@/hooks/payments/useCart'
 import { useCreateOrder } from '@/hooks/payments/useOrders'
-import { useAuth } from '@/hooks/useAuth'
+import { useAuth } from '@/hooks/auth/useAuth'
 import { useCartStore } from '@/stores/cartStore'
 
 // 주문 폼 스키마

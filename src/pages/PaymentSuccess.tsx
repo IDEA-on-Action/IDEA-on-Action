@@ -12,7 +12,7 @@ import Footer from '@/components/Footer'
 import { PaymentStatus } from '@/components/payment/PaymentStatus'
 import { usePayment } from '@/hooks/payments/usePayment'
 import { ordersApi } from '@/integrations/cloudflare/client'
-import { useAuth } from '@/hooks/useAuth'
+import { useAuth } from '@/hooks/auth/useAuth'
 import { Loader2 } from 'lucide-react'
 import { devError } from '@/lib/errors'
 

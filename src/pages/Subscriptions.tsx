@@ -16,7 +16,7 @@ import { Loader2, CreditCard, Calendar, AlertCircle, CheckCircle2, XCircle, Rece
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
 import { SEO } from '@/components/shared/SEO'
-import { useAuth } from '@/hooks/useAuth'
+import { useAuth } from '@/hooks/auth/useAuth'
 import { useMySubscriptions, useCancelSubscription, useSubscriptionPayments } from '@/hooks/subscription/useSubscriptions'
 import {
     SUBSCRIPTION_STATUS_KR,

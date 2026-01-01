@@ -47,7 +47,7 @@ import {
   useUpgradeSubscription,
   subscriptionKeys,
 } from '@/hooks/subscription/useSubscriptions';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/hooks/auth/useAuth';
 import { subscriptionsApi } from '@/integrations/cloudflare/client';
 import { toast } from 'sonner';
 

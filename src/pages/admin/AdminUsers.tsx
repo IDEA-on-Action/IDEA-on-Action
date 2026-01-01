@@ -11,7 +11,7 @@
 import { useState, useEffect } from 'react'
 import { Helmet } from 'react-helmet-async'
 import { useAdmins, useCreateAdmin, useUpdateAdmin, useDeleteAdmin, useCurrentAdminRole } from '@/hooks/auth/useAdmins'
-import { useAuth } from '@/hooks/useAuth'
+import { useAuth } from '@/hooks/auth/useAuth'
 import { callWorkersApi } from '@/integrations/cloudflare/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -58,7 +58,7 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Loader2, Plus, Pencil, Trash2, Search, ShieldAlert } from 'lucide-react'
-import { useToast } from '@/hooks/useToast'
+import { useToast } from '@/components/ui/use-toast'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'

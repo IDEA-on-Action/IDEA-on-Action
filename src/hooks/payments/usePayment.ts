@@ -10,7 +10,7 @@
 import { useKakaoPay } from '@/hooks/payments/useKakaoPay'
 import { useTossPay } from '@/hooks/payments/useTossPay'
 import { paymentsApi } from '@/integrations/cloudflare/client'
-import { useAuth } from '@/hooks/useAuth'
+import { useAuth } from '@/hooks/auth/useAuth'
 import type { PaymentProvider, PaymentResult, PaymentError } from '@/lib/payments/types'
 import { devError } from '@/lib/errors'
 

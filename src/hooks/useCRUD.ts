@@ -37,7 +37,7 @@
 
 import { useQuery, useMutation, useQueryClient, UseQueryOptions } from '@tanstack/react-query';
 import { callWorkersApi } from '@/integrations/cloudflare/client';
-import { useAuth } from './useAuth';
+import { useAuth } from './auth/useAuth';
 import { toast } from 'sonner';
 import { devLog } from '@/lib/errors';
 

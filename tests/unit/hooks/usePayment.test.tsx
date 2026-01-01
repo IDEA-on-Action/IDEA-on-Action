@@ -54,7 +54,7 @@ vi.mock('@/lib/errors', () => ({
   devError: vi.fn(),
 }));
 
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/hooks/auth/useAuth';
 import { useKakaoPay } from '@/hooks/payments/useKakaoPay';
 import { useTossPay } from '@/hooks/payments/useTossPay';
 

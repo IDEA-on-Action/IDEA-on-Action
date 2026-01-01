@@ -12,7 +12,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { subscriptionsApi, paymentsApi } from '@/integrations/cloudflare/client'
-import { useAuth } from '@/hooks/useAuth'
+import { useAuth } from '@/hooks/auth/useAuth'
 import {
   SubscriptionWithPlan,
   CancelSubscriptionRequest,

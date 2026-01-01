@@ -35,7 +35,7 @@ vi.mock('@/lib/errors', () => ({
   devError: vi.fn(),
 }));
 
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/hooks/auth/useAuth';
 
 describe('useTossPay', () => {
   const mockWorkersUser = {

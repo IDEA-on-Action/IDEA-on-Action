@@ -7,11 +7,11 @@ import CTASection from "@/components/services-platform/CTASection";
 import { SEO } from "@/components/shared/SEO";
 import { Badge } from "@/components/ui/badge";
 import { mvpDevelopmentService } from "@/data/services/mvp-development";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/hooks/auth/useAuth";
 import { useAddToCart } from "@/hooks/payments/useCart";
 import { useServiceBySlug } from "@/hooks/useServices";
 import { CheckCircle2 } from "lucide-react";
-import { useToast } from "@/hooks/useToast";
+import { useToast } from "@/components/ui/use-toast";
 import type { Package } from "@/types/services";
 
 export default function MVPServicePage() {

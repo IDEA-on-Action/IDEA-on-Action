@@ -12,7 +12,7 @@ import { Link } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { servicesApi } from '@/integrations/cloudflare/client'
-import { useAuth } from '@/hooks/useAuth'
+import { useAuth } from '@/hooks/auth/useAuth'
 import type { Service } from '@/types/shared/database'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -43,7 +43,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { Loader2, Plus, Pencil, Trash2, Search } from 'lucide-react'
-import { useToast } from '@/hooks/useToast'
+import { useToast } from '@/components/ui/use-toast'
 
 export default function AdminServices() {
   const { toast } = useToast()

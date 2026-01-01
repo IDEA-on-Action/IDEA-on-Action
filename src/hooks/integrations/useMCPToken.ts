@@ -11,7 +11,7 @@
  */
 
 import { useState, useCallback, useEffect, useMemo } from 'react';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/hooks/auth/useAuth';
 import type {
   OAuthTokenResponse,
   ExchangeCodeParams,

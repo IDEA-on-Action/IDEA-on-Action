@@ -33,7 +33,7 @@
 import { useState, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { mediaApi } from '@/integrations/cloudflare/client';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/hooks/auth/useAuth';
 import { toast } from 'sonner';
 import { mediaQueryKeys } from '@/hooks/useMediaLibrary';
 import type { MediaItem } from '@/types/cms.types';

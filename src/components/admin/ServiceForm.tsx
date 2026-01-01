@@ -12,7 +12,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useState } from 'react'
 import { storageApi } from '@/integrations/cloudflare/client'
-import { useAuth } from '@/hooks/useAuth'
+import { useAuth } from '@/hooks/auth/useAuth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -34,7 +34,7 @@ import {
 } from '@/components/ui/form'
 import { Card, CardContent } from '@/components/ui/card'
 import { Loader2, Upload, X, Plus } from 'lucide-react'
-import { useToast } from '@/hooks/useToast'
+import { useToast } from '@/components/ui/use-toast'
 import type { Service, ServiceCategory } from '@/types/shared/database'
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB

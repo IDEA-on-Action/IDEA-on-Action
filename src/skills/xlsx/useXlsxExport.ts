@@ -9,7 +9,7 @@
 
 import { useState, useCallback } from 'react';
 import ExcelJS from 'exceljs';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/hooks/auth/useAuth';
 // Workers API는 generators에서 직접 사용됨
 import type {
   UseXlsxExportOptions,

@@ -8,7 +8,7 @@
 
 import { useState } from 'react'
 import { callWorkersApi } from '@/integrations/cloudflare/client'
-import { useAuth } from '@/hooks/useAuth'
+import { useAuth } from '@/hooks/auth/useAuth'
 import {
   prepareKakaoPayment,
   approveKakaoPayment,

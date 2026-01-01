@@ -10,7 +10,7 @@ import { useA2UI } from '@/hooks/useA2UI';
 // useConversationManager 제거 - 현재 사용하지 않으며 불필요한 API 호출 발생
 // @see BL-AI-002 대화 컨텍스트 관리 기능은 RLS 정책 수정 후 재활성화 예정
 // import { useConversationManager } from '@/hooks/useConversationManager';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/hooks/auth/useAuth';
 import { usePageContext } from '@/hooks/usePageContext';
 import type { AIChatMessage, AIChatConfig, AIChatA2UIBlock } from '@/types/ai-chat-widget.types';
 import type { ClaudeToolUseBlock, ClaudeToolResultBlock } from '@/types/claude.types';

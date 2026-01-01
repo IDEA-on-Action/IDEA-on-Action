@@ -8,7 +8,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, waitFor, act, cleanup } from '@testing-library/react';
 import { useDocxExport } from '@/skills/docx/useDocxExport';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/hooks/auth/useAuth';
 import { fetchEvents } from '@/skills/xlsx/generators/eventsSheet';
 import { fetchIssues } from '@/skills/xlsx/generators/issuesSheet';
 import React from 'react';

@@ -5,7 +5,7 @@
 
 import { useQueryClient } from '@tanstack/react-query';
 import { callWorkersApi } from '@/integrations/cloudflare/client';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/hooks/auth/useAuth';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import type { TeamMember, TeamMemberInsert, TeamMemberUpdate } from '@/types/cms.types';
 

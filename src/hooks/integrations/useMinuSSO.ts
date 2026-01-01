@@ -8,7 +8,7 @@
  */
 
 import { useState, useCallback, useEffect } from 'react'
-import { useAuth } from '@/hooks/useAuth'
+import { useAuth } from '@/hooks/auth/useAuth'
 import { callWorkersApi } from '@/integrations/cloudflare/client'
 
 // ============================================================================

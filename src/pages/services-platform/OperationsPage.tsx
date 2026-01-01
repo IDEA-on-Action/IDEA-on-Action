@@ -7,11 +7,11 @@ import CTASection from "@/components/services-platform/CTASection";
 import { SEO } from "@/components/shared/SEO";
 import { Badge } from "@/components/ui/badge";
 import { operationsManagementService } from "@/data/services/operations-management";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/hooks/auth/useAuth";
 import { useAddToCart } from "@/hooks/payments/useCart";
 import { useServiceBySlug } from "@/hooks/useServices";
 import { CheckCircle2, Activity, Shield, TrendingUp, Clock } from "lucide-react";
-import { useToast } from "@/hooks/useToast";
+import { useToast } from "@/components/ui/use-toast";
 import type { MonthlyPlan } from "@/types/services";
 
 export default function OperationsPage() {

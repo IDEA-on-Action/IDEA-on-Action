@@ -21,7 +21,7 @@
 
 import { useQuery, useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { mediaApi } from '@/integrations/cloudflare/client';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/hooks/auth/useAuth';
 import type { MediaItem, MediaSearchParams } from '@/types/cms.types';
 
 // =====================================================

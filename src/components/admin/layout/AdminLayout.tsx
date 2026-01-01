@@ -11,7 +11,7 @@
 
 import { useState, useEffect } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/hooks/auth/useAuth';
 import { useIsAdmin } from '@/hooks/auth/useIsAdmin';
 import { useSidebarStore } from '@/stores/sidebarStore';
 import { AdminSidebar } from './AdminSidebar';
