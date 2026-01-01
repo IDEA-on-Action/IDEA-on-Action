@@ -15,7 +15,7 @@ import type {
   CreateTeamInput,
   UpdateTeamInput,
   TeamError,
-} from '@/types/team.types'
+} from '@/types/shared/team.types'
 
 /**
  * useTeams 훅 반환 타입

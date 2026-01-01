@@ -18,9 +18,9 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useServiceEvents } from '@/hooks/useServiceEvents';
-import { useServiceIssues } from '@/hooks/useServiceIssues';
-import { useServiceHealth } from '@/hooks/useServiceHealth';
+import { useServiceEvents } from '@/hooks/services/useServiceEvents';
+import { useServiceIssues } from '@/hooks/services/useServiceIssues';
+import { useServiceHealth } from '@/hooks/services/useServiceHealth';
 import { cn } from '@/lib/utils';
 import { format, subDays, subWeeks, startOfDay } from 'date-fns';
 import { ko } from 'date-fns/locale';

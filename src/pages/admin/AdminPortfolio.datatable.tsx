@@ -17,7 +17,7 @@ import {
   useCreatePortfolioItem,
   useUpdatePortfolioItem,
   useDeletePortfolioItem,
-} from '@/hooks/usePortfolioItems'
+} from '@/hooks/cms/usePortfolioItems'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'

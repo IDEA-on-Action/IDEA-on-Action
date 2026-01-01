@@ -2,7 +2,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useClaudeChat } from '@/hooks/useClaudeChat';
+import { useClaudeChat } from '@/hooks/ai/useClaudeChat';
 import * as cloudflareClient from '@/integrations/cloudflare/client';
 import React, { type ReactNode } from 'react';
 

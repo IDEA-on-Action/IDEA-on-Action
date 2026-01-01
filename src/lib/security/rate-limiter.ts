@@ -11,7 +11,7 @@ import type {
   RateLimitStrategy,
   RateLimitStore,
   RateLimitMetrics,
-} from '@/types/rate-limit.types';
+} from '@/types/shared/rate-limit.types';
 
 /**
  * 메모리 기반 Rate Limit 저장소

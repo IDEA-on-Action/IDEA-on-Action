@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import { FileText, Calendar, Tag } from 'lucide-react';
-import type { HybridSearchResult } from '@/hooks/useRAGHybridSearch';
+import type { HybridSearchResult } from '@/hooks/ai/useRAGHybridSearch';
 
 // ============================================================================
 // 타입 정의

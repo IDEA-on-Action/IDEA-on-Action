@@ -8,10 +8,10 @@ import {
   useCreateRoadmap,
   useUpdateRoadmap,
   useDeleteRoadmap,
-} from '@/hooks/useRoadmap';
+} from '@/hooks/projects/useRoadmap';
 import { roadmapApi, callWorkersApi } from '@/integrations/cloudflare/client';
 import React, { type ReactNode } from 'react';
-import type { Roadmap } from '@/types/v2';
+import type { Roadmap } from '@/types/shared/v2';
 
 // Mock Workers API client
 vi.mock('@/integrations/cloudflare/client', () => ({

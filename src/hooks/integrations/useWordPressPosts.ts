@@ -8,8 +8,8 @@ import type {
   WordPressResponse,
   WordPressPost,
   UnifiedBlogPost,
-} from '@/types/wordpress'
-import { wordpressToUnified } from '@/types/wordpress'
+} from '@/types/integrations/wordpress'
+import { wordpressToUnified } from '@/types/integrations/wordpress'
 
 const WORDPRESS_SITE = 'sinclairseod847ad553c-hfktq.wordpress.com'
 const WORDPRESS_API_BASE = 'https://public-api.wordpress.com/rest/v1.1'

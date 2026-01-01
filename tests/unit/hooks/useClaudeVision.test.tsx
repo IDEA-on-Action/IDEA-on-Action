@@ -2,7 +2,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useClaudeVision, useUIDesignAnalysis } from '@/hooks/useClaudeVision';
+import { useClaudeVision, useUIDesignAnalysis } from '@/hooks/ai/useClaudeVision';
 import * as cloudflareClient from '@/integrations/cloudflare/client';
 import React, { type ReactNode } from 'react';
 

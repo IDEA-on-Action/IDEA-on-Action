@@ -23,7 +23,7 @@ import {
   useAssignIssue,
   useServiceIssuesRealtime,
   serviceIssueKeys,
-} from '@/hooks/useServiceIssues';
+} from '@/hooks/services/useServiceIssues';
 import { serviceIssuesApi } from '@/integrations/cloudflare/client';
 import type { ServiceIssue, ServiceIssueFilter } from '@/types/services/central-hub.types';
 import React, { type ReactNode } from 'react';

@@ -5,7 +5,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { projectsApi } from '@/integrations/cloudflare/client';
 import { useAuth } from '@/hooks/auth/useAuth';
-import type { Project } from '@/types/v2';
+import type { Project } from '@/types/shared/v2';
 
 /**
  * Hook to fetch all projects

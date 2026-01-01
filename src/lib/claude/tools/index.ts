@@ -59,7 +59,7 @@ export { projectsTool } from './projects.tool';
  *
  * 2. React 컴포넌트에서 사용:
  * ```typescript
- * import { useClaudeTools } from '@/hooks/useClaudeTools';
+ * import { useClaudeTools } from '@/hooks/ai/useClaudeTools';
  *
  * function MyComponent() {
  *   const { tools, executeTool } = useClaudeTools();

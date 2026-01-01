@@ -62,7 +62,7 @@ import { useToast } from '@/components/ui/use-toast'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import type { AdminWithEmail, AdminRole } from '@/types/v2'
+import type { AdminWithEmail, AdminRole } from '@/types/shared/v2'
 
 // Zod Schema for Admin Form
 const adminSchema = z.object({

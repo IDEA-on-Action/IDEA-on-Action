@@ -14,7 +14,7 @@ import { FileSpreadsheet, FileText, Presentation, BarChart3 } from 'lucide-react
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DocumentHistoryList } from '@/components/skills';
-import { useDocumentStats, formatFileSize } from '@/hooks/useDocumentHistory';
+import { useDocumentStats, formatFileSize } from '@/hooks/content/useDocumentHistory';
 
 // ============================================================================
 // DocumentHistoryExample Page

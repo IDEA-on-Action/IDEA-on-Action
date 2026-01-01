@@ -12,7 +12,7 @@ import {
 } from '@/hooks/projects/useProjects';
 import { projectsApi } from '@/integrations/cloudflare/client';
 import React, { type ReactNode } from 'react';
-import type { Project } from '@/types/v2';
+import type { Project } from '@/types/shared/v2';
 
 // Mock Workers API client
 vi.mock('@/integrations/cloudflare/client', () => ({

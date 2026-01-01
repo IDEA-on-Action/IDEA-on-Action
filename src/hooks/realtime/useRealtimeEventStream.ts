@@ -19,9 +19,9 @@ import type {
   EventType,
   IssueSeverity,
 } from '@/types/services/central-hub.types';
-import { serviceEventKeys } from '@/hooks/useServiceEvents';
-import { serviceIssueKeys } from '@/hooks/useServiceIssues';
-import type { ConnectionStatus, ConnectionState } from '@/hooks/useRealtimeServiceStatus';
+import { serviceEventKeys } from '@/hooks/services/useServiceEvents';
+import { serviceIssueKeys } from '@/hooks/services/useServiceIssues';
+import type { ConnectionStatus, ConnectionState } from '@/hooks/realtime/useRealtimeServiceStatus';
 
 // ============================================================================
 // 타입 정의

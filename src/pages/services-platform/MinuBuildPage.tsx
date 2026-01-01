@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { minuBuildService } from "@/data/services/minu-build";
 import { CheckCircle2 } from "lucide-react";
 import { useAuth } from "@/hooks/auth/useAuth";
-import { useMCPServicePermission } from "@/hooks/useMCPPermission";
+import { useMCPServicePermission } from "@/hooks/integrations/useMCPPermission";
 import { cn } from "@/lib/utils";
 import type { MonthlyPlan } from "@/types/services";
 

@@ -7,7 +7,7 @@ import {
   useRequirementsAnalyzer,
   useProjectPlanner,
   useOpsReportWriter,
-} from '@/hooks/useClaudeSkill';
+} from '@/hooks/ai/useClaudeSkill';
 import type {
   RFPGeneratorInput,
   RequirementsAnalyzerInput,

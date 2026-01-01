@@ -18,8 +18,8 @@ import {
   SlackChannel,
   NOTIFICATION_LEVEL_COLORS,
   HEALTH_STATUS_COLORS,
-} from '@/types/notification.types'
-import type { GitHubIssue, ServiceHealth } from '@/types/notification.types'
+} from '@/types/shared/notification.types'
+import type { GitHubIssue, ServiceHealth } from '@/types/shared/notification.types'
 
 // ============================================================================
 // Mocks

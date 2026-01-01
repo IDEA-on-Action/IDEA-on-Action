@@ -14,7 +14,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { MCPProtected } from '@/components/mcp/MCPProtected';
-import * as useMCPPermissionHook from '@/hooks/useMCPPermission';
+import * as useMCPPermissionHook from '@/hooks/integrations/useMCPPermission';
 import React from 'react';
 
 // Mock dependencies

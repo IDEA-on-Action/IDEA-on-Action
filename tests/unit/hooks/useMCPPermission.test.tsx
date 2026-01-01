@@ -18,7 +18,7 @@ import {
   useMCPPermission,
   useMCPServicePermission,
   type ServiceId,
-} from '@/hooks/useMCPPermission';
+} from '@/hooks/integrations/useMCPPermission';
 import { callWorkersApi } from '@/integrations/cloudflare/client';
 import React, { type ReactNode } from 'react';
 

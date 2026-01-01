@@ -9,7 +9,7 @@ import { ChevronDown, ChevronRight } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import type { StreamItem } from '@/hooks/useRealtimeEventStream';
+import type { StreamItem } from '@/hooks/realtime/useRealtimeEventStream';
 import type { AlertGroup } from './types';
 import { AlertItem } from './AlertItem';
 

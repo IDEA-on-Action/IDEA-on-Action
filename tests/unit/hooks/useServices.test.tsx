@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useServices } from '@/hooks/useServices';
+import { useServices } from '@/hooks/services/useServices';
 import { servicesApi } from '@/integrations/cloudflare/client';
 import React, { type ReactNode } from 'react';
 

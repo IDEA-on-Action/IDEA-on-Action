@@ -42,12 +42,12 @@ import type {
   IssueStatus,
 } from '@/types/services/central-hub.types';
 import { SERVICE_INFO } from '@/types/services/central-hub.types';
-import type { StreamItem } from '@/hooks/useRealtimeEventStream';
+import type { StreamItem } from '@/hooks/realtime/useRealtimeEventStream';
 import {
   getEventFromStreamItem,
   getIssueFromStreamItem,
-} from '@/hooks/useRealtimeEventStream';
-import { useUpdateIssueStatus } from '@/hooks/useServiceIssues';
+} from '@/hooks/realtime/useRealtimeEventStream';
+import { useUpdateIssueStatus } from '@/hooks/services/useServiceIssues';
 
 // ============================================================================
 // 타입 정의

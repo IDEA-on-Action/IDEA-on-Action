@@ -17,8 +17,8 @@ import {
   Minus,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useServiceEvents } from '@/hooks/useServiceEvents';
-import { useServiceIssues, useServiceIssueStats } from '@/hooks/useServiceIssues';
+import { useServiceEvents } from '@/hooks/services/useServiceEvents';
+import { useServiceIssues, useServiceIssueStats } from '@/hooks/services/useServiceIssues';
 import { cn } from '@/lib/utils';
 import type { ServiceId } from '@/types/services/central-hub.types';
 import { SERVICE_INFO } from '@/types/services/central-hub.types';

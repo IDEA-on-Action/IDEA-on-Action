@@ -29,7 +29,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useServiceEvents } from '@/hooks/useServiceEvents';
+import { useServiceEvents } from '@/hooks/services/useServiceEvents';
 import type {
   ServiceId,
   EventType,

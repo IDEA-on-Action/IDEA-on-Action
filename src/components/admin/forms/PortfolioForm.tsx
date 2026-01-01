@@ -11,7 +11,7 @@ import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 // Supabase Storage Hook
-import { useFileUpload } from '@/hooks/useFileUpload';
+import { useFileUpload } from '@/hooks/media/useFileUpload';
 
 // UI Components
 import { FormModal } from '@/components/admin/ui/FormModal';

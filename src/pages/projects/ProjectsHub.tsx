@@ -24,11 +24,11 @@ import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { PageLayout, HeroSection, Section } from "@/components/layouts";
 import { LoadingState, ErrorState, EmptyState } from "@/components/shared";
-import { usePublishedPortfolioItems } from "@/hooks/usePortfolioItems";
-import { useBounties } from "@/hooks/useBounties";
-import { usePublishedRoadmapItems } from "@/hooks/useRoadmapItems";
+import { usePublishedPortfolioItems } from '@/hooks/cms/usePortfolioItems';
+import { useBounties } from "@/hooks/projects/useBounties";
+import { usePublishedRoadmapItems } from "@/hooks/projects/useRoadmapItems";
 import { useDebounce } from "@/hooks/useDebounce";
-import type { PortfolioItem, Bounty, RoadmapItem } from "@/types/v2";
+import type { PortfolioItem, Bounty, RoadmapItem } from '@/types/shared/v2';
 
 type TabValue = "in-progress" | "released" | "lab" | "roadmap";
 

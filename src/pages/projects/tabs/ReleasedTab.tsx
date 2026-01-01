@@ -3,7 +3,7 @@ import { Rocket, Users, Github, ExternalLink } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/shared";
-import type { PortfolioItem } from "@/types/v2";
+import type { PortfolioItem } from '@/types/shared/v2';
 
 /**
  * ReleasedTab Props

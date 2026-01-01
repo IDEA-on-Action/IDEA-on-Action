@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useClaudeChatWithRAG } from '@/hooks/useClaudeChatWithRAG';
+import { useClaudeChatWithRAG } from '@/hooks/ai/useClaudeChatWithRAG';
 
 // Mock dependencies
 vi.mock('@/hooks/useClaudeChat', () => ({

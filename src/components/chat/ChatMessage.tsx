@@ -15,7 +15,7 @@ import { ko, enUS } from 'date-fns/locale'
 import { useTranslation } from 'react-i18next'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import type { Message } from '@/hooks/useChat'
+import type { Message } from '@/hooks/ai/useChat'
 
 interface ChatMessageProps {
   message: Message

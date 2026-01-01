@@ -4,7 +4,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import Status from '@/pages/Status';
-import type { Project, Bounty, Log } from '@/types/v2';
+import type { Project, Bounty, Log } from '@/types/shared/v2';
 import React, { type ReactNode } from 'react';
 
 // Mock hooks
@@ -38,8 +38,8 @@ global.ResizeObserver = class ResizeObserver {
 };
 
 import { useProjects } from '@/hooks/projects/useProjects';
-import { useBounties } from '@/hooks/useBounties';
-import { useLogs } from '@/hooks/useLogs';
+import { useBounties } from '@/hooks/projects/useBounties';
+import { useLogs } from '@/hooks/analytics/useLogs';
 import { useNewsletterStats, useSubscribeNewsletter } from '@/hooks/useNewsletter';
 
 describe('Status Page', () => {

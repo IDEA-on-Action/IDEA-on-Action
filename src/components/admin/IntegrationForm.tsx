@@ -33,11 +33,11 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/useToast';
-import { useServices } from '@/hooks/useServicesPlatform';
+import { useServices } from '@/hooks/services/useServicesPlatform';
 import {
   useCreateIntegration,
   useUpdateIntegration,
-} from '@/hooks/useIntegrations';
+} from '@/hooks/integrations/useIntegrations';
 import type {
   ServiceIntegrationWithService,
   IntegrationType,

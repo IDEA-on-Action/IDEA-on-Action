@@ -35,7 +35,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
-import { useUpdatePromptTemplate } from '@/hooks/usePromptTemplates';
+import { useUpdatePromptTemplate } from '@/hooks/ai/usePromptTemplates';
 
 // ============================================================================
 // Types (임시 - 실제로는 prompt-template.types.ts에서 임포트)

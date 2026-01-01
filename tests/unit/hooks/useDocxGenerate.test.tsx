@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useDocxGenerate, useRFPGenerate, useReportGenerate } from '@/hooks/useDocxGenerate';
+import { useDocxGenerate, useRFPGenerate, useReportGenerate } from '@/hooks/documents/useDocxGenerate';
 import type { DocxGenerateOptions } from '@/types/documents/docx.types';
 
 // Mock dependencies

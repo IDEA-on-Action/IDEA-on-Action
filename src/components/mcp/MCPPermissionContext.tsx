@@ -6,8 +6,8 @@
 
 import React, { useCallback, useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { mcpQueryKeys } from '@/hooks/useMCPClient';
-import type { MinuServiceId } from '@/hooks/useMCPPermission';
+import { mcpQueryKeys } from '@/hooks/integrations/useMCPClient';
+import type { MinuServiceId } from '@/hooks/integrations/useMCPPermission';
 import { MCPPermissionContext } from './useMCPPermission';
 
 /**

@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { mvpDevelopmentService } from "@/data/services/mvp-development";
 import { useAuth } from "@/hooks/auth/useAuth";
 import { useAddToCart } from "@/hooks/payments/useCart";
-import { useServiceBySlug } from "@/hooks/useServices";
+import { useServiceBySlug } from "@/hooks/services/useServices";
 import { CheckCircle2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import type { Package } from "@/types/services";

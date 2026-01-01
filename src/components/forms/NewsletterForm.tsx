@@ -8,7 +8,7 @@
  */
 
 import { useState } from 'react'
-import { useSubscribeNewsletter } from '@/hooks/useNewsletter'
+import { useSubscribeNewsletter } from '@/hooks/newsletter/useNewsletter'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Mail, Loader2 } from 'lucide-react'

@@ -22,7 +22,7 @@ export type {
 } from '@/types/cms/editor.types'
 
 // Re-export hook
-export { useRichTextEditor } from '@/hooks/useRichTextEditor'
+export { useRichTextEditor } from '@/hooks/content/useRichTextEditor'
 
 // Re-export utilities
 export {

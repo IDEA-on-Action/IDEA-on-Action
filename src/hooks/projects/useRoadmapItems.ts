@@ -12,7 +12,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { roadmapApi } from '@/integrations/cloudflare/client';
 import { useAuth } from '@/hooks/auth/useAuth';
-import type { RoadmapItem } from '@/types/v2';
+import type { RoadmapItem } from '@/types/shared/v2';
 
 // =====================================================
 // QUERY KEYS

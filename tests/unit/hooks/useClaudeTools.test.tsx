@@ -2,7 +2,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useClaudeTools, useClaudeToolList, useHasTool } from '@/hooks/useClaudeTools';
+import { useClaudeTools, useClaudeToolList, useHasTool } from '@/hooks/ai/useClaudeTools';
 import React, { type ReactNode } from 'react';
 
 // Mock toolRegistry - factory 함수 사용

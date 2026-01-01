@@ -44,7 +44,7 @@ import {
   AlertCircle,
   Eye,
 } from 'lucide-react';
-import { useDocxGenerate } from '@/hooks/useDocxGenerate';
+import { useDocxGenerate } from '@/hooks/documents/useDocxGenerate';
 import type { RFPCategory, TemplateData } from '@/types/documents/docx.types';
 import { RFP_CATEGORY_LABELS } from '@/types/documents/docx.types';
 

@@ -5,7 +5,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { bountiesApi } from '@/integrations/cloudflare/client';
 import { useAuth } from '@/hooks/auth/useAuth';
-import type { Bounty } from '@/types/v2';
+import type { Bounty } from '@/types/shared/v2';
 
 /**
  * Hook to fetch all bounties

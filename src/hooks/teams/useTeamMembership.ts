@@ -15,7 +15,7 @@ import type {
   UserRole,
   TeamInvitation,
   TeamError,
-} from '@/types/team.types'
+} from '@/types/shared/team.types'
 
 /**
  * useTeamMembership 훅 반환 타입

@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { operationsManagementService } from "@/data/services/operations-management";
 import { useAuth } from "@/hooks/auth/useAuth";
 import { useAddToCart } from "@/hooks/payments/useCart";
-import { useServiceBySlug } from "@/hooks/useServices";
+import { useServiceBySlug } from "@/hooks/services/useServices";
 import { CheckCircle2, Activity, Shield, TrendingUp, Clock } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import type { MonthlyPlan } from "@/types/services";

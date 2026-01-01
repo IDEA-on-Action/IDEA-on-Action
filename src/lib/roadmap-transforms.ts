@@ -5,7 +5,7 @@
  * for the Roadmap page.
  */
 
-import type { Roadmap, KPI } from '@/types/v2';
+import type { Roadmap, KPI } from '@/types/shared/v2';
 
 /**
  * Converts technical theme to user-friendly title

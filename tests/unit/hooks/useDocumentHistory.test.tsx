@@ -15,7 +15,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
-import { useDocumentHistory, useDocumentStats, formatFileSize, getFileTypeIcon, getFileTypeLabel } from '@/hooks/useDocumentHistory';
+import { useDocumentHistory, useDocumentStats, formatFileSize, getFileTypeIcon, getFileTypeLabel } from '@/hooks/content/useDocumentHistory';
 import * as cloudflareClient from '@/integrations/cloudflare/client';
 import type { GeneratedDocument, CreateGeneratedDocument } from '@/types/document-history.types';
 

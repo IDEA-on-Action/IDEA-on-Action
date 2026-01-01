@@ -14,11 +14,11 @@ import type {
   SlackChannel,
   SlackAttachmentField,
   NotificationLevel,
-} from '@/types/notification.types'
+} from '@/types/shared/notification.types'
 import {
   NOTIFICATION_LEVEL_COLORS,
   HEALTH_STATUS_COLORS,
-} from '@/types/notification.types'
+} from '@/types/shared/notification.types'
 
 // ============================================================================
 // Constants

@@ -21,7 +21,7 @@ import {
   useUpdateSubscriberStatus,
   useDeleteSubscriber,
   useExportNewsletterCSV,
-} from '@/hooks/useNewsletterAdmin';
+} from '@/hooks/newsletter/useNewsletterAdmin';
 import type {
   NewsletterSubscriber,
   NewsletterStatus,

@@ -6,7 +6,7 @@
 
 import React from 'react';
 import { MCPProtected } from './MCPProtected';
-import type { MinuServiceId } from '@/hooks/useMCPPermission';
+import type { MinuServiceId } from '@/hooks/integrations/useMCPPermission';
 
 /**
  * MCPProtected를 HOC 형태로 사용

@@ -9,10 +9,10 @@ import {
   useCreateLog,
   useUpdateLog,
   useDeleteLog,
-} from '@/hooks/useLogs';
+} from '@/hooks/analytics/useLogs';
 import { callWorkersApi } from '@/integrations/cloudflare/client';
 import React, { type ReactNode } from 'react';
-import type { Log } from '@/types/v2';
+import type { Log } from '@/types/shared/v2';
 
 // Mock Workers API
 vi.mock('@/integrations/cloudflare/client', () => ({

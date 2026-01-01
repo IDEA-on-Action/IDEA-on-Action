@@ -16,8 +16,8 @@ import {
   useProjectPlanner,
   useOpsReportWriter,
   clearSkillCache,
-} from '@/hooks/useClaudeSkill';
-import { useClaudeStreaming } from '@/hooks/useClaudeStreaming';
+} from '@/hooks/ai/useClaudeSkill';
+import { useClaudeStreaming } from '@/hooks/ai/useClaudeStreaming';
 import { usePromptTemplates } from '@/hooks/usePromptTemplates';
 import type {
   RFPGeneratorInput,

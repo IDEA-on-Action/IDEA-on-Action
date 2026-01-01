@@ -1,5 +1,5 @@
 import { useParams, Navigate } from 'react-router-dom'
-import { useNotice } from '@/hooks/useNotices'
+import { useNotice } from '@/hooks/cms/useNotices'
 import { NoticeForm } from '@/components/notices/NoticeForm'
 import { Loader2 } from 'lucide-react'
 

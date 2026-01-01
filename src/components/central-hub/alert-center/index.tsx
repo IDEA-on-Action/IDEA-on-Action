@@ -33,8 +33,8 @@ import {
   type StreamItem,
   getEventFromStreamItem,
   getIssueFromStreamItem,
-} from '@/hooks/useRealtimeEventStream';
-import { useConnectionStatusDisplay } from '@/hooks/useRealtimeServiceStatus';
+} from '@/hooks/realtime/useRealtimeEventStream';
+import { useConnectionStatusDisplay } from '@/hooks/realtime/useRealtimeServiceStatus';
 import { cn } from '@/lib/utils';
 import type {
   IssueSeverity,

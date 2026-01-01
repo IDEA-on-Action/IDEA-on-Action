@@ -4,7 +4,7 @@
  * @module components/central-hub/alert-center/types
  */
 
-import type { StreamItem } from '@/hooks/useRealtimeEventStream';
+import type { StreamItem } from '@/hooks/realtime/useRealtimeEventStream';
 
 /**
  * 그룹화 기준

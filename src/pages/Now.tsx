@@ -2,7 +2,7 @@ import { Helmet } from "react-helmet-async";
 import { Clock, FileText, Lightbulb, Rocket, TrendingUp } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { useLogs } from "@/hooks/useLogs";
+import { useLogs } from "@/hooks/analytics/useLogs";
 import { PageLayout, HeroSection, Section } from "@/components/layouts";
 import { LoadingState, ErrorState, EmptyState } from "@/components/shared";
 

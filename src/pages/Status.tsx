@@ -8,9 +8,9 @@ import { LoadingState } from "@/components/shared/LoadingState";
 import { ErrorState } from "@/components/shared/ErrorState";
 import { ActivityTrendChart } from "@/components/status/ActivityTrendChart";
 import { useProjects } from "@/hooks/projects/useProjects";
-import { useBounties } from "@/hooks/useBounties";
-import { useLogs } from "@/hooks/useLogs";
-import { useNewsletterStats } from "@/hooks/useNewsletter";
+import { useBounties } from "@/hooks/projects/useBounties";
+import { useLogs } from "@/hooks/analytics/useLogs";
+import { useNewsletterStats } from "@/hooks/newsletter/useNewsletter";
 import { analytics } from "@/lib/analytics";
 
 const Status = () => {

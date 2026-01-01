@@ -6,7 +6,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Plus, Edit, Trash2, Eye, Calendar, Pin } from 'lucide-react'
-import { useNotices, useDeleteNotice } from '@/hooks/useNotices'
+import { useNotices, useDeleteNotice } from '@/hooks/cms/useNotices'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'

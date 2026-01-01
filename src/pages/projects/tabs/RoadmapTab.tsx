@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { EmptyState } from "@/components/shared";
-import type { RoadmapItem } from "@/types/v2";
+import type { RoadmapItem } from '@/types/shared/v2';
 
 /**
  * RoadmapTab Props

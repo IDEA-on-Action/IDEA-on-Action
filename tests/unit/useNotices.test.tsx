@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useNotices, useCreateNotice, useUpdateNotice, useDeleteNotice } from '@/hooks/useNotices';
+import { useNotices, useCreateNotice, useUpdateNotice, useDeleteNotice } from '@/hooks/cms/useNotices';
 import { noticesApi } from '@/integrations/cloudflare/client';
 import React, { type ReactNode } from 'react';
 

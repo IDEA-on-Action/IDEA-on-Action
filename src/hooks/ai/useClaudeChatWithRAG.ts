@@ -11,8 +11,8 @@
  */
 
 import { useState, useCallback, useEffect } from 'react'
-import { useClaudeChat, type ClaudeMessage, type UseClaudeChatOptions } from '@/hooks/useClaudeChat'
-import { useRAGSearch, type UseRAGSearchOptions } from '@/hooks/useRAGSearch'
+import { useClaudeChat, type ClaudeMessage, type UseClaudeChatOptions } from '@/hooks/ai/useClaudeChat'
+import { useRAGSearch, type UseRAGSearchOptions } from '@/hooks/ai/useRAGSearch'
 import type {
   RAGSearchResult,
   RAGSearchOptions,

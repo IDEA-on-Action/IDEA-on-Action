@@ -8,7 +8,7 @@
 import { useState } from 'react'
 import { Helmet } from 'react-helmet-async'
 import { Filter, X, Bell } from 'lucide-react'
-import { useNotices } from '@/hooks/useNotices'
+import { useNotices } from '@/hooks/cms/useNotices'
 import { NoticeCard } from '@/components/notices/NoticeCard'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -29,7 +29,7 @@ import {
 } from '@/components/ui/dialog'
 import { MarkdownRenderer } from '@/components/blog/MarkdownRenderer'
 import type { NoticeWithAuthor } from '@/types/cms/notice'
-import { useIncrementNoticeViewCount } from '@/hooks/useNotices'
+import { useIncrementNoticeViewCount } from '@/hooks/cms/useNotices'
 import { formatDistanceToNow } from 'date-fns'
 
 export default function Notices() {

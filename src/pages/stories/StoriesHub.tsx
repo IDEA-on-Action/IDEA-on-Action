@@ -11,8 +11,8 @@ import { StoriesSection, type StoriesSectionItem } from "@/components/stories/St
 import { PageLayout } from "@/components/layouts";
 import { useWordPressPosts } from "@/hooks/integrations/useWordPressPosts";
 import { useBlogPosts } from "@/hooks/cms/useBlogPosts";
-import { useNotices } from "@/hooks/useNotices";
-import { useNewsletterArchive } from "@/hooks/useNewsletterArchive";
+import { useNotices } from "@/hooks/cms/useNotices";
+import { useNewsletterArchive } from '@/hooks/newsletter/useNewsletterArchive';
 
 export default function StoriesHub() {
   // WordPress 블로그 포스트 가져오기 (최신 3개)

@@ -23,9 +23,9 @@ import { Activity, ListTodo, BarChart3, Bell } from 'lucide-react';
 import {
   useRealtimeServiceStatus,
   useConnectionStatusDisplay,
-} from '@/hooks/useRealtimeServiceStatus';
-import { useRealtimeEventStream } from '@/hooks/useRealtimeEventStream';
-import { useServiceHealth } from '@/hooks/useServiceHealth';
+} from '@/hooks/realtime/useRealtimeServiceStatus';
+import { useRealtimeEventStream } from '@/hooks/realtime/useRealtimeEventStream';
+import { useServiceHealth } from '@/hooks/services/useServiceHealth';
 import { useIsAdmin } from '@/hooks/auth/useIsAdmin';
 import { cn } from '@/lib/utils';
 

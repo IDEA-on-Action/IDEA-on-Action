@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { fullstackDevelopmentService } from "@/data/services/fullstack-development";
 import { useAuth } from "@/hooks/auth/useAuth";
 import { useAddToCart } from "@/hooks/payments/useCart";
-import { useServiceBySlug } from "@/hooks/useServices";
+import { useServiceBySlug } from "@/hooks/services/useServices";
 import { CheckCircle2, Code2, Server, Database, Cloud } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import type { MonthlyPlan } from "@/types/services";

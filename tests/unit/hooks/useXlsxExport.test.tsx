@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
-import { useXlsxExport } from '@/hooks/useXlsxExport';
+import { useXlsxExport } from '@/hooks/documents/useXlsxExport';
 
 // DOM API Mock - beforeEach/afterEach로 관리
 const mockCreateObjectURL = vi.fn().mockReturnValue('blob:mock-url');

@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
-import { useClaudeStreaming } from '@/hooks/useClaudeStreaming';
+import { useClaudeStreaming } from '@/hooks/ai/useClaudeStreaming';
 import React, { type ReactNode } from 'react';
 
 // Mock useAuth hook

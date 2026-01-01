@@ -26,7 +26,7 @@ import type {
   EventType,
 } from '@/types/services/central-hub.types';
 import { SERVICE_INFO } from '@/types/services/central-hub.types';
-import type { StreamFilterOptions } from '@/hooks/useRealtimeEventStream';
+import type { StreamFilterOptions } from '@/hooks/realtime/useRealtimeEventStream';
 
 // ============================================================================
 // 타입 정의

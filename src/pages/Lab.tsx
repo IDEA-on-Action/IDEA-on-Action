@@ -3,7 +3,7 @@ import { useEffect } from "react";
 import { Beaker, Award, Clock, Target, Users, DollarSign, Package } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { useBounties } from "@/hooks/useBounties";
+import { useBounties } from "@/hooks/projects/useBounties";
 import { PageLayout, HeroSection, Section } from "@/components/layouts";
 import { LoadingState, ErrorState, EmptyState } from "@/components/shared";
 import { analytics } from "@/lib/analytics";

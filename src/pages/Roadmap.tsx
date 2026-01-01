@@ -19,7 +19,7 @@ import {
   TimelineDot,
   TimelineContent,
 } from "@/components/ui/timeline";
-import { useRoadmap } from "@/hooks/useRoadmap";
+import { useRoadmap } from "@/hooks/projects/useRoadmap";
 import { PageLayout, HeroSection, Section } from "@/components/layouts";
 import { NextStepsCTA } from "@/components/common/NextStepsCTA";
 import { LoadingState, ErrorState, EmptyState } from "@/components/shared";

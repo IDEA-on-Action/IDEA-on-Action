@@ -12,8 +12,8 @@
  */
 
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
-import { useClaudeStreaming } from '@/hooks/useClaudeStreaming';
-import { usePromptTemplates } from '@/hooks/usePromptTemplates';
+import { useClaudeStreaming } from '@/hooks/ai/useClaudeStreaming';
+import { usePromptTemplates } from '@/hooks/ai/usePromptTemplates';
 import {
   createClaudeSkillError,
   isClaudeSkillError,

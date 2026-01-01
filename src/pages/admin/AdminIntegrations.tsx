@@ -75,7 +75,7 @@ import {
   useTriggerSync,
   useToggleIntegration,
   useIntegrationStats,
-} from '@/hooks/useIntegrations';
+} from '@/hooks/integrations/useIntegrations';
 import { IntegrationForm } from '@/components/admin/IntegrationForm';
 import type {
   ServiceIntegrationWithService,

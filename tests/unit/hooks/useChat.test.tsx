@@ -2,7 +2,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useChat } from '@/hooks/useChat';
+import { useChat } from '@/hooks/ai/useChat';
 import React, { type ReactNode } from 'react';
 
 // Mock OpenAI library

@@ -83,7 +83,7 @@ export {
   useOpsReportWriter,
   clearSkillCache,
   PROMPT_TEMPLATES,
-} from '@/hooks/useClaudeSkill';
+} from '@/hooks/ai/useClaudeSkill';
 
 // ============================================================================
 // Minu Frame - 요구사항 작성 보조

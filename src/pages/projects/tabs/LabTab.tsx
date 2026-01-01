@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/shared";
-import type { Bounty } from "@/types/v2";
+import type { Bounty } from '@/types/shared/v2';
 
 /**
  * LabTab Props

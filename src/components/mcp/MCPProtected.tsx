@@ -9,7 +9,7 @@ import React from 'react';
 import {
   useMCPServicePermission,
   type MinuServiceId,
-} from '@/hooks/useMCPPermission';
+} from '@/hooks/integrations/useMCPPermission';
 import { MCPLoading } from './MCPLoading';
 import { MCPFallback, type FallbackReason } from './MCPFallback';
 

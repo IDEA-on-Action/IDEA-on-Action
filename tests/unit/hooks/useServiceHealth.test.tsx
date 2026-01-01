@@ -21,7 +21,7 @@ import {
   getHealthStatusBgColor,
   getHealthStatusLabel,
   formatLastPing,
-} from '@/hooks/useServiceHealth';
+} from '@/hooks/services/useServiceHealth';
 import { serviceHealthApi } from '@/integrations/cloudflare/client';
 import type { ServiceHealth } from '@/types/services/central-hub.types';
 import React from 'react';

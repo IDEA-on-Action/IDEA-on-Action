@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Card } from '@/components/ui/card';
-import type { Log } from '@/types/v2';
+import type { Log } from '@/types/shared/v2';
 
 interface ActivityTrendChartProps {
   logs: Log[];

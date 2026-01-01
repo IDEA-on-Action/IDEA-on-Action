@@ -19,8 +19,8 @@ import type {
   EventType,
   ServiceId,
 } from '@/types/services/central-hub.types';
-import type { StreamItem } from '@/hooks/useRealtimeEventStream';
-import { getEventFromStreamItem, getIssueFromStreamItem } from '@/hooks/useRealtimeEventStream';
+import type { StreamItem } from '@/hooks/realtime/useRealtimeEventStream';
+import { getEventFromStreamItem, getIssueFromStreamItem } from '@/hooks/realtime/useRealtimeEventStream';
 import type { DateGroup } from './types';
 
 /**

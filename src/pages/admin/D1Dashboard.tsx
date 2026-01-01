@@ -13,7 +13,7 @@ import { Helmet } from 'react-helmet-async';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { callWorkersApi } from '@/integrations/cloudflare/client';
 import { useAuth } from '@/hooks/auth/useAuth';
-import { useD1Monitoring } from '@/hooks/useD1Monitoring';
+import { useD1Monitoring } from '@/hooks/analytics/useD1Monitoring';
 import { formatBytes, formatDuration, getStatusBadgeVariant } from '@/types/shared/d1-monitoring.types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';

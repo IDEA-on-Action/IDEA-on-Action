@@ -43,7 +43,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
-import useDocumentHistory, { formatFileSize } from '@/hooks/useDocumentHistory';
+import useDocumentHistory, { formatFileSize } from '@/hooks/content/useDocumentHistory';
 import type {
   DocumentHistoryListProps,
   GeneratedDocument,

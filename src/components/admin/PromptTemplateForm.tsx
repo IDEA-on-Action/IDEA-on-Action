@@ -66,7 +66,7 @@ import {
 import {
   useCreatePromptTemplate,
   useUpdatePromptTemplate,
-} from '@/hooks/usePromptTemplates'
+} from '@/hooks/ai/usePromptTemplates'
 import { PromptTemplatePreview } from '@/components/admin/PromptTemplatePreview'
 
 // =====================================================

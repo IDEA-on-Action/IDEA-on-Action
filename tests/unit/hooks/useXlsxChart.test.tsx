@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
-import { useXlsxChart } from '@/hooks/useXlsxChart';
+import { useXlsxChart } from '@/hooks/documents/useXlsxChart';
 import type { LineChartConfig, BarChartConfig, PieChartConfig } from '@/types/documents/xlsx-chart.types';
 
 // Mock dependencies

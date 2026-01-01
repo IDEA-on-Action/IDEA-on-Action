@@ -28,7 +28,7 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { formatBytesLocalized } from '@/lib/media-utils';
-import type { UploadStatus } from '@/hooks/useMediaUpload';
+import type { UploadStatus } from '@/hooks/media/useMediaUpload';
 
 // =====================================================
 // Types

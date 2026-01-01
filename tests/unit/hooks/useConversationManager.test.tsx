@@ -14,7 +14,7 @@ import {
   useSummarizeContext,
   useForkConversation,
   useExportToMarkdown,
-} from '@/hooks/useConversationManager';
+} from '@/hooks/ai/useConversationManager';
 import { callWorkersApi } from '@/integrations/cloudflare/client';
 import React, { type ReactNode } from 'react';
 

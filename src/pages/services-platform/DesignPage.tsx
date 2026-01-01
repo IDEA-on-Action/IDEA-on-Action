@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { designSystemService } from "@/data/services/design-system";
 import { useAuth } from "@/hooks/auth/useAuth";
 import { useAddToCart } from "@/hooks/payments/useCart";
-import { useServiceBySlug } from "@/hooks/useServices";
+import { useServiceBySlug } from "@/hooks/services/useServices";
 import { CheckCircle2, Palette, FileCode, BookOpen } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import type { Package } from "@/types/services";

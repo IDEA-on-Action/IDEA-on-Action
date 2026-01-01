@@ -16,7 +16,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { useTranslation } from 'react-i18next'
 import { ChatMessage } from './ChatMessage'
 import { ChatInput } from './ChatInput'
-import { useChat } from '@/hooks/useChat'
+import { useChat } from '@/hooks/ai/useChat'
 
 interface ChatWindowProps {
   onClose: () => void

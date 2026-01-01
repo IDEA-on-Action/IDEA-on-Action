@@ -11,10 +11,10 @@ import {
   useUpdateBounty,
   useDeleteBounty,
   useAssignBounty,
-} from '@/hooks/useBounties';
+} from '@/hooks/projects/useBounties';
 import { bountiesApi } from '@/integrations/cloudflare/client';
 import React, { type ReactNode } from 'react';
-import type { Bounty } from '@/types/v2';
+import type { Bounty } from '@/types/shared/v2';
 
 // Mock Cloudflare Workers API
 vi.mock('@/integrations/cloudflare/client', () => ({

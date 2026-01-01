@@ -12,7 +12,7 @@ import {
 } from '@/hooks/useProposals';
 import { proposalsApi } from '@/integrations/cloudflare/client';
 import React, { type ReactNode } from 'react';
-import type { Proposal, ProposalFormValues } from '@/types/v2';
+import type { Proposal, ProposalFormValues } from '@/types/shared/v2';
 
 // Mock Workers API client
 vi.mock('@/integrations/cloudflare/client', () => ({

@@ -7,7 +7,7 @@
 
 import { useCallback, useEffect, useState, type CSSProperties } from 'react'
 import { EditorContent } from '@tiptap/react'
-import { useRichTextEditor } from '@/hooks/useRichTextEditor'
+import { useRichTextEditor } from '@/hooks/content/useRichTextEditor'
 import { EditorToolbar } from './EditorToolbar'
 import { Textarea } from '@/components/ui/textarea'
 import type { RichTextEditorProps, EditorMode } from '@/types/cms/editor.types'

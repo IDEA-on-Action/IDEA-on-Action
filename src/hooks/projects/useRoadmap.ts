@@ -8,7 +8,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { roadmapApi, callWorkersApi } from '@/integrations/cloudflare/client';
 import { useAuth } from '@/hooks/auth/useAuth';
-import type { Roadmap } from '@/types/v2';
+import type { Roadmap } from '@/types/shared/v2';
 
 /**
  * Hook to fetch all roadmap items

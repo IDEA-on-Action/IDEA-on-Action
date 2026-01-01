@@ -10,7 +10,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
 import type { ServiceIssue } from '@/types/services/central-hub.types';
 import { SERVICE_INFO } from '@/types/services/central-hub.types';
-import type { StreamItem } from '@/hooks/useRealtimeEventStream';
+import type { StreamItem } from '@/hooks/realtime/useRealtimeEventStream';
 import { getSeverityIcon, getSeverityBadgeClass, getSeverityLabel, formatRelativeTime } from './utils';
 
 export interface IssueAlertItemProps {

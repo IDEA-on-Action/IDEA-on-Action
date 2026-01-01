@@ -4,7 +4,7 @@
  */
 
 import { useState } from 'react'
-import { useRealtimeDashboard, useAutoRefresh, useRealtimeMetrics } from '@/hooks/useRealtimeDashboard'
+import { useRealtimeDashboard, useAutoRefresh, useRealtimeMetrics } from '@/hooks/realtime/useRealtimeDashboard'
 import { useKPIs } from '@/hooks/payments/useRevenue'
 import { LiveActivityFeed } from '@/components/analytics/LiveActivityFeed'
 import { LiveMetricCard, OnlineUsersCard, ActiveSessionsCard } from '@/components/analytics/LiveMetricCard'

@@ -4,8 +4,8 @@
  * @module components/central-hub/alert-center/AlertItem
  */
 
-import type { StreamItem } from '@/hooks/useRealtimeEventStream';
-import { getEventFromStreamItem, getIssueFromStreamItem } from '@/hooks/useRealtimeEventStream';
+import type { StreamItem } from '@/hooks/realtime/useRealtimeEventStream';
+import { getEventFromStreamItem, getIssueFromStreamItem } from '@/hooks/realtime/useRealtimeEventStream';
 import { IssueAlertItem } from './IssueAlertItem';
 import { EventAlertItem } from './EventAlertItem';
 

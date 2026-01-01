@@ -13,7 +13,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { realtimeApi } from '@/integrations/cloudflare/client';
 import { useAuth } from '@/hooks/auth/useAuth';
 import type { ServiceHealth, ServiceId, HealthStatus } from '@/types/services/central-hub.types';
-import { serviceHealthKeys } from '@/hooks/useServiceHealth';
+import { serviceHealthKeys } from '@/hooks/services/useServiceHealth';
 
 // ============================================================================
 // 타입 정의

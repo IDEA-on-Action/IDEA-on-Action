@@ -7,7 +7,7 @@ import type { UseMutationResult } from '@tanstack/react-query';
 import { useSubmitWorkInquiry } from '@/hooks/useWorkInquiries';
 import { toast } from 'sonner';
 import type { ReactNode } from 'react';
-import type { Proposal, ProposalFormValues } from '@/types/v2';
+import type { Proposal, ProposalFormValues } from '@/types/shared/v2';
 
 // Mock hooks
 vi.mock('@/hooks/useWorkInquiries', () => ({

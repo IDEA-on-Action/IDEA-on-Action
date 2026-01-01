@@ -17,7 +17,7 @@ import {
   useServiceEventsByProject,
   useServiceEventStats,
   serviceEventKeys,
-} from '@/hooks/useServiceEvents';
+} from '@/hooks/services/useServiceEvents';
 import { serviceEventsApi } from '@/integrations/cloudflare/client';
 import type { ServiceEvent, ServiceEventFilter } from '@/types/services/central-hub.types';
 import React from 'react';

@@ -4,12 +4,12 @@ import { AIChatButton } from './AIChatButton';
 import { AIChatWindow } from './AIChatWindow';
 import { AIChatToolStatus } from './AIChatToolStatus';
 import { AIChatSidePanel } from './AIChatSidePanel';
-import { useClaudeStreaming } from '@/hooks/useClaudeStreaming';
-import { useClaudeTools } from '@/hooks/useClaudeTools';
+import { useClaudeStreaming } from '@/hooks/ai/useClaudeStreaming';
+import { useClaudeTools } from '@/hooks/ai/useClaudeTools';
 import { useA2UI } from '@/hooks/useA2UI';
 // useConversationManager 제거 - 현재 사용하지 않으며 불필요한 API 호출 발생
 // @see BL-AI-002 대화 컨텍스트 관리 기능은 RLS 정책 수정 후 재활성화 예정
-// import { useConversationManager } from '@/hooks/useConversationManager';
+// import { useConversationManager } from '@/hooks/ai/useConversationManager';
 import { useAuth } from '@/hooks/auth/useAuth';
 import { usePageContext } from '@/hooks/usePageContext';
 import type { AIChatMessage, AIChatConfig, AIChatA2UIBlock } from '@/types/ai/ai-chat-widget.types';
