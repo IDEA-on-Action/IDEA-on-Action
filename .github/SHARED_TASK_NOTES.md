@@ -9,31 +9,37 @@
 
 ## 현재 목표
 
-v3.2.1 완료 - @deprecated Re-export 대규모 마이그레이션 ✅
+v3.2.2 진행 중 - @deprecated Re-export 마이그레이션 계속
 
 ### 이번 세션 완료 (2026-01-01)
 
-#### Phase 1: 고사용 파일 마이그레이션
+#### Phase 3: Types 10개 + Hooks domain index 마이그레이션
 
-- [x] Hooks re-export 20개 삭제 (108 → 88개)
-- [x] Types re-export 20개 삭제 (51 → 31개)
-- [x] 300개+ 파일 import 경로 직접 경로 변경
-- [x] useAuth (137 사용처) 마이그레이션
-- [x] useToast (23 사용처) 마이그레이션
-- [x] 고사용 Types 마이그레이션
-
-#### Phase 2: 저사용 파일 마이그레이션
-
-- [x] Hooks re-export 26개 추가 삭제 (88 → 62개)
-- [x] Types re-export 13개 추가 삭제 (31 → 18개)
-- [x] 73개+ 파일 import 경로 변경
+- [x] Types 10개 삭제 (18 → 8개)
+  - editor.types.ts → @/types/cms/editor.types
+  - central-hub.types.ts → @/types/services/central-hub.types
+  - claude.types.ts → @/types/ai/claude.types
+  - cms.types.ts → @/types/cms/cms.types
+  - docx.types.ts → @/types/documents/docx.types
+  - services.ts → @/types/services/services
+  - services-platform.ts → @/types/services/services-platform
+  - skills.types.ts → @/types/ai/skills.types
+  - subscription.types.ts → @/types/subscription/subscription.types
+  - xlsx-chart.types.ts → @/types/documents/xlsx-chart.types
+- [x] 123개+ 파일 import 경로 변경
+- [x] Hooks domain index.ts 상대경로 변환 (services/, ai/, documents/ 등)
 - [x] 빌드 검증 완료
 
-#### 최종 결과
+#### 현재 상태
 
-- Hooks: 108 → 62 (46개 삭제, 57% 완료)
-- Types: 51 → 18 (33개 삭제, 65% 완료)
-- 총 79개 re-export 파일 제거
+- Types: 51 → 8 (43개 삭제, 84% 완료)
+- Hooks: 108 → 58 (50개 삭제, 54% 완료)
+- 총 93개 re-export 파일 제거
+
+#### 남은 작업
+
+- Types: 8개 남음
+- Hooks: 58개 남음 (루트 re-export 파일들)
 
 ---
 
