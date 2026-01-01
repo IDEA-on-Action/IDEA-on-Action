@@ -36,7 +36,7 @@ vi.mock('@/lib/errors', () => ({
 }));
 
 // Import after mocks are defined
-import { useNotifications } from '@/hooks/useNotifications';
+import { useNotifications } from '@/hooks/realtime/useNotifications';
 import { callWorkersApi } from '@/integrations/cloudflare/client';
 
 describe('useNotifications', () => {

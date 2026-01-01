@@ -8,7 +8,7 @@ import {
   useCancelOrder,
   useAdminOrders,
   useUpdateOrderStatus,
-} from '@/hooks/useOrders';
+} from '@/hooks/payments/useOrders';
 import { ordersApi, cartApi } from '@/integrations/cloudflare/client';
 import React, { type ReactNode } from 'react';
 

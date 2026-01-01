@@ -4,7 +4,7 @@ import { useCheckout } from '@/components/checkout/useCheckout'
 import { createWrapper } from '@/test/utils'
 import { useAuth } from '@/hooks/useAuth'
 import { useCart } from '@/hooks/useCart'
-import { useCreateOrder } from '@/hooks/useOrders'
+import { useCreateOrder } from '@/hooks/payments/useOrders'
 import { useNavigate } from 'react-router-dom'
 import { useCartStore } from '@/stores/cartStore'
 
@@ -17,7 +17,7 @@ vi.mock('@/hooks/useCart', () => ({
     useCart: vi.fn()
 }))
 
-vi.mock('@/hooks/useOrders', () => ({
+vi.mock('@/hooks/payments/useOrders', () => ({
     useCreateOrder: vi.fn()
 }))
 

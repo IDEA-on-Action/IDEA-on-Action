@@ -22,7 +22,7 @@ import {
   useUpdateAdmin,
   useDeleteAdmin,
   adminKeys,
-} from '@/hooks/useAdmins';
+} from '@/hooks/auth/useAdmins';
 import { adminsApi } from '@/integrations/cloudflare/client';
 import React from 'react';
 

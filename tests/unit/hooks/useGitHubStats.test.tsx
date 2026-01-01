@@ -6,7 +6,7 @@ import {
   useGitHubReleases,
   useGitHubLatestRelease,
   formatGitHubStatsSummary,
-} from '@/hooks/useGitHubStats'
+} from '@/hooks/integrations/useGitHubStats'
 import * as githubApi from '@/lib/github-api'
 
 // Mock GitHub API

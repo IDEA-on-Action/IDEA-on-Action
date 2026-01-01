@@ -2,7 +2,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useCanAccess } from '@/hooks/useCanAccess';
+import { useCanAccess } from '@/hooks/subscription/useCanAccess';
 import { subscriptionsApi } from '@/integrations/cloudflare/client';
 import React, { type ReactNode } from 'react';
 
