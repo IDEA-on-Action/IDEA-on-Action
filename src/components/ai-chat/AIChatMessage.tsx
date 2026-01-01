@@ -3,7 +3,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Bot, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { AIChatMessage as MessageType, AIChatA2UIBlock } from '@/types/ai-chat-widget.types';
+import type { AIChatMessage as MessageType, AIChatA2UIBlock } from '@/types/ai/ai-chat-widget.types';
 import type { A2UIUserAction } from '@/lib/a2ui/types';
 import { AIChatA2UIBlock as A2UIBlockComponent } from './AIChatA2UIBlock';
 

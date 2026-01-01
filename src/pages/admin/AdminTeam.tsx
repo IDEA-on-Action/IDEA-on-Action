@@ -17,7 +17,7 @@ import { Helmet } from 'react-helmet-async';
 import { Plus, Search, Github, Linkedin, Twitter, Globe, Loader2, Pencil, Trash2 } from 'lucide-react';
 import { useCRUD } from '@/hooks/useCRUD';
 import { useDebounce } from '@/hooks/useDebounce';
-import type { CMSTeamMember } from '@/types/cms-team.types';
+import type { CMSTeamMember } from '@/types/cms/cms-team.types';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';

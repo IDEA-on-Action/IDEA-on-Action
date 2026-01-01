@@ -26,7 +26,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { useDebounce } from '@/hooks/useDebounce';
-import { useMediaLibrary } from '@/hooks/useMediaLibrary';
+import { useMediaLibrary } from '@/hooks/media/useMediaLibrary';
 import { MediaUploader } from './MediaUploader';
 import { MediaGrid } from './MediaGrid';
 import { MediaModal } from './MediaModal';

@@ -21,7 +21,7 @@ import type {
   ColumnMapping,
   BatchResult,
   BatchImportOptions,
-} from '@/types/xlsx-import.types';
+} from '@/types/documents/xlsx-import.types';
 
 // ============================================================================
 // 파일 파싱

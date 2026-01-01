@@ -5,7 +5,7 @@
  */
 
 export * from '@/hooks/useFileUpload';
-export * from '@/hooks/useMediaLibrary';
+export * from './useMediaLibrary';
 export * from '@/hooks/useMediaList';
 export * from '@/hooks/useMediaUpload';
 export * from '@/hooks/useR2Storage';

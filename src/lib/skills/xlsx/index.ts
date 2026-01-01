@@ -88,8 +88,8 @@ export {
 
 // Hooks
 export { useXlsxExport } from '@/skills/xlsx/useXlsxExport';
-export { useXlsxImport } from '@/hooks/useXlsxImport';
-export type { UseXlsxImportResult, UseXlsxImportOptions } from '@/hooks/useXlsxImport';
+export { useXlsxImport } from '@/hooks/documents/useXlsxImport';
+export type { UseXlsxImportResult, UseXlsxImportOptions } from '@/hooks/documents/useXlsxImport';
 
 // ============================================================================
 // 동적 로딩 유틸리티

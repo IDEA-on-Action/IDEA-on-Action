@@ -2,7 +2,7 @@ import { AIChatHeader } from './AIChatHeader';
 import { AIChatMessages } from './AIChatMessages';
 import { AIChatInput } from './AIChatInput';
 import { AIChatToolStatus } from './AIChatToolStatus';
-import type { AIChatMessage } from '@/types/ai-chat-widget.types';
+import type { AIChatMessage } from '@/types/ai/ai-chat-widget.types';
 import type { A2UIUserAction } from '@/lib/a2ui/types';
 import { cn } from '@/lib/utils';
 

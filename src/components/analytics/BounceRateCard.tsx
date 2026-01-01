@@ -6,7 +6,7 @@
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { TrendingDown, TrendingUp, Users, UserX } from 'lucide-react'
-import { BounceRateData } from '@/hooks/useAnalyticsEvents'
+import { BounceRateData } from '@/hooks/analytics/useAnalyticsEvents'
 import { cn } from '@/lib/utils'
 
 interface BounceRateCardProps {

@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import { Loader2 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { AIChatMessage } from './AIChatMessage';
-import type { AIChatMessage as MessageType } from '@/types/ai-chat-widget.types';
+import type { AIChatMessage as MessageType } from '@/types/ai/ai-chat-widget.types';
 import type { A2UIUserAction } from '@/lib/a2ui/types';
 
 interface AIChatMessagesProps {

@@ -18,7 +18,7 @@ import {
   UseTemplateEditorResult,
   TemplateSection,
   TemplateField,
-} from '@/types/template-editor.types';
+} from '@/types/documents/template-editor.types';
 
 // ============================================================================
 // Initial State

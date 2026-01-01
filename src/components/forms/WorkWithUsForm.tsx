@@ -21,7 +21,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { useSubmitWorkInquiry, type WorkInquiry } from '@/hooks/useWorkInquiries';
+import { useSubmitWorkInquiry, type WorkInquiry } from '@/hooks/projects/useWorkInquiries';
 import { toast } from 'sonner';
 
 const proposalSchema = z.object({

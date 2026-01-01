@@ -56,7 +56,7 @@ import {
   getTopicTypeLabel,
   getChannelLabel,
   type AlertSubscription,
-} from '@/hooks/useAlertSubscriptions';
+} from '@/hooks/realtime/useAlertSubscriptions';
 import { cn } from '@/lib/utils';
 
 // ============================================================================

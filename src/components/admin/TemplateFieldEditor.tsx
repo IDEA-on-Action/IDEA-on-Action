@@ -14,7 +14,7 @@ import {
   FieldType,
   FIELD_TYPE_LABEL_MAP,
   FieldOption,
-} from '@/types/template-editor.types';
+} from '@/types/documents/template-editor.types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';

@@ -15,8 +15,8 @@ import type {
   RotationEvent,
   RotationCallback,
   RotationCallbackData,
-} from '@/types/token-rotation.types';
-import { RotationEvent as RotationEventEnum } from '@/types/token-rotation.types';
+} from '@/types/auth/token-rotation.types';
+import { RotationEvent as RotationEventEnum } from '@/types/auth/token-rotation.types';
 import type { OAuthTokenResponse, StoredTokens } from '@/types/mcp-auth.types';
 
 // ============================================================================

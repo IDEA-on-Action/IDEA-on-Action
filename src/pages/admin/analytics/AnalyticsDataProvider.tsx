@@ -7,7 +7,7 @@
  */
 
 import { ReactNode } from 'react'
-import { useFunnelAnalysis, useBounceRate, useEventCounts } from '@/hooks/useAnalyticsEvents'
+import { useFunnelAnalysis, useBounceRate, useEventCounts } from '@/hooks/analytics/useAnalyticsEvents'
 
 export interface AnalyticsData {
   funnelData: ReturnType<typeof useFunnelAnalysis>['data']

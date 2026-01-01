@@ -19,7 +19,7 @@ import type {
   SlideContent,
   TextStyle,
   PptxChartData,
-} from '@/types/pptx.types';
+} from '@/types/documents/pptx.types';
 
 // ============================================================================
 // 동적 import 헬퍼

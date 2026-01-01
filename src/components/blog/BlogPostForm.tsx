@@ -47,7 +47,7 @@ import { storageApi } from '@/integrations/cloudflare/client'
 import { useAuth } from '@/hooks/auth/useAuth'
 import type { BlogPostWithRelations } from '@/types/cms/blog'
 import { VersionHistory, AutoSaveIndicator, VersionCompareDialog } from '@/components/admin/version'
-import { useAutoSave, useCreateVersion, useLatestVersion, useWarnOnUnsavedChanges } from '@/hooks/useVersionControl'
+import { useAutoSave, useCreateVersion, useLatestVersion, useWarnOnUnsavedChanges } from '@/hooks/content/useVersionControl'
 import type { BlogPostSnapshot } from '@/types/version.types'
 
 // Validation Schema

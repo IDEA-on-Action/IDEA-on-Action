@@ -40,7 +40,7 @@ import {
 } from '@/components/ui/accordion';
 
 // Types
-import type { CMSTeamMember } from '@/types/cms-team.types';
+import type { CMSTeamMember } from '@/types/cms/cms-team.types';
 
 // =====================================================
 // ZOD SCHEMA

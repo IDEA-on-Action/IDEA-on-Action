@@ -29,7 +29,7 @@ import type {
   PptxStyleOptions,
   PresentationMetadata,
   PPTX_BRAND_COLORS,
-} from '@/types/pptx.types';
+} from '@/types/documents/pptx.types';
 import type { SkillError } from '@/types/skills.types';
 
 // ============================================================================

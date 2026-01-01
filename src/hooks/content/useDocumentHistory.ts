@@ -23,7 +23,7 @@ import type {
   UseDocumentHistoryOptions,
   UseDocumentStatsResult,
   DocumentStats,
-} from '@/types/document-history.types';
+} from '@/types/documents/document-history.types';
 
 // ============================================================================
 // Constants

@@ -21,7 +21,7 @@ import { useToast } from '@/components/ui/use-toast'
 import { useAuth } from '@/hooks/auth/useAuth'
 import type { NoticeWithAuthor } from '@/types/cms/notice'
 import { VersionHistory, AutoSaveIndicator, VersionCompareDialog } from '@/components/admin/version'
-import { useAutoSave, useCreateVersion, useLatestVersion, useWarnOnUnsavedChanges } from '@/hooks/useVersionControl'
+import { useAutoSave, useCreateVersion, useLatestVersion, useWarnOnUnsavedChanges } from '@/hooks/content/useVersionControl'
 import type { NoticeSnapshot } from '@/types/version.types'
 
 const noticeSchema = z.object({

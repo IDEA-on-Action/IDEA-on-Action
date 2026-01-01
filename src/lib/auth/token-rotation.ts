@@ -17,9 +17,9 @@ import type {
   RotationCallbackData,
   TokenMetadata,
   RetryStrategy,
-} from '@/types/token-rotation.types';
-import { DEFAULT_ROTATION_CONFIG } from '@/types/token-rotation.types';
-import { RotationEvent as RotationEventEnum } from '@/types/token-rotation.types';
+} from '@/types/auth/token-rotation.types';
+import { DEFAULT_ROTATION_CONFIG } from '@/types/auth/token-rotation.types';
+import { RotationEvent as RotationEventEnum } from '@/types/auth/token-rotation.types';
 
 // ============================================================================
 // 유틸리티 함수

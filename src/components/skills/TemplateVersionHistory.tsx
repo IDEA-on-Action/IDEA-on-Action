@@ -11,12 +11,12 @@
  */
 
 import React, { useState, useMemo } from 'react';
-import { useTemplateVersions } from '@/hooks/useTemplateVersions';
+import { useTemplateVersions } from '@/hooks/content/useTemplateVersions';
 import type {
   TemplateVersionHistoryProps,
   TemplateVersionWithCreator,
   VersionDiff,
-} from '@/types/template-version.types';
+} from '@/types/documents/template-version.types';
 import {
   Card,
   CardContent,

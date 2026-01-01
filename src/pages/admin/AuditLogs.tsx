@@ -3,14 +3,14 @@
  */
 
 import { useState } from 'react'
-import { useAuditLogs } from '@/hooks/useAuditLogs'
+import { useAuditLogs } from '@/hooks/analytics/useAuditLogs'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { ScrollText } from 'lucide-react'
-import type { AuditLogFilters } from '@/types/rbac'
+import type { AuditLogFilters } from '@/types/auth/rbac'
 import { formatDistanceToNow } from 'date-fns'
 
 export default function AuditLogs() {

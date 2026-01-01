@@ -21,7 +21,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { VersionItem } from './VersionItem';
 import { VersionRestoreDialog } from './VersionRestoreDialog';
-import { useVersionHistory, useRestoreVersion, useVersionCount } from '@/hooks/useVersionControl';
+import { useVersionHistory, useRestoreVersion, useVersionCount } from '@/hooks/content/useVersionControl';
 import type { ContentVersionType, ContentVersion, ContentVersionWithCreator } from '@/types/version.types';
 
 interface VersionHistoryProps {

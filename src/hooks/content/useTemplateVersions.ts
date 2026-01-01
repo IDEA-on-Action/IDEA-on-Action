@@ -25,7 +25,7 @@ import type {
   VersionDiff,
   VersionComparison,
   RestoreVersionResponse,
-} from '@/types/template-version.types';
+} from '@/types/documents/template-version.types';
 
 // ============================================================================
 // Constants

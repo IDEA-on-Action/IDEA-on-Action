@@ -5,7 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { PageLayout, HeroSection, Section } from "@/components/layouts";
 import { NextStepsCTA } from "@/components/common/NextStepsCTA";
 import { TeamMemberHoverCard } from "@/components/team/TeamMemberHoverCard";
-import { useActiveTeamMembers } from "@/hooks/useTeamMembers";
+import { useActiveTeamMembers } from "@/hooks/teams/useTeamMembers";
 import { generatePersonSchema, injectJsonLd } from "@/lib/json-ld";
 
 const About = () => {

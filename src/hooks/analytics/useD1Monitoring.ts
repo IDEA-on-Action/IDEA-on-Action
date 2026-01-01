@@ -9,7 +9,7 @@ import type {
   D1Metrics,
   D1TableStats,
   D1DatabaseHealth,
-} from '@/types/d1-monitoring.types';
+} from '@/types/shared/d1-monitoring.types';
 
 // ============================================
 // 쿼리 키

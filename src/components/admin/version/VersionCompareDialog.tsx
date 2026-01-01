@@ -14,7 +14,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { VersionDiff } from './VersionDiff';
-import { useVersionDiff } from '@/hooks/useVersionControl';
+import { useVersionDiff } from '@/hooks/content/useVersionControl';
 import type { ContentVersionType } from '@/types/version.types';
 
 interface VersionCompareDialogProps {

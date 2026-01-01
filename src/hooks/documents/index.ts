@@ -10,4 +10,4 @@ export * from '@/hooks/usePptxGenerate';
 export * from '@/hooks/useSkillExport';
 export * from '@/hooks/useXlsxChart';
 export * from '@/hooks/useXlsxExport';
-export * from '@/hooks/useXlsxImport';
+export * from './useXlsxImport';

@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useLocation, useParams } from 'react-router-dom';
-import type { PageContext } from '@/types/ai-chat-widget.types';
+import type { PageContext } from '@/types/ai/ai-chat-widget.types';
 
 /**
  * 페이지 컨텍스트 훅

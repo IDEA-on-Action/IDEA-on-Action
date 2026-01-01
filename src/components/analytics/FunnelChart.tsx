@@ -6,7 +6,7 @@
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Cell, LabelList } from 'recharts'
-import { FunnelData } from '@/hooks/useAnalyticsEvents'
+import { FunnelData } from '@/hooks/analytics/useAnalyticsEvents'
 
 interface FunnelChartProps {
   data?: FunnelData

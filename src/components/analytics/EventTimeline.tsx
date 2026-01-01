@@ -6,7 +6,7 @@
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
-import { useAnalyticsEvents } from '@/hooks/useAnalyticsEvents'
+import { useAnalyticsEvents } from '@/hooks/analytics/useAnalyticsEvents'
 import { formatDistanceToNow } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import {

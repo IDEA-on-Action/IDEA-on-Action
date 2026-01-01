@@ -20,7 +20,7 @@ import { Download, FileSpreadsheet, Presentation, Loader2, ChevronDown } from 'l
 import { useXlsxExport } from '@/skills/xlsx/useXlsxExport';
 import { usePptxGenerate } from '@/hooks/usePptxGenerate';
 import type { UseXlsxExportOptions } from '@/types/skills.types';
-import type { PptxGenerateOptions } from '@/types/pptx.types';
+import type { PptxGenerateOptions } from '@/types/documents/pptx.types';
 
 interface ExportButtonProps {
   /** Excel 내보내기 옵션 */

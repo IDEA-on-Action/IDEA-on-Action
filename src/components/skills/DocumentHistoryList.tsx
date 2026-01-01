@@ -47,7 +47,7 @@ import useDocumentHistory, { formatFileSize } from '@/hooks/useDocumentHistory';
 import type {
   DocumentHistoryListProps,
   GeneratedDocument,
-} from '@/types/document-history.types';
+} from '@/types/documents/document-history.types';
 
 // ============================================================================
 // DocumentHistoryList Component

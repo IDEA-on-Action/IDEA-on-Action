@@ -10,4 +10,4 @@ export * from '@/hooks/useProjectTypes';
 export * from '@/hooks/useProposals';
 export * from '@/hooks/useRoadmap';
 export * from '@/hooks/useRoadmapItems';
-export * from '@/hooks/useWorkInquiries';
+export * from './useWorkInquiries';

@@ -27,8 +27,8 @@ import {
   useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { TemplateEditorProps, TemplateSection, TemplateField } from '@/types/template-editor.types';
-import { useTemplateEditor } from '@/hooks/useTemplateEditor';
+import { TemplateEditorProps, TemplateSection, TemplateField } from '@/types/documents/template-editor.types';
+import { useTemplateEditor } from '@/hooks/content/useTemplateEditor';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';

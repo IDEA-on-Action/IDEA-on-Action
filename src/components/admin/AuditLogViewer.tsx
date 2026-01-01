@@ -60,7 +60,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { Label } from '@/components/ui/label';
 
-import { useAuditLogs, useAuditLog } from '@/hooks/useAuditLogs';
+import { useAuditLogs, useAuditLog } from '@/hooks/analytics/useAuditLogs';
 import type {
   AuditLogFilters,
   AuditLogPagination,

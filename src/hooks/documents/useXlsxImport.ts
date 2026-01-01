@@ -23,7 +23,7 @@ import type {
   ImportPreview,
   PreviewColumn,
   ColumnMapping,
-} from '@/types/xlsx-import.types';
+} from '@/types/documents/xlsx-import.types';
 
 // ============================================================================
 // Hook 인터페이스
