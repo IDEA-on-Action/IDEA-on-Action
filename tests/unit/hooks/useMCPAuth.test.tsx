@@ -16,7 +16,7 @@ import useMCPAuth, {
   useMCPAuthHeaders,
 } from '@/hooks/useMCPAuth';
 import * as mcpAuthLib from '@/lib/mcp-auth';
-import type { MCPTokenResponse, MCPTokenVerifyResponse } from '@/types/mcp-auth.types';
+import type { MCPTokenResponse, MCPTokenVerifyResponse } from '@/types/auth/mcp-auth.types';
 import React from 'react';
 
 // Mock dependencies

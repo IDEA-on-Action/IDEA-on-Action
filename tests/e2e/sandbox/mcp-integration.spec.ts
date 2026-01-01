@@ -13,7 +13,7 @@
 
 import { test, expect } from '@playwright/test';
 import { getAccessToken, getOAuthAccessToken, decodeJWT } from './helpers/auth';
-import type { MCPServiceName, OAuthTokenResponse } from '@/types/mcp-auth.types';
+import type { MCPServiceName, OAuthTokenResponse } from '@/types/auth/mcp-auth.types';
 
 /**
  * 테스트 계정 정보

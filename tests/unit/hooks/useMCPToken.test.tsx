@@ -12,7 +12,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import useMCPToken from '@/hooks/useMCPToken';
-import type { OAuthTokenResponse, ExchangeCodeParams } from '@/types/mcp-auth.types';
+import type { OAuthTokenResponse, ExchangeCodeParams } from '@/types/auth/mcp-auth.types';
 import React from 'react';
 
 // Mock dependencies

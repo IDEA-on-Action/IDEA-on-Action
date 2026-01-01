@@ -23,7 +23,7 @@ import type {
   TokenRotationConfig,
   TokenRotationScheduler,
 } from '@/types/token-rotation.types';
-import type { StoredTokens, OAuthTokenResponse } from '@/types/mcp-auth.types';
+import type { StoredTokens, OAuthTokenResponse } from '@/types/auth/mcp-auth.types';
 
 // ============================================================================
 // Mock 데이터

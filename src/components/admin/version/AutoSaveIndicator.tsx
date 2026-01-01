@@ -7,8 +7,8 @@
 
 import { Check, Loader2, WifiOff, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { AutoSaveStatus } from '@/types/version.types';
-import { getAutoSaveStatusText, getVersionTimeAgo } from '@/types/version.types';
+import type { AutoSaveStatus } from '@/types/shared/version.types';
+import { getAutoSaveStatusText, getVersionTimeAgo } from '@/types/shared/version.types';
 
 interface AutoSaveIndicatorProps {
   status: AutoSaveStatus;

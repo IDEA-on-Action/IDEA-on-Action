@@ -14,7 +14,7 @@ import type {
   ProjectType,
   ProjectTypeStats,
   ProjectTypeSlug,
-} from '@/types/project-types';
+} from '@/types/shared/project-types';
 
 // ============================================================================
 // Query Keys

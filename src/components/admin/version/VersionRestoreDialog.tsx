@@ -16,8 +16,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import type { ContentVersion } from '@/types/version.types';
-import { formatVersionNumber, getVersionTimeAgo } from '@/types/version.types';
+import type { ContentVersion } from '@/types/shared/version.types';
+import { formatVersionNumber, getVersionTimeAgo } from '@/types/shared/version.types';
 
 interface VersionRestoreDialogProps {
   open: boolean;

@@ -9,7 +9,7 @@
  */
 
 import { SignJWT, jwtVerify, decodeJwt } from 'jose';
-import type { JWTPayload } from '@/types/mcp-auth.types';
+import type { JWTPayload } from '@/types/auth/mcp-auth.types';
 
 // ============================================================================
 // 상수

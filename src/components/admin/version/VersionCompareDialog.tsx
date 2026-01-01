@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/dialog';
 import { VersionDiff } from './VersionDiff';
 import { useVersionDiff } from '@/hooks/content/useVersionControl';
-import type { ContentVersionType } from '@/types/version.types';
+import type { ContentVersionType } from '@/types/shared/version.types';
 
 interface VersionCompareDialogProps {
   open: boolean;

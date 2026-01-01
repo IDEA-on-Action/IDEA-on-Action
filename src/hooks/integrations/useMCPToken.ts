@@ -20,7 +20,7 @@ import type {
   TokenStatus,
   UseMCPTokenReturn,
   JWTPayload,
-} from '@/types/mcp-auth.types';
+} from '@/types/auth/mcp-auth.types';
 
 // ============================================================================
 // 상수

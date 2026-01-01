@@ -10,7 +10,7 @@
 
 import { callWorkersApi } from '@/integrations/cloudflare/client';
 import { generateAccessToken, generateRefreshToken, verifyToken, decodeToken } from './jwt';
-import type { JWTPayload } from '@/types/mcp-auth.types';
+import type { JWTPayload } from '@/types/auth/mcp-auth.types';
 
 /**
  * Workers Auth 토큰 저장 키

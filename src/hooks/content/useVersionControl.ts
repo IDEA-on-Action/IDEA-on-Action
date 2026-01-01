@@ -29,7 +29,7 @@ import type {
   AutoSaveStatus,
   AutoSaveConfig,
   RestoreResult,
-} from '@/types/version.types';
+} from '@/types/shared/version.types';
 
 // =====================================================
 // QUERY KEYS

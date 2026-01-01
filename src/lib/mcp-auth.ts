@@ -20,11 +20,11 @@ import type {
   MCPServiceName,
   MCPTokenStorageData,
   MCP_AUTH_STORAGE_KEY,
-} from '@/types/mcp-auth.types';
+} from '@/types/auth/mcp-auth.types';
 import {
   createMCPAuthError,
   DEFAULT_TOKEN_EXPIRES_IN,
-} from '@/types/mcp-auth.types';
+} from '@/types/auth/mcp-auth.types';
 
 // ============================================================================
 // Configuration

@@ -17,7 +17,7 @@ import type {
   RotationCallbackData,
 } from '@/types/auth/token-rotation.types';
 import { RotationEvent as RotationEventEnum } from '@/types/auth/token-rotation.types';
-import type { OAuthTokenResponse, StoredTokens } from '@/types/mcp-auth.types';
+import type { OAuthTokenResponse, StoredTokens } from '@/types/auth/mcp-auth.types';
 
 // ============================================================================
 // Hook 타입

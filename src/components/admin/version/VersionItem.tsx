@@ -15,8 +15,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import type { ContentVersionWithCreator } from '@/types/version.types';
-import { formatVersionNumber, getVersionTimeAgo } from '@/types/version.types';
+import type { ContentVersionWithCreator } from '@/types/shared/version.types';
+import { formatVersionNumber, getVersionTimeAgo } from '@/types/shared/version.types';
 
 interface VersionItemProps {
   version: ContentVersionWithCreator;

@@ -22,7 +22,7 @@ import { useAuth } from '@/hooks/auth/useAuth'
 import type { NoticeWithAuthor } from '@/types/cms/notice'
 import { VersionHistory, AutoSaveIndicator, VersionCompareDialog } from '@/components/admin/version'
 import { useAutoSave, useCreateVersion, useLatestVersion, useWarnOnUnsavedChanges } from '@/hooks/content/useVersionControl'
-import type { NoticeSnapshot } from '@/types/version.types'
+import type { NoticeSnapshot } from '@/types/shared/version.types'
 
 const noticeSchema = z.object({
   title: z.string().min(1, 'Title is required').max(200),

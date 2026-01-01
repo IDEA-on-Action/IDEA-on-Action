@@ -6,7 +6,7 @@
  * @module lib/auth/token-rotation
  */
 
-import type { OAuthTokenResponse, StoredTokens } from '@/types/mcp-auth.types';
+import type { OAuthTokenResponse, StoredTokens } from '@/types/auth/mcp-auth.types';
 import type {
   TokenRotationConfig,
   TokenRotationScheduler,

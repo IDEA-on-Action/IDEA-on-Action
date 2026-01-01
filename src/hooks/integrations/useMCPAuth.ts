@@ -33,8 +33,8 @@ import type {
   UseMCPAuthResult,
   TOKEN_REFRESH_THRESHOLD_SECONDS,
   TOKEN_REFRESH_CHECK_INTERVAL,
-} from '@/types/mcp-auth.types';
-import { createMCPAuthError } from '@/types/mcp-auth.types';
+} from '@/types/auth/mcp-auth.types';
+import { createMCPAuthError } from '@/types/auth/mcp-auth.types';
 
 // ============================================================================
 // Query Keys

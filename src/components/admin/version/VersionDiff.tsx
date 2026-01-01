@@ -10,7 +10,7 @@ import { Plus, Minus, Edit2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import type { VersionDiff as VersionDiffType, VersionChange } from '@/types/version.types';
+import type { VersionDiff as VersionDiffType, VersionChange } from '@/types/shared/version.types';
 
 interface VersionDiffProps {
   diff: VersionDiffType;
