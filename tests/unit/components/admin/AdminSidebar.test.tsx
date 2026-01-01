@@ -80,7 +80,7 @@ describe('AdminSidebar', () => {
     vi.clearAllMocks();
 
     // Reset all mocks to default state
-    const useRBAC = await import('@/hooks/useRBAC');
+    const useRBAC = await import('@/hooks/auth/useRBAC');
     const authModule = await import('@/hooks/useAuth');
     const sidebarStore = await import('@/stores/sidebarStore');
 
@@ -188,7 +188,7 @@ describe('AdminSidebar', () => {
   describe('권한 기반 메뉴 표시', () => {
     it('editor 역할은 제한된 메뉴만 볼 수 있어야 함', async () => {
       // Setup - editor role with limited permissions
-      const useRBAC = await import('@/hooks/useRBAC');
+      const useRBAC = await import('@/hooks/auth/useRBAC');
       vi.mocked(useRBAC.useUserPermissions).mockReturnValue({
         data: [
           { permission_name: 'blog:read' },
@@ -212,7 +212,7 @@ describe('AdminSidebar', () => {
 
     it('viewer 역할은 읽기 전용 메뉴만 볼 수 있어야 함', async () => {
       // Setup - viewer role (no permissions, only dashboard)
-      const useRBAC = await import('@/hooks/useRBAC');
+      const useRBAC = await import('@/hooks/auth/useRBAC');
       vi.mocked(useRBAC.useUserPermissions).mockReturnValue({
         data: [],
         isLoading: false,
@@ -233,7 +233,7 @@ describe('AdminSidebar', () => {
 
     it('권한 없는 메뉴 아이템은 숨겨져야 함', async () => {
       // Setup - system:manage 권한 없음 (Activity Logs 숨겨짐)
-      const useRBAC = await import('@/hooks/useRBAC');
+      const useRBAC = await import('@/hooks/auth/useRBAC');
       vi.mocked(useRBAC.useUserPermissions).mockReturnValue({
         data: [
           { permission_name: 'blog:read' },
@@ -262,7 +262,7 @@ describe('AdminSidebar', () => {
   describe('로딩 상태', () => {
     it('권한 확인 중에는 스켈레톤을 표시해야 함', async () => {
       // Setup - simulate loading
-      const useRBAC = await import('@/hooks/useRBAC');
+      const useRBAC = await import('@/hooks/auth/useRBAC');
       vi.mocked(useRBAC.useUserPermissions).mockReturnValue({
         data: undefined,
         isLoading: true,
@@ -292,7 +292,7 @@ describe('AdminSidebar', () => {
 
     it('권한 확인 실패 시에도 기본 메뉴는 표시해야 함', async () => {
       // Setup - permission check returns empty (no error, just no permissions)
-      const useRBAC = await import('@/hooks/useRBAC');
+      const useRBAC = await import('@/hooks/auth/useRBAC');
       vi.mocked(useRBAC.useUserPermissions).mockReturnValue({
         data: [],
         isLoading: false,
