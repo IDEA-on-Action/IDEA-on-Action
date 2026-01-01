@@ -184,8 +184,9 @@ describe('ServiceCard', () => {
       category: { id: 'cat-9', name: 'Category I', slug: 'cat-i', description: 'Test', created_at: '2024-01-01' },
       metrics: null,
     };
-    const { queryByText } = renderCard(service);
+    const { container } = renderCard(service);
     // metrics가 null이면 userCount는 0이 되고, 조건부 렌더링으로 사용자 수가 표시되지 않음
-    expect(queryByText(/명$/)).toBeNull();
+    // container.textContent로 검사하여 다른 테스트와의 충돌 방지
+    expect(container.textContent).not.toMatch(/\d+\s*명/);
   });
 });
