@@ -7,9 +7,9 @@
 
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
-import { useClearCart } from '@/hooks/useCart'
+import { useClearCart } from '@/hooks/payments/useCart'
 import { useCartStore } from '@/stores/cartStore'
-import type { CartWithItems } from '@/types/database'
+import type { CartWithItems } from '@/types/shared/database'
 import type { ServiceCartItem } from '@/types/services-platform'
 
 interface CartSummaryProps {

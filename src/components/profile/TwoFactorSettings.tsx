@@ -13,7 +13,7 @@ import {
     DialogTitle,
     DialogTrigger,
 } from '@/components/ui/dialog'
-import type { TwoFactorAuth } from '@/types/database'
+import type { TwoFactorAuth } from '@/types/shared/database'
 
 interface TwoFactorSettingsProps {
     settings: TwoFactorAuth | null | undefined

@@ -13,7 +13,7 @@ import {
     DialogTrigger,
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
-import type { UserProfile } from '@/types/database'
+import type { UserProfile } from '@/types/shared/database'
 
 /**
  * 인증된 사용자 타입 (Workers API 호환)

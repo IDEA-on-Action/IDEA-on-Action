@@ -10,7 +10,7 @@
 import { Helmet } from 'react-helmet-async'
 import { useAuth } from '@/hooks/useAuth'
 import { useProfile, useUpdateProfile, useUploadAvatar, useConnectedAccounts, useDisconnectAccount } from '@/hooks/useProfile'
-import { use2FASettings, useDisable2FA, useRegenerateBackupCodes } from '@/hooks/use2FA'
+import { use2FASettings, useDisable2FA, useRegenerateBackupCodes } from '@/hooks/auth/use2FA'
 
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'

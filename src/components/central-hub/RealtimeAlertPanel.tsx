@@ -44,7 +44,7 @@ import { SERVICE_INFO, SEVERITY_COLORS } from '@/types/central-hub.types';
 import { AlertFilterPanel } from './AlertFilterPanel';
 import { AlertDetailModal } from './AlertDetailModal';
 import { AlertSettings, type AlertSettingsData } from './AlertSettings';
-import { useAlertSettings } from '@/hooks/useAlertSettings';
+import { useAlertSettings } from '@/hooks/realtime/useAlertSettings';
 import { showIssueNotification } from '@/utils/notifications';
 
 // ============================================================================

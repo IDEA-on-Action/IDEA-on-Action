@@ -23,7 +23,7 @@ import { useRoadmap } from "@/hooks/useRoadmap";
 import { PageLayout, HeroSection, Section } from "@/components/layouts";
 import { NextStepsCTA } from "@/components/common/NextStepsCTA";
 import { LoadingState, ErrorState, EmptyState } from "@/components/shared";
-import { useIsAdmin } from "@/hooks/useIsAdmin";
+import { useIsAdmin } from "@/hooks/auth/useIsAdmin";
 import { analytics } from "@/lib/analytics";
 import {
   getUserFriendlyTheme,

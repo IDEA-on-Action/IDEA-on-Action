@@ -12,7 +12,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { ArrowRight, Users, Star } from 'lucide-react'
-import type { ServiceWithCategory } from '@/types/database'
+import type { ServiceWithCategory } from '@/types/shared/database'
 import ReactMarkdown from 'react-markdown'
 
 interface ServiceCardProps {

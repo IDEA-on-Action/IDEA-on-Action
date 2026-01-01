@@ -6,7 +6,7 @@
  * @module lib/rag/hybrid-search
  */
 
-import type { RAGSearchResult } from '@/types/rag.types';
+import type { RAGSearchResult } from '@/types/ai/rag.types';
 import { calculateScore } from './index';
 
 // ============================================================================

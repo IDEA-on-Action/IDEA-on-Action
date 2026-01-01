@@ -26,7 +26,7 @@ import {
 } from '@/hooks/useRealtimeServiceStatus';
 import { useRealtimeEventStream } from '@/hooks/useRealtimeEventStream';
 import { useServiceHealth } from '@/hooks/useServiceHealth';
-import { useIsAdmin } from '@/hooks/useIsAdmin';
+import { useIsAdmin } from '@/hooks/auth/useIsAdmin';
 import { cn } from '@/lib/utils';
 
 // ============================================================================

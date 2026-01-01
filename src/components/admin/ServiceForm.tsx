@@ -35,7 +35,7 @@ import {
 import { Card, CardContent } from '@/components/ui/card'
 import { Loader2, Upload, X, Plus } from 'lucide-react'
 import { useToast } from '@/hooks/useToast'
-import type { Service, ServiceCategory } from '@/types/database'
+import type { Service, ServiceCategory } from '@/types/shared/database'
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB
 const ACCEPTED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']

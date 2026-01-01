@@ -19,7 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import type { NoticeFilters } from '@/types/notice'
+import type { NoticeFilters } from '@/types/cms/notice'
 import {
   Dialog,
   DialogContent,
@@ -28,7 +28,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { MarkdownRenderer } from '@/components/blog/MarkdownRenderer'
-import type { NoticeWithAuthor } from '@/types/notice'
+import type { NoticeWithAuthor } from '@/types/cms/notice'
 import { useIncrementNoticeViewCount } from '@/hooks/useNotices'
 import { formatDistanceToNow } from 'date-fns'
 

@@ -25,12 +25,12 @@ import {
 import type {
   NewsletterSubscriber,
   NewsletterStatus,
-} from '@/types/newsletter.types';
+} from '@/types/cms/newsletter.types';
 import {
   NEWSLETTER_STATUS_COLORS,
   NEWSLETTER_STATUS_LABELS,
   SUBSCRIPTION_SOURCE_LABELS,
-} from '@/types/newsletter.types';
+} from '@/types/cms/newsletter.types';
 import type { DateRange } from 'react-day-picker';
 import { format } from 'date-fns';
 

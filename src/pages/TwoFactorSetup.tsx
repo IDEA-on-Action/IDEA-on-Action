@@ -14,7 +14,7 @@ import { useNavigate } from 'react-router-dom'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
 import { useAuth } from '@/hooks/useAuth'
-import { use2FASettings, useSetup2FA, useEnable2FA } from '@/hooks/use2FA'
+import { use2FASettings, useSetup2FA, useEnable2FA } from '@/hooks/auth/use2FA'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'

@@ -8,7 +8,7 @@ import { SEO } from "@/components/shared/SEO";
 import { Badge } from "@/components/ui/badge";
 import { mvpDevelopmentService } from "@/data/services/mvp-development";
 import { useAuth } from "@/hooks/useAuth";
-import { useAddToCart } from "@/hooks/useCart";
+import { useAddToCart } from "@/hooks/payments/useCart";
 import { useServiceBySlug } from "@/hooks/useServices";
 import { CheckCircle2 } from "lucide-react";
 import { useToast } from "@/hooks/useToast";

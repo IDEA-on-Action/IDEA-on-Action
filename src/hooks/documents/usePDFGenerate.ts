@@ -20,7 +20,7 @@ import type {
   UsePDFGenerateReturn,
   PDFMergeInput,
   WatermarkOptions,
-} from '@/types/pdf.types';
+} from '@/types/documents/pdf.types';
 import type { SkillError } from '@/types/skills.types';
 import {
   generatePDFFromHTML,

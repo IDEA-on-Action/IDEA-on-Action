@@ -18,7 +18,7 @@ import type {
   NoticeFilters,
   NoticeSortBy,
   NoticeSortOrder,
-} from '@/types/notice'
+} from '@/types/cms/notice'
 
 // =====================================================
 // QUERY KEYS

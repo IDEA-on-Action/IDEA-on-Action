@@ -25,7 +25,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
-import type { ConversationSession, ConversationMessage } from '@/types/conversation-context.types';
+import type { ConversationSession, ConversationMessage } from '@/types/ai/conversation-context.types';
 
 // ============================================================================
 // Types

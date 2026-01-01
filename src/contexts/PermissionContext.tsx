@@ -15,7 +15,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { PermissionContext } from '@/contexts/permissionContextValue'
 import type { Permission } from '@/types/rbac'
 import type { AdminRole } from '@/types/cms.types'
-import type { PermissionContext as PermissionContextType } from '@/types/permission.types'
+import type { PermissionContext as PermissionContextType } from '@/types/auth/permission.types'
 
 /**
  * 권한 프로바이더 속성

@@ -7,7 +7,7 @@ import { PageLayout } from "@/components/layouts/PageLayout";
 import { LoadingState } from "@/components/shared/LoadingState";
 import { ErrorState } from "@/components/shared/ErrorState";
 import { ActivityTrendChart } from "@/components/status/ActivityTrendChart";
-import { useProjects } from "@/hooks/useProjects";
+import { useProjects } from "@/hooks/projects/useProjects";
 import { useBounties } from "@/hooks/useBounties";
 import { useLogs } from "@/hooks/useLogs";
 import { useNewsletterStats } from "@/hooks/useNewsletter";

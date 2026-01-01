@@ -56,13 +56,13 @@ import type {
   PromptTemplateCategory,
   MinuServiceId,
   PromptVariableType,
-} from '@/types/prompt-template.types'
+} from '@/types/ai/prompt-template.types'
 import {
   PROMPT_TEMPLATE_CATEGORY_LABELS,
   MINU_SERVICE_LABELS,
   PROMPT_VARIABLE_TYPE_LABELS,
   extractVariables,
-} from '@/types/prompt-template.types'
+} from '@/types/ai/prompt-template.types'
 import {
   useCreatePromptTemplate,
   useUpdatePromptTemplate,

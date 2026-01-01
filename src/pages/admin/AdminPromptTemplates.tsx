@@ -45,11 +45,11 @@ import type {
   PromptTemplateCategory,
   MinuServiceId,
   PromptTemplateFilters
-} from '@/types/prompt-template.types'
+} from '@/types/ai/prompt-template.types'
 import {
   PROMPT_TEMPLATE_CATEGORY_LABELS,
   MINU_SERVICE_LABELS
-} from '@/types/prompt-template.types'
+} from '@/types/ai/prompt-template.types'
 
 // =====================================================
 // COMPONENT

@@ -37,7 +37,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible'
-import type { RAGSearchResult } from '@/types/rag.types'
+import type { RAGSearchResult } from '@/types/ai/rag.types'
 
 // ============================================================================
 // 타입 정의

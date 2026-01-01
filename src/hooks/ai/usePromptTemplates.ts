@@ -16,7 +16,7 @@ import type {
   PromptTemplateFilters,
   CreatePromptTemplateInput,
   UpdatePromptTemplateInput,
-} from '@/types/prompt-template.types';
+} from '@/types/ai/prompt-template.types';
 
 // ============================================================================
 // 프롬프트 렌더링 (useClaudeSkill의 renderPrompt 재사용)
@@ -25,7 +25,7 @@ import type {
 // 렌더링 함수는 타입 파일에서 임포트
 import {
   interpolateTemplate as renderPrompt,
-} from '@/types/prompt-template.types';
+} from '@/types/ai/prompt-template.types';
 
 // ============================================================================
 // 템플릿 조회 훅

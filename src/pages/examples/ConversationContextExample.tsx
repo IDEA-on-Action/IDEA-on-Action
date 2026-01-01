@@ -13,7 +13,7 @@ import type {
   ConversationSessionWithStats,
   ConversationMessage,
   ConversationStatus,
-} from '@/types/conversation-context.types';
+} from '@/types/ai/conversation-context.types';
 
 // ============================================================================
 // 더미 데이터 (실제로는 useConversationManager 훅 사용)

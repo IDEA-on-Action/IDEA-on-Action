@@ -5,7 +5,7 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { TrendingUp, TrendingDown, DollarSign, ShoppingCart, Users, UserCheck, UserPlus, Percent } from 'lucide-react'
-import { KPIs } from '@/hooks/useRevenue'
+import { KPIs } from '@/hooks/payments/useRevenue'
 
 interface KPICardProps {
   label: string

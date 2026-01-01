@@ -84,12 +84,12 @@ import type {
   HealthStatus,
   CreateIntegrationInput,
   UpdateIntegrationInput,
-} from '@/types/integrations';
+} from '@/types/integrations/integrations';
 import {
   INTEGRATION_TYPE_INFO,
   SYNC_STATUS_INFO,
   HEALTH_STATUS_INFO,
-} from '@/types/integrations';
+} from '@/types/integrations/integrations';
 
 // ============================================================================
 // Status Badge Components

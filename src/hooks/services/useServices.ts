@@ -11,7 +11,7 @@
 
 import { useQuery } from '@tanstack/react-query'
 import { servicesApi } from '@/integrations/cloudflare/client'
-import type { ServiceWithCategory, ServiceCategory } from '@/types/database'
+import type { ServiceWithCategory, ServiceCategory } from '@/types/shared/database'
 
 // 정렬 옵션 타입
 export type ServiceSortBy = 'newest' | 'oldest' | 'price-asc' | 'price-desc' | 'popular'

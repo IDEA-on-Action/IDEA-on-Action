@@ -8,8 +8,8 @@
 import { Calendar, User, Eye, AlertCircle, AlertTriangle, Bell, Wrench, Pin } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import type { NoticeWithAuthor } from '@/types/notice'
-import { isNoticeExpired } from '@/types/notice'
+import type { NoticeWithAuthor } from '@/types/cms/notice'
+import { isNoticeExpired } from '@/types/cms/notice'
 import { formatDistanceToNow } from 'date-fns'
 import { cn } from '@/lib/utils'
 

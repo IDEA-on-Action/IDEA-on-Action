@@ -23,8 +23,8 @@ import type {
   UseClaudeVisionReturn,
   AnalysisType,
   VisionImage,
-} from '@/types/vision.types'
-import { createVisionError, DEFAULT_VISION_OPTIONS } from '@/types/vision.types'
+} from '@/types/ai/vision.types'
+import { createVisionError, DEFAULT_VISION_OPTIONS } from '@/types/ai/vision.types'
 import type { ClaudeUsage } from '@/types/claude.types'
 
 // ============================================================================

@@ -13,7 +13,7 @@
 
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { useUserPermissions } from '@/hooks/useRBAC';
+import { useUserPermissions } from '@/hooks/auth/useRBAC';
 import { useSidebarStore } from '@/stores/sidebarStore';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';

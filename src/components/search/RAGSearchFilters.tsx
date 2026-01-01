@@ -27,7 +27,7 @@ import {
 } from '@/components/ui/card';
 import { Filter, RotateCcw } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { RAGSourceType } from '@/types/rag.types';
+import type { RAGSourceType } from '@/types/ai/rag.types';
 import type { MinuServiceId } from '@/types/claude.types';
 
 /**

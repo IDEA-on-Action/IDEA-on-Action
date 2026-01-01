@@ -7,7 +7,7 @@
 
 import { useMemo, type FC } from 'react'
 import { usePermissionContext } from '@/contexts/usePermissionContext'
-import type { PermissionGateProps } from '@/types/permission.types'
+import type { PermissionGateProps } from '@/types/auth/permission.types'
 
 /**
  * 권한 기반 렌더링 게이트 컴포넌트

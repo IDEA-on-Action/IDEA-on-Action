@@ -3,7 +3,7 @@ import { useState, useMemo, useEffect } from "react";
 import { Briefcase, Rocket, FlaskConical } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
-import { useProjects } from "@/hooks/useProjects";
+import { useProjects } from "@/hooks/projects/useProjects";
 import { PageLayout, HeroSection, Section } from "@/components/layouts";
 import { NextStepsCTA } from "@/components/common/NextStepsCTA";
 import { LoadingState, ErrorState, EmptyState } from "@/components/shared";

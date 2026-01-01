@@ -8,7 +8,7 @@ import { SEO } from "@/components/shared/SEO";
 import { Badge } from "@/components/ui/badge";
 import { designSystemService } from "@/data/services/design-system";
 import { useAuth } from "@/hooks/useAuth";
-import { useAddToCart } from "@/hooks/useCart";
+import { useAddToCart } from "@/hooks/payments/useCart";
 import { useServiceBySlug } from "@/hooks/useServices";
 import { CheckCircle2, Palette, FileCode, BookOpen } from "lucide-react";
 import { useToast } from "@/hooks/useToast";

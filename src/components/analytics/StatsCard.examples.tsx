@@ -20,7 +20,7 @@ import {
   formatPercent,
   formatKoreanCurrency,
   formatCompactNumber,
-} from '@/types/analytics'
+} from '@/types/shared/analytics'
 
 // ============================================
 // 예시 1: 기본 사용 (값만)

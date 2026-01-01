@@ -6,8 +6,8 @@
 
 import { Minus, Plus, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { useUpdateCartItem, useRemoveCartItem } from '@/hooks/useCart'
-import type { CartItemWithService } from '@/types/database'
+import { useUpdateCartItem, useRemoveCartItem } from '@/hooks/payments/useCart'
+import type { CartItemWithService } from '@/types/shared/database'
 
 interface CartItemProps {
   item: CartItemWithService

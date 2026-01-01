@@ -14,7 +14,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { Loader2, ArrowLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Link } from 'react-router-dom'
-import type { Service } from '@/types/database'
+import type { Service } from '@/types/shared/database'
 
 export default function EditService() {
   const { id } = useParams<{ id: string }>()

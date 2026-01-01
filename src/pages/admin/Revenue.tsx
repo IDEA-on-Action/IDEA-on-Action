@@ -6,7 +6,7 @@
  */
 
 import { useState, Suspense, lazy } from 'react'
-import { useRevenueByDate, useRevenueByService, useKPIs } from '@/hooks/useRevenue'
+import { useRevenueByDate, useRevenueByService, useKPIs } from '@/hooks/payments/useRevenue'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'

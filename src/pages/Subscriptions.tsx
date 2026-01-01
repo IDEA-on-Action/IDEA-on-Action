@@ -17,7 +17,7 @@ import Header from '@/components/Header'
 import Footer from '@/components/Footer'
 import { SEO } from '@/components/shared/SEO'
 import { useAuth } from '@/hooks/useAuth'
-import { useMySubscriptions, useCancelSubscription, useSubscriptionPayments } from '@/hooks/useSubscriptions'
+import { useMySubscriptions, useCancelSubscription, useSubscriptionPayments } from '@/hooks/subscription/useSubscriptions'
 import {
     SUBSCRIPTION_STATUS_KR,
     SUBSCRIPTION_STATUS_VARIANT,

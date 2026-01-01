@@ -12,7 +12,7 @@ import { useNavigate, useLocation } from 'react-router-dom'
 
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
-import { useVerify2FA } from '@/hooks/use2FA'
+import { useVerify2FA } from '@/hooks/auth/use2FA'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'

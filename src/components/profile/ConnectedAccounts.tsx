@@ -2,7 +2,7 @@ import { Unlink } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import type { ConnectedAccount } from '@/types/database'
+import type { ConnectedAccount } from '@/types/shared/database'
 
 interface ConnectedAccountsProps {
     accounts: ConnectedAccount[] | null | undefined

@@ -5,7 +5,7 @@
  */
 
 export * from '@/hooks/useBounties';
-export * from '@/hooks/useProjects';
+export * from './useProjects';
 export * from '@/hooks/useProjectTypes';
 export * from '@/hooks/useProposals';
 export * from '@/hooks/useRoadmap';

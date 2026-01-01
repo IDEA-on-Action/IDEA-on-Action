@@ -5,7 +5,7 @@
 
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { RevenueByDate } from '@/hooks/useRevenue'
+import { RevenueByDate } from '@/hooks/payments/useRevenue'
 
 interface OrdersChartProps {
   data: RevenueByDate[]

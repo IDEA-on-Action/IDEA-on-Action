@@ -25,7 +25,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
-import type { ConversationSessionWithStats, ConversationStatus } from '@/types/conversation-context.types';
+import type { ConversationSessionWithStats, ConversationStatus } from '@/types/ai/conversation-context.types';
 
 // ============================================================================
 // Types

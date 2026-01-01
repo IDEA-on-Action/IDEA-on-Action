@@ -9,7 +9,7 @@ import { Link } from 'react-router-dom'
 import { Calendar, Clock, Eye, User, Tag } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import type { BlogPostWithRelations } from '@/types/blog'
+import type { BlogPostWithRelations } from '@/types/cms/blog'
 import { formatDistanceToNow } from 'date-fns'
 
 interface BlogCardProps {

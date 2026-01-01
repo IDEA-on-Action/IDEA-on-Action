@@ -22,7 +22,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { format, subDays, startOfDay } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import { StatsCard, StatsCardGrid } from '@/components/analytics/StatsCard'
-import { formatKoreanCurrency } from '@/types/analytics'
+import { formatKoreanCurrency } from '@/types/shared/analytics'
 
 // 동적 import로 Recharts 로딩 최적화 (Phase 3)
 // 차트 컴포넌트를 별도로 분리하여 lazy loading

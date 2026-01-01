@@ -11,7 +11,7 @@
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { FileText, Calendar, ExternalLink, TrendingUp } from 'lucide-react';
-import type { RAGSearchResult as RAGSearchResultType } from '@/types/rag.types';
+import type { RAGSearchResult as RAGSearchResultType } from '@/types/ai/rag.types';
 import { highlightQuery } from '@/lib/rag';
 
 interface RAGSearchResultProps {

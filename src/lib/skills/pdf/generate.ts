@@ -15,14 +15,14 @@ import type {
   PageSize,
   PDFMergeInput,
   WatermarkOptions,
-} from '@/types/pdf.types';
+} from '@/types/documents/pdf.types';
 import {
   PageFormat,
   PageOrientation,
   PAGE_SIZES,
   DEFAULT_MARGINS,
   DEFAULT_PDF_OPTIONS,
-} from '@/types/pdf.types';
+} from '@/types/documents/pdf.types';
 
 // ============================================================================
 // 유틸리티 함수

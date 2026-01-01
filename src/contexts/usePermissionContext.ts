@@ -7,7 +7,7 @@
 
 import { useContext } from 'react'
 import { PermissionContext } from '@/contexts/permissionContextValue'
-import type { PermissionContext as PermissionContextType } from '@/types/permission.types'
+import type { PermissionContext as PermissionContextType } from '@/types/auth/permission.types'
 
 /**
  * 권한 컨텍스트 훅

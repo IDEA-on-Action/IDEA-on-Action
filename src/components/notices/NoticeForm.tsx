@@ -19,7 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox'
 import { useToast } from '@/hooks/useToast'
 import { useAuth } from '@/hooks/useAuth'
-import type { NoticeWithAuthor } from '@/types/notice'
+import type { NoticeWithAuthor } from '@/types/cms/notice'
 import { VersionHistory, AutoSaveIndicator, VersionCompareDialog } from '@/components/admin/version'
 import { useAutoSave, useCreateVersion, useLatestVersion, useWarnOnUnsavedChanges } from '@/hooks/useVersionControl'
 import type { NoticeSnapshot } from '@/types/version.types'

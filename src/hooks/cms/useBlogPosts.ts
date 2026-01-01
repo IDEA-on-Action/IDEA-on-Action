@@ -20,8 +20,8 @@ import type {
   BlogPostSortOrder,
   PostCategory,
   PostTag,
-} from '@/types/blog'
-import { calculateReadingTime } from '@/types/blog'
+} from '@/types/cms/blog'
+import { calculateReadingTime } from '@/types/cms/blog'
 
 // =====================================================
 // QUERY KEYS

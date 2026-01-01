@@ -24,8 +24,8 @@ import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 
 // Types & Utils
-import type { PromptTemplateVariable } from '@/types/prompt-template.types'
-import { interpolateTemplate, extractVariables } from '@/types/prompt-template.types'
+import type { PromptTemplateVariable } from '@/types/ai/prompt-template.types'
+import { interpolateTemplate, extractVariables } from '@/types/ai/prompt-template.types'
 
 // =====================================================
 // COMPONENT PROPS

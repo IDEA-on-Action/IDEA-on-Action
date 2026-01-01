@@ -21,12 +21,12 @@ import type {
   ImageValidationResult,
   ImageSourceType,
   UrlValidationResult,
-} from '@/types/vision.types'
+} from '@/types/ai/vision.types'
 import {
   IMAGE_VALIDATION,
   SUPPORTED_MEDIA_TYPES,
   createVisionError,
-} from '@/types/vision.types'
+} from '@/types/ai/vision.types'
 
 // Claude API 이미지 크기 제한 (5MB)
 export const MAX_IMAGE_SIZE = 5 * 1024 * 1024 // 5MB in bytes

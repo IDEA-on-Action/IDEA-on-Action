@@ -44,8 +44,8 @@ import type {
   AuthType,
   CreateIntegrationInput,
   UpdateIntegrationInput,
-} from '@/types/integrations';
-import { INTEGRATION_TYPE_INFO } from '@/types/integrations';
+} from '@/types/integrations/integrations';
+import { INTEGRATION_TYPE_INFO } from '@/types/integrations/integrations';
 
 // ============================================================================
 // Form Schema

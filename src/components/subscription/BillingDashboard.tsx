@@ -7,7 +7,7 @@
 import React, { useState } from 'react';
 import { useBillingPortal } from '@/hooks/subscription/useBillingPortal';
 import { useSubscriptionUsage } from '@/hooks/subscription/useSubscriptionUsage';
-import { useMySubscriptions, useSubscriptionPayments } from '@/hooks/useSubscriptions';
+import { useMySubscriptions, useSubscriptionPayments } from '@/hooks/subscription/useSubscriptions';
 import {
   Card,
   CardContent,

@@ -15,8 +15,8 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import Header from '@/components/Header'
 import { useAuth } from '@/hooks/useAuth'
-import { useIsAdmin } from '@/hooks/useIsAdmin'
-import { useUserRoles } from '@/hooks/useRBAC'
+import { useIsAdmin } from '@/hooks/auth/useIsAdmin'
+import { useUserRoles } from '@/hooks/auth/useRBAC'
 
 interface AdminLayoutProps {
   children: ReactNode

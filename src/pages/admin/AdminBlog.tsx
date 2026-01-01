@@ -8,7 +8,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Plus, Edit, Trash2, Eye, Calendar, Tag } from 'lucide-react'
-import { useBlogPosts, useDeleteBlogPost, useCategories } from '@/hooks/useBlogPosts'
+import { useBlogPosts, useDeleteBlogPost, useCategories } from '@/hooks/cms/useBlogPosts'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -37,7 +37,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { useToast } from '@/hooks/useToast'
-import type { BlogPostWithRelations } from '@/types/blog'
+import type { BlogPostWithRelations } from '@/types/cms/blog'
 import { formatDistanceToNow } from 'date-fns'
 
 export default function AdminBlog() {

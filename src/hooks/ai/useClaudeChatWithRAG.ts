@@ -18,8 +18,8 @@ import type {
   RAGSearchOptions,
   RAGContext,
   buildRAGContext,
-} from '@/types/rag.types'
-import { buildRAGContext as buildContext } from '@/types/rag.types'
+} from '@/types/ai/rag.types'
+import { buildRAGContext as buildContext } from '@/types/ai/rag.types'
 
 // ============================================================================
 // 타입 정의

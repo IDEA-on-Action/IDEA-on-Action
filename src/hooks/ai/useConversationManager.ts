@@ -35,14 +35,14 @@ import type {
   ForkConversationResult,
   ExportMarkdownResult,
   UseConversationManagerResult,
-} from '@/types/conversation-context.types';
+} from '@/types/ai/conversation-context.types';
 
 // 타입 변환 함수 임포트
 import {
   dbToConversationSession as convertDbToSession,
   dbToConversationMessage as convertDbToMessage,
   conversationSessionToDb as convertSessionToDb,
-} from '@/types/conversation-context.types';
+} from '@/types/ai/conversation-context.types';
 
 // ============================================================================
 // 상수

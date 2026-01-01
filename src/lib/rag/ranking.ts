@@ -6,7 +6,7 @@
  * @module lib/rag/ranking
  */
 
-import type { RAGSearchResult } from '@/types/rag.types';
+import type { RAGSearchResult } from '@/types/ai/rag.types';
 
 // ============================================================================
 // 상수

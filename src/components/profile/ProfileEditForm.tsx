@@ -15,7 +15,7 @@ import {
     FormLabel,
     FormMessage,
 } from '@/components/ui/form'
-import type { UserProfile } from '@/types/database'
+import type { UserProfile } from '@/types/shared/database'
 import { useEffect } from 'react'
 
 const profileSchema = z.object({

@@ -17,7 +17,7 @@ import type {
   NewsletterFilters,
   NewsletterSubscribersResponse,
   UpdateSubscriberStatusRequest,
-} from '@/types/newsletter.types';
+} from '@/types/cms/newsletter.types';
 
 /**
  * 뉴스레터 구독자 목록 조회 (관리자 전용)

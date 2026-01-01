@@ -13,7 +13,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/hooks/useAuth";
-import { useIsAdmin } from "@/hooks/useIsAdmin";
+import { useIsAdmin } from "@/hooks/auth/useIsAdmin";
 import { CartButton } from "@/components/cart";
 import { NotificationBell } from "@/components/notifications";
 import logoSymbol from "@/assets/logo-symbol.webp";

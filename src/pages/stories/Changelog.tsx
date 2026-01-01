@@ -19,7 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useBlogPosts } from "@/hooks/useBlogPosts";
+import { useBlogPosts } from "@/hooks/cms/useBlogPosts";
 
 export default function Changelog() {
   const [selectedProject, setSelectedProject] = useState<string>("");

@@ -3,7 +3,7 @@
  */
 
 import { useState } from 'react'
-import { useRoles, usePermissions, useUserRoles, useAssignRole, useRevokeRole } from '@/hooks/useRBAC'
+import { useRoles, usePermissions, useUserRoles, useAssignRole, useRevokeRole } from '@/hooks/auth/useRBAC'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'

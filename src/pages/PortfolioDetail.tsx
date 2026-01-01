@@ -4,7 +4,7 @@ import { ArrowLeft, ExternalLink, Github, Calendar, TrendingUp, Users, GitBranch
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { useProject } from "@/hooks/useProjects";
+import { useProject } from "@/hooks/projects/useProjects";
 
 const PortfolioDetail = () => {
   const { slug } = useParams<{ slug: string }>();

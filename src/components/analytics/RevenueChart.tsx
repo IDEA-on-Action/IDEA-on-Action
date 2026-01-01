@@ -5,7 +5,7 @@
 
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { RevenueByDate } from '@/hooks/useRevenue'
+import { RevenueByDate } from '@/hooks/payments/useRevenue'
 
 interface RevenueChartProps {
   data: RevenueByDate[]

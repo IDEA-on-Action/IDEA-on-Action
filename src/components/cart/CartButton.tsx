@@ -9,7 +9,7 @@ import { ShoppingCart } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { useCartStore } from '@/stores/cartStore'
-import { useCart } from '@/hooks/useCart'
+import { useCart } from '@/hooks/payments/useCart'
 
 export function CartButton() {
   const { openCart, serviceItems } = useCartStore()

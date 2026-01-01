@@ -6,7 +6,7 @@
  */
 
 import { useParams, Navigate } from 'react-router-dom'
-import { useBlogPost } from '@/hooks/useBlogPosts'
+import { useBlogPost } from '@/hooks/cms/useBlogPosts'
 import { BlogPostForm } from '@/components/blog/BlogPostForm'
 import { Loader2 } from 'lucide-react'
 

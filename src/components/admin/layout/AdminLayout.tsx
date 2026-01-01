@@ -12,7 +12,7 @@
 import { useState, useEffect } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { useIsAdmin } from '@/hooks/useIsAdmin';
+import { useIsAdmin } from '@/hooks/auth/useIsAdmin';
 import { useSidebarStore } from '@/stores/sidebarStore';
 import { AdminSidebar } from './AdminSidebar';
 import { AdminHeader } from './AdminHeader';

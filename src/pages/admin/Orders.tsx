@@ -38,7 +38,7 @@ import {
 import { Separator } from '@/components/ui/separator'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Package, Loader2, AlertCircle } from 'lucide-react'
-import type { OrderWithItems } from '@/types/database'
+import type { OrderWithItems } from '@/types/shared/database'
 
 type OrderStatus = 'pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'refunded'
 

@@ -13,7 +13,7 @@ import { Helmet } from 'react-helmet-async'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { servicesApi } from '@/integrations/cloudflare/client'
 import { useAuth } from '@/hooks/useAuth'
-import type { Service } from '@/types/database'
+import type { Service } from '@/types/shared/database'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {

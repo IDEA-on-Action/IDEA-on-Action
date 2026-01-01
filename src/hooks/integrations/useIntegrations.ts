@@ -22,7 +22,7 @@ import type {
   IntegrationType,
   SyncStatus,
   HealthStatus,
-} from '@/types/integrations';
+} from '@/types/integrations/integrations';
 
 // ============================================================================
 // Query Keys
