@@ -13,7 +13,7 @@ import {
   DEFAULT_CHART_WIDTH,
   DEFAULT_CHART_HEIGHT,
   SUPPORTED_IMAGE_TYPES,
-} from '@/types/docx-image.types';
+} from '@/types/documents/docx-image.types';
 import { AlignmentType } from 'docx';
 
 describe('docx-image 유틸리티 함수', () => {

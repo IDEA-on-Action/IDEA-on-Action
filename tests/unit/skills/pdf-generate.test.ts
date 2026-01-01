@@ -14,8 +14,8 @@ import {
   addWatermark,
   downloadPDF,
 } from '@/lib/skills/pdf/generate';
-import type { PDFMetadata, PDFMergeInput } from '@/types/pdf.types';
-import { PageFormat, PageOrientation } from '@/types/pdf.types';
+import type { PDFMetadata, PDFMergeInput } from '@/types/documents/pdf.types';
+import { PageFormat, PageOrientation } from '@/types/documents/pdf.types';
 
 // Mock pdf-lib
 const mockPDFDocCreate = vi.fn();

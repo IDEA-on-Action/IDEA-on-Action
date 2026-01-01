@@ -8,7 +8,7 @@ import type { Project, Bounty, Log } from '@/types/v2';
 import React, { type ReactNode } from 'react';
 
 // Mock hooks
-vi.mock('@/hooks/useProjects', () => ({
+vi.mock('@/hooks/projects/useProjects', () => ({
   useProjects: vi.fn(),
 }));
 
@@ -37,7 +37,7 @@ global.ResizeObserver = class ResizeObserver {
   disconnect() {}
 };
 
-import { useProjects } from '@/hooks/useProjects';
+import { useProjects } from '@/hooks/projects/useProjects';
 import { useBounties } from '@/hooks/useBounties';
 import { useLogs } from '@/hooks/useLogs';
 import { useNewsletterStats, useSubscribeNewsletter } from '@/hooks/useNewsletter';

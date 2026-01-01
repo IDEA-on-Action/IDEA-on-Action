@@ -35,7 +35,7 @@ vi.mock('@/hooks/useAuth', () => ({
   })),
 }));
 
-vi.mock('@/hooks/useRBAC', () => ({
+vi.mock('@/hooks/auth/useRBAC', () => ({
   useUserPermissions: vi.fn(() => ({
     data: [
       { permission_name: 'blog:read' },

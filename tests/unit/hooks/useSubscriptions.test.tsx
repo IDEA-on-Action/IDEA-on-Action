@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook, waitFor } from '@testing-library/react'
-import { useMySubscriptions, useCancelSubscription } from '@/hooks/useSubscriptions'
+import { useMySubscriptions, useCancelSubscription } from '@/hooks/subscription/useSubscriptions'
 import { createWrapper } from '@/test/utils'
 import { subscriptionsApi } from '@/integrations/cloudflare/client'
 

@@ -18,7 +18,7 @@ import {
   useKPIs,
   useTotalRevenue,
   useUserTotalSpent,
-} from '@/hooks/useRevenue';
+} from '@/hooks/payments/useRevenue';
 import { callWorkersApi } from '@/integrations/cloudflare/client';
 import React from 'react';
 
