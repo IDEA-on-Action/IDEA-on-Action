@@ -46,7 +46,7 @@ import {
   useCancelSubscription,
   useUpgradeSubscription,
   subscriptionKeys,
-} from '@/hooks/useSubscriptions';
+} from '@/hooks/subscription/useSubscriptions';
 import { useAuth } from '@/hooks/useAuth';
 import { subscriptionsApi } from '@/integrations/cloudflare/client';
 import { toast } from 'sonner';

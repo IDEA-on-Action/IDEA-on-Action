@@ -12,7 +12,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
-import { useAlertSettings } from '@/hooks/useAlertSettings';
+import { useAlertSettings } from '@/hooks/realtime/useAlertSettings';
 import type { AlertSettingsData } from '@/components/central-hub/AlertSettings';
 
 // Mock localStorage

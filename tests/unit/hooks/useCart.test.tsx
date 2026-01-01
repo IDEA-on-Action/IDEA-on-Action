@@ -7,7 +7,7 @@ import {
   useUpdateCartItem,
   useRemoveCartItem,
   useClearCart,
-} from '@/hooks/useCart';
+} from '@/hooks/payments/useCart';
 import { cartApi } from '@/integrations/cloudflare/client';
 import React, { type ReactNode } from 'react';
 
