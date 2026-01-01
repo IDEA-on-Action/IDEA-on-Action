@@ -1,2 +1,3 @@
 /** @deprecated Use `@/hooks/integrations/useMCPToken` directly */
-export * from './integrations/useMCPToken';
+export { useMCPToken, default } from './integrations/useMCPToken';
+export type { UseMCPTokenReturn } from '@/types/mcp-auth.types';

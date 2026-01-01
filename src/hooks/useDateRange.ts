@@ -81,8 +81,9 @@ export function useDateRange(options: UseDateRangeOptions = {}): UseDateRangeRet
           to.setHours(23, 59, 59, 999);
           break;
         case "lastMonth":
-          from.setMonth(today.getMonth() - 1);
+          // 월말 날짜 문제 방지: setDate(1)을 먼저 호출
           from.setDate(1);
+          from.setMonth(today.getMonth() - 1);
           from.setHours(0, 0, 0, 0);
           to = new Date(from.getFullYear(), from.getMonth() + 1, 0);
           to.setHours(23, 59, 59, 999);

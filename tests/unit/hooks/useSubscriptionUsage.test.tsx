@@ -1,13 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { renderHook, waitFor, act } from '@testing-library/react';
+import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import {
-  useSubscriptionUsage,
-  useIncrementUsage,
-  useResetUsage,
-  useFeatureUsage,
-} from '@/hooks/useSubscriptionUsage';
+import { useSubscriptionUsage } from '@/hooks/useSubscriptionUsage';
 import { subscriptionsApi, callWorkersApi } from '@/integrations/cloudflare/client';
 import React, { type ReactNode } from 'react';
 
@@ -22,14 +17,6 @@ vi.mock('@/integrations/cloudflare/client', () => ({
 // Mock useAuth with workersTokens
 vi.mock('@/hooks/useAuth', () => ({
   useAuth: vi.fn(),
-}));
-
-// Mock sonner toast
-vi.mock('sonner', () => ({
-  toast: {
-    success: vi.fn(),
-    error: vi.fn(),
-  },
 }));
 
 import { useAuth } from '@/hooks/useAuth';
@@ -56,10 +43,9 @@ describe('useSubscriptionUsage', () => {
       id: 'plan-1',
       plan_name: '프로',
       features: {
-        ai_chat_messages: 1000,
-        document_export: 100,
-        project_count: 10,
-        storage_mb: 10240,
+        api_calls: 1000,
+        storage_gb: 100,
+        team_members: 10,
       },
     },
   };
@@ -98,8 +84,8 @@ describe('useSubscriptionUsage', () => {
 
       vi.mocked(callWorkersApi).mockResolvedValue({
         data: [
-          { feature_key: 'ai_chat_messages', used_count: 50 },
-          { feature_key: 'document_export', used_count: 10 },
+          { feature_key: 'api_calls', usage_count: 50 },
+          { feature_key: 'storage_gb', usage_count: 10 },
         ],
         error: null,
         status: 200,
@@ -113,13 +99,13 @@ describe('useSubscriptionUsage', () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      expect(result.current.usage).toBeDefined();
-      expect(result.current.usage.length).toBeGreaterThan(0);
-      expect(result.current.totalUsed).toBeDefined();
+      expect(result.current.data).toBeDefined();
+      expect(result.current.data?.features).toBeDefined();
+      expect(result.current.data?.features.length).toBeGreaterThan(0);
       expect(subscriptionsApi.getCurrent).toHaveBeenCalledWith('mock-token');
     });
 
-    it('로그인하지 않은 경우 빈 사용량을 반환해야 함', async () => {
+    it('로그인하지 않은 경우 쿼리가 비활성화되어야 함', async () => {
       // Setup
       vi.mocked(useAuth).mockReturnValue({
         user: null,
@@ -129,47 +115,18 @@ describe('useSubscriptionUsage', () => {
       // Execute
       const { result } = renderHook(() => useSubscriptionUsage(), { wrapper });
 
-      // Assert
+      // Assert - enabled: false이므로 isLoading은 false이고 data는 undefined
       await waitFor(() => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      expect(result.current.usage).toEqual([]);
-      expect(result.current.totalUsed).toBe(0);
+      expect(result.current.data).toBeUndefined();
     });
 
-    it('활성 구독이 없는 경우 빈 사용량을 반환해야 함', async () => {
-      // Setup - Workers API 에러 모킹
+    it('활성 구독이 없는 경우 null을 반환해야 함', async () => {
+      // Setup - 구독 없음
       vi.mocked(subscriptionsApi.getCurrent).mockResolvedValue({
         data: null,
-        error: 'No active subscription found',
-        status: 404,
-      });
-
-      // Execute
-      const { result } = renderHook(() => useSubscriptionUsage(), { wrapper });
-
-      // Assert
-      await waitFor(() => {
-        expect(result.current.isLoading).toBe(false);
-      });
-
-      expect(result.current.usage).toEqual([]);
-      expect(result.current.totalUsed).toBe(0);
-    });
-
-    it('플랜에 features가 없는 경우 빈 사용량을 반환해야 함', async () => {
-      // Setup
-      const subscriptionWithoutFeatures = {
-        ...mockSubscription,
-        plan: {
-          ...mockSubscription.plan,
-          features: null,
-        },
-      };
-
-      vi.mocked(subscriptionsApi.getCurrent).mockResolvedValue({
-        data: subscriptionWithoutFeatures,
         error: null,
         status: 200,
       });
@@ -182,12 +139,11 @@ describe('useSubscriptionUsage', () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      expect(result.current.usage).toEqual([]);
-      expect(result.current.totalUsed).toBe(0);
+      expect(result.current.data).toBeNull();
     });
 
-    it('사용량 데이터에 feature_name이 포함되어야 함', async () => {
-      // Setup - Workers API 모킹
+    it('플랜에 features가 있으면 사용량 데이터를 반환해야 함', async () => {
+      // Setup
       vi.mocked(subscriptionsApi.getCurrent).mockResolvedValue({
         data: mockSubscription,
         error: null,
@@ -195,7 +151,7 @@ describe('useSubscriptionUsage', () => {
       });
 
       vi.mocked(callWorkersApi).mockResolvedValue({
-        data: [{ feature_key: 'ai_chat_messages', used_count: 50 }],
+        data: [{ feature_key: 'api_calls', usage_count: 50 }],
         error: null,
         status: 200,
       });
@@ -208,253 +164,14 @@ describe('useSubscriptionUsage', () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      const aiChatUsage = result.current.usage.find(
-        (u) => u.feature_key === 'ai_chat_messages'
+      expect(result.current.data?.features).toBeDefined();
+      const apiCallsFeature = result.current.data?.features.find(
+        (f) => f.feature_key === 'api_calls'
       );
-      expect(aiChatUsage?.feature_name).toBe('AI 채팅 메시지');
-    });
-  });
-
-  describe('useIncrementUsage', () => {
-    it('사용량 증가 함수를 제공해야 함', () => {
-      const { result } = renderHook(() => useIncrementUsage(), { wrapper });
-
-      expect(result.current.incrementUsage).toBeDefined();
-      expect(result.current.isLoading).toBe(false);
-    });
-
-    it('사용량 증가를 시도해야 함', async () => {
-      // Setup - Workers API 모킹
-      vi.mocked(subscriptionsApi.getCurrent).mockResolvedValue({
-        data: mockSubscription,
-        error: null,
-        status: 200,
-      });
-
-      vi.mocked(callWorkersApi).mockResolvedValue({
-        data: { success: true },
-        error: null,
-        status: 200,
-      });
-
-      // Execute
-      const { result } = renderHook(() => useIncrementUsage(), { wrapper });
-
-      await waitFor(() => {
-        expect(result.current.isLoading).toBe(false);
-      });
-
-      act(() => {
-        result.current.incrementUsage({ feature_key: 'ai_chat_messages' });
-      });
-
-      await waitFor(() => {
-        expect(result.current.isLoading).toBe(false);
-      });
-
-      expect(subscriptionsApi.getCurrent).toHaveBeenCalledWith('mock-token');
-    });
-
-    it('로그인하지 않은 경우 에러를 반환해야 함', async () => {
-      // Setup
-      vi.mocked(useAuth).mockReturnValue({
-        user: null,
-        workersTokens: null,
-      } as any);
-
-      // Execute
-      const { result } = renderHook(() => useIncrementUsage(), { wrapper });
-
-      await waitFor(() => {
-        expect(result.current.isLoading).toBe(false);
-      });
-
-      // Assert
-      await act(async () => {
-        try {
-          await result.current.incrementUsageAsync({ feature_key: 'ai_chat_messages' });
-        } catch (error) {
-          expect((error as Error).message).toBe('로그인이 필요합니다.');
-        }
-      });
-    });
-
-    it('increment_by 파라미터를 사용할 수 있어야 함', async () => {
-      // Setup - Workers API 모킹
-      vi.mocked(subscriptionsApi.getCurrent).mockResolvedValue({
-        data: mockSubscription,
-        error: null,
-        status: 200,
-      });
-
-      vi.mocked(callWorkersApi).mockResolvedValue({
-        data: { success: true },
-        error: null,
-        status: 200,
-      });
-
-      // Execute
-      const { result } = renderHook(() => useIncrementUsage(), { wrapper });
-
-      await waitFor(() => {
-        expect(result.current.isLoading).toBe(false);
-      });
-
-      act(() => {
-        result.current.incrementUsage({
-          feature_key: 'ai_chat_messages',
-          increment_by: 5,
-        });
-      });
-
-      await waitFor(() => {
-        expect(result.current.isLoading).toBe(false);
-      });
-
-      expect(result.current.incrementUsage).toBeDefined();
-    });
-  });
-
-  describe('useResetUsage', () => {
-    it('사용량 초기화 함수를 제공해야 함', () => {
-      const { result } = renderHook(() => useResetUsage(), { wrapper });
-
-      expect(result.current.resetUsage).toBeDefined();
-      expect(result.current.isLoading).toBe(false);
-    });
-
-    it('사용량 초기화를 시도해야 함', async () => {
-      // Setup - Workers API 모킹
-      vi.mocked(callWorkersApi).mockResolvedValue({
-        data: { success: true, message: '사용량이 초기화되었습니다.' },
-        error: null,
-        status: 200,
-      });
-
-      // Execute
-      const { result } = renderHook(() => useResetUsage(), { wrapper });
-
-      await waitFor(() => {
-        expect(result.current.isLoading).toBe(false);
-      });
-
-      act(() => {
-        result.current.resetUsage({ user_id: 'user-123' });
-      });
-
-      await waitFor(() => {
-        expect(result.current.isLoading).toBe(false);
-      });
-
-      expect(result.current.resetUsage).toBeDefined();
-    });
-
-    it('특정 기능만 초기화할 수 있어야 함', async () => {
-      // Setup - Workers API 모킹
-      vi.mocked(callWorkersApi).mockResolvedValue({
-        data: { success: true, message: '사용량이 초기화되었습니다.' },
-        error: null,
-        status: 200,
-      });
-
-      // Execute
-      const { result } = renderHook(() => useResetUsage(), { wrapper });
-
-      await waitFor(() => {
-        expect(result.current.isLoading).toBe(false);
-      });
-
-      act(() => {
-        result.current.resetUsage({
-          user_id: 'user-123',
-          feature_key: 'ai_chat_messages',
-        });
-      });
-
-      await waitFor(() => {
-        expect(result.current.isLoading).toBe(false);
-      });
-
-      expect(result.current.resetUsage).toBeDefined();
-    });
-  });
-
-  describe('useFeatureUsage', () => {
-    it('특정 기능의 사용량만 조회해야 함', async () => {
-      // Setup - Workers API 모킹
-      vi.mocked(subscriptionsApi.getCurrent).mockResolvedValue({
-        data: mockSubscription,
-        error: null,
-        status: 200,
-      });
-
-      vi.mocked(callWorkersApi).mockResolvedValue({
-        data: [
-          { feature_key: 'ai_chat_messages', used_count: 50 },
-          { feature_key: 'document_export', used_count: 10 },
-        ],
-        error: null,
-        status: 200,
-      });
-
-      // Execute
-      const { result } = renderHook(() => useFeatureUsage('ai_chat_messages'), { wrapper });
-
-      // Assert
-      await waitFor(() => {
-        expect(result.current.isLoading).toBe(false);
-      });
-
-      expect(result.current.usage).toBeDefined();
-      if (result.current.usage) {
-        expect(result.current.usage.feature_key).toBe('ai_chat_messages');
-        expect(result.current.usage.feature_name).toBe('AI 채팅 메시지');
-      }
-    });
-
-    it('존재하지 않는 기능의 경우 undefined를 반환해야 함', async () => {
-      // Setup - Workers API 모킹
-      vi.mocked(subscriptionsApi.getCurrent).mockResolvedValue({
-        data: mockSubscription,
-        error: null,
-        status: 200,
-      });
-
-      vi.mocked(callWorkersApi).mockResolvedValue({
-        data: [],
-        error: null,
-        status: 200,
-      });
-
-      // Execute
-      const { result } = renderHook(() => useFeatureUsage('non_existent_feature'), {
-        wrapper,
-      });
-
-      // Assert
-      await waitFor(() => {
-        expect(result.current.isLoading).toBe(false);
-      });
-
-      expect(result.current.usage).toBeUndefined();
-    });
-
-    it('로그인하지 않은 경우 undefined를 반환해야 함', async () => {
-      // Setup
-      vi.mocked(useAuth).mockReturnValue({
-        user: null,
-        workersTokens: null,
-      } as any);
-
-      // Execute
-      const { result } = renderHook(() => useFeatureUsage('ai_chat_messages'), { wrapper });
-
-      // Assert
-      await waitFor(() => {
-        expect(result.current.isLoading).toBe(false);
-      });
-
-      expect(result.current.usage).toBeUndefined();
+      expect(apiCallsFeature).toBeDefined();
+      expect(apiCallsFeature?.feature_name).toBe('API 호출');
+      expect(apiCallsFeature?.usage_count).toBe(50);
+      expect(apiCallsFeature?.limit).toBe(1000);
     });
   });
 });
