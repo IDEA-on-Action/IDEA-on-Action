@@ -91,41 +91,10 @@ jobs:
       - name: TypeScript Type Check
         run: npx tsc --noEmit
 
-  # Unit Tests - Shard로 분할 실행 (메모리 최적화)
-  test-unit:
-    name: Unit Tests (Shard ${{ matrix.shard }}/12)
-    runs-on: ubuntu-latest
-    needs: setup
-    timeout-minutes: 6
-    strategy:
-      fail-fast: false
-      matrix:
-        shard: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
-    env:
-      NODE_OPTIONS: --max-old-space-size=2048
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-
-      - name: Restore node_modules cache
-        uses: actions/cache@v4
-        with:
-          path: node_modules
-          key: ${{ runner.os }}-node-modules-${{ hashFiles('package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-modules-
-
-      - name: Run unit tests (shard ${{ matrix.shard }}/12)
-        run: npx vitest run --shard=${{ matrix.shard }}/12
-        env:
-          VITE_WORKERS_API_URL: ${{ secrets.VITE_WORKERS_API_URL }}
+  # ============================================
+  # Unit 테스트는 로컬 pre-commit hook에서 실행
+  # CI에서는 빌드/린트/타입체크만 확인
+  # ============================================
 
   # ============================================
   # Cloudflare Pages 배포 (Phase 1: 호스팅 마이그레이션)
@@ -134,7 +103,7 @@ jobs:
   deploy-cloudflare:
     name: Deploy to Cloudflare Pages
     runs-on: ubuntu-latest
-    needs: [setup, lint, test-unit]
+    needs: [setup, lint]
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/staging'
     timeout-minutes: 10
 
