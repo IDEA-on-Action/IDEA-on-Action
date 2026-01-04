@@ -15,6 +15,79 @@ import { useAuth } from '@/hooks/auth/useAuth';
 import type { PortfolioItem } from '@/types/shared/v2';
 
 // =====================================================
+// API 응답 → 프론트엔드 타입 변환
+// DB 필드명과 프론트엔드 타입 필드명 매핑
+// =====================================================
+interface ApiPortfolioItem {
+  id: string;
+  slug: string;
+  title: string;
+  description?: string;
+  short_description?: string;
+  client_name?: string;
+  category?: string;
+  technologies?: string;
+  featured_image?: string;
+  images?: string;
+  project_url?: string;
+  github_url?: string;
+  status?: string;
+  is_featured?: number;
+  display_order?: number;
+  completed_at?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * API 응답을 프론트엔드 PortfolioItem 타입으로 변환
+ */
+const transformApiResponse = (item: ApiPortfolioItem): PortfolioItem => {
+  // technologies와 images는 JSON 문자열일 수 있음
+  let techStack: string[] = [];
+  let imageArray: string[] = [];
+
+  try {
+    techStack = item.technologies ? JSON.parse(item.technologies) : [];
+  } catch {
+    techStack = [];
+  }
+
+  try {
+    imageArray = item.images ? JSON.parse(item.images) : [];
+  } catch {
+    imageArray = [];
+  }
+
+  return {
+    id: item.id,
+    slug: item.slug,
+    title: item.title,
+    summary: item.short_description || '',
+    description: item.description,
+    client_name: item.client_name,
+    project_type: (item.category as PortfolioItem['project_type']) || 'mvp',
+    thumbnail: item.featured_image,
+    images: imageArray,
+    tech_stack: techStack,
+    project_url: item.project_url,
+    github_url: item.github_url,
+    featured: item.is_featured === 1,
+    published: item.status === 'published',
+    created_at: item.created_at,
+    updated_at: item.updated_at,
+    testimonial: { author: '', role: '', content: '', avatar: '' },
+  };
+};
+
+/**
+ * API 응답 배열을 변환
+ */
+const transformApiResponseArray = (items: ApiPortfolioItem[]): PortfolioItem[] => {
+  return items.map(transformApiResponse);
+};
+
+// =====================================================
 // QUERY KEYS
 // =====================================================
 const QUERY_KEYS = {
@@ -47,8 +120,8 @@ export const usePortfolioItems = () => {
         return [];
       }
 
-      const result = response.data as { data: PortfolioItem[] } | null;
-      return result?.data || [];
+      const result = response.data as { data: ApiPortfolioItem[] } | null;
+      return transformApiResponseArray(result?.data || []);
     },
   });
 };
@@ -73,8 +146,8 @@ export const usePortfolioItem = (id: string) => {
         return null;
       }
 
-      const result = response.data as { data: PortfolioItem } | null;
-      return result?.data || null;
+      const result = response.data as { data: ApiPortfolioItem } | null;
+      return result?.data ? transformApiResponse(result.data) : null;
     },
     enabled: !!id,
   });
@@ -100,8 +173,8 @@ export const usePortfolioItemBySlug = (slug: string) => {
         return null;
       }
 
-      const result = response.data as { data: PortfolioItem } | null;
-      return result?.data || null;
+      const result = response.data as { data: ApiPortfolioItem } | null;
+      return result?.data ? transformApiResponse(result.data) : null;
     },
     enabled: !!slug,
   });
@@ -126,8 +199,8 @@ export const usePortfolioItemsByType = (projectType?: PortfolioItem['project_typ
           return [];
         }
 
-        const result = response.data as { data: PortfolioItem[] } | null;
-        return result?.data || [];
+        const result = response.data as { data: ApiPortfolioItem[] } | null;
+        return transformApiResponseArray(result?.data || []);
       }
 
       // projectType이 없으면 전체 조회
@@ -138,8 +211,8 @@ export const usePortfolioItemsByType = (projectType?: PortfolioItem['project_typ
         return [];
       }
 
-      const result = response.data as { data: PortfolioItem[] } | null;
-      return result?.data || [];
+      const result = response.data as { data: ApiPortfolioItem[] } | null;
+      return transformApiResponseArray(result?.data || []);
     },
   });
 };
@@ -162,8 +235,8 @@ export const useFeaturedPortfolioItems = () => {
         return [];
       }
 
-      const result = response.data as { data: PortfolioItem[] } | null;
-      return result?.data || [];
+      const result = response.data as { data: ApiPortfolioItem[] } | null;
+      return transformApiResponseArray(result?.data || []);
     },
   });
 };
@@ -187,8 +260,8 @@ export const usePublishedPortfolioItems = () => {
         return [];
       }
 
-      const result = response.data as { data: PortfolioItem[] } | null;
-      return result?.data || [];
+      const result = response.data as { data: ApiPortfolioItem[] } | null;
+      return transformApiResponseArray(result?.data || []);
     },
   });
 };
