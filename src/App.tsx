@@ -1,5 +1,5 @@
 import { Suspense, lazy, useEffect } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useParams, Navigate as RouterNavigate } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -27,6 +27,12 @@ const LoadingFallback = () => (
     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
   </div>
 );
+
+// Portfolio → Projects 리다이렉트 컴포넌트
+const PortfolioRedirect = () => {
+  const { slug } = useParams<{ slug: string }>();
+  return <RouterNavigate to={`/projects/${slug}`} replace />;
+};
 
 // Error Fallback component
 const ErrorFallback = () => (
@@ -250,7 +256,7 @@ const App = () => (
                 <Route path="/about" element={<Navigate to="/" replace />} />
                 <Route path="/roadmap" element={<Navigate to="/projects?tab=roadmap" replace />} />
                 <Route path="/portfolio" element={<Navigate to="/projects" replace />} />
-                <Route path="/portfolio/:slug" element={<Navigate to={`/projects/${window.location.pathname.split('/').pop()}`} replace />} />
+                <Route path="/portfolio/:slug" element={<PortfolioRedirect />} />
                 <Route path="/lab" element={<Navigate to="/projects?tab=lab" replace />} />
                 <Route path="/work-with-us" element={<Navigate to="/connect/inquiry" replace />} />
                 <Route path="/blog" element={<Navigate to="/stories/blog" replace />} />
