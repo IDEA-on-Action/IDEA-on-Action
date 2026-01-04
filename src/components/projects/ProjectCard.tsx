@@ -101,7 +101,7 @@ export function ProjectCard({
   const remainingTags = techStack.length - maxTags;
 
   return (
-    <Link to={`/portfolio/${project.slug}`} className="block h-full">
+    <Link to={`/projects/${project.slug}`} className="block h-full">
       <Card
         className={cn(
           "h-full transition-all duration-300 hover:shadow-lg hover:-translate-y-1",

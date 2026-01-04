@@ -285,7 +285,7 @@ const Index = () => {
 
               <div className="grid gap-6 md:grid-cols-3 mb-8">
                 {highlightProjects.map((project) => (
-                  <Link key={project.id} to={`/portfolio/${project.slug}`}>
+                  <Link key={project.id} to={`/projects/${project.slug}`}>
                     <Card className="glass-card p-6 hover-lift h-full">
                       <div className="flex items-start justify-between mb-4">
                         <Badge variant={getStatusBadgeVariant(project.status)}>

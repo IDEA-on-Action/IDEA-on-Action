@@ -409,7 +409,7 @@ function PortfolioCard({ item }: { item: PortfolioItem }) {
   };
 
   return (
-    <Link to={`/portfolio/${item.slug}`}>
+    <Link to={`/projects/${item.slug}`}>
       <Card className="glass-card p-6 space-y-4 hover-lift h-full flex flex-col cursor-pointer">
         {/* Header */}
         <div className="flex items-start justify-between gap-2">

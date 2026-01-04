@@ -250,6 +250,7 @@ const App = () => (
                 <Route path="/about" element={<Navigate to="/" replace />} />
                 <Route path="/roadmap" element={<Navigate to="/projects?tab=roadmap" replace />} />
                 <Route path="/portfolio" element={<Navigate to="/projects" replace />} />
+                <Route path="/portfolio/:slug" element={<Navigate to={`/projects/${window.location.pathname.split('/').pop()}`} replace />} />
                 <Route path="/lab" element={<Navigate to="/projects?tab=lab" replace />} />
                 <Route path="/work-with-us" element={<Navigate to="/connect/inquiry" replace />} />
                 <Route path="/blog" element={<Navigate to="/stories/blog" replace />} />
