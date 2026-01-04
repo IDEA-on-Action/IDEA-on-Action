@@ -10,7 +10,7 @@ import { BookOpen, Mail, FileText, Bell } from "lucide-react";
 import { StoriesSection, type StoriesSectionItem } from "@/components/stories/StoriesSection";
 import { PageLayout } from "@/components/layouts";
 import { useWordPressPosts } from "@/hooks/integrations/useWordPressPosts";
-import { useBlogPosts } from "@/hooks/cms/useBlogPosts";
+import { useChangelog } from "@/hooks/cms/useChangelog";
 import { useNotices } from "@/hooks/cms/useNotices";
 import { useNewsletterArchive } from '@/hooks/newsletter/useNewsletterArchive';
 
@@ -27,11 +27,8 @@ export default function StoriesHub() {
     limit: 3,
   });
 
-  // 변경사항 가져오기 (최신 3개, post_type: 'changelog')
-  const { data: changelogPosts, isLoading: changelogLoading } = useBlogPosts({
-    filters: { status: "published", post_type: "changelog" },
-    sortBy: "published_at",
-    sortOrder: "desc",
+  // 변경사항 가져오기 (최신 3개, GitHub Releases 동기화)
+  const { data: changelogEntries, isLoading: changelogLoading } = useChangelog({
     limit: 3,
   });
 
@@ -70,11 +67,11 @@ export default function StoriesHub() {
 
   // 변경사항 데이터를 StoriesSectionItem 형태로 변환
   const changelogItems: StoriesSectionItem[] =
-    changelogPosts?.map((post) => ({
-      id: post.id,
-      title: post.title,
-      excerpt: post.excerpt || undefined,
-      published_at: post.published_at || post.created_at,
+    changelogEntries?.map((entry) => ({
+      id: entry.id,
+      title: entry.title,
+      excerpt: entry.description?.slice(0, 100) || `${entry.version} 릴리즈`,
+      published_at: entry.released_at,
     })) || [];
 
   // 공지사항 데이터를 StoriesSectionItem 형태로 변환

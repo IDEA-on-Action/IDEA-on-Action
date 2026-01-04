@@ -80,27 +80,42 @@ function parseGitHubUrl(url: string): { owner: string; repo: string } | null {
 }
 
 // =============================================================================
-// 핸들러
+// 동기화 결과 타입
+// =============================================================================
+
+export interface SyncResult {
+  processed: number;
+  newReleases: number;
+  skipped: number;
+  errors: string[];
+}
+
+// =============================================================================
+// Cron에서 직접 호출하는 동기화 함수
 // =============================================================================
 
 /**
- * POST /sync - GitHub 릴리즈 동기화
+ * GitHub 릴리즈 동기화 (Cron Job용)
+ * scheduled 핸들러에서 직접 호출
  */
-githubReleases.post('/sync', requireAdmin, async (c) => {
-  const db = c.env.DB;
-  const slackWebhookUrl = c.env.SLACK_WEBHOOK_URL;
+export async function syncGitHubReleases(env: {
+  DB: D1Database;
+  SLACK_WEBHOOK_URL?: string;
+}): Promise<SyncResult> {
+  const db = env.DB;
+  const slackWebhookUrl = env.SLACK_WEBHOOK_URL;
+
+  const results: SyncResult = {
+    processed: 0,
+    newReleases: 0,
+    skipped: 0,
+    errors: [],
+  };
 
   // 프로젝트 조회 (GitHub URL이 있는 것만)
   const projects = await db
     .prepare("SELECT id, title, slug, links FROM projects WHERE links IS NOT NULL")
     .all<{ id: string; title: string; slug: string; links: string }>();
-
-  const results = {
-    processed: 0,
-    newReleases: 0,
-    skipped: 0,
-    errors: [] as string[],
-  };
 
   for (const project of projects.results || []) {
     results.processed++;
@@ -161,7 +176,7 @@ githubReleases.post('/sync', requireAdmin, async (c) => {
         .run();
 
       results.newReleases++;
-      console.log(`새 릴리즈: ${project.title} ${release.tag_name}`);
+      console.log(`[Cron] 새 릴리즈: ${project.title} ${release.tag_name}`);
 
       // Slack 알림
       if (slackWebhookUrl) {
@@ -190,6 +205,20 @@ githubReleases.post('/sync', requireAdmin, async (c) => {
       results.errors.push(`${project.title}: ${(error as Error).message}`);
     }
   }
+
+  console.log(`[Cron] GitHub 동기화 완료: ${results.newReleases}개 새 릴리즈, ${results.skipped}개 스킵`);
+  return results;
+}
+
+// =============================================================================
+// 핸들러
+// =============================================================================
+
+/**
+ * POST /sync - GitHub 릴리즈 동기화 (관리자 수동 호출용)
+ */
+githubReleases.post('/sync', requireAdmin, async (c) => {
+  const results = await syncGitHubReleases(c.env);
 
   return c.json({
     success: true,

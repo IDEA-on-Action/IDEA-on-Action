@@ -90,7 +90,10 @@ import webhookSend from './handlers/webhooks/send';
 import newsletter from './handlers/notifications/newsletter';
 
 // Cron Handlers (Phase 12)
-import githubReleases from './handlers/cron/github-releases';
+import githubReleases, { syncGitHubReleases } from './handlers/cron/github-releases';
+
+// Changelog Entries API (Phase 12)
+import changelogEntries from './handlers/api/changelog-entries';
 import weeklyRecap from './handlers/cron/weekly-recap';
 
 // Monitoring Handlers (Phase 13)
@@ -138,6 +141,7 @@ app.route('/api/v1/blog', blog);
 app.route('/api/v1/notices', notices);
 app.route('/api/v1/portfolio', portfolio);
 app.route('/api/v1/roadmap', roadmap);
+app.route('/api/v1/changelog-entries', changelogEntries);
 
 // Admin API (Service Key 인증)
 app.route('/api/v1/admin', admin);
@@ -226,14 +230,20 @@ app.onError((err, c) => {
 });
 
 // Scheduled 이벤트 핸들러 (Cron)
-import { processSubscriptions } from './handlers/cron/subscription-processor';
-
 export default {
   fetch: app.fetch,
   async scheduled(event: ScheduledEvent, env: AppType['Bindings'], ctx: ExecutionContext) {
-    console.log(`Cron triggered at ${new Date(event.scheduledTime).toISOString()}`);
+    console.log(`Cron triggered at ${new Date(event.scheduledTime).toISOString()}, cron: ${event.cron}`);
 
-    // 정기결제 처리
-    ctx.waitUntil(processSubscriptions(env));
+    // 매일 00:00 UTC - 정기결제 처리
+    if (event.cron === '0 0 * * *') {
+      const { processSubscriptions } = await import('./handlers/cron/subscription-processor');
+      ctx.waitUntil(processSubscriptions(env));
+    }
+
+    // 매시간 - GitHub 릴리즈 동기화
+    if (event.cron === '0 * * * *') {
+      ctx.waitUntil(syncGitHubReleases(env));
+    }
   },
 };
