@@ -9,6 +9,26 @@
 
 ---
 
+## [3.2.2] - 2026-01-04 🔄 GitHub Releases 자동 동기화
+
+### ✨ 신규 기능
+
+- **GitHub Releases 자동 동기화 시스템**
+  - `/api/v1/changelog-entries` API 엔드포인트 생성
+  - `syncGitHubReleases` 함수 분리 (Cron에서 직접 호출)
+  - 매시간 Cron 트리거 추가 (`0 * * * *`)
+  - StoriesHub 변경사항 섹션 `useChangelog` 훅으로 변경
+  - D1 데이터베이스 초기 설정 (projects, changelog_entries)
+
+### 📝 문서
+
+- **배포 방식 문서화**
+  - CLAUDE.md에 배포 섹션 추가
+  - Cloudflare Pages 자동 배포 명시
+  - Vercel 사용 금지 경고 추가
+
+---
+
 ## [3.2.1] - 2026-01-01 🔧 대규모 @deprecated Re-export 마이그레이션
 
 ### 🔧 리팩토링

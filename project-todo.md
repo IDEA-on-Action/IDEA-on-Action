@@ -2,11 +2,34 @@
 
 > 프로젝트 작업 목록 및 진행 상황 관리
 
-**마지막 업데이트**: 2026-01-01
+**마지막 업데이트**: 2026-01-04
 **현재 Phase**: v3.2.2 완료 🚀
 **다음 단계**: v3.3.0 계획
 **프로젝트 버전**: 3.2.2
 **프로덕션**: https://www.ideaonaction.ai
+
+---
+
+## ✅ 완료: v3.2.2 GitHub Releases 자동 동기화 (2026-01-04)
+
+**목표**: GitHub Releases 자동 동기화 및 StoriesHub 통합
+**완료일**: 2026-01-04
+
+### 작업 개요
+
+| 작업 | 상태 | 설명 |
+|------|------|------|
+| changelog-entries API | ✅ | `/api/v1/changelog-entries` 엔드포인트 생성 |
+| syncGitHubReleases 분리 | ✅ | Cron에서 직접 호출 가능하도록 함수 분리 |
+| Cron 트리거 추가 | ✅ | 매시간 동기화 (`0 * * * *`) |
+| StoriesHub 변경사항 | ✅ | `useChangelog` 훅으로 변경 |
+| D1 데이터 설정 | ✅ | projects, changelog_entries 초기 데이터 |
+| 배포 방식 문서화 | ✅ | Cloudflare Pages 자동 배포 명시 |
+
+### 커밋
+
+- a209eb1: docs: 배포 방식 명시 (Cloudflare Pages, Vercel 사용 금지)
+- 0986a80: feat: GitHub Releases 자동 동기화 기능 추가
 
 ---
 
