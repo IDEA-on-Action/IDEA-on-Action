@@ -91,14 +91,18 @@ jobs:
       - name: TypeScript Type Check
         run: npx tsc --noEmit
 
-  # Unit Tests - 단일 실행
+  # Unit Tests - Shard로 분할 실행 (메모리 최적화)
   test-unit:
-    name: Unit Tests
+    name: Unit Tests (Shard ${{ matrix.shard }}/3)
     runs-on: ubuntu-latest
     needs: setup
-    timeout-minutes: 15
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
     env:
-      NODE_OPTIONS: --max-old-space-size=6144
+      NODE_OPTIONS: --max-old-space-size=4096
 
     steps:
       - name: Checkout code
@@ -118,8 +122,8 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-node-modules-
 
-      - name: Run unit tests
-        run: npx vitest run
+      - name: Run unit tests (shard ${{ matrix.shard }}/3)
+        run: npx vitest run --shard=${{ matrix.shard }}/3
         env:
           VITE_WORKERS_API_URL: ${{ secrets.VITE_WORKERS_API_URL }}
 
