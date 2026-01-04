@@ -93,16 +93,16 @@ jobs:
 
   # Unit Tests - Shard로 분할 실행 (메모리 최적화)
   test-unit:
-    name: Unit Tests (Shard ${{ matrix.shard }}/6)
+    name: Unit Tests (Shard ${{ matrix.shard }}/12)
     runs-on: ubuntu-latest
     needs: setup
-    timeout-minutes: 8
+    timeout-minutes: 6
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4, 5, 6]
+        shard: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
     env:
-      NODE_OPTIONS: --max-old-space-size=3072
+      NODE_OPTIONS: --max-old-space-size=2048
 
     steps:
       - name: Checkout code
@@ -122,8 +122,8 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-node-modules-
 
-      - name: Run unit tests (shard ${{ matrix.shard }}/6)
-        run: npx vitest run --shard=${{ matrix.shard }}/6
+      - name: Run unit tests (shard ${{ matrix.shard }}/12)
+        run: npx vitest run --shard=${{ matrix.shard }}/12
         env:
           VITE_WORKERS_API_URL: ${{ secrets.VITE_WORKERS_API_URL }}
 
