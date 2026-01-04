@@ -176,6 +176,30 @@ npm run release:patch && git push --follow-tags && gh release create v$(node -p 
 
 ---
 
+## 🚀 배포 ⚠️ 중요
+
+> **이 프로젝트는 Cloudflare Pages로 배포됩니다. Vercel을 사용하지 않습니다.**
+
+| 항목 | 값 |
+|------|-----|
+| 프론트엔드 | Cloudflare Pages (자동 배포) |
+| 백엔드 API | Cloudflare Workers |
+| 데이터베이스 | Cloudflare D1 |
+| 스토리지 | Cloudflare R2 |
+
+### 배포 방식
+
+- **자동 배포**: `git push origin main` → GitHub Actions → Cloudflare Pages
+- **수동 배포 금지**: `vercel`, `npx vercel` 등 Vercel 명령어 사용 금지
+- **Workers 배포**: `cd cloudflare-workers && npx wrangler deploy`
+
+### 배포 URL
+
+- **Production**: <https://www.ideaonaction.ai/>
+- **Preview**: `https://{branch}.idea-on-action.pages.dev`
+
+---
+
 ## 📁 프로젝트 구조
 
 ```
