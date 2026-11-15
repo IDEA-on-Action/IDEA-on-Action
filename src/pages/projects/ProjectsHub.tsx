@@ -275,6 +275,17 @@ export default function ProjectsHub() {
           )}
         </Section>
 
+        {/* 수행 사례 안내 */}
+        <Section className="py-0">
+          <Link
+            to="/cases"
+            className="flex flex-wrap items-center justify-between gap-3 rounded-lg border p-4 hover:bg-muted/50 transition-colors"
+          >
+            <span className="font-semibold">외주·컨설팅 수행 사례와 대표 경력을 보고 싶으신가요?</span>
+            <span className="text-sm text-primary">수행 사례 보기 →</span>
+          </Link>
+        </Section>
+
         {/* Tab Content */}
         <Section className="pt-4">
           <Tabs value={activeTab} onValueChange={handleTabChange}>
