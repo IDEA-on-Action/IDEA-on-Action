@@ -122,6 +122,17 @@ const WorkWithUs = () => {
           </div>
         </Section>
 
+        {/* 수행 사례 안내 */}
+        <Section maxWidth="4xl" className="py-0">
+          <Link
+            to="/cases"
+            className="flex flex-wrap items-center justify-between gap-3 rounded-lg border p-4 hover:bg-muted/50 transition-colors"
+          >
+            <span className="font-semibold">비슷한 과업을 수행한 적이 있는지 먼저 확인해 보세요.</span>
+            <span className="text-sm text-primary">수행 사례 보기 →</span>
+          </Link>
+        </Section>
+
         {/* Contact Form */}
         <Section variant="muted" maxWidth="4xl">
           <div className="text-center mb-12">

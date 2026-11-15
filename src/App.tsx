@@ -108,6 +108,8 @@ const About = lazy(() => import("./pages/About"));
 const Roadmap = lazy(() => import("./pages/Roadmap"));
 const Portfolio = lazy(() => import("./pages/Portfolio"));
 const PortfolioDetail = lazy(() => import("./pages/PortfolioDetail"));
+const CaseStudies = lazy(() => import("./pages/CaseStudies"));
+const CaseStudyDetail = lazy(() => import("./pages/CaseStudyDetail"));
 const Now = lazy(() => import("./pages/Now"));
 const Lab = lazy(() => import("./pages/Lab"));
 const Community = lazy(() => import("./pages/Community"));
@@ -266,6 +268,10 @@ const App = () => (
                 {/* Projects Hub - 신규 IA */}
                 <Route path="/projects" element={<ProjectsHub />} />
                 <Route path="/projects/:slug" element={<PortfolioDetail />} />
+
+                {/* 수행 사례 */}
+                <Route path="/cases" element={<CaseStudies />} />
+                <Route path="/cases/:slug" element={<CaseStudyDetail />} />
 
                 {/* Stories Hub - 신규 IA */}
                 <Route path="/stories" element={<StoriesHub />} />

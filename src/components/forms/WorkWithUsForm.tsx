@@ -23,6 +23,7 @@ import {
 } from '@/components/ui/form';
 import { useSubmitWorkInquiry, type WorkInquiry } from '@/hooks/projects/useWorkInquiries';
 import { toast } from 'sonner';
+import { getCaseStudyBySlug } from '@/data/case-studies';
 
 const proposalSchema = z.object({
   name: z.string().min(2, '이름은 2자 이상 입력해주세요'),
@@ -49,6 +50,16 @@ const contactLabels = {
   calendar: '캘린더 (미팅 예약)',
 };
 
+/**
+ * 사례 상세에서 넘어온 문의면(?case=slug) 참고 사례 제목을 문의 내용 첫 줄에 채운다.
+ */
+const getInitialBrief = (): string => {
+  if (typeof window === 'undefined') return '';
+  const slug = new URLSearchParams(window.location.search).get('case');
+  const item = slug ? getCaseStudyBySlug(slug) : undefined;
+  return item ? `[참고 사례] ${item.title}\n\n` : '';
+};
+
 export const WorkWithUsForm = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { mutateAsync: submitInquiry } = useSubmitWorkInquiry();
@@ -61,7 +72,7 @@ export const WorkWithUsForm = () => {
       company: '',
       package: 'MVP',
       budget: '',
-      brief: '',
+      brief: getInitialBrief(),
     },
   });
 
