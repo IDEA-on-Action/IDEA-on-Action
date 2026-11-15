@@ -268,11 +268,9 @@
     @apply text-[rgb(var(--color-text-tertiary))];
   }
 
-  /* Background Color Utilities */
-  .bg-primary {
-    @apply bg-[rgb(var(--color-bg-primary))];
-  }
-
+  /* Background Color Utilities
+     주의: .bg-primary 는 여기서 정의하지 않는다. shadcn/ui 의 bg-primary(브랜드 색)를 덮어써서
+     기본 버튼·배지·진행 막대가 밝은 테마에서 흰 바탕에 흰 글자로 보이는 문제가 있었다. */
   .bg-secondary {
     @apply bg-[rgb(var(--color-bg-secondary))];
   }
