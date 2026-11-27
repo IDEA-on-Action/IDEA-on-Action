@@ -91,6 +91,11 @@ async function generateSitemap() {
     { url: '/status', changefreq: 'daily', priority: '0.7' },
   ]
 
+  // K-FDE Studio 소개 페이지는 공개 설정이 켜진 빌드에서만 사이트맵에 넣는다
+  if (process.env.VITE_FEATURE_KFDE_STUDIO === 'true') {
+    staticPages.push({ url: '/services/kfde-studio', changefreq: 'monthly', priority: '0.8' })
+  }
+
   // Fetch from Workers API
   const [blogPosts, services, projects] = await Promise.all([
     fetchFromWorkersAPI<BlogPost>('/api/v1/blog/posts?status=published&limit=1000'),

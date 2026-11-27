@@ -21,7 +21,12 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
-import { AlertCircle, PackageOpen, Plus } from 'lucide-react'
+import { AlertCircle, ArrowRight, PackageOpen, Plus } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { Badge } from '@/components/ui/badge'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { features } from '@/config/features'
+import { KFDE_STUDIO_PATH, kfdeStudioCopy } from '@/data/products/kfde-studio'
 
 export default function Services() {
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
@@ -82,6 +87,30 @@ export default function Services() {
               AI 기반 워킹 솔루션으로 업무 생산성을 극대화하세요
             </p>
           </div>
+
+          {/* 제품 소개 카드: VITE_FEATURE_KFDE_STUDIO 가 'true' 일 때만 공개 */}
+          {features.kfdeStudio && (
+            <section aria-label="제품 소개">
+              <Card className="hover-lift transition-all">
+                <CardHeader>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge variant="outline">{kfdeStudioCopy.stage}</Badge>
+                    <span className="text-sm text-muted-foreground">{kfdeStudioCopy.footer[2]}</span>
+                  </div>
+                  <CardTitle className="text-2xl">{kfdeStudioCopy.name}</CardTitle>
+                  <CardDescription className="text-base">{kfdeStudioCopy.tagline}</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Button asChild variant="outline" className="group">
+                    <Link to={KFDE_STUDIO_PATH}>
+                      자세히 보기
+                      <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" aria-hidden="true" />
+                    </Link>
+                  </Button>
+                </CardContent>
+              </Card>
+            </section>
+          )}
 
           {/* 필터 섹션 */}
           <div className="glass-card p-6 space-y-6">

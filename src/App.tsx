@@ -79,6 +79,7 @@ import Index from "./pages/Index";
 import Login from "./pages/Login";
 import AuthCallback from "./pages/AuthCallback";
 import NotFound from "./pages/NotFound";
+import { features } from "./config/features";
 
 // Lazy load (Code Split) - Public pages
 const Services = lazy(() => import("./pages/Services"));
@@ -126,6 +127,7 @@ const MinuFramePage = lazy(() => import("./pages/services-platform/MinuFramePage
 const MinuBuildPage = lazy(() => import("./pages/services-platform/MinuBuildPage"));
 const MinuKeepPage = lazy(() => import("./pages/services-platform/MinuKeepPage"));
 const MinuPlatformPage = lazy(() => import("./pages/services-platform/MinuPlatformPage"));
+const KfdeStudioPage = lazy(() => import("./pages/services-platform/KfdeStudioPage"));
 // Legacy COMPASS pages (하위 호환성)
 const NavigatorPage = lazy(() => import("./pages/services-platform/NavigatorPage"));
 const COMPASSPlatformPage = lazy(() => import("./pages/services-platform/COMPASSPlatformPage"));
@@ -292,6 +294,10 @@ const App = () => (
                 <Route path="/services/development/design" element={<DesignPage />} />
                 <Route path="/services/development/operations" element={<OperationsPage />} />
                 {/* Minu Platform Routes (신규) */}
+                {/* K-FDE Studio 소개: VITE_FEATURE_KFDE_STUDIO 가 'true' 일 때만 공개 */}
+                {features.kfdeStudio && (
+                  <Route path="/services/kfde-studio" element={<KfdeStudioPage />} />
+                )}
                 <Route path="/services/minu" element={<MinuPlatformPage />} />
                 <Route path="/services/minu/find" element={<MinuFindPage />} />
                 <Route path="/services/minu/frame" element={<MinuFramePage />} />
