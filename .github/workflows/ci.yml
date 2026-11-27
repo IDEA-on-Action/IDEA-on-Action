@@ -36,6 +36,8 @@ jobs:
         run: npm run build
         env:
           VITE_WORKERS_API_URL: ${{ secrets.VITE_WORKERS_API_URL }}
+          # K-FDE Studio 공개 설정. 레포 변수가 'true' 일 때만 켜진다 (없으면 꺼짐)
+          VITE_FEATURE_KFDE_STUDIO: ${{ vars.VITE_FEATURE_KFDE_STUDIO }}
 
       - name: Check bundle size
         run: |
@@ -90,6 +92,13 @@ jobs:
 
       - name: TypeScript Type Check
         run: npx tsc --noEmit
+
+      # 공개 문구 검사: 금칙어와 긴 줄표. 금칙어 목록은 저장소에 두지 않고 시크릿으로 받는다.
+      # 목록이 없으면 금칙어 검사는 통과가 아니라 미측정으로 기록된다.
+      - name: Check public copy (K-FDE Studio)
+        run: node scripts/guards/check-public-copy.mjs
+        env:
+          BLOCKED_TOKENS_JSON: ${{ secrets.KFDE_BLOCKED_TOKENS_JSON }}
 
   # ============================================
   # Unit 테스트는 로컬 pre-commit hook에서 실행
