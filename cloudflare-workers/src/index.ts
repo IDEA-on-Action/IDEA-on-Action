@@ -31,6 +31,7 @@ import notices from './handlers/api/notices';
 import portfolio from './handlers/api/portfolio';
 import roadmap from './handlers/api/roadmap';
 import admin from './handlers/api/admin';
+import productInquiries from './handlers/api/product-inquiries';
 
 // OAuth Handlers (Wave 3)
 import authorize from './handlers/oauth/authorize';
@@ -142,6 +143,7 @@ app.route('/api/v1/notices', notices);
 app.route('/api/v1/portfolio', portfolio);
 app.route('/api/v1/roadmap', roadmap);
 app.route('/api/v1/changelog-entries', changelogEntries);
+app.route('/api/v1/product-inquiries', productInquiries);
 
 // Admin API (Service Key 인증)
 app.route('/api/v1/admin', admin);

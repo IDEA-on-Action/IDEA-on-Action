@@ -38,6 +38,9 @@ jobs:
           VITE_WORKERS_API_URL: ${{ secrets.VITE_WORKERS_API_URL }}
           # K-FDE Studio 공개 설정. 레포 변수가 'true' 일 때만 켜진다 (없으면 꺼짐)
           VITE_FEATURE_KFDE_STUDIO: ${{ vars.VITE_FEATURE_KFDE_STUDIO }}
+          # 제품 문의 양식 공개 설정과 Turnstile 사이트 키 (레포 변수)
+          VITE_FEATURE_PRODUCT_INQUIRY: ${{ vars.VITE_FEATURE_PRODUCT_INQUIRY }}
+          VITE_TURNSTILE_SITE_KEY: ${{ vars.VITE_TURNSTILE_SITE_KEY }}
 
       - name: Check bundle size
         run: |

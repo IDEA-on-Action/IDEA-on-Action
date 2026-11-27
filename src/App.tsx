@@ -112,7 +112,6 @@ const PortfolioDetail = lazy(() => import("./pages/PortfolioDetail"));
 const Now = lazy(() => import("./pages/Now"));
 const Lab = lazy(() => import("./pages/Lab"));
 const Community = lazy(() => import("./pages/Community"));
-const WorkWithUs = lazy(() => import("./pages/WorkWithUs"));
 const Status = lazy(() => import("./pages/Status"));
 
 // Lazy load (Code Split) - Services Platform pages
@@ -127,6 +126,8 @@ const MinuFramePage = lazy(() => import("./pages/services-platform/MinuFramePage
 const MinuBuildPage = lazy(() => import("./pages/services-platform/MinuBuildPage"));
 const MinuKeepPage = lazy(() => import("./pages/services-platform/MinuKeepPage"));
 const MinuPlatformPage = lazy(() => import("./pages/services-platform/MinuPlatformPage"));
+const InquiryRoute = lazy(() => import("./pages/connect/InquiryRoute"));
+const AdminProductInquiries = lazy(() => import("./pages/admin/AdminProductInquiries"));
 const KfdeStudioPage = lazy(() => import("./pages/services-platform/KfdeStudioPage"));
 // Legacy COMPASS pages (하위 호환성)
 const NavigatorPage = lazy(() => import("./pages/services-platform/NavigatorPage"));
@@ -280,7 +281,7 @@ const App = () => (
 
                 {/* Connect Hub - 신규 IA */}
                 <Route path="/connect" element={<ConnectHub />} />
-                <Route path="/connect/inquiry" element={<WorkWithUs />} />
+                <Route path="/connect/inquiry" element={<InquiryRoute />} />
                 <Route path="/connect/community" element={<Community />} />
 
                 {/* Version 2.0 Routes - 유지되는 라우트 */}
@@ -356,6 +357,7 @@ const App = () => (
                   <Route path="team" element={<AdminTeam />} />
                   <Route path="users" element={<AdminUsers />} />
                   <Route path="newsletter" element={<AdminNewsletter />} />
+                  <Route path="product-inquiries" element={<AdminProductInquiries />} />
                   <Route path="analytics" element={<Analytics />} />
                   <Route path="revenue" element={<Revenue />} />
                   <Route path="realtime" element={<RealtimeDashboard />} />

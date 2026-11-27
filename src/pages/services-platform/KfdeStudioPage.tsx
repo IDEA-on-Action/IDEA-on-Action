@@ -5,7 +5,7 @@ import { SEO } from "@/components/shared/SEO";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { features } from "@/config/features";
+import { isProductInquiryOpen } from "@/data/products/product-inquiry";
 import { cn } from "@/lib/utils";
 import { KFDE_STUDIO_INQUIRY_PATH, KFDE_STUDIO_PATH, kfdeStudioCopy as copy } from "@/data/products/kfde-studio";
 
@@ -59,7 +59,7 @@ function CopyTable({
 
 function InquiryButton({ className }: { className?: string }) {
   // 문의 양식의 공개가 확정되기 전에는 버튼을 보여 주지 않습니다.
-  if (!features.productInquiry) return null;
+  if (!isProductInquiryOpen()) return null;
 
   return (
     <Button asChild size="lg" className={className}>

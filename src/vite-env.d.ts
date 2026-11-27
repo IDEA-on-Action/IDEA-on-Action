@@ -3,6 +3,9 @@
 interface ImportMetaEnv {
   // Cloudflare Workers API
   readonly VITE_WORKERS_API_URL: string
+  readonly VITE_FEATURE_KFDE_STUDIO?: string
+  readonly VITE_FEATURE_PRODUCT_INQUIRY?: string
+  readonly VITE_TURNSTILE_SITE_KEY?: string
 
   // OAuth
   readonly VITE_GOOGLE_CLIENT_ID: string
