@@ -53,8 +53,8 @@ export const labelOf = (options: readonly { value: string; label: string }[], va
 /**
  * 개인정보 수집·이용 동의 안내
  *
- * 처리 주체, 이용 목적, 보유 기간은 아직 정해지지 않았습니다. 정해지면 아래 null 자리에 확정 문구를 넣습니다.
- * 세 값이 모두 채워지기 전에는 운영 빌드에서 문의 양식이 열리지 않습니다.
+ * 처리 주체와 보유 기간은 2026-11-27 에 정했습니다 (처리 주체: 생각과행동, 보유 기간: 접수 뒤 1년).
+ * 세 값 가운데 하나라도 null 이면 운영 빌드에서 문의 양식이 열리지 않습니다.
  */
 export const PRODUCT_INQUIRY_CONSENT: {
   controller: string | null;
@@ -62,9 +62,9 @@ export const PRODUCT_INQUIRY_CONSENT: {
   retention: string | null;
   items: readonly string[];
 } = {
-  controller: null,
-  purpose: null,
-  retention: null,
+  controller: '생각과행동 (IDEA on Action)',
+  purpose: '도입 문의의 확인과 회신',
+  retention: '접수한 날부터 1년 동안 보유한 뒤 삭제합니다',
   items: ['회사 또는 기관명', '이름', '업무 메일', '연락처', '역할', '적용하려는 업무', '설치 환경', '희망 시기'],
 };
 
