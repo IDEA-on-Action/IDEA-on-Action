@@ -45,11 +45,14 @@ describe('ProductInquiryForm', () => {
     expect(screen.getByRole('checkbox', { name: '개인정보 수집·이용에 동의합니다 *' })).toBeInTheDocument();
   });
 
-  it('수집 항목을 양식 아래에 보여 주고 미정인 값은 확정 전으로 표시한다', () => {
+  it('수집 항목, 처리 주체, 이용 목적, 보유 기간을 양식 아래에 보여 준다', () => {
     render(<ProductInquiryForm productId="kfde-studio" turnstileSiteKey="" />);
 
     expect(screen.getByText(/회사 또는 기관명, 이름, 업무 메일/)).toBeInTheDocument();
-    expect(screen.getAllByText('확정 전')).toHaveLength(3);
+    expect(screen.getByText('생각과행동 (IDEA on Action)')).toBeInTheDocument();
+    expect(screen.getByText('도입 문의의 확인과 회신')).toBeInTheDocument();
+    expect(screen.getByText('접수한 날부터 1년 동안 보유한 뒤 삭제합니다')).toBeInTheDocument();
+    expect(screen.queryByText('확정 전')).not.toBeInTheDocument();
   });
 
   it('필수 항목이 비어 있으면 제출하지 않는다', async () => {
