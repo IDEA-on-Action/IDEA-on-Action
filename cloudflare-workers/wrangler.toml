@@ -41,6 +41,12 @@ API_VERSION = "3.0.0"
 CORS_ORIGINS = "https://www.ideaonaction.ai,https://preview.ideaonaction.ai"
 WORKER_URL = "https://api.ideaonaction.ai"
 FRONTEND_URL = "https://www.ideaonaction.ai"
+# 제품 문의 접수 (K-FDE Studio). "true" 일 때만 POST /api/v1/product-inquiries 가 접수한다.
+# 개인정보 처리 주체, 보유 기간, PO 확인이 정해지기 전에는 켜지 않는다.
+PRODUCT_INQUIRY_ENABLED = "false"
+# 알림 메일 수신자는 미정이다. 정해지면 아래 값을 넣는다 (없으면 알림 메일을 보내지 않는다).
+# PRODUCT_INQUIRY_RECIPIENT = ""
+# Turnstile 비밀 키는 secret 으로 넣는다: npx wrangler secret put TURNSTILE_SECRET_KEY
 
 # =============================================================================
 # KV Namespaces

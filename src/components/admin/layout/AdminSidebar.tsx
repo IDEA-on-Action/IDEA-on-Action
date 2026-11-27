@@ -111,6 +111,7 @@ const MENU_SECTIONS: { title: string; items: AdminMenuItem[] }[] = [
       { label: '역할 관리', path: '/admin/roles', icon: Shield, permission: 'user:manage' },
       { label: 'Media Library', path: '/admin/media', icon: Image, permission: 'system:read' },
       { label: 'Newsletter', path: '/admin/newsletter', icon: Mail, permission: 'system:read' },
+      { label: '제품 문의', path: '/admin/product-inquiries', icon: Mail, permission: 'system:read' },
       { label: '연동 관리', path: '/admin/integrations', icon: Plug, permission: 'system:manage' },
       { label: '프롬프트 템플릿', path: '/admin/prompt-templates', icon: MessageSquare, permission: 'system:manage' },
       { label: 'Activity Logs', path: '/admin/audit-logs', icon: History, permission: 'system:manage' },

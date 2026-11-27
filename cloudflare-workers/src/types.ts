@@ -37,6 +37,11 @@ export interface Env {
   API_VERSION: string;
   CORS_ORIGINS: string;
 
+  // 제품 문의 (K-FDE Studio)
+  PRODUCT_INQUIRY_ENABLED?: string; // 'true' 일 때만 접수
+  PRODUCT_INQUIRY_RECIPIENT?: string; // 알림 메일 수신자 (미정이면 비워 둔다)
+  TURNSTILE_SECRET_KEY?: string; // Cloudflare Turnstile 비밀 키 (wrangler secret)
+
   // Secrets (wrangler secret으로 설정)
   JWT_SECRET: string;
   SERVICE_KEY: string; // MCP Server 등 내부 서비스 인증용
